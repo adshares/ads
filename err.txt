@@ -1,0 +1,17 @@
+/tmp/cc9Q3PN6.o: In function `server::server(boost::asio::io_service&, boost::asio::ip::basic_endpoint<boost::asio::ip::tcp> const&, options&)':
+main.cpp:(.text._ZN6serverC2ERN5boost4asio10io_serviceERKNS1_2ip14basic_endpointINS4_3tcpEEER7options[_ZN6serverC5ERN5boost4asio10io_serviceERKNS1_2ip14basic_endpointINS4_3tcpEEER7options]+0x777): undefined reference to `server::connect(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >)'
+main.cpp:(.text._ZN6serverC2ERN5boost4asio10io_serviceERKNS1_2ip14basic_endpointINS4_3tcpEEER7options[_ZN6serverC5ERN5boost4asio10io_serviceERKNS1_2ip14basic_endpointINS4_3tcpEEER7options]+0x860): undefined reference to `server::start_accept()'
+/tmp/cc9Q3PN6.o: In function `server::double_spend(boost::shared_ptr<message>)':
+main.cpp:(.text._ZN6server12double_spendEN5boost10shared_ptrI7messageEE[_ZN6server12double_spendEN5boost10shared_ptrI7messageEE]+0x10d): undefined reference to `server::update(boost::shared_ptr<message>)'
+/tmp/cc9Q3PN6.o: In function `server::blk_validate(boost::shared_ptr<message>)':
+main.cpp:(.text._ZN6server12blk_validateEN5boost10shared_ptrI7messageEE[_ZN6server12blk_validateEN5boost10shared_ptrI7messageEE]+0x211): undefined reference to `server::update(boost::shared_ptr<message>)'
+/tmp/cc9Q3PN6.o: In function `server::validator()':
+main.cpp:(.text._ZN6server9validatorEv[_ZN6server9validatorEv]+0x356): undefined reference to `server::deliver(boost::shared_ptr<message>, unsigned short)'
+main.cpp:(.text._ZN6server9validatorEv[_ZN6server9validatorEv]+0xc1a): undefined reference to `server::update(boost::shared_ptr<message>)'
+/tmp/cc9Q3PN6.o: In function `server::write_candidate(hash_s const&)':
+main.cpp:(.text._ZN6server15write_candidateERK6hash_s[_ZN6server15write_candidateERK6hash_s]+0x11d): undefined reference to `server::update(boost::shared_ptr<message>)'
+/tmp/cc9Q3PN6.o: In function `server::write_header()':
+main.cpp:(.text._ZN6server12write_headerEv[_ZN6server12write_headerEv]+0x148): undefined reference to `server::update(boost::shared_ptr<message>)'
+/tmp/cc9Q3PN6.o: In function `server::clock()':
+main.cpp:(.text._ZN6server5clockEv[_ZN6server5clockEv]+0x3b6): undefined reference to `server::deliver(boost::shared_ptr<message>)'
+collect2: error: ld returned 1 exit status

@@ -1,0 +1,72 @@
+#!/bin/cat
+
+#http://www.boost.org/doc/libs/1_61_0/doc/html/boost_asio/examples.html
+#g++ sender.cpp -o sender -lboost_system
+#g++ blocking_tcp_echo_client.cpp -o blocking_tcp_echo_client -lboost_system -lpthread
+#g++ chat_client.cpp -o chat_client -lboost_system -lpthread -lboost_thread
+#g++ chat_server.cpp -o chat_server -lboost_system -lpthread -lboost_thread
+#g++ options.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_program_options
+
+#options
+g++ -DTEST options.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_program_options -o options
+#servers
+#g++ -DTEST servers.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_serialization -o servers
+#main
+#clear && g++ main.cpp options.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -o main 2>&1 | head -20
+
+clear && g++ -Wall main.cpp server.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -o main 2>&1 | head -20
+
+# signatures:
+# http://stackoverflow.com/questions/2228860/signing-a-message-using-ecdsa-in-openssl
+# 
+
+#GOAL:
+- fast sync to hashed state of all accounts
+- slow revokable transactions (intrusion detection)
+
+#TODO
+- change server double spend handling ... mark new double-spend messages as failed ... [warn clients about problems!!!]
+- send last accepted message from double spending server (stop propagating more message unless they are in consensus) [no need to repeat this when voting]
+- exclude double spending server from voting
+
+- server shutdown message
+- server disconnect
+	- bad srv-block received
+	- do not broadcast bad srv-blocks
+- server send srv-block proposal to peers [?]
+- user ...
+	- separate fast and slow queue
+	- maybe slow queue with second key only?
+	- add block hash to trasactions
+- when double spent, wait for signer to define last srv-block
+- include hash(=signature) of previous block when checking server signature [!!! yes !!!]
+- include hash(=signature) of previous day-block when checking server signature [!!! yes !!!]
+- inform peer about accepting day-block
+- resubmit srv-block if srv-block missed its correct day-block [with new timestamp]
+
+#DO NOW
+- build blocks
+	- who ?
+		- big banks [yes, they are probably active anyway]
+		- set of block signers [must be always active] [can be hidden]
+		- single block signer [fast !!!]
+			- if silent replaced by angry server with lowest id
+			+ angry server proposal (collect votes)
+
+	- collect votes for new signer-candidate if:
+		- signer shutdown message received [shutdown could include candidate suggestion approved by candidate]
+		- signer failure/dbl-spend reseived
+		- signer silent for too long (1h?)
+		- signer proposed bad day-block [block with hashes of all accounts]
+		- signer missed srv-block
+
+	- propagate votes for new signer-candidate if:
+		- signer-candidate better than other signer-candidates [known missed block or shutdown and (lower id/higher value)]
+
+	- vote for new signer-candidate after 30 min from first proposal
+
+	- candidate-proposal: srv-block signing
+	- do not propogate signer if over 1h behind
+
+
+	
