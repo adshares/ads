@@ -78,19 +78,19 @@ public:
     switch(msg->hashtype()){
       case MSGTYPE_TXS:
         put_msg->data[0]=MSGTYPE_PUT;
-        put_msg->data[1]=msg->data[4+(svid%64)]; // convert to peer-specific hash
+        put_msg->data[1]=msg->hashval(svid); //msg->data[4+(svid%64)]; // convert to peer-specific hash
         memcpy(put_msg->data+2,&msg->msid,4);
         memcpy(put_msg->data+6,&msg->svid,2);
         break;
       case MSGTYPE_CND:
         put_msg->data[0]=MSGTYPE_CNP;
-        put_msg->data[1]=msg->data[4+(svid%64)]; // convert to peer-specific hash
+        put_msg->data[1]=msg->hashval(svid); //msg->data[4+(svid%64)]; // convert to peer-specific hash
         memcpy(put_msg->data+2,&msg->msid,4);
         memcpy(put_msg->data+6,&msg->svid,2);
         break;
       case MSGTYPE_BLK:
         put_msg->data[0]=MSGTYPE_BLP;
-        put_msg->data[1]=msg->data[4+(svid%64)]; // convert to peer-specific hash
+        put_msg->data[1]=msg->hashval(svid); //msg->data[4+(svid%64)]; // convert to peer-specific hash
         memcpy(put_msg->data+2,&msg->msid,4);
         memcpy(put_msg->data+6,&msg->svid,2);
         break;
@@ -244,6 +244,13 @@ public:
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
         fprintf(stderr,"HASH requested:%0.16llX [%0.16llX] (%0.4X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
+	if(do_sync){
+          read_msg_->path=peer_path;
+          (
+
+
+fill this
+        }
         message_ptr msg=server_.message_find(read_msg_,svid);
         if(msg!=NULL){
           if(msg->len>message::header_length){
@@ -263,6 +270,9 @@ public:
 	write_servers();}
       else if(read_msg_->data[0]==MSGTYPE_TXL){ //txs list request
 	write_txslist();}
+      else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
+        mempcy(peer_path,read_msg_->data+1,4);
+	std::ceer<<"DEBUG, got sync path "<<peer_path<<"\n";}
       else if(read_msg_->data[0]==MSGTYPE_SOK){
         if(incoming_){
           do_sync=0;}}
@@ -456,13 +466,7 @@ public:
       return;}
     std::map<uint64_t,message_ptr> map;
     header.txs_map(read_msg_->data+8,map);
-    //update server
-
-
-... continue
-
-
-
+    server_.put_txslist(header.now,map);
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -623,7 +627,13 @@ public:
     if(opts_.fast){
       handle_read_servers();}
     else{
-      handle_read_headers();}
+      handle_read_headers();
+      // send current sync path
+      if(server_.synpath){
+        message_ptr put_msg(new message());
+        put_msg->data[0]=MSGTYPE_PAT;
+        memcpy(put_msg->data+1,server_.synpath,4);
+        send_sync(put_msg);}}
     return(1);
   }
 

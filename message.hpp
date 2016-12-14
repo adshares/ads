@@ -34,20 +34,21 @@ public:
   enum { data_offset = 4+64+10 }; // replace this later
 
   uint32_t len;		// length of data
-  uint8_t* data;	// data pointer
+  uint8_t sigh[SHA256_DIGEST_LENGTH]; // hash of signature
+  uint8_t preh[SHA256_DIGEST_LENGTH]; // hash of previous signature
   uint32_t msid;	// msid from the server
   uint32_t now;		// time message created, updated with every download request (busy_insert)
   uint32_t got;		// time message received
+  uint32_t path;	// path == block_id
   uint16_t svid;	// server id of message author
   uint16_t peer;	// server id of peer sending message
+  uint8_t* data;	// data pointer
   union {uint64_t num; uint8_t dat[8];} hash; // header hash, TODO change this name to 'head'
   uint8_t status; // 0:info 1:data 2:valid 3:invalid |0x4:saved
-  std::set<uint16_t> know; // peers that know about this item
+  //std::set<uint16_t> know; // peers that know about this item
+  boost::container::flat_set<uint16_t> know; // peers that know about this item, flat_set to enable random selection
   std::set<uint16_t> busy; // peers downloading this item
   std::set<uint16_t> sent; // peers that downloaded this item
-  uint32_t path;	// path == block_id
-  uint8_t sigh[SHA256_DIGEST_LENGTH]; // hash of signature
-  uint8_t preh[SHA256_DIGEST_LENGTH]; // hash of previous signature
   boost::mutex mtx_;	// to update the sets and data
 
   // can be a request for data , an info , data ...
@@ -56,18 +57,46 @@ public:
 	len(header_length),
 	msid(0),
 	now(0),
+	got(0),
 	svid(0),
         peer(0),
 	status(MSGSTAT_INF),
 	path(0)
-  { data=(uint8_t*)std::malloc(len);
+  { data=(uint8_t*)std::malloc(len); //len=8
     hash.num=0;
+  }
+
+  message(uint16_t* svidp,uint32_t* msidp,char* sighp,uint16_t mysvid,uint32_t mypath) :
+	len(header_length),
+	msid(*msidp),
+	now(0),
+	got(0),
+	svid(*svidp),
+        peer(0),
+	status(MSGSTAT_INF),
+	path(mypath)
+  { data=(uint8_t*)std::malloc(len); //len=8
+    memcpy(sigh,sighp,SHA256_DIGEST_LENGTH);
+    memcpy(h.dat+2,&msid,4);
+    memcpy(h.dat+6,&svid,2);
+    memcpy(data+2,&msid,4);
+    memcpy(data+6,&svid,2);
+    if(msid==0xffffffff){
+      h.dat[0]=0;
+      h.dat[1]=MSGTYPE_DBL;
+      *data=MSGTYPE_DBG;}
+    else{
+      h.dat[0]=hashval(mysvid);
+      h.dat[1]=MSGTYPE_TXS;
+      *data=MSGTYPE_GET;}
+    data[1]=h.dat[0];
   }
 
   message(uint32_t l) :
 	len(l),
 	msid(0),
 	now(0),
+	got(0),
 	svid(0),
         peer(0),
 	status(MSGSTAT_DAT), // not VAL because not yet saved
@@ -119,6 +148,12 @@ public:
   { return hash.dat[1];
   }
 
+  uint8_t hashval(uint16_t mysvid)
+  { //return(data[4+(mysvid%64)]);
+    assert(0xffffffffffffffff!=*((uint64_t*)(sigh))||0xffffffffffffffff!=*((uint64_t*)(sigh+8))||0xffffffffffffffff!=*((uint64_t*)(sigh+16))||0xffffffffffffffff!=*((uint64_t*)(sigh+24)));//FIXME, remove later
+    return(sigh[mysvid%SHA256_DIGEST_LENGTH]);
+  }
+
   uint64_t dohash(void) // default double_spend type
   { union {uint64_t num; uint8_t dat[8];} h;
     h.dat[0]=0;
@@ -130,7 +165,7 @@ public:
 
   uint64_t dohash(uint16_t mysvid)
   { union {uint64_t num; uint8_t dat[8];} h;
-    h.dat[0]=data[4+(mysvid%64)];
+    h.dat[0]=hashval(mysvid);
     h.dat[1]=data[0];
     memcpy(h.dat+2,&msid,4);
     memcpy(h.dat+6,&svid,2);
@@ -232,12 +267,22 @@ public:
     return 0;
   }
 
+  int sigh_check()
+  { uint64_t h[4];
+    uint64_t g[8];
+    memcpy(g,sigh,8*sizeof(uint64_t));
+    h[0]=g[0]^g[4];
+    h[1]=g[1]^g[5];
+    h[2]=g[2]^g[6];
+    h[3]=g[3]^g[7];
+    return(memcmp(sigh,h,SHA256_DIGEST_LENGTH);
+  }
   void hash_signature(uint8_t* sig)
   { if(sig==NULL){
       bzero(sigh,SHA256_DIGEST_LENGTH); 
       return;}
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
+    //SHA256_CTX sha256;
+    //SHA256_Init(&sha256);
     uint64_t h[4];
     uint64_t g[8];
     memcpy(g,sig,8*sizeof(uint64_t));
@@ -245,8 +290,9 @@ public:
     h[1]=g[1]^g[5];
     h[2]=g[2]^g[6];
     h[3]=g[3]^g[7];
-    SHA256_Update(&sha256,h,4*sizeof(uint64_t));
-    SHA256_Final(sigh,&sha256);
+    //SHA256_Update(&sha256,h,4*sizeof(uint64_t));
+    //SHA256_Final(sigh,&sha256);
+    memcpy(sigh,h,SHA256_DIGEST_LENGTH);
   }
 
   int check_signature(servers& srvs,uint16_t mysvid)
@@ -338,13 +384,12 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
   int load() //TODO, consider locking 
   { uint32_t head;
     char filename[64];
-    if(data!=NULL){
-      std::cerr << "ERROR: loading message while data not empty\n";
-      return(0);}
+      //std::cerr << "ERROR: loading message while data not empty\n";
+      //return(0);}
     sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     std::ifstream myfile(filename,std::ifstream::binary);
     if(!myfile){
-      std::cerr << "ERROR: opening message failed\n";
+      //std::cerr << "ERROR: opening message failed\n";
       return(0);}
     myfile.read((char*)&head,4);
     if(!myfile){
@@ -356,6 +401,9 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
       std::cerr << "ERROR: length mismatch\n";
       return(0);}
     assert(len>4+64 && len<=4+2*max_length); // accept DBL messages length
+    if(data!=NULL){
+      free(data);
+      data=NULL;}
     data=(uint8_t*)std::malloc(len);
     memcpy(data,&head,4);
     myfile.read((char*)data+4,len-4); // TODO, consider loading more saved data (status?)
@@ -468,12 +516,13 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
     if(mynow<=got+MAX_MSGWAIT){
       mtx_.unlock();
       return(0);}
-    for(auto k=know.begin();k!=know.end();k++){
+    for(auto k=know.begin();k!=know.end();k++){//known is expected to have random order (or order based on insertions)
       auto s=busy.find(*k);
       if(s==busy.end()){
         got=mynow;
         busy.insert(*k);
         mtx_.unlock();
+        std::cerr<<"REQUEST for "<<svid<<":"<<msid<<" from:"<<*k<<"\n";
         return(*k);}}
     mtx_.unlock();
     return(0);

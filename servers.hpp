@@ -5,8 +5,8 @@
 #pragma pack(1)
 typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
-	uint32_t txs; // number of transactions in block
-	uint32_t nod; // number of nodes in block, this could be uint16_t later
+	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
 	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
@@ -15,8 +15,8 @@ typedef struct header_s {
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
 typedef struct headlink_s { // header links sent when syncing
-	uint32_t txs; // number of transactions in block
-	uint32_t nod; // number of nodes in block, this could be uint16_t later
+	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
 	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
 } headlink_t;
@@ -97,8 +97,8 @@ class servers
 public:
 	uint32_t now; // start time of the block
 	//uint32_t old; // time of last block
-	uint32_t txs; // number of transactions in block
-	uint32_t nod; // number of nodes in block
+	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t nod; // number of nodes in block, FIXME, should be uint16_t
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
 	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
@@ -187,9 +187,9 @@ public:
 			return;}
 		write(fd,txshash,SHA256_DIGEST_LENGTH);
 		for(auto it=map.begin();it!=map.end();it++){
-			write(fd,it->second->svid,2);
+			write(fd,it->second->svid,2); // we must later distinguish between double spend and normal messages ... maybe using msid==0xffffffff;
 			write(fd,it->second->msid,4);
-			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH);}
+			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH);} // maybe we have to set sigh=last_msg_sigh for double spend messages
 		close(fd);
 	}
 	int txs_get(char* data)
@@ -202,16 +202,21 @@ public:
 		close(fd);
 		return(len);
 	}
-	void txs_map(char* data,std::map<uint64_t,message_ptr>& map)
-	{	...
-
+	void txs_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	{	char* d=data+SHA256_DIGEST_LENGTH;
+		for(uint16_t i=0;i<txs;i++,d+=2+4+SHA256_DIGEST_LENGTH){
+			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now)); // uint32_t alignment ???
+			map[msg->hash.num]=msg;}
 	}
-	int load_txslist(std::map<uint64_t,message_ptr>& map)
+	int load_txslist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid,uint32_t mypath)
 	{	char* data=malloc(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
 		if(txs_get(data)!=SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH)){
 			free(data);
 			return(0);}
-		txs_map(data,map);
+		if(memcmp(data,txshash,SHA256_DIGEST_LENGTH)){
+			free(data);
+			return(0);}
+		txs_map(data,map,mysvid);
 		free(data);
 		return(1);
 	}

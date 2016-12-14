@@ -73,6 +73,7 @@
 #define MSGTYPE_HEA 17  /* headers request */
 #define MSGTYPE_TXL 18  /* txslist request */
 #define MSGTYPE_TXP 19  /* txslist data */
+#define MSGTYPE_PAT 20  /* current sync path */
 
 
 #define MSGTYPE_SOK 99  /* peer synced */

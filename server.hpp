@@ -16,6 +16,7 @@ public:
     opts_(opts),
     oldpath(0),
     nowpath(0),
+    synpath(0),
     votes_max(0.0),
     do_vote(0),
     do_block(0),
@@ -56,7 +57,7 @@ public:
       do_sync=1;}
 
     if(last_srvs_.now<nowpath-MAXLOSS && !opts_.fast){
-      std::cerr<<"WARNING, possibly missing too much history for full resync\n;}
+      std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     for(std::string addr : opts_.peer){
@@ -91,13 +92,14 @@ public:
   void load_chain()
   { char pathname[16];
     for(auto block=headers.begin();block!=headers.end();block++){
+      synpath=block->now;
       sprintf(pathname,"%08X",block->now);
       mkdir(pathname,0755);
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
-      if(!block->load_txslist(missing_msgs_)){
+      if(!block->load_txslist(missing_msgs_,opts_.svid)){
         //request list of transactions from peers
-        peer_.lock();
+        peer_.lock(); // consider changing this to missing_lock
         get_txslist=block->now;
         peer_.unlock();
         //prepare txslist request message
@@ -112,10 +114,30 @@ public:
             uint16_t svid=put_msg->request();
             if(svid){
               std::cerr << "REQUESTING TXL from "<<svid<<"\n";
+//FIXME, deliver is blocked !!!
               deliver(put_msg,svid);}}
           boost::this_thread::sleep(boost::posix_time::seconds(1));}}
-      //missing messages set
-      for(;;){
+      //inform peers about current block ? ... no let the peers guess the current block, inform about closed block after finishing it
+      message_ptr put_msg(new message());
+      put_msg->data[0]=MSGTYPE_PAT;
+      memcpy(put_msg->data+1,block->now,4);
+      deliver(put_msg);
+      //request missing messages from peers
+      txs_msgs_.clear();
+      dbl_msgs_.clear();
+      for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
+	auto jt=it++;
+	if(jt->second->hash.dat[0]==MSGTYPE_DBL){
+          dbl_msgs_[jt->first]=jt->second;}
+        else{
+          txs_msgs_[jt->first]=jt->second;}
+	if(jt->second->load() && !jt->second->sigh_check()){
+          missing_msgs_.erase(msg->hash.num);
+          continue;} // assume no lock needed
+	jt->second->fillknown();
+	jt->second->request();}
+      //wait 
+      
 
 
 
@@ -123,9 +145,15 @@ public:
     }
   }
 
-  int put_txslist()
-  {
-
+  void put_txslist(uint32_t now,std::map<uint64_t,message_ptr>& map)
+  { peer_.lock(); // consider changing this to missing_lock
+    if(get_txslist!=now){
+      peer_.unlock();
+      return;}
+    missing_msgs_.swap(map);
+    get_txslist=0;
+    peer_.unlock();
+    return;
   }
 
   int slow_sync(bool done,servers& sync_headers)
@@ -346,7 +374,7 @@ public:
       txs_.lock();
       std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=txs_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->data[4+(svid%64)]){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
           txs_.unlock();
           return it->second;}
         it++;}
@@ -356,19 +384,19 @@ public:
       cnd_.lock();
       std::map<uint64_t,message_ptr>::iterator it=cnd_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=cnd_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->data[4+(svid%64)]){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
           cnd_.unlock();
           return it->second;}
         it++;}
       cnd_.unlock();
 fprintf(stderr,"HASH find failed, CND db:\n");
-for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %0.16llX (%02X)\n",me->first,me->second->data[4+(svid%64)]);}
+for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %0.16llX (%02X)\n",me->first,me->second->hashval(svid)/*data[4+(svid%64)]*/);}
       return NULL;}
     if(msg->data[0]==MSGTYPE_BLG){
       blk_.lock();
       std::map<uint64_t,message_ptr>::iterator it=blk_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=blk_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->data[4+(svid%64)]){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
           blk_.unlock();
           return it->second;}
         it++;}
@@ -378,7 +406,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_.lock();
       std::map<uint64_t,message_ptr>::iterator it=dbl_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=dbl_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64){ // && msg->hash.dat[0]==it->second->data[4+(svid%64)]
+        if(it->second->len>4+64){
           dbl_.unlock();
           return it->second;}
         it++;}
@@ -789,7 +817,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
         h.dat[0]=MSGTYPE_PUT;
-        h.dat[1]=me->second->data[4+(peer_svid%64)];
+        h.dat[1]=me->second->hashval(svid)/*data[4+(peer_svid%64)]*/;
         txs.push_back(h.num);}}
     txs_.unlock();
     dbl_.lock();
@@ -798,7 +826,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
         h.dat[0]=MSGTYPE_DBP;
-        h.dat[1]=me->second->data[4+(peer_svid%64)];
+        h.dat[1]=0;//me->second->data[4+(peer_svid%64)];
         dbl.push_back(h.num);}}
     dbl_.unlock();
   }
@@ -1229,6 +1257,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   uint32_t oldpath; // id of previous block,
   uint32_t nowpath; // id of currect block,
   uint32_t newpath; // id of next block,
+  uint32_t synpath; // id of current sync block,
   servers last_srvs_;
   //message_ptr block; // my block message, now data in last_srvs_
   int do_sync;

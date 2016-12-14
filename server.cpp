@@ -31,11 +31,18 @@ void server::deliver(message_ptr msg,uint16_t svid)
 			break;}}
 	peer_.unlock();
 }
-void server::fillknown(message_ptr msg)
-{	peer_.lock();
+void server::fillknown(message_ptr msg) //use random order
+{	static uint32_t r=0;
+ 	std::vector<uint16_t> v;
+	peer_.lock();
+	v.reserve(peers_.size());
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		msg->know_insert((*pi)->svid);}
+		v.pushback((*pi)->svid);}
+	uint32_t n=v.size();
+	for(int i=0;i<n;i++){
+		msg->know_insert(v[(r+i)%n]);} //insertion order important
 	peer_.unlock();
+	r++;
 }
 void server::deliver(message_ptr msg)
 {	peer_.lock();
