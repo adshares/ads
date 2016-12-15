@@ -246,24 +246,25 @@ public:
         fprintf(stderr,"HASH requested:%0.16llX [%0.16llX] (%0.4X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
-          (
-
-
-fill this
-        }
-        message_ptr msg=server_.message_find(read_msg_,svid);
-        if(msg!=NULL){
-          if(msg->len>message::header_length){
-            if(msg->sent.find(svid)!=msg->sent.end()){
-              std::cerr << "IGNORING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";}
-            else{
-              std::cerr << "PROVIDING MESSAGE\n";
-              msg->sent_insert(svid);
-              deliver(msg);}} // must force deliver without checks
-          else{ // no real message available
-            std::cerr << "BAD get request from " << std::to_string(svid) << "\n";}}
-        else{// concider loading from db if available
-          std::cerr <<"MESSAGE "<< read_msg_->svid <<":"<< read_msg_->msid <<" not found, concider loading from db\n\n\n";}}
+          if(read_msg_->load()){
+            std::cerr << "PROVIDING MESSAGE\n";
+            deliver(read_msg_);}
+          else{
+            std::cerr << "IGNORING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
+        else{
+          message_ptr msg=server_.message_find(read_msg_,svid);
+          if(msg!=NULL){
+            if(msg->len>message::header_length){
+              if(msg->sent.find(svid)!=msg->sent.end()){
+                std::cerr << "IGNORING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";}
+              else{
+                std::cerr << "PROVIDING MESSAGE\n";
+                msg->sent_insert(svid);
+                deliver(msg);}} // must force deliver without checks
+            else{ // no real message available
+              std::cerr << "BAD get request from " << std::to_string(svid) << "\n";}}
+          else{// concider loading from db if available
+            std::cerr <<"MESSAGE "<< read_msg_->svid <<":"<< read_msg_->msid <<" not found, concider loading from db\n\n\n";}}}
       else if(read_msg_->data[0]==MSGTYPE_HEA){
 	write_headers();}
       else if(read_msg_->data[0]==MSGTYPE_SER){ //servers request
@@ -570,7 +571,7 @@ fill this
     if(peer_hs.head.now==sync_hs.head.now){
       if(memcmp(peer_hs.head.oldhash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
         char hash[2*SHA256_DIGEST_LENGTH];
-        std::cerr << "ERROR oldhash mismatch\n";
+        std::cerr << "ERROR oldhash mismatch, FIXME, move back more blocks to sync\n";
         ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
         fprintf(stderr,"HASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
@@ -578,7 +579,7 @@ fill this
         return(0);}
       if(memcmp(peer_hs.head.nowhash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
         char hash[2*SHA256_DIGEST_LENGTH];
-        std::cerr << "WARNING nowhash mismatch, not tested :-(\n";
+        std::cerr << "WARNING nowhash mismatch, not tested :-( move back one block to sync\n";
         ed25519_key2text(hash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH);
         fprintf(stderr,"HASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
@@ -643,7 +644,7 @@ fill this
       std::cerr << "BAD signature\n";
       server_.leave(shared_from_this());
       return;}
-    if(!svid){
+    if(!svid){ // FIXME, move this to 'start()'
       if(!authenticate()){
         std::cerr << "NOT authenticated\n";
         server_.leave(shared_from_this());
@@ -1120,6 +1121,7 @@ std::cerr << "TEST THIS !!!!!!!!!!!!\n";
     return(1);
   }
 
+  uint32_t peer_path; //used to load data when syncing
   uint32_t svid;
   int do_sync;
 private:

@@ -91,8 +91,13 @@ public:
 
   void load_chain()
   { char pathname[16];
-    for(auto block=headers.begin();block!=headers.end();block++){
-      synpath=block->now;
+    do_validate=1;
+    threadpool.create_thread(boost::bind(&server::validator, this));
+    threadpool.create_thread(boost::bind(&server::validator, this));
+//FIXME, must start with a matching nowhash and load serv_
+    for(auto block=headers.begin();block!=headers.end();block++){ //FIXME consider locking in case other peers add more blocks during sync
+      synpath=block->now; //maybe use srvs_.now instead
+      srvs_.now=block->now; //TODO, check !!!
       sprintf(pathname,"%08X",block->now);
       mkdir(pathname,0755);
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
@@ -116,46 +121,91 @@ public:
               std::cerr << "REQUESTING TXL from "<<svid<<"\n";
 //FIXME, deliver is blocked !!!
               deliver(put_msg,svid);}}
-          boost::this_thread::sleep(boost::posix_time::seconds(1));}}
-      //inform peers about current block ? ... no let the peers guess the current block, inform about closed block after finishing it
+          boost::this_thread::sleep(boost::posix_time::seconds(1));}
+        srvs_.txs=block->txs; //check
+        srvs_.txs_put(missing_msgs_);}
+      //inform peers about current sync block
       message_ptr put_msg(new message());
       put_msg->data[0]=MSGTYPE_PAT;
       memcpy(put_msg->data+1,block->now,4);
+//FIXME, deliver is blocked !!!
       deliver(put_msg);
       //request missing messages from peers
+      txs_.lock();
       txs_msgs_.clear();
+      txs_.unlock();
+      dbl_.lock();
       dbl_msgs_.clear();
+      dbl_.unlock();
+      missing_.lock();
       for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
+        missing_.unlock();
 	auto jt=it++;
+        blk_.lock();
+        blk_msgs_[jt->first]=jt->second; //overload the use of blk_msgs_ , during sync store here the list of messages to be validated (meybe we should use a different container for ths later)
+        blk_.unlock();
 	if(jt->second->hash.dat[0]==MSGTYPE_DBL){
-          dbl_msgs_[jt->first]=jt->second;}
+          dbl_.lock();
+          dbl_msgs_[jt->first]=jt->second;
+          dbl_.unlock();}
         else{
-          txs_msgs_[jt->first]=jt->second;}
+          txs_.lock();
+          txs_msgs_[jt->first]=jt->second;
+          txs_.unlock();}
 	if(jt->second->load() && !jt->second->sigh_check()){
-          missing_msgs_.erase(msg->hash.num);
+          check_.lock();
+          check_msgs_.push_back(jt->second); // send to validator
+          check_.unlock();
+          missing_msgs_erase(msg);
           continue;} // assume no lock needed
 	jt->second->fillknown();
-	jt->second->request();}
-      //wait 
-      
-
-
-
+	jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-(
+        missing_.lock();}
+      missing_.unlock();
+      //wait for all messages to be processed by the validators
+      blk_.lock();
+      while(blk_msgs_.size()){
+        blk_.unlock();
+        boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
+	blk_.lock();}
+      blk_.unlock();
+      //assume correct message hash
+      //finish block
+      srvs_.finish(); //FIXME, add locking
+      //FIXME, check nowhash with block->nowhash
+      last_srvs_=srvs_; // consider not making copies of nodes
+      oldpath=nowpath;
+      nowpath=newpath;
+      newpath=nowpath+BLOCKSEC;
+      //TODO, add nodes if needed
+      //FIXME, check here if more headers are needed before finishing this
       }
-    }
+    srvs_.now=nowpath;
+    vip_max=srvs_.update_vip();
+    txs_.lock();
+    txs_msgs_.clear();
+    txs_.unlock();
+    dbl_.lock();
+    dbl_msgs_.clear();
+    dbl_.unlock();
+    //FIXME, inform peers about sync status
+    peer_.lock();
+    do_sync=0;
+    peer_.unlock();
   }
 
   void put_txslist(uint32_t now,std::map<uint64_t,message_ptr>& map)
-  { peer_.lock(); // consider changing this to missing_lock
+  { missing_.lock(); // consider changing this to missing_lock
     if(get_txslist!=now){
-      peer_.unlock();
+      missing_.unlock();
       return;}
     missing_msgs_.swap(map);
     get_txslist=0;
-    peer_.unlock();
+    missing_.unlock();
     return;
   }
 
+//FIXME, add the option to add new headers while syncing
   int slow_sync(bool done,servers& sync_headers)
   { static uint32_t last=0;
     for(;;){
@@ -222,7 +272,6 @@ public:
   void start_accept();
   void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
   void connect(std::string peer_address);
-  //void validator(void);
 
   //FIXME, move this to servers.hpp
   void readmsid()
@@ -424,12 +473,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     srvs_.nodes[msg->svid].msid=msg->msid; //FIXME, this should be maybe(!) msid from last block + 1
     svid_msgs_[msg->svid]=msg;
     svid_.unlock();
-    update(msg);
+    if(!do_sync){
+      update(msg);}
     // undo transactions later
   }
 
   void create_double_spend_proof(message_ptr msg1,message_ptr msg2)
   { try{
+      assert(!do_sync); // should never happen, should never get same msid from same server in a txs_list
       uint32_t len=4+msg1->len+msg2->len;
       assert(msg1->svid==msg2->svid);
       assert(msg1->msid==msg2->msid);
@@ -452,7 +503,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_msg->now=time(NULL);
       dbl_msg->peer=opts_.svid;
       dbl_msg->hash.num=dbl_msg->dohash();
-      dbl_msg->hash_signature(NULL);
+      dbl_msg->hash_signature(NULL); //FIXME, set this to last hash from last block
       dbl_.lock();
       dbl_msgs_[dbl_msg->hash.num]=dbl_msg;
       dbl_.unlock();
@@ -483,6 +534,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(it!=dbl_msgs_.end()){
       message_ptr osg=it->second;
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
+        if(do_sync && memcmp(osg->sigh,msg->sigh,SHA256_DIGEST_LENGTH)){
+          dbl_.unlock();
+          std::cerr << "ERROR, getting message with wrong signature hash\n";
+          return(0);}
         osg->update(msg);
         dbl_.unlock();
         missing_msgs_erase(msg);
@@ -504,7 +559,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_msgs_[msg->hash.num]=msg;
       dbl_.unlock();
       assert(msg->peer==msg->svid);
-      std::cerr << "DEBUG, storing own message\n";
+      std::cerr << "DEBUG, storing own dbl message :-( [???]\n";
       msg->save(nowpath,newpath);
       return(1);}
     dbl_.unlock();
@@ -631,38 +686,43 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       // overwrite message status with the current one
       // not needed any more msg->status=osg->status; // for peer.hpp to check if message is already validated
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
-	message_ptr pre=NULL,nxt=NULL;
+        if(do_sync && memcmp(osg->sigh,msg->sigh,SHA256_DIGEST_LENGTH)){
+          txs_.unlock();
+          std::cerr << "ERROR, getting message with wrong signature hash\n";
+          return(0);}
         osg->update(msg);
         txs_.unlock();
         missing_msgs_erase(msg);
-        if(!osg->save(nowpath,newpath)){
+        if(!osg->save(nowpath,newpath)){ //FIXME, change path
           std::cerr << "ERROR, message save failed, abort server\n";
           exit(-1);}
-	// process double spend
-        if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
-          double_spend(osg);
-          return(1);}
-	// check for double spend
-        if(it!=txs_msgs_.begin()){
-          pre=(--it)->second;
-          it++;}
-        if((++it)!=txs_msgs_.end()){
-          nxt=it->second;}
-        if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
-          create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
-          return(1);}
-        if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
-          create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
-          return(1);}
-	// process ordinary messages
-        if(osg->now>=newpath){
-          wait_.lock();
-          wait_msgs_.push_back(osg);
-          wait_.unlock();}//FIXME, process wait messages later
-        else{
-          check_.lock();
-          check_msgs_.push_back(osg);
-          check_.unlock();}
+        // process double spend
+        //if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
+        //  double_spend(osg);
+        //  return(1);}
+        // check for double spend
+        if(!do_sync){
+          message_ptr pre=NULL,nxt=NULL; //probably not needed when syncing
+          if(it!=txs_msgs_.begin()){
+            pre=(--it)->second;
+            it++;}
+          if((++it)!=txs_msgs_.end()){
+            nxt=it->second;}
+          if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+            create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
+            return(1);}
+          if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+            create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
+            return(1);}
+          if(osg->now>=newpath){
+            wait_.lock();
+            wait_msgs_.push_back(osg);
+            wait_.unlock();
+            return(1);}}//FIXME, process wait messages later
+        // process ordinary messages
+        check_.lock();
+        check_msgs_.push_back(osg);
+        check_.unlock();
         return(1);}
       else{ // update info about peer inventory
         txs_.unlock();
@@ -788,7 +848,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         check_.unlock();
         if(srvs_.nodes[msg->svid].status & SERVER_DBL){ // ignore messages from DBL server
           continue;} // no update
-        //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid){
+        //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid)
         if(srvs_.nodes[msg->svid].msid>=msg->msid){
           std::cerr <<"WARNING ignoring validation of old message "<<msg->svid<<":"<<msg->msid<<"<="<<srvs_.nodes[msg->svid].msid<<"\n";
           continue;}
@@ -799,15 +859,20 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           wait_.unlock();
           continue;}
         //if not valid, continue
-        boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX)));
+        boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX))); //FIXME, this is the validation :-D
         msg->print_text(";VALID");
         msg->status=MSGSTAT_VAL;
-        update_candidates(msg);
         svid_.lock();
         srvs_.nodes[msg->svid].msid=msg->msid; 
         svid_msgs_[msg->svid]=msg;
         svid_.unlock();
-	update(msg);}}
+        if(!do_sync){
+          update_candidates(msg);
+          update(msg);}
+        else{
+          blk_.lock();
+          blk_msgs_.erase(msg->hash.num);
+          blk_.unlock();}}}
   }
 
   void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,uint16_t peer_svid)
@@ -1014,9 +1079,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //hash_s last_block_all_message;
     //message_shash(last_block_all_message.hash,last_block_all_msgs); // consider sending this hash to other peers
     //ed25519_key2text(hash,last_block_all_message.hash,sizeof(hash_t));
+    //message_shash(srvs_.txshash,last_block_all_msgs); // consider sending this hash to other peers
     srvs_.txs=last_block_all_msgs.size();
     srvs_.txs_put(last_block_all_msgs);
-    //message_shash(srvs_.txshash,last_block_all_msgs); // consider sending this hash to other peers
     ed25519_key2text(hash,srvs_.txshash,sizeof(hash_t));
     fprintf(fp,"0 0 %.*s\n",2*sizeof(hash_t),hash);
     fclose(fp);
@@ -1042,6 +1107,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     check_.unlock();
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";}
+
 // TODO, save current account status
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
@@ -1160,9 +1226,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void clock()
   { 
     //TODO, number of validators should depend on opts_.
-    do_validate=1;
-    threadpool.create_thread(boost::bind(&server::validator, this));
-    threadpool.create_thread(boost::bind(&server::validator, this));
+    if(!do_validate){
+      do_validate=1;
+      threadpool.create_thread(boost::bind(&server::validator, this));
+      threadpool.create_thread(boost::bind(&server::validator, this));}
 
     // block creation cycle
     hash_s cand;
@@ -1254,6 +1321,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
   std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
+  //FIXME, use serv_.now instead
   uint32_t oldpath; // id of previous block,
   uint32_t nowpath; // id of currect block,
   uint32_t newpath; // id of next block,
@@ -1288,7 +1356,7 @@ private:
   std::map<uint64_t,message_ptr> missing_msgs_; //TODO, start using this, these are messages we still wait for
   std::map<uint64_t,message_ptr> txs_msgs_; //_TXS messages (transactions)
   std::map<uint64_t,message_ptr> cnd_msgs_; //_CND messages (block candidates)
-  std::map<uint64_t,message_ptr> blk_msgs_; //_BLK messages (blocks)
+  std::map<uint64_t,message_ptr> blk_msgs_; //_BLK messages (blocks) or messages in a block ehcn syncing
   std::map<uint64_t,message_ptr> dbl_msgs_; //_DBL messages (double spend)
   boost::mutex peer_;
   boost::mutex cand_;

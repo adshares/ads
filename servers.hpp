@@ -178,7 +178,7 @@ public:
 		SHA256_Final(txshash, &sha256);
 	}
 
-	void txs_put(std::map<uint16_t,message_ptr>& map)
+	void txs_put(std::map<uint16_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
 	{	hashtxs(map);
 	 	char filename[64];
 		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
