@@ -119,8 +119,10 @@ public:
 		vno(0) 
 	{}
 
-	int init()
+	int init(uint32_t newnow)
 	{	uint32_t num=0,w=0xFFFF;
+                now=newnow;
+		mkdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,w--,num++){
 			bzero(it->hash,SHA256_DIGEST_LENGTH);
 			bzero(it->msha,SHA256_DIGEST_LENGTH);
@@ -131,6 +133,7 @@ public:
 			if(num<VIP_MAX){
 				it->status|=SERVER_VIP;}}
 		assert(num>0);
+		finish();
 		return(num<VIP_MAX?num:VIP_MAX);
 	}
 
@@ -566,6 +569,12 @@ public:
 			nodes[svid_rank[i]].status |= SERVER_VIP;}
 		assert(i>0);
 		return(i<VIP_MAX?i:VIP_MAX);
+	}
+
+	int mkdir()
+	{	char pathname[16];
+		sprintf(pathname,"%08X",now);
+		return(mkdir(pathname,0755));
 	}
 
 private:

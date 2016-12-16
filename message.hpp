@@ -417,18 +417,8 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
     return(1);
   }
 
-  int save(uint32_t nowpath,uint32_t newpath) //TODO, consider locking
+  int save() //TODO, consider locking
   { char filename[64];
-    if(hashtype()==MSGTYPE_BLK || hashtype()==MSGTYPE_CND){
-      path=msid;
-      if(path!=nowpath && path!=newpath){
-        return(0);}}
-    else{
-      path=now-now%BLOCKSEC;
-      if(path<nowpath){
-        path=nowpath;}
-      if(path>newpath){
-        return(0);}}
     sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     std::ofstream myfile(filename,std::ifstream::binary);
     if(!myfile){
@@ -445,22 +435,13 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
     return(1);
   }
 
-  int move(uint32_t newpath) //TODO, consider locking
-  { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
-    std::ofstream myfile(filename,std::ifstream::binary);
-    if(!myfile){
-      std::cerr << "ERROR: failed to open " << filename << "\n";
-      return(0);}
-    myfile.write((char*)data,len); // TODO, consider saving more data ... maybe the status too !!!
-    if(!myfile){
-      std::cerr << "ERROR: failed to write to " << filename << "\n";
-      return(0);}
-    myfile.close();
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
-    unlink(filename);
-    path=newpath;
-    return(1);
+  int move(uint32_t nextpath) //TODO, consider locking
+  { char oldname[64];
+    char newname[64];
+    sprintf(oldname,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(newname,"%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    path=nextpath;
+    return(rename(oldname,newname));
   }
 
   void remove() //TODO, consider locking

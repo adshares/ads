@@ -630,10 +630,10 @@ public:
     else{
       handle_read_headers();
       // send current sync path
-      if(server_.synpath){
+      if(srvs_.now){
         message_ptr put_msg(new message());
         put_msg->data[0]=MSGTYPE_PAT;
-        memcpy(put_msg->data+1,server_.synpath,4);
+        memcpy(put_msg->data+1,srvs_.now,4);
         send_sync(put_msg);}}
     return(1);
   }
@@ -698,8 +698,8 @@ public:
       std::cerr << "BLOCK signature error\n";
       server_.leave(shared_from_this());
       return;}
-    if((read_msg_->msid!=server_.oldpath && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X oldpath:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.oldpath,server_.nowpath);
+    if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
+      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,server_.nowpath);
       server_.leave(shared_from_this());
       return;}
     if(read_msg_->svid==svid){
@@ -938,9 +938,9 @@ public:
         fprintf(stderr,"ERROR failed to find %d:%d\n",it->svid,it->msid);
         server_.leave(shared_from_this());
         return;}
-      if(pm->got<server_.newpath-MESSAGE_MAXAGE){ // we will not accept missing this message
+      if(pm->got<server_.nowpath+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
         // do not accept candidates with missing: double spend, my messeges, old messages
-        fprintf(stderr,"BLOCK failed because old message (%d:%d) lost (%d<%d-%d)\n",pm->svid,pm->msid,pm->got,server_.newpath,MESSAGE_MAXAGE);
+        fprintf(stderr,"BLOCK failed because old message (%d:%d) lost (%d<%d-%d)\n",pm->svid,pm->msid,pm->got,server_.nowpath+BLOCKSEC,MESSAGE_MAXAGE);
         failed=true;}
       auto sm=server_.last_svid_msgs.find(it->svid);
       if(sm==server_.last_svid_msgs.end()){
@@ -1014,8 +1014,8 @@ public:
   }
 
   int parse_vote() //TODO, make this function similar to handle_read_block (make this handle_read_candidate)
-  { if((read_msg_->msid!=server_.oldpath && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X oldpath:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.oldpath,server_.nowpath);
+  { if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
+      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,server_.nowpath);
       return(0);}
     hash_s cand;
     memcpy(cand.hash,read_msg_->data+message::data_offset,sizeof(hash_t));
@@ -1078,7 +1078,7 @@ public:
         if(pm==NULL){
           fprintf(stderr,"ERROR failed to find %d:%d\n",it->first,it->second.msid);
           return(0);}
-        if(pm->got<server_.newpath-MESSAGE_MAXAGE){ // we will not accept missing this message
+        if(pm->got<server_.nowpath+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
           // do not accept candidates with missing: double spend, my messeges, old messages
 std::cerr << "TEST THIS !!!!!!!!!!!!\n";
           failed=true;}
@@ -1156,7 +1156,6 @@ private:
   uint32_t msid;
   //uint32_t ipv4; // not needed
   //uint32_t srvn;
-  //uint32_t oldpath; // oldpath
   //uint8_t oldhash[SHA256_DIGEST_LENGTH]; //used in authentication
   uint8_t last_message_hash[SHA256_DIGEST_LENGTH]; //used in block building
   // block hash of messages

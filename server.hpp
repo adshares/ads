@@ -6,7 +6,6 @@
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;
 
-//FIXME remove path/oldpath, use srvs_ and last_srvs_
 class server
 {
 public:
@@ -14,25 +13,12 @@ public:
     io_service_(io_service),
     acceptor_(io_service, endpoint),
     opts_(opts),
-    oldpath(0),
-    nowpath(0),
-    synpath(0),
     votes_max(0.0),
     do_vote(0),
     do_block(0),
     do_sync(1)
-  { 
-    char pathname[16];
-    //block=boost::make_shared<message>();
-    readmsid(); // reads msid_ and oldpath
-    nowpath=time(NULL);
-    nowpath-=nowpath%BLOCKSEC;	 assert(nowpath>=oldpath);
-    sprintf(pathname,"%08X",nowpath); // size depends on the time_ shift !!!
-    mkdir(pathname,0755);
-    newpath=nowpath+BLOCKSEC;
-    sprintf(pathname,"%08X",newpath); // size depends on the time_ shift !!!
-    mkdir(pathname,0755);
-    last_srvs_.get(oldpath);
+  { uint32_t path=readmsid(); // reads msid_ and path
+    last_srvs_.get(path);
     if(last_srvs_.nodes.size()<=opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
       exit(-1);} 
@@ -41,23 +27,24 @@ public:
       ed25519_key2text(pktext,last_srvs_.nodes[opts_.svid].pk,32);
       std::cerr << "ERROR: server_public_key mismatch: " << pktext << "\n";
       exit(-1);}
+    //TODO, check vok and vno, if bad, inform user and suggest an older starting point
+
+    uint32_t now=time(NULL);
+    now-=now%BLOCKSEC;
     if(opts_.init){
-      vip_max=last_srvs_.init();
-      srvs_=last_srvs_;	//FIXME, create a copy function
-      srvs_.now=nowpath;
-      do_sync=0;}
-    else if(last_srvs_.now==nowpath-BLOCKSEC){ // maybe we should run sync anyway (unless we are the only vip)
-      srvs_=last_srvs_;	//FIXME, create a copy function
-      srvs_.now=nowpath;
-      vip_max=srvs_.update_vip(); //based on final weights
+      last_srvs_.init(now-BLOCKSEC);
+      srvs_=last_srvs_;} //FIXME, create a copy function
+
+    if(last_srvs_.now==now-BLOCKSEC){ // maybe we should run sync anyway (unless we are the only vip)
+      srvs_.now=now;
+      //consider running a consistancy check
+      //assume database correct, allow very fast start, consider adding a startpoint option
       do_sync=0;}
     else{
-      srvs_=last_srvs_;	//FIXME, create a copy function
-      do_check=1;
+      if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
+        std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
       do_sync=1;}
-
-    if(last_srvs_.now<nowpath-MAXLOSS && !opts_.fast){
-      std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
+    vip_max=srvs_.update_vip(); //based on initial weights at start time
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     for(std::string addr : opts_.peer){
@@ -65,15 +52,17 @@ public:
       connect(addr);
       boost::this_thread::sleep(boost::posix_time::seconds(2));} //wait some time before connecting to more peers
 
-    if(opts_.fast){
-      while(do_sync){ // fast_sync changes the status, FIXME use future/promis
-        boost::this_thread::sleep(boost::posix_time::seconds(1));}}
-    else if(!opts_.init){
-      get_headers=1;
-      while(get_headers){ // slow_sync changes the status, FIXME use future/promis
-        boost::this_thread::sleep(boost::posix_time::seconds(1));}}
-      std::cerr<<"START syncing data for headers\n";
-      load_chain();}
+    if(do_sync){
+      if(opts_.fast){
+        while(do_sync){ // fast_sync changes the status, FIXME use future/promis
+          boost::this_thread::sleep(boost::posix_time::seconds(1));}}
+      else{
+        get_headers=1;
+        while(get_headers){ // slow_sync changes the status, FIXME use future/promis
+          boost::this_thread::sleep(boost::posix_time::seconds(1));}}
+        std::cerr<<"START syncing data for headers\n";
+        load_chain();}
+      do_sync=0;}
 
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept(); // should consider sending a 'hallo world' message
@@ -96,7 +85,6 @@ public:
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
     for(auto block=headers.begin();block!=headers.end();block++){ //FIXME consider locking in case other peers add more blocks during sync
-      synpath=block->now; //maybe use srvs_.now instead
       srvs_.now=block->now; //TODO, check !!!
       sprintf(pathname,"%08X",block->now);
       mkdir(pathname,0755);
@@ -174,13 +162,10 @@ public:
       srvs_.finish(); //FIXME, add locking
       //FIXME, check nowhash with block->nowhash
       last_srvs_=srvs_; // consider not making copies of nodes
-      oldpath=nowpath;
-      nowpath=newpath;
-      newpath=nowpath+BLOCKSEC;
+      srvs_.now+=BLOCKSEC;
       //TODO, add nodes if needed
       //FIXME, check here if more headers are needed before finishing this
       }
-    srvs_.now=nowpath;
     vip_max=srvs_.update_vip();
     txs_.lock();
     txs_msgs_.clear();
@@ -189,9 +174,7 @@ public:
     dbl_msgs_.clear();
     dbl_.unlock();
     //FIXME, inform peers about sync status
-    peer_.lock();
     do_sync=0;
-    peer_.unlock();
   }
 
   void put_txslist(uint32_t now,std::map<uint64_t,message_ptr>& map)
@@ -237,9 +220,6 @@ public:
         peer_.unlock();
         return(-1);}
       if(done){ // peer should now overwrite servers with current data
-        char pathname[16];
-        sprintf(pathname,"%08X",head.now); // size depends on the time_ shift !!!
-        mkdir(pathname,0755);
 	std::cerr<<"SYNC overwrite\n";
         last_srvs_.overwrite(head,nods);
 	std::cerr<<"SYNC put\n";
@@ -248,9 +228,11 @@ public:
 	last_srvs_.put_signatures(head,svsi);
 	std::cerr<<"SYNC copy\n";
         srvs_=last_srvs_; //FIXME, create a copy function
-        srvs_.now=nowpath;
-	std::cerr<<"SYNC update\n";
+        srvs_.now+=BLOCKSEC;
+	std::cerr<<"SYNC update vip\n";
         vip_max=srvs_.update_vip(); //based on final weights
+	std::cerr<<"SYNC mkdir\n";
+        srvs_.mkdir();
         do_sync=0;
         peer_.unlock();
         return(1);}
@@ -274,24 +256,21 @@ public:
   void connect(std::string peer_address);
 
   //FIXME, move this to servers.hpp
-  void readmsid()
+  uint32_t readmsid()
   { if(opts_.init){
       msid_=0;
-      oldpath=0;
-      return;}
+      return(0);}
     std::ifstream myfile("msid.txt");
     if(!myfile.is_open()){
       msid_=0;
-      oldpath=0;
-      return;}
+      return(0);}
     std::string line1;
     std::string line2;
     getline (myfile,line1);
     getline (myfile,line2);
     myfile.close();
     msid_=atoi(line1.c_str());
-    oldpath=atoi(line2.c_str());
-    return;
+    return(atoi(line2.c_str()));
   }
 
   //FIXME, move this to servers.hpp
@@ -299,7 +278,7 @@ public:
   { std::ofstream myfile("msid.txt");
     if(!myfile.is_open()){
       throw("FATAL ERROR: failed to write to msid.txt \n");}
-    myfile << std::to_string(msid_) << "\n" << std::to_string(oldpath) << "\n";
+    myfile << std::to_string(msid_) << "\n" << std::to_string(last_srvs_.now) << "\n";
     myfile.close();
   }
 
@@ -342,7 +321,7 @@ public:
       votes_counted+=it->second->score;}
     cand_.unlock();
     if(num1==NULL){
-      if(do_vote && now>newpath+(do_vote-1)*VOTE_DELAY){
+      if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
         std::cerr << "CANDIDATE proposing\n";
         write_candidate(cand);}
       return;}
@@ -364,7 +343,7 @@ public:
       std::cerr << "CANDIDATE proposal accepted\n";
       write_candidate(best);
       return;}
-    if(do_vote && now>newpath+(do_vote-1)*VOTE_DELAY){
+    if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
       std::cerr << "CANDIDATE proposing\n";
       write_candidate(cand);}
   }
@@ -541,7 +520,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         osg->update(msg);
         dbl_.unlock();
         missing_msgs_erase(msg);
-        if(!osg->save(nowpath,newpath)){
+        if(!osg->save()){
           std::cerr << "ERROR, message save failed, abort server\n";
           exit(-1);}
         double_spend(osg);
@@ -560,7 +539,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own dbl message :-( [???]\n";
-      msg->save(nowpath,newpath);
+      msg->save();
       return(1);}
     dbl_.unlock();
     std::cerr << "ERROR, getting unexpected dbl message\n";
@@ -579,7 +558,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         osg->update(msg);
         cnd_.unlock();
         missing_msgs_erase(msg);
-        if(!osg->save(oldpath,nowpath)){ //FIXME, do not exit !!! return fail
+        if(!osg->save()){ //FIXME, do not exit !!! return fail
           std::cerr << "ERROR, message save failed, abort server\n";
           return(-1);}
         if(it!=cnd_msgs_.begin()){
@@ -610,7 +589,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       cnd_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own cnd message\n";
-      msg->save(oldpath,nowpath);
+      msg->save();
       cnd_validate(msg);
       return(1);}
     cnd_.unlock();
@@ -630,7 +609,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         osg->update(msg);
         blk_.unlock();
         missing_msgs_erase(msg);
-        if(!osg->save(oldpath,nowpath)){ //FIXME, save where ???, check legal time !!!
+        if(!osg->save()){ //FIXME, save where ???, check legal time !!!
           std::cerr << "ERROR, message save failed, abort server\n";
           return(-1);}
         if(it!=blk_msgs_.begin()){
@@ -661,14 +640,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       blk_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own blk message\n";
-      msg->save(oldpath,nowpath); //FIXME, time !!!
+      msg->save(); //FIXME, time !!!
       blk_validate(msg);
       return(1);}
     if(msg->svid==msg->peer){ // peers message
       blk_msgs_[msg->hash.num]=msg;
       blk_.unlock();
       std::cerr << "DEBUG, storing peer's blk message\n";
-      msg->save(oldpath,nowpath); //FIXME, time !!!
+      msg->save(); //FIXME, time !!!
       blk_validate(msg);
       return(1);}
     blk_.unlock();
@@ -693,7 +672,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         osg->update(msg);
         txs_.unlock();
         missing_msgs_erase(msg);
-        if(!osg->save(nowpath,newpath)){ //FIXME, change path
+        if(!osg->save()){ //FIXME, change path
           std::cerr << "ERROR, message save failed, abort server\n";
           exit(-1);}
         // process double spend
@@ -714,7 +693,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
             create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
             return(1);}
-          if(osg->now>=newpath){
+          if(osg->now>=srvs_.now+BLOCKSEC){
             wait_.lock();
             wait_msgs_.push_back(osg);
             wait_.unlock();
@@ -742,7 +721,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         check_.unlock();
 	assert(msg->peer==msg->svid);
         std::cerr << "DEBUG, storing own message\n";
-        msg->save(nowpath,newpath);
+        msg->save();
         return(1);}
       txs_.unlock();
       std::cerr << "ERROR, getting unexpected message\n";
@@ -830,7 +809,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         tmp_msgs_.clear();
         wait_.lock();
 	for(auto wa=wait_msgs_.begin();wa!=wait_msgs_.end();){
-          if((*wa)->now<newpath && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
+          if((*wa)->now<srvs_.now+BLOCKSEC && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
             std::cerr << "QUEUING MESSAGE "<<(*wa)->svid<<":"<<(*wa)->msid<<"\n";
             tmp_msgs_.push_back(*wa);
             wa=wait_msgs_.erase(wa);}
@@ -877,7 +856,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,uint16_t peer_svid)
   { txs_.lock();
-    for(auto me=txs_msgs_.begin();me!=txs_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=nowpath
+    for(auto me=txs_msgs_.begin();me!=txs_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       if(me->second->status==MSGSTAT_VAL){
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
@@ -886,7 +865,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         txs.push_back(h.num);}}
     txs_.unlock();
     dbl_.lock();
-    for(auto me=dbl_msgs_.begin();me!=dbl_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=nowpath
+    for(auto me=dbl_msgs_.begin();me!=dbl_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       if(me->second->status==MSGSTAT_VAL){
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
@@ -949,7 +928,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
     // save list of final message hashes
     char filename[64];
-    sprintf(filename,"%08X/delta.txt",nowpath); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"%08X/delta.txt",srvs_.now); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     FILE *fp=fopen(filename,"w");
     char* hash=(char*)malloc(2*sizeof(hash_t));
     for(auto it=last_block_svid_msgs.begin();it!=last_block_svid_msgs.end();it++){
@@ -983,7 +962,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::stack<message_ptr> invalidate_msgs;
     message_queue commit_msgs; //std::forward_list<message_ptr> commit_msgs;
     std::map<uint16_t,message_ptr> last_block_all_msgs; // last block all validated message from server, should change this to now_svid_msgs
-    sprintf(filename,"%08X/block.txt",nowpath); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"%08X/block.txt",srvs_.now); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     fp=fopen(filename,"w");
     uint32_t txcount=0;
     uint16_t nsvid=0; // current svid processed
@@ -993,9 +972,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     uint32_t maxmsid=0; // last msid to be proceesed
     bool remove=false;
     txs_.lock();
-    for(auto mj=txs_msgs_.begin();mj!=txs_msgs_.end();){ // adding more messages, TODO this should not be needed ... all messages should have path=nowpath
+    for(auto mj=txs_msgs_.begin();mj!=txs_msgs_.end();){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       auto mi=mj++;
-      if(mi->second->path>0 && mi->second->path<nowpath){
+      if(mi->second->path>0 && mi->second->path<srvs_.now){
         std::cerr << "ERASE message " << mi->second->svid << ":" << mi->second->msid << "\n";
         txs_msgs_.erase(mi); // forget old messages
         continue;}
@@ -1022,12 +1001,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       //if(nmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
       if(maxmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
         std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later ! (DBL-spend server)\n";
-        //mi->second->move(newpath);
         remove_msgs.push(mi->second);
         continue;}
       //if(mi->second->msid>nmsid){
       if(mi->second->msid>maxmsid){
-        if(mi->second->now<oldpath){ // remove messages if failed to be included in 2 blocks
+        if(mi->second->now<last_srvs_.now){ // remove messages if failed to be included in 2 blocks
           //if(srvs_.nodes[mi->second->svid].msid>nmsid){
 	  //  srvs_.nodes[mi->second->svid].msid=nmsid;} // reset status 
           //if(srvs_.nodes[mi->second->svid].msid>maxmsid){
@@ -1037,23 +1015,22 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           remove=true;}
         if(remove){
           std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later !\n";
-          //mi->second->move(newpath);
           remove_msgs.push(mi->second);}
         else{
           std::cerr << "MOVING message " << nsvid << ":" << mi->second->msid << " to next block\n";
           if(mi->second->status&MSGSTAT_VAL){
             std::cerr << "INVALIDATE message " << nsvid << ":" << mi->second->msid << " later !\n";
             invalidate_msgs.push(mi->second);}
-          mi->second->move(newpath);}}
+          mi->second->move(srvs_.now+BLOCKSEC);}}
       else{
         if(mi->second->len==message::header_length){
           fprintf(stderr,"IGNOR: %d %d %.16s %0.16llX (%0.16llX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
 //???, what about emsid ???
           continue;}
-        //assert(mi->second->path==nowpath); // check, maybe path is not assigned yet
-	if(mi->second->path!=nowpath){
+        //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
+	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          fprintf(stderr,"PATH?: %d %d %.16s %0.16llX (%0.16llX) path=%08X nowpath=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,nowpath);}
+          fprintf(stderr,"PATH?: %d %d %.16s %0.16llX (%0.16llX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
         //if(nmsid!=0xffffffff && mi->second->msid!=emsid){
         if(maxmsid!=0xffffffff && mi->second->msid!=minmsid){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
@@ -1111,22 +1088,20 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 // TODO, save current account status
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
-    oldpath=nowpath;
-    nowpath=newpath;
-    newpath=nowpath+BLOCKSEC;
-    srvs_.now=nowpath;
+    srvs_.now+=BLOCKSEC;
+    srvs_.mkdir();
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     free(hash);
 //FIXME, clean also blk_ and cnd_ messages !
     for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
       auto mi=mj++;
-      if(mi->second->msid<oldpath){
+      if(mi->second->msid<last_srvs_.now){
         cnd_msgs_.erase(mi);
         continue;}}
     for(auto mj=blk_msgs_.begin();mj!=blk_msgs_.end();){
       auto mi=mj++;
-      if(mi->second->msid<oldpath){
+      if(mi->second->msid<last_srvs_.now){
         blk_msgs_.erase(mi);
         continue;}}
     std::cerr << "NEW BLOCK created\n";
@@ -1175,7 +1150,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void write_candidate(const hash_s& last_message)
   { do_vote=0;
-    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,nowpath,opts_.sk,opts_.pk)); //FIXME, consider msid=0 ???
+    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,opts_.sk,opts_.pk)); //FIXME, consider msid=0 ???
 //FIXME, is hash ok ?
     if(!cnd_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
@@ -1236,8 +1211,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     bool do_hallo=false;
     while(1){
       uint32_t now=time(NULL);
-      std::cerr << "CLOCK: " << ((long)newpath-(long)now) << "\n";
-      if(now>newpath && do_block==0){
+      std::cerr << "CLOCK: " << ((long)(srvs_.now+BLOCKSEC)-(long)now) << "\n";
+      if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;
         threadpool.join_all();
@@ -1277,9 +1252,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         std::cerr << "STOPed validation to finish block\n";
         finish_block();
         //writelastpath();
-        writemsid(); // save new oldpath
+        writemsid();
         char pathname[16];
-        sprintf(pathname,"%08X",newpath); // size depends on the time_ shift !!!
+        sprintf(pathname,"%08X",srvs_.now+BLOCKSEC); // size depends on the time_ shift !!!
         mkdir(pathname,0755);
         svid_.lock();
         svid_msgs_.clear();
@@ -1289,7 +1264,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
-      if(!do_block && !do_hallo && now-nowpath>(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+      if(!do_block && !do_hallo && now-srvs_.now>(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
         std::cerr << "SILENCE, sending void message due to silence\n";
         std::string line("Hallo world @ ");
         line.append(std::to_string(now));
@@ -1322,10 +1297,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
   std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
   //FIXME, use serv_.now instead
-  uint32_t oldpath; // id of previous block,
-  uint32_t nowpath; // id of currect block,
-  uint32_t newpath; // id of next block,
-  uint32_t synpath; // id of current sync block,
   servers last_srvs_;
   //message_ptr block; // my block message, now data in last_srvs_
   int do_sync;
