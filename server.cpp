@@ -37,7 +37,7 @@ void server::fillknown(message_ptr msg) //use random order
 	peer_.lock();
 	v.reserve(peers_.size());
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		v.pushback((*pi)->svid);}
+		v.push_back((*pi)->svid);}
 	uint32_t n=v.size();
 	for(int i=0;i<n;i++){
 		msg->know_insert(v[(r+i)%n]);} //insertion order important

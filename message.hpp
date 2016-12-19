@@ -77,19 +77,19 @@ public:
 	path(mypath)
   { data=(uint8_t*)std::malloc(len); //len=8
     memcpy(sigh,sighp,SHA256_DIGEST_LENGTH);
-    memcpy(h.dat+2,&msid,4);
-    memcpy(h.dat+6,&svid,2);
+    memcpy(hash.dat+2,&msid,4);
+    memcpy(hash.dat+6,&svid,2);
     memcpy(data+2,&msid,4);
     memcpy(data+6,&svid,2);
     if(msid==0xffffffff){
-      h.dat[0]=0;
-      h.dat[1]=MSGTYPE_DBL;
+      hash.dat[0]=0;
+      hash.dat[1]=MSGTYPE_DBL;
       *data=MSGTYPE_DBG;}
     else{
-      h.dat[0]=hashval(mysvid);
-      h.dat[1]=MSGTYPE_TXS;
+      hash.dat[0]=hashval(mysvid);
+      hash.dat[1]=MSGTYPE_TXS;
       *data=MSGTYPE_GET;}
-    data[1]=h.dat[0];
+    data[1]=hash.dat[0];
   }
 
   message(uint32_t l) :
@@ -275,7 +275,7 @@ public:
     h[1]=g[1]^g[5];
     h[2]=g[2]^g[6];
     h[3]=g[3]^g[7];
-    return(memcmp(sigh,h,SHA256_DIGEST_LENGTH);
+    return(memcmp(sigh,h,SHA256_DIGEST_LENGTH));
   }
   void hash_signature(uint8_t* sig)
   { if(sig==NULL){
@@ -295,16 +295,27 @@ public:
     memcpy(sigh,h,SHA256_DIGEST_LENGTH);
   }
 
-  int check_signature(servers& srvs,uint16_t mysvid)
+  void read_head(void)
+  { if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
+      memcpy(&svid,data+4+64+0,2);
+      memcpy(&msid,data+4+64+2,4);
+      memcpy( &now,data+4+64+6,4);}
+    if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
+      memcpy(&svid,data+4+4+64+0,2);
+      memcpy(&msid,data+4+4+64+2,4);
+      memcpy( &now,data+4+4+64+6,4);}
+  }
+
+  //int check_signature(servers& srvs,uint16_t mysvid)
+  int check_signature(const uint8_t* svpk,uint16_t mysvid)
   {
     //FIXME, should include previous hash in signed message
     if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
-      memcpy(&svid,data+4+64+0,2);
-      memcpy(&msid,data+4+64+2,4);
-      memcpy( &now,data+4+64+6,4);
-      if(srvs.nodes.size()<=svid){ //unknown svid
-std::cerr << "ERROR: unknown svid\n";
-        return(-1);}
+      //memcpy(&svid,data+4+64+0,2);
+      //memcpy(&msid,data+4+64+2,4);
+      //memcpy( &now,data+4+64+6,4);
+      //if(srvs.nodes.size()<=svid){ //unknown svid
+      //  return(-1);}
 std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
       hash.num=dohash(mysvid);
       status=MSGSTAT_DAT; // have data
@@ -313,10 +324,13 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
 	  std::cerr<<"ERROR, BLK message msid error\n";
 	  return(1);}
-        return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,srvs.nodes[svid].pk,data+4));}
+        //return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,srvs.nodes[svid].pk,data+4));
+        return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,svpk,data+4));}
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
-        return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),srvs.nodes[svid].pk,data+4));}
-      return(ed25519_sign_open(data+4+64,len-4-64,srvs.nodes[svid].pk,data+4));}
+        //return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),srvs.nodes[svid].pk,data+4));
+        return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));}
+      //return(ed25519_sign_open(data+4+64,len-4-64,srvs.nodes[svid].pk,data+4));
+      return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
 //FIXME, check time, if any of the 2 messages is too old ignore dbl spend and maybe react
 //FIXME, compare only same type of message, detect type based on length
@@ -327,13 +341,16 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
       memcpy(&len1,data1+1,3);
       if(len<4+len1+4+64+10){ // bad format
         return(-1);}
-      memcpy(&svid,data1+4+64+0,2);
-      memcpy(&msid,data1+4+64+2,4);
-      memcpy( &now,data1+4+64+6,4);
+      //memcpy(&svid,data1+4+64+0,2);
+      //memcpy(&msid,data1+4+64+2,4);
+      //memcpy( &now,data1+4+64+6,4);
       memcpy(&len2,data1+len1+1,3);
       data2=data1+len1;
       if(4+len1+len2!=len){ // bad format
         return(-1);}
+      if(*data1!=*data2){// different message types (useless test, this info is not signed)
+        return(-1);}
+      //FIXME, check message length to identify message type
       memcpy(&svid2,data2+4+64+0,2);
       memcpy(&msid2,data2+4+64+2,4);
       memcpy( &now2,data2+4+64+6,4);
@@ -341,11 +358,12 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
         return(-1);}
       if(len1==len2 && !memcmp(data1+4+64,data2+4+64,len1-4-64)){ // equal messages
         return(-1);}
-      if(srvs.nodes.size()<=svid){ //unknown svid
-        return(-1);}
+      //if(srvs.nodes.size()<=svid){ //unknown svid
+      //  return(-1);}
       const uint8_t* m[2]={data1+4+64,data2+4+64};
       size_t mlen[2]={len1,len2};
-      const uint8_t* pk[2]={srvs.nodes[svid].pk,srvs.nodes[svid].pk};
+      //const uint8_t* pk[2]={srvs.nodes[svid].pk,srvs.nodes[svid].pk};
+      const uint8_t* pk[2]={svpk,svpk};
       const uint8_t* rs[2]={data1+4,data2+4};
       int valid[2];
       hash.num=dohash();

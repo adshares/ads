@@ -189,7 +189,7 @@ public:
           return;}
         mtx_.unlock();
         return;}
-      if(!do_sync && (write_msgs_.front()->data[0]==MSGTYPE_PUT || write_msgs_.front()->data[0]==MSGTYPE_DBP)){
+      if(!server_.do_sync && !do_sync && (write_msgs_.front()->data[0]==MSGTYPE_PUT || write_msgs_.front()->data[0]==MSGTYPE_DBP)){
         if(svid_msid_new[write_msgs_.front()->svid]<write_msgs_.front()->msid){
           svid_msid_new[write_msgs_.front()->svid]=write_msgs_.front()->msid; // maybe a lock on svid_msid_new would help
           fprintf(stderr,"UPDATE PEER SVID_MSID: %d:%d\n",write_msgs_.front()->svid,write_msgs_.front()->msid);}}
@@ -250,7 +250,7 @@ public:
             std::cerr << "PROVIDING MESSAGE\n";
             deliver(read_msg_);}
           else{
-            std::cerr << "IGNORING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
+            std::cerr << "IGNORING download request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
         else{
           message_ptr msg=server_.message_find(read_msg_,svid);
           if(msg!=NULL){
@@ -272,11 +272,14 @@ public:
       else if(read_msg_->data[0]==MSGTYPE_TXL){ //txs list request
 	write_txslist();}
       else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
-        mempcy(peer_path,read_msg_->data+1,4);
-	std::ceer<<"DEBUG, got sync path "<<peer_path<<"\n";}
+        memcpy(&peer_path,read_msg_->data+1,4);
+	std::cerr<<"DEBUG, got sync path "<<peer_path<<"\n";}
       else if(read_msg_->data[0]==MSGTYPE_SOK){
-        if(incoming_){
-          do_sync=0;}}
+        uint32_t now;
+        memcpy(&now,read_msg_->data+1,4);
+        std::cerr << "Authenticated, peer in sync at "<<now<<"\n";
+        update_sync();
+        do_sync=0;}
       else{
         int n=read_msg_->data[0];
         std::cerr << "ERROR message type " << std::to_string(n) << "received \n";
@@ -344,11 +347,15 @@ public:
   { uint32_t from;
     memcpy(&from,read_msg_->data+1,4);
     uint32_t to=sync_hs.head.now;
-    uint32_t num=(to-from)/BLOCKSEC;
-    std::cerr<<"SENDING block headers starting from "<<from<<" to "<<to<<" ("<<num<<")\n"; 
+    uint32_t num=((to-from)/BLOCKSEC)-1;
+    if(num<=0){
+      std::cerr<<"ERROR, failed to provide correct request (from:"<<from<<" to:"<<to<<")\n";
+      server_.leave(shared_from_this()); // consider updateing client
+      return;}
+    std::cerr<<"SENDING block headers starting after "<<from<<" and ending before "<<to<<" ("<<num<<")\n"; 
     message_ptr put_msg(new message(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num));
-    char* data=put_msg->data;
-    for(uint32_t now=from;now<to;now+=BLOCKSEC){
+    char* data=(char*)put_msg->data;
+    for(uint32_t now=from+BLOCKSEC;now<to;now+=BLOCKSEC){
       headlink_t link;
       servers linkservers;
       linkservers.now=now;
@@ -356,65 +363,94 @@ public:
 	std::cerr<<"ERROR, failed to provide header links\n";
         server_.leave(shared_from_this()); // consider updateing client
         return;}
-      if(now==from){
+      if(now==from+BLOCKSEC){
 	memcpy(data,(const char*)linkservers.oldhash,SHA256_DIGEST_LENGTH);
 	data+=SHA256_DIGEST_LENGTH;}
       linkservers.filllink(link);
       memcpy(data,(const char*)&link,sizeof(headlink_t));
       data+=sizeof(headlink_t);}
-    assert(data=put_msg->data+SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num);
+    assert(data==(char*)(put_msg->data+SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num));
     send_sync(put_msg);
   }
 
   void handle_read_headers()
-  { uint32_t from=sync_hs.head.now;
-    uint32_t to=peer_hs.head.now;
+  { uint32_t to=peer_hs.head.now;
+    servers sync_ls; //FIXME, use only the header data not "servers"
+    sync_ls.header(sync_hs.head);
+    server_.peer_.lock();
+    if(server_.headers.size()){
+      sync_ls=server_.headers.back();} // FIXME, use pointers/references maybe
+    server_.peer_.unlock();
+    uint32_t from=sync_ls.now;
+    if(from>=to){
+      return;}
     uint32_t num=(to-from)/BLOCKSEC;
-    std::vector<servers> headers(num+1);
-    if(num){
-      if(server_.slow_sync(false,headers)<0){
-        return;}
-      std::cerr<<"READING block headers starting from "<<from<<" to "<<to<<" ("<<num<<")\n"; 
-      char* data=malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num); assert(peer_nods!=NULL);
-      int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num));
-      if(len!=SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num){
+    std::vector<servers> headers(num); //TODO, consider changing this to a list
+    if(num>1){
+      //if(server_.slow_sync(false,headers)<0){
+      //  return;}
+      std::cerr<<"SENDING block headers request\n";
+      message_ptr put_msg(new message());
+      put_msg->data[0]=MSGTYPE_HEA;
+      memcpy(put_msg->data+1,&from,4);
+      send_sync(put_msg);
+      std::cerr<<"READING block headers starting after "<<from<<" and ending before "<<to<<" ("<<(num-1)<<")\n"; 
+      char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)); assert(peer_nods!=NULL);
+      int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));
+      if(len!=SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)){
         std::cerr << "READ headers error\n";
         free(data);
         server_.leave(shared_from_this());
         return;}
-      if(memcmp(data,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
-        std::cerr << "ERROR, initial oldhash mismatch :-(\n";
-        char hash[2*SHA256_DIGEST_LENGTH];
-        ed25519_key2text(hash,data,SHA256_DIGEST_LENGTH);
-        fprintf(stderr,"OLDHASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-        fprintf(stderr,"OLDHASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        free(data);
-        server_.leave(shared_from_this());
-        return;}
+      //if(memcmp(data,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
+      //  std::cerr << "ERROR, initial oldhash mismatch :-(\n";
+      //  char hash[2*SHA256_DIGEST_LENGTH];
+      //  ed25519_key2text(hash,data,SHA256_DIGEST_LENGTH);
+      //  fprintf(stderr,"OLDHASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+      //  ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
+      //  fprintf(stderr,"OLDHASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+      //  free(data);
+      //  server_.leave(shared_from_this());
+      //  return;}
       char* d=data+SHA256_DIGEST_LENGTH;
       //reed hashes and compare
-      for(uint32_t i=0,now=from;now<to;now+=BLOCKSEC,i++){
+      for(uint32_t i=0,now=from+BLOCKSEC;now<to;now+=BLOCKSEC,i++){
         headlink_t* link=(headlink_t*)d;
         d+=sizeof(headlink_t);
         if(!i){
           headers[i].loadlink(*link,now,data);}
         else{
-          headers[i].loadlink(*link,now,headers[i-1].oldhash);}} assert(i==num);
+          headers[i].loadlink(*link,now,(char*)headers[i-1].nowhash);}} //assert(i==num-1);
       free(data);
-      if(memcmp(headers[num-1].nowhash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
+      if(memcmp(headers[num-2].nowhash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
         std::cerr << "ERROR, hashing header chain :-(\n";
         server_.leave(shared_from_this());
         return;}}
-    headers[num].loadhead(peer_hs.head);
-    if(memcmp(headers[num].nowhash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
-      std::cerr << "ERROR, hashing header chain end :-(\n";
+    headers[num-1].loadhead(peer_hs.head);
+    //if(memcmp(headers[num-1].nowhash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
+    //  std::cerr << "ERROR, hashing header chain end :-(\n";
+    //  server_.leave(shared_from_this());
+    //  return;}
+    if(memcmp(headers[0].oldhash,sync_ls.nowhash,SHA256_DIGEST_LENGTH)){
+      std::cerr << "ERROR, initial oldhash mismatch :-(\n";
+      char hash[2*SHA256_DIGEST_LENGTH];
+      ed25519_key2text(hash,headers[0].oldhash,SHA256_DIGEST_LENGTH);
+      fprintf(stderr,"NOWHASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+      ed25519_key2text(hash,sync_ls.nowhash,SHA256_DIGEST_LENGTH);
+      fprintf(stderr,"NOWHASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
       server_.leave(shared_from_this());
       return;}
-    if(memcmp(headers[0].nowhash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
-      std::cerr << "WARNING, our last header will be overwritten\n";}
     std::cerr << "HASHES loaded\n";
-    server_.slow_sync(true,headers);
+    //server_.slow_sync(true,headers);
+    server_.add_headers(headers);
+    // send current sync path
+    server_.peer_.lock();
+    if(srvs_.now && server_.do_sync){
+      message_ptr put_msg(new message());
+      put_msg->data[0]=MSGTYPE_PAT;
+      memcpy(put_msg->data+1,&srvs_.now,4);
+      send_sync(put_msg);}
+    server_.peer_.unlock();
     return;
   }
 
@@ -428,15 +464,15 @@ public:
     message_ptr put_msg(new message(len));
     put_msg->data[0]=MSGTYPE_TXP;
     memcpy(put_msg->data+1,&len,3); //bigendian
-    memcpy(put_msg->data+4,header.now);
-    if(header.txs_get(put_msg->data+8)!=SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH)){
+    memcpy(put_msg->data+4,&header.now,4);
+    if(header.txs_get((char*)(put_msg->data+8))!=SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH)){
       std::cerr<<"FAILED to read txslist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, consider responding with error
       return;}
-    std::cerr<<"SENDING block txslist for block "<<now<<" to svid:"<<svid<<"\n";
+    std::cerr<<"SENDING block txslist for block "<<header.now<<" to svid:"<<svid<<"\n";
     send_sync(put_msg);
   }
 
-  void handle_read_txslist()
+  void handle_read_txslist(const boost::system::error_code& error)
   { if(error){
       std::cerr << "ERROR reading txslist\n";
       server_.leave(shared_from_this());
@@ -458,7 +494,7 @@ public:
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    if(memcmp(read_msg_->len+8,header.txshash,SHA256_DIGEST_LENGTH)){
+    if(memcmp(read_msg_->data+8,header.txshash,SHA256_DIGEST_LENGTH)){
       std::cerr << "ERROR got wrong txslist txshash\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
@@ -466,7 +502,7 @@ public:
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
     std::map<uint64_t,message_ptr> map;
-    header.txs_map(read_msg_->data+8,map);
+    header.txs_map((char*)(read_msg_->data+8),map,opts_.svid);
     server_.put_txslist(header.now,map);
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
@@ -494,11 +530,6 @@ public:
   void handle_read_servers()
   { 
     if(server_.fast_sync(false,peer_hs.head,peer_nods,peer_svsi)<0){
-      //TODO, consider loading banks in parallel
-      message_ptr put_msg(new message());
-      put_msg->data[0]=MSGTYPE_SOK;
-      send_sync(put_msg);
-      do_sync=0;
       return;}
     //send 
     std::cerr<<"SENDING block servers request\n";
@@ -533,12 +564,12 @@ public:
     server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
     free(peer_svsi);
     free(peer_nods);
-    message_ptr put_msg(new message());
-    put_msg->data[0]=MSGTYPE_SOK;
-    std::cerr<<"FINISH SYNC SOK\n";
-    send_sync(put_msg);
-    do_sync=0;
-    read_msg_ = boost::make_shared<message>();
+    //message_ptr put_msg(new message());
+    //put_msg->data[0]=MSGTYPE_SOK;
+    //std::cerr<<"FINISH SYNC SOK\n";
+    //send_sync(put_msg);
+    //do_sync=0;
+    //read_msg_ = boost::make_shared<message>();
     //std::cerr<<"CONTINUE\n";
     //boost::asio::async_read(socket_,
     //  boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
@@ -547,6 +578,7 @@ public:
 
   int authenticate()
   { uint32_t now=time(NULL);
+    uint32_t blocknow=now-(now%BLOCKSEC);
     memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
     srvs_.header_print(peer_hs.head);
     //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
@@ -565,7 +597,7 @@ public:
     if(peer_hs.msid && peer_hs.msid==server_.msid_ && memcmp(peer_hs.msha,srvs_.nodes[opts_.svid].msha,SHA256_DIGEST_LENGTH)){ //FIXME, we should check this later, maybe not needed
       std::cerr<<"WARNING, last message hash mismatch, should run full resync\n";}
     if(incoming_){
-      message_ptr sync_msg=server_.write_handshake(svid,sync_hs);} // sets sync_hs
+      message_ptr sync_msg=server_.write_handshake(svid,sync_hs); // sets sync_hs
       sync_msg->print("; send welcome");
       send_sync(sync_msg);}
     if(peer_hs.head.now==sync_hs.head.now){
@@ -604,14 +636,15 @@ public:
       do_sync=0;
       return(1);}
     // try syncing from this server
-    if(peer_hs.head.now!=server_.nowpath-BLOCKSEC){
+    //if(peer_hs.head.now!=srvs_.now-BLOCKSEC)
+    if(peer_hs.head.now!=blocknow-BLOCKSEC){
       std::cerr << "PEER not in sync\n";
       return(0);}
     if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
       std::cerr << "PEER not enough signatures\n";
       return(0);}
     std::cerr << "Authenticated, expecting sync data ("<<(uint32_t)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))<<" bytes)\n";
-    peer_svsi=(svsi_t*)malloc((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t));
+    peer_svsi=(svsi_t*)malloc((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)); //FIXME, send only vok
     int len=boost::asio::read(socket_,boost::asio::buffer(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));
     if(len!=(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)){
       std::cerr << "READ block signatures error\n";
@@ -627,20 +660,23 @@ public:
     //the decision should be in fact made at the beginning by the server
     if(opts_.fast){
       handle_read_servers();}
-    else{
-      handle_read_headers();
-      // send current sync path
-      if(srvs_.now){
-        message_ptr put_msg(new message());
-        put_msg->data[0]=MSGTYPE_PAT;
-        memcpy(put_msg->data+1,srvs_.now,4);
-        send_sync(put_msg);}}
+    handle_read_headers();
+    do_sync=0; // set peer in sync, we are not in sync (server_.do_sync==1)
     return(1);
   }
 
   void handle_read_body(const boost::system::error_code& error)
   {
-    if(error || read_msg_->check_signature(srvs_,opts_.svid)){
+    if(error){
+      std::cerr << "ERROR reading message\n";
+      server_.leave(shared_from_this());
+      return;}
+    read_msg_->read_head();
+    if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
+      std::cerr << "ERROR reading head\n";
+      server_.leave(shared_from_this());
+      return;}
+    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid)){
       std::cerr << "BAD signature\n";
       server_.leave(shared_from_this());
       return;}
@@ -694,12 +730,17 @@ public:
       read_msg_->len+sizeof(header_t);
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
       server_.last_srvs_.header(*h);}
-    if(read_msg_->check_signature(srvs_,opts_.svid)){
+    read_msg_->read_head();
+    if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
+      std::cerr << "ERROR reading head\n";
+      server_.leave(shared_from_this());
+      return;}
+    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid)){
       std::cerr << "BLOCK signature error\n";
       server_.leave(shared_from_this());
       return;}
-    if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,server_.nowpath);
+    if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
+      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       server_.leave(shared_from_this());
       return;}
     if(read_msg_->svid==svid){
@@ -938,9 +979,9 @@ public:
         fprintf(stderr,"ERROR failed to find %d:%d\n",it->svid,it->msid);
         server_.leave(shared_from_this());
         return;}
-      if(pm->got<server_.nowpath+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
+      if(pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
         // do not accept candidates with missing: double spend, my messeges, old messages
-        fprintf(stderr,"BLOCK failed because old message (%d:%d) lost (%d<%d-%d)\n",pm->svid,pm->msid,pm->got,server_.nowpath+BLOCKSEC,MESSAGE_MAXAGE);
+        fprintf(stderr,"BLOCK failed because old message (%d:%d) lost (%d<%d-%d)\n",pm->svid,pm->msid,pm->got,srvs_.now+BLOCKSEC,MESSAGE_MAXAGE);
         failed=true;}
       auto sm=server_.last_svid_msgs.find(it->svid);
       if(sm==server_.last_svid_msgs.end()){
@@ -1014,8 +1055,8 @@ public:
   }
 
   int parse_vote() //TODO, make this function similar to handle_read_block (make this handle_read_candidate)
-  { if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=server_.nowpath) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X nowpath:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,server_.nowpath);
+  { if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
+      fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       return(0);}
     hash_s cand;
     memcpy(cand.hash,read_msg_->data+message::data_offset,sizeof(hash_t));
@@ -1078,7 +1119,7 @@ public:
         if(pm==NULL){
           fprintf(stderr,"ERROR failed to find %d:%d\n",it->first,it->second.msid);
           return(0);}
-        if(pm->got<server_.nowpath+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
+        if(pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
           // do not accept candidates with missing: double spend, my messeges, old messages
 std::cerr << "TEST THIS !!!!!!!!!!!!\n";
           failed=true;}
@@ -1121,15 +1162,16 @@ std::cerr << "TEST THIS !!!!!!!!!!!!\n";
     return(1);
   }
 
-  uint32_t peer_path; //used to load data when syncing
   uint32_t svid;
-  int do_sync;
 private:
-  boost::asio::ip::tcp::socket socket_; // gets destroyed before we are destroyed :-(
+  boost::asio::ip::tcp::socket socket_;
   server& server_;
   bool incoming_;
   servers& srvs_; //FIXME ==server_.srvs_
   options& opts_; //FIXME ==server_.opts_
+
+  uint32_t peer_path; //used to load data when syncing
+  int do_sync;
 
   handshake_t sync_hs;
   handshake_t peer_hs;

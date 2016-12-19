@@ -15,6 +15,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
+#include <boost/container/flat_set.hpp>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -38,6 +39,7 @@
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
 #define MAX_MSGWAIT 4 /*wait no more than 4s for a message*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
+#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
 
 #define SERVER_TYPE 1
 #define SERVER_PORT "9090"
@@ -78,11 +80,24 @@
 
 #define MSGTYPE_SOK 99  /* peer synced */
 
-#include "openssl/sha.h"
+#pragma pack(1)
+typedef struct header_s {
+        uint32_t now; // start time of block, MUST BE FIRST ELEMENT
+        uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+        uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
+        uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
+        uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+        uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+        uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
+        uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
+        uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
+} header_t;
+#pragma pack()
+
 #include "ed25519/ed25519.h"
 #include "options.hpp"
-#include "servers.hpp"
 #include "message.hpp"
+#include "servers.hpp"
 #include "candidate.hpp"
 #include "server.hpp"
 #include "peer.hpp"

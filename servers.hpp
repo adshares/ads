@@ -3,7 +3,7 @@
 
 //FIXME, concider separating header and nodes into header.hpp and node.hpp
 #pragma pack(1)
-typedef struct header_s {
+/*typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
 	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
@@ -13,7 +13,7 @@ typedef struct header_s {
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
 	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
-} header_t;
+} header_t;*/
 typedef struct headlink_s { // header links sent when syncing
 	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
@@ -122,7 +122,7 @@ public:
 	int init(uint32_t newnow)
 	{	uint32_t num=0,w=0xFFFF;
                 now=newnow;
-		mkdir();
+		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,w--,num++){
 			bzero(it->hash,SHA256_DIGEST_LENGTH);
 			bzero(it->msha,SHA256_DIGEST_LENGTH);
@@ -171,7 +171,7 @@ public:
 	}
 	//void finish(uint32_t path,uint32_t txcount,uint8_t* txsh)
 	//void finish(uint8_t* txsh)
-	void hashtxs(std::map<uint16_t,message_ptr>& map)
+	void hashtxs(std::map<uint64_t,message_ptr>& map)
 	{	SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		int i=0;
@@ -181,24 +181,24 @@ public:
 		SHA256_Final(txshash, &sha256);
 	}
 
-	void txs_put(std::map<uint16_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
+	void txs_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
 	{	hashtxs(map);
 	 	char filename[64];
 		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
-		fd=open(filename,O_WRONLY|O_CREAT,0644);
+		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(!fd){ //trow or something :-)
 			return;}
 		write(fd,txshash,SHA256_DIGEST_LENGTH);
 		for(auto it=map.begin();it!=map.end();it++){
-			write(fd,it->second->svid,2); // we must later distinguish between double spend and normal messages ... maybe using msid==0xffffffff;
-			write(fd,it->second->msid,4);
+			write(fd,&it->second->svid,2); // we must later distinguish between double spend and normal messages ... maybe using msid==0xffffffff;
+			write(fd,&it->second->msid,4);
 			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH);} // maybe we have to set sigh=last_msg_sigh for double spend messages
 		close(fd);
 	}
 	int txs_get(char* data)
 	{	char filename[64];
 		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
-		fd=open(filename,O_RDONLY);
+		int fd=open(filename,O_RDONLY);
 		if(!fd){
 			return(0);}
 		int len=read(fd,data,SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
@@ -211,8 +211,8 @@ public:
 			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now)); // uint32_t alignment ???
 			map[msg->hash.num]=msg;}
 	}
-	int load_txslist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid,uint32_t mypath)
-	{	char* data=malloc(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
+	int load_txslist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	{	char* data=(char*)malloc(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
 		if(txs_get(data)!=SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH)){
 			free(data);
 			return(0);}
@@ -267,7 +267,8 @@ public:
 		header_print();
 	}
 	void hashnow()
-	{	SHA256_Init(&sha256);
+	{	SHA256_CTX sha256;
+	 	SHA256_Init(&sha256);
 		SHA256_Update(&sha256,&now,sizeof(uint32_t));
 		SHA256_Update(&sha256,&txs,sizeof(uint32_t));
 		SHA256_Update(&sha256,&nod,sizeof(uint32_t));
@@ -311,9 +312,6 @@ public:
 		head.vok=vok;
 		head.vno=vno;
 	}
-	uint32_t txs; // number of transactions in block
-	uint32_t nod; // number of nodes in block, this could be uint16_t later
-	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	int header_get()
 	{	char filename[64];
 		sprintf(filename,"%08X/header.txt",now);
@@ -571,7 +569,7 @@ public:
 		return(i<VIP_MAX?i:VIP_MAX);
 	}
 
-	int mkdir()
+	int blockdir()
 	{	char pathname[16];
 		sprintf(pathname,"%08X",now);
 		return(mkdir(pathname,0755));

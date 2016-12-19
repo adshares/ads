@@ -2,7 +2,7 @@
 #define SERVER_HPP
 
 #include "main.hpp"
-
+ 
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;
 
@@ -16,6 +16,7 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0),
+    do_fast(1),
     do_sync(1)
   { uint32_t path=readmsid(); // reads msid_ and path
     last_srvs_.get(path);
@@ -53,21 +54,17 @@ public:
       boost::this_thread::sleep(boost::posix_time::seconds(2));} //wait some time before connecting to more peers
 
     if(do_sync){
-      if(opts_.fast){
-        while(do_sync){ // fast_sync changes the status, FIXME use future/promis
+      if(opts_.fast){ //FIXME, do slow sync after fast sync
+        while(do_fast){ // fast_sync changes the status, FIXME use future/promis
           boost::this_thread::sleep(boost::posix_time::seconds(1));}}
       else{
-        get_headers=1;
-        while(get_headers){ // slow_sync changes the status, FIXME use future/promis
-          boost::this_thread::sleep(boost::posix_time::seconds(1));}}
-        std::cerr<<"START syncing data for headers\n";
-        load_chain();}
-      do_sync=0;}
+        do_fast=0;}
+      std::cerr<<"START syncing headers\n";
+      load_chain();} // sets do_sync=0;
 
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept(); // should consider sending a 'hallo world' message
   }
-
   ~server()
   { 
     //threadpool.interrupt_all();
@@ -84,30 +81,33 @@ public:
     threadpool.create_thread(boost::bind(&server::validator, this));
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
-    for(auto block=headers.begin();block!=headers.end();block++){ //FIXME consider locking in case other peers add more blocks during sync
-      srvs_.now=block->now; //TODO, check !!!
-      sprintf(pathname,"%08X",block->now);
-      mkdir(pathname,0755);
+    for(auto block=headers.begin();;){
+      if(block==headers.end()){ // wait for peers to load more blocks
+        std::cerr<<"WAITING for headers "<<block->now<<"\n";
+        boost::this_thread::sleep(boost::posix_time::seconds(2));
+        continue;}
+      std::cerr<<"START syncing header "<<block->now<<"\n";
+      srvs_.now=block->now;
+      srvs_.blockdir();
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
       if(!block->load_txslist(missing_msgs_,opts_.svid)){
         //request list of transactions from peers
         peer_.lock(); // consider changing this to missing_lock
-        get_txslist=block->now;
+        get_txslist=srvs_.now;
         peer_.unlock();
         //prepare txslist request message
         message_ptr put_msg(new message());
         put_msg->data[0]=MSGTYPE_TXL;
-        memcpy(put_msg->data+1,block->now,4);
+        memcpy(put_msg->data+1,&block->now,4);
         put_msg->got=0; // do first request emidiately
         while(get_txslist){ // consider using future/promise
           uint32_t now=time(NULL);
           if(put_msg->got<now-MAX_MSGWAIT){
-            fillknown(put_msg); // do this again in case we have a new peer
+            fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
             uint16_t svid=put_msg->request();
             if(svid){
               std::cerr << "REQUESTING TXL from "<<svid<<"\n";
-//FIXME, deliver is blocked !!!
               deliver(put_msg,svid);}}
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
         srvs_.txs=block->txs; //check
@@ -115,8 +115,7 @@ public:
       //inform peers about current sync block
       message_ptr put_msg(new message());
       put_msg->data[0]=MSGTYPE_PAT;
-      memcpy(put_msg->data+1,block->now,4);
-//FIXME, deliver is blocked !!!
+      memcpy(put_msg->data+1,&srvs_.now,4);
       deliver(put_msg);
       //request missing messages from peers
       txs_.lock();
@@ -125,6 +124,9 @@ public:
       dbl_.lock();
       dbl_msgs_.clear();
       dbl_.unlock();
+      blk_.lock();
+      blk_msgs_.clear();
+      blk_.unlock();
       missing_.lock();
       for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
         missing_.unlock();
@@ -144,10 +146,10 @@ public:
           check_.lock();
           check_msgs_.push_back(jt->second); // send to validator
           check_.unlock();
-          missing_msgs_erase(msg);
+          missing_msgs_erase(jt->second);
           continue;} // assume no lock needed
-	jt->second->fillknown();
-	jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-(
+	fillknown(jt->second);
+	jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
         missing_.lock();}
       missing_.unlock();
       //wait for all messages to be processed by the validators
@@ -157,15 +159,20 @@ public:
         boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
 	blk_.lock();}
       blk_.unlock();
-      //assume correct message hash
       //finish block
       srvs_.finish(); //FIXME, add locking
-      //FIXME, check nowhash with block->nowhash
+      if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
+        std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
+        exit(-1);}
       last_srvs_=srvs_; // consider not making copies of nodes
-      srvs_.now+=BLOCKSEC;
-      //TODO, add nodes if needed
-      //FIXME, check here if more headers are needed before finishing this
-      }
+      uint32_t now=time(NULL);
+      now-=now%BLOCKSEC;
+      if(srvs_.now==now-BLOCKSEC){
+        break;}
+      block++;}
+    srvs_.now+=BLOCKSEC;
+    srvs_.blockdir();
+    //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     txs_.lock();
     txs_msgs_.clear();
@@ -174,7 +181,14 @@ public:
     dbl_msgs_.clear();
     dbl_.unlock();
     //FIXME, inform peers about sync status
+    peer_.lock();
     do_sync=0;
+    headers.clear();
+    peer_.unlock();
+    message_ptr put_msg(new message());
+    put_msg->data[0]=MSGTYPE_SOK;
+    memcpy(put_msg->data+1,&srvs_.now,4);
+    deliver(put_msg);
   }
 
   void put_txslist(uint32_t now,std::map<uint64_t,message_ptr>& map)
@@ -188,27 +202,22 @@ public:
     return;
   }
 
-//FIXME, add the option to add new headers while syncing
-  int slow_sync(bool done,servers& sync_headers)
-  { static uint32_t last=0;
-    for(;;){
-      uint32_t now=time(NULL);
-      peer_.lock();
-      if(!get_headers){
-        peer_.unlock();
-        return(-1);}
-      if(done){ // peer should now overwrite servers with current data
-        headers=sync_headers; //TODO, create a copy function to keep a header_mutex
-	std::cerr<<"HEADERS loaded\n";
-        get_headers=0;
-        peer_.unlock();
-        return(1);}
-      if(last<now-SYNC_WAIT){
-        last=now;
-        peer_.unlock();
-        return(1);}
+  void add_headers(std::vector<servers>& peer_headers)
+  { if(!do_sync){
+      return;}
+    peer_.lock();
+    if(!headers.size()){
+      headers.insert(headers.end(),peer_headers.begin(),peer_headers.end());
       peer_.unlock();
-      boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      return;}
+    auto it=peer_headers.begin();
+    for(;it!=peer_headers.end() && it->now<=headers.back().now;it++){}
+    if(headers.back().now!=peer_headers.begin()->now-BLOCKSEC){
+      std::cerr<<"ERROR, headers misaligned\n"; //should never happen
+      peer_.unlock();
+      return;}
+    headers.insert(headers.end(),it,peer_headers.end());
+    peer_.unlock();
   }
 
   int fast_sync(bool done,header_t& head,node_t* nods,svsi_t* svsi)
@@ -216,7 +225,7 @@ public:
     for(;;){
       uint32_t now=time(NULL);
       peer_.lock();
-      if(!do_sync){
+      if(!do_fast){
         peer_.unlock();
         return(-1);}
       if(done){ // peer should now overwrite servers with current data
@@ -231,9 +240,9 @@ public:
         srvs_.now+=BLOCKSEC;
 	std::cerr<<"SYNC update vip\n";
         vip_max=srvs_.update_vip(); //based on final weights
-	std::cerr<<"SYNC mkdir\n";
-        srvs_.mkdir();
-        do_sync=0;
+	std::cerr<<"SYNC blockdir\n";
+        srvs_.blockdir();
+        do_fast=0;
         peer_.unlock();
         return(1);}
       if(last<now-SYNC_WAIT){
@@ -254,6 +263,7 @@ public:
   void start_accept();
   void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
   void connect(std::string peer_address);
+  void fillknown(message_ptr msg);
 
   //FIXME, move this to servers.hpp
   uint32_t readmsid()
@@ -364,7 +374,7 @@ public:
       std::cerr << "ERROR, no valid server for this block :-(, TODO create own block\n";}
     else{
       std::cerr << "SORT \n";
-      std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-(
+      std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
     for(int j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
@@ -402,7 +412,7 @@ public:
       txs_.lock();
       std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=txs_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)){ //data[4+(svid%64)]
           txs_.unlock();
           return it->second;}
         it++;}
@@ -412,19 +422,19 @@ public:
       cnd_.lock();
       std::map<uint64_t,message_ptr>::iterator it=cnd_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=cnd_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)){ //data[4+(svid%64)]
           cnd_.unlock();
           return it->second;}
         it++;}
       cnd_.unlock();
 fprintf(stderr,"HASH find failed, CND db:\n");
-for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %0.16llX (%02X)\n",me->first,me->second->hashval(svid)/*data[4+(svid%64)]*/);}
+for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %0.16llX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
       return NULL;}
     if(msg->data[0]==MSGTYPE_BLG){
       blk_.lock();
       std::map<uint64_t,message_ptr>::iterator it=blk_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
       while(it!=blk_msgs_.end() && ((it->first & 0xFFFFFFFFFFFFFF00L)==(msg->hash.num & 0xFFFFFFFFFFFFFF00L))){
-        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)/*data[4+(svid%64)]*/){
+        if(it->second->len>4+64 && msg->hash.dat[0]==it->second->hashval(svid)){ //data[4+(svid%64)]
           blk_.unlock();
           return it->second;}
         it++;}
@@ -861,7 +871,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
         h.dat[0]=MSGTYPE_PUT;
-        h.dat[1]=me->second->hashval(svid)/*data[4+(peer_svid%64)]*/;
+        h.dat[1]=me->second->hashval(peer_svid); //data[4+(peer_svid%64)]
         txs.push_back(h.num);}}
     txs_.unlock();
     dbl_.lock();
@@ -961,7 +971,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::stack<message_ptr> remove_msgs;
     std::stack<message_ptr> invalidate_msgs;
     message_queue commit_msgs; //std::forward_list<message_ptr> commit_msgs;
-    std::map<uint16_t,message_ptr> last_block_all_msgs; // last block all validated message from server, should change this to now_svid_msgs
+    std::map<uint64_t,message_ptr> last_block_all_msgs; // last block all validated message from server, should change this to now_svid_msgs
     sprintf(filename,"%08X/block.txt",srvs_.now); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     fp=fopen(filename,"w");
     uint32_t txcount=0;
@@ -987,23 +997,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	else{
           minmsid=last_srvs_.nodes[nsvid].msid+1;}
         maxmsid=srvs_.nodes[nsvid].msid;
-        //auto it=last_block_svid_msgs.find(nsvid);
-	////use data from previous block !!!
-        //if(it!=last_block_svid_msgs.end()){
-        //  //nmsid=it->second->msid;}
-        //  maxmsid=it->second->msid;}
-        //else{
-        //  //nmsid=mi->second->msid-1;}
-        //  maxmsid=minmsid-1;}
-        ////fprintf(fp,"MAX %d %d %d\n",nsvid,nmsid,emsid);}
         fprintf(stderr,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);
         fprintf(fp,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);}
-      //if(nmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
+      //if(nmsid==0xffffffff && mi->second->msid<0xffffffff)  // remove messages from dbl_spend server
       if(maxmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
         std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later ! (DBL-spend server)\n";
         remove_msgs.push(mi->second);
         continue;}
-      //if(mi->second->msid>nmsid){
+      //if(mi->second->msid>nmsid)
       if(mi->second->msid>maxmsid){
         if(mi->second->now<last_srvs_.now){ // remove messages if failed to be included in 2 blocks
           //if(srvs_.nodes[mi->second->svid].msid>nmsid){
@@ -1031,7 +1032,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
           fprintf(stderr,"PATH?: %d %d %.16s %0.16llX (%0.16llX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
-        //if(nmsid!=0xffffffff && mi->second->msid!=emsid){
+        //if(nmsid!=0xffffffff && mi->second->msid!=emsid)
         if(maxmsid!=0xffffffff && mi->second->msid!=minmsid){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
           fprintf(stderr,"?????: %d %d %.16s %0.16llX (%0.16llX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
@@ -1058,7 +1059,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //ed25519_key2text(hash,last_block_all_message.hash,sizeof(hash_t));
     //message_shash(srvs_.txshash,last_block_all_msgs); // consider sending this hash to other peers
     srvs_.txs=last_block_all_msgs.size();
-    srvs_.txs_put(last_block_all_msgs);
+    srvs_.txs_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
     ed25519_key2text(hash,srvs_.txshash,sizeof(hash_t));
     fprintf(fp,"0 0 %.*s\n",2*sizeof(hash_t),hash);
     fclose(fp);
@@ -1067,7 +1068,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(mi->status & MSGSTAT_VAL){ // invalidate first
         mi->status &= ~MSGSTAT_VAL;}
 //FIXME, make sure this message is not in other queue !!!
-//FIXME, remove from all places or mark as removed :-(
+//FIXME, remove from all places or mark as removed :-/
       std::cerr << "REMOVING message " << mi->svid << ":" << mi->msid << "\n";
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
 //FIXME, update peers.svid_msid_new !!!
@@ -1089,11 +1090,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
     srvs_.now+=BLOCKSEC;
-    srvs_.mkdir();
+    srvs_.blockdir();
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     free(hash);
-//FIXME, clean also blk_ and cnd_ messages !
     for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
       auto mi=mj++;
       if(mi->second->msid<last_srvs_.now){
@@ -1253,9 +1253,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         finish_block();
         //writelastpath();
         writemsid();
-        char pathname[16];
-        sprintf(pathname,"%08X",srvs_.now+BLOCKSEC); // size depends on the time_ shift !!!
-        mkdir(pathname,0755);
+        //char pathname[16];
+        //sprintf(pathname,"%08X",srvs_.now+BLOCKSEC); // size depends on the time_ shift !!!
+        //mkdir(pathname,0755);
         svid_.lock();
         svid_msgs_.clear();
         svid_.unlock();
@@ -1300,16 +1300,19 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   servers last_srvs_;
   //message_ptr block; // my block message, now data in last_srvs_
   int do_sync;
+  int do_fast;
   int do_check;
-  int get_headers; //TODO :-( reduce the number of flags
+  //int get_headers; //TODO :-( reduce the number of flags
   uint32_t msid_; // change name to msid :-)
   int vip_max;
+  boost::mutex peer_; //FIXME, make this private
+  std::list<servers> headers; //FIXME, make this private
+  uint32_t get_txslist; //block id of the requested txslist of messages
 private:
   enum { max_connections = 4 };
-  enum { max_recent_msgs = 1024 }; // this is the block chain :-)
+  enum { max_recent_msgs = 1024 }; // this is the block chain :->
   boost::asio::io_service& io_service_;
   boost::asio::ip::tcp::acceptor acceptor_;
-  std::vector<servers> headers;
   servers srvs_;
   options& opts_;
   boost::thread_group threadpool;
@@ -1321,7 +1324,7 @@ private:
   candidate_ptr winner; // elected candidate
   std::set<peer_ptr> peers_;
   std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates
-  message_queue wait_msgs_; //TODO, not used yet :-(
+  message_queue wait_msgs_; //TODO, not used yet :-/
   message_queue check_msgs_;
   std::map<uint16_t,message_ptr> svid_msgs_; //last validated txs message or dbl message from server
   std::map<uint64_t,message_ptr> missing_msgs_; //TODO, start using this, these are messages we still wait for
@@ -1329,7 +1332,6 @@ private:
   std::map<uint64_t,message_ptr> cnd_msgs_; //_CND messages (block candidates)
   std::map<uint64_t,message_ptr> blk_msgs_; //_BLK messages (blocks) or messages in a block ehcn syncing
   std::map<uint64_t,message_ptr> dbl_msgs_; //_DBL messages (double spend)
-  boost::mutex peer_;
   boost::mutex cand_;
   boost::mutex wait_;
   boost::mutex check_;
