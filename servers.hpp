@@ -166,8 +166,12 @@ public:
 	 	if(now>0){
 			sprintf(filename,"%08X/servers.txt",now);}
 		std::ofstream ofs(filename);
-		boost::archive::text_oarchive oa(ofs);
-		oa << (*this);
+		if(ofs.is_open()){
+			boost::archive::text_oarchive oa(ofs);
+			oa << (*this);}
+		else{
+			std::cerr<<"ERROR, failed to write servers to dir:"<<now<<"\n";}
+
 	}
 	//void finish(uint32_t path,uint32_t txcount,uint8_t* txsh)
 	//void finish(uint8_t* txsh)

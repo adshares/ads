@@ -41,6 +41,7 @@ public:
 
   void start()
   {
+//FIXME, we should run our own io_service !!! ... need to check later if this is the case
     addr = socket_.remote_endpoint().address().to_string();
     //ipv4 = socket_.remote_endpoint().address().to_v4().to_ulong();
     port = socket_.remote_endpoint().port();
@@ -54,7 +55,7 @@ public:
       message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
       msg->print("; start");
       send_sync(msg);}
-    // read authentication data
+    // read authentication data, maybe start with (synchronous?) authenticate()
     boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
@@ -170,8 +171,24 @@ public:
     mtx_.unlock();
   }
 
+  void send_sync(message_ptr put_msg)
+  { //FIXME, make this a blocking write
+    assert(do_sync);
+    mtx_.lock();
+    bool no_write_in_progress = write_msgs_.empty();
+    write_msgs_.push_back(put_msg);
+    if(no_write_in_progress){
+std::cerr<<"SENDING in sync mode "<<write_msgs_.front()->len<<" bytes\n";
+      boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,write_msgs_.front()->len),
+        boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));}
+    else{
+std::cerr<<"SENDING in sync mode busy ("<<write_msgs_.size()<<"), queued "<<write_msgs_.back()->len<<" bytes\n";}
+    mtx_.unlock();
+  }
+
   void handle_write(const boost::system::error_code& error) //TODO change this later, dont send each message separately if possible
   {
+std::cerr << "HANDLE WRITE start\n";
     if (!error) {
       mtx_.lock();
       write_msgs_.front()->mtx_.lock();
@@ -193,9 +210,11 @@ public:
         if(svid_msid_new[write_msgs_.front()->svid]<write_msgs_.front()->msid){
           svid_msid_new[write_msgs_.front()->svid]=write_msgs_.front()->msid; // maybe a lock on svid_msid_new would help
           fprintf(stderr,"UPDATE PEER SVID_MSID: %d:%d\n",write_msgs_.front()->svid,write_msgs_.front()->msid);}}
+std::cerr << "HANDLE WRITE sent "<<write_msgs_.front()->len<<" bytes\n";
       write_msgs_.pop_front();
       if (!write_msgs_.empty()) {
         int len=message_len(write_msgs_.front());
+std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
           boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error)); }
       mtx_.unlock(); }
@@ -300,11 +319,13 @@ public:
           boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_TXP){
+        std::cerr << "READ txslist header\n";
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_txslist,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_BLK){
+        std::cerr << "READ block header\n";
         assert(read_msg_->len==4+64+10+sizeof(header_t) || read_msg_->len==4+64+10);
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
@@ -314,17 +335,6 @@ public:
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
         boost::bind(&peer::handle_read_body,shared_from_this(),boost::asio::placeholders::error));}
-  }
-
-  void send_sync(message_ptr put_msg)
-  { //FIXME, consider making this a blocking write
-    mtx_.lock();
-    bool no_write_in_progress = write_msgs_.empty();
-    write_msgs_.push_back(put_msg);
-    if(no_write_in_progress){
-      boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,write_msgs_.front()->len),
-        boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));}
-    mtx_.unlock();
   }
 
   void update_sync(void) // send current inventory (all txs and dbl messages)
@@ -376,9 +386,10 @@ public:
   void handle_read_headers()
   { uint32_t to=peer_hs.head.now;
     servers sync_ls; //FIXME, use only the header data not "servers"
-    sync_ls.header(sync_hs.head);
+    sync_ls.loadhead(sync_hs.head);
     server_.peer_.lock();
     if(server_.headers.size()){
+      std::cerr<<"USE last header\n";
       sync_ls=server_.headers.back();} // FIXME, use pointers/references maybe
     server_.peer_.unlock();
     uint32_t from=sync_ls.now;
@@ -559,6 +570,7 @@ public:
 
   void handle_read_banks()
   { //later try reading from more peers or decide to load messages rather than banks again
+    //TODO, will need to create directory to store data (earlier than in fast_sync)
 
     std::cerr<<"FINISH SYNC\n";
     server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
@@ -659,7 +671,8 @@ public:
     //now decide if You want to sync to last stage first ; or load missing blocks and messages first, You can decide based on size of databases and time to next block
     //the decision should be in fact made at the beginning by the server
     if(opts_.fast){
-      handle_read_servers();}
+      handle_read_servers();
+      server_.last_srvs_.header(sync_hs.head);} // set new starting point for headers synchronisation
     handle_read_headers();
     do_sync=0; // set peer in sync, we are not in sync (server_.do_sync==1)
     return(1);

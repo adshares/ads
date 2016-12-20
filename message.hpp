@@ -114,6 +114,7 @@ public:
 	path(0)
   { data=(uint8_t*)std::malloc(len);
     now=time(NULL);
+    path=now-(now%BLOCKSEC);
     got=now;
     assert(mymsid<=max_msid); // this server can not send any more messages
     assert(len<=max_length);
@@ -134,8 +135,8 @@ public:
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);}
     else{
       ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);}
-    hash.num=dohash(mysvid);
     hash_signature(data+4);
+    hash.num=dohash(mysvid); //after hash_signature
   }
 
   ~message()
@@ -317,9 +318,9 @@ public:
       //if(srvs.nodes.size()<=svid){ //unknown svid
       //  return(-1);}
 std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
-      hash.num=dohash(mysvid);
       status=MSGSTAT_DAT; // have data
       hash_signature(data+4);
+      hash.num=dohash(mysvid);
       if(data[0]==MSGTYPE_BLK){ //this signature format is different because these signatures are stored later without the header
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
 	  std::cerr<<"ERROR, BLK message msid error\n";
@@ -435,6 +436,7 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
     return(1);
   }
 
+  //FIXME, check again the time of saving, consider free'ing data after save
   int save() //TODO, consider locking
   { char filename[64];
     sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!

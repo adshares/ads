@@ -14,6 +14,7 @@ public:
     acceptor_(io_service, endpoint),
     opts_(opts),
     votes_max(0.0),
+    do_validate(0),
     do_vote(0),
     do_block(0),
     do_fast(1),
@@ -33,19 +34,19 @@ public:
     uint32_t now=time(NULL);
     now-=now%BLOCKSEC;
     if(opts_.init){
-      last_srvs_.init(now-BLOCKSEC);
-      srvs_=last_srvs_;} //FIXME, create a copy function
+      last_srvs_.init(now-BLOCKSEC);}
+    srvs_=last_srvs_;
+    srvs_.now+=BLOCKSEC;
+    srvs_.blockdir();
+    vip_max=srvs_.update_vip(); //based on initial weights at start time
 
     if(last_srvs_.now==now-BLOCKSEC){ // maybe we should run sync anyway (unless we are the only vip)
-      srvs_.now=now;
-      //consider running a consistancy check
       //assume database correct, allow very fast start, consider adding a startpoint option
       do_sync=0;}
     else{
       if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
         std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
       do_sync=1;}
-    vip_max=srvs_.update_vip(); //based on initial weights at start time
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     for(std::string addr : opts_.peer){
@@ -77,18 +78,22 @@ public:
 
   void load_chain()
   { char pathname[16];
+    uint32_t now=time(NULL);
+    now-=now%BLOCKSEC;
     do_validate=1;
     threadpool.create_thread(boost::bind(&server::validator, this));
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
-    for(auto block=headers.begin();;){
+    for(auto block=headers.begin();srvs_.now<now;){
       if(block==headers.end()){ // wait for peers to load more blocks
         std::cerr<<"WAITING for headers "<<block->now<<"\n";
         boost::this_thread::sleep(boost::posix_time::seconds(2));
         continue;}
       std::cerr<<"START syncing header "<<block->now<<"\n";
-      srvs_.now=block->now;
-      srvs_.blockdir();
+      if(srvs_.now!=block->now){
+        std::cerr<<"ERROR, got strange block numbers "<<srvs_.now<<"<>"<<block->now<<"\n";
+        exit(-1);} //FIXME, prevent this
+      //srvs_.blockdir();
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
       if(!block->load_txslist(missing_msgs_,opts_.svid)){
@@ -165,13 +170,11 @@ public:
         std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
         exit(-1);}
       last_srvs_=srvs_; // consider not making copies of nodes
-      uint32_t now=time(NULL);
+      srvs_.now+=BLOCKSEC;
+      srvs_.blockdir();
+      now=time(NULL);
       now-=now%BLOCKSEC;
-      if(srvs_.now==now-BLOCKSEC){
-        break;}
       block++;}
-    srvs_.now+=BLOCKSEC;
-    srvs_.blockdir();
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     txs_.lock();
@@ -231,6 +234,8 @@ public:
       if(done){ // peer should now overwrite servers with current data
 	std::cerr<<"SYNC overwrite\n";
         last_srvs_.overwrite(head,nods);
+	std::cerr<<"SYNC mkdir\n";
+        last_srvs_.blockdir();
 	std::cerr<<"SYNC put\n";
 	last_srvs_.put();
 	std::cerr<<"SYNC put signatures\n";
@@ -238,10 +243,10 @@ public:
 	std::cerr<<"SYNC copy\n";
         srvs_=last_srvs_; //FIXME, create a copy function
         srvs_.now+=BLOCKSEC;
-	std::cerr<<"SYNC update vip\n";
-        vip_max=srvs_.update_vip(); //based on final weights
 	std::cerr<<"SYNC blockdir\n";
         srvs_.blockdir();
+	std::cerr<<"SYNC update vip\n";
+        vip_max=srvs_.update_vip(); //based on final weights
         do_fast=0;
         peer_.unlock();
         return(1);}
@@ -528,6 +533,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr << "ERROR, getting message with wrong signature hash\n";
           return(0);}
         osg->update(msg);
+        osg->path=srvs_.now;
         dbl_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){
@@ -566,6 +572,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
 	message_ptr pre=NULL,nxt=NULL;
         osg->update(msg);
+        osg->path=osg->msid; // this is the block time!!!
         cnd_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, do not exit !!! return fail
@@ -596,6 +603,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       return(1);}
     if(msg->svid==opts_.svid){ // own message
       cnd_msgs_[msg->hash.num]=msg;
+      msg->path=msg->msid; // this is the block time!!!
       cnd_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own cnd message\n";
@@ -617,6 +625,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
 	message_ptr pre=NULL,nxt=NULL;
         osg->update(msg);
+        osg->path=osg->msid; // this is the block time!!!
         blk_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, save where ???, check legal time !!!
@@ -647,6 +656,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       return(1);}
     if(msg->svid==opts_.svid){ // own message
       blk_msgs_[msg->hash.num]=msg;
+      msg->path=msg->msid; // this is the block time!!!
       blk_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own blk message\n";
@@ -655,6 +665,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       return(1);}
     if(msg->svid==msg->peer){ // peers message
       blk_msgs_[msg->hash.num]=msg;
+      msg->path=msg->msid; // this is the block time!!!
       blk_.unlock();
       std::cerr << "DEBUG, storing peer's blk message\n";
       msg->save(); //FIXME, time !!!
@@ -680,6 +691,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr << "ERROR, getting message with wrong signature hash\n";
           return(0);}
         osg->update(msg);
+        osg->path=srvs_.now;
         txs_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, change path
@@ -725,13 +737,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         return(1);}
       if(msg->svid==opts_.svid){ // own message
         txs_msgs_[msg->hash.num]=msg;
+        msg->path=srvs_.now;
         txs_.unlock();
+        msg->save();
         check_.lock();
         check_msgs_.push_back(msg); // running though validator
         check_.unlock();
 	assert(msg->peer==msg->svid);
         std::cerr << "DEBUG, storing own message\n";
-        msg->save();
         return(1);}
       txs_.unlock();
       std::cerr << "ERROR, getting unexpected message\n";
