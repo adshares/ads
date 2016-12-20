@@ -145,7 +145,7 @@ public:
   void deliver(message_ptr msg)
   { if(do_sync){
       return;}
-    msg->mtx_.lock();
+    msg->mtx_.lock();//TODO, do this right before sending the message ?
     msg->know.insert(svid);
     if(msg->status==MSGSTAT_SAV){
       if(!msg->load()){
@@ -174,6 +174,7 @@ public:
   void send_sync(message_ptr put_msg)
   { //FIXME, make this a blocking write
     assert(do_sync);
+    put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
     mtx_.lock();
     bool no_write_in_progress = write_msgs_.empty();
     write_msgs_.push_back(put_msg);
@@ -192,7 +193,7 @@ std::cerr << "HANDLE WRITE start\n";
     if (!error) {
       mtx_.lock();
       write_msgs_.front()->mtx_.lock();
-      write_msgs_.front()->busy.erase(svid);
+      write_msgs_.front()->busy.erase(svid); // will not work if same message queued 2 times
       write_msgs_.front()->sent.insert(svid);
       write_msgs_.front()->mtx_.unlock();
       bytes_out+=write_msgs_.front()->len;
@@ -213,6 +214,7 @@ std::cerr << "HANDLE WRITE start\n";
 std::cerr << "HANDLE WRITE sent "<<write_msgs_.front()->len<<" bytes\n";
       write_msgs_.pop_front();
       if (!write_msgs_.empty()) {
+        //FIXME, now load the message from db if needed !!! do not do this when inserting in write_msgs_, unless You do not worry about RAM but worry about speed
         int len=message_len(write_msgs_.front());
 std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
@@ -267,7 +269,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
           read_msg_->path=peer_path;
           if(read_msg_->load()){
             std::cerr << "PROVIDING MESSAGE\n";
-            deliver(read_msg_);}
+            send_sync(read_msg_);} //deliver will not work in do_sync mode
           else{
             std::cerr << "IGNORING download request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
         else{
@@ -431,10 +433,17 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         if(!i){
           headers[i].loadlink(*link,now,data);}
         else{
-          headers[i].loadlink(*link,now,(char*)headers[i-1].nowhash);}} //assert(i==num-1);
+          headers[i].loadlink(*link,now,(char*)headers[i-1].nowhash);}
+        headers[i].header_print();
+        } //assert(i==num-1);
       free(data);
       if(memcmp(headers[num-2].nowhash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
         std::cerr << "ERROR, hashing header chain :-(\n";
+        char hash[2*SHA256_DIGEST_LENGTH];
+        ed25519_key2text(hash,headers[num-2].nowhash,SHA256_DIGEST_LENGTH);
+        fprintf(stderr,"NOWHASH nowhash %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
+        fprintf(stderr,"NOWHASH oldhash %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         server_.leave(shared_from_this());
         return;}}
     headers[num-1].loadhead(peer_hs.head);
@@ -468,7 +477,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
   void write_txslist()
   { servers header;
     memcpy(&header.now,read_msg_->data+1,4);
-    if(header.header_get()){
+    if(!header.header_get()){
       std::cerr<<"FAILED to read header "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, consider responding with error
       return;}
     int len=8+SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH);

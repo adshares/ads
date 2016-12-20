@@ -36,6 +36,7 @@ public:
     if(opts_.init){
       last_srvs_.init(now-BLOCKSEC);}
     srvs_=last_srvs_;
+    memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     srvs_.now+=BLOCKSEC;
     srvs_.blockdir();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
@@ -148,13 +149,17 @@ public:
           txs_msgs_[jt->first]=jt->second;
           txs_.unlock();}
 	if(jt->second->load() && !jt->second->sigh_check()){
+          std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<")\n";
           check_.lock();
           check_msgs_.push_back(jt->second); // send to validator
           check_.unlock();
           missing_msgs_erase(jt->second);
           continue;} // assume no lock needed
 	fillknown(jt->second);
-	jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
+	uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
+        if(svid){
+          std::cerr << "REQUESTING TXS from "<<svid<<"\n";
+          deliver(jt->second,svid);}
         missing_.lock();}
       missing_.unlock();
       //wait for all messages to be processed by the validators
@@ -170,6 +175,7 @@ public:
         std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
         exit(-1);}
       last_srvs_=srvs_; // consider not making copies of nodes
+      memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       srvs_.now+=BLOCKSEC;
       srvs_.blockdir();
       now=time(NULL);
@@ -242,6 +248,7 @@ public:
 	last_srvs_.put_signatures(head,svsi);
 	std::cerr<<"SYNC copy\n";
         srvs_=last_srvs_; //FIXME, create a copy function
+        memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         srvs_.now+=BLOCKSEC;
 	std::cerr<<"SYNC blockdir\n";
         srvs_.blockdir();
@@ -865,7 +872,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         msg->print_text(";VALID");
         msg->status=MSGSTAT_VAL;
         svid_.lock();
-        srvs_.nodes[msg->svid].msid=msg->msid; 
+        node* nod=&srvs_.nodes[msg->svid];
+        nod->msid=msg->msid;
+        nod->mtim=msg->now;
+        memcpy(nod->msha,msg->sigh,sizeof(hash_t));
         svid_msgs_[msg->svid]=msg;
         svid_.unlock();
         if(!do_sync){
@@ -960,9 +970,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       //nn->status=no->status;
       //nn->ipv4=no->ipv4;
       //nn->port=no->port;
-      nod->msid=it->second->msid;
-      nod->mtim=it->second->now;
-      memcpy(nod->msha,it->second->sigh,sizeof(hash_t));
+      nod->msid=it->second->msid; //TODO, it should be in the nodes already
+      nod->mtim=it->second->now; //TODO, it should be in the nodes already
+      memcpy(nod->msha,it->second->sigh,sizeof(hash_t)); //TODO, it should be in the nodes already
       ed25519_key2text(hash,it->second->sigh,sizeof(hash_t));
       fprintf(stderr,"DELTA: %d %d %.*s\n",it->first,it->second->msid,2*sizeof(hash_t),hash);
       fprintf(fp,"%d %d %.*s\n",it->first,it->second->msid,2*sizeof(hash_t),hash);}
@@ -1102,6 +1112,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 // TODO, save current account status
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
+    memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     srvs_.now+=BLOCKSEC;
     srvs_.blockdir();
     //TODO, add nodes if needed

@@ -336,6 +336,7 @@ public:
 			std::cerr<<"ERROR, failed to read header\n";
 			return(0);}
 		if(check!=now){
+			std::cerr<<"ERROR, failed to check header\n";
 			return(0);}
 		return(1);
 	}

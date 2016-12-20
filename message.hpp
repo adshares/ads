@@ -236,6 +236,7 @@ public:
       return 2;}
     if(data[0]==MSGTYPE_STP){
       std::cerr << "STOP header received\n";
+      svid=peer_svid;
       len=SHA256_DIGEST_LENGTH+1;
       data=(uint8_t*)std::realloc(data,len);
       return 2;}
@@ -249,15 +250,21 @@ public:
       svid=peer_svid;
       len=header_length;
       return 1;}
+    if(data[0]==MSGTYPE_PAT){
+      std::cerr << "SYNCBLOCK time received\n";
+      svid=peer_svid;
+      len=header_length;
+      return 1;}
     if(data[0]==MSGTYPE_TXL){
       std::cerr << "TXSLIST request header received\n";
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_TXP){
-      memcpy(&len,data+1,3);
       std::cerr << "TXSLIST data header received\n";
       svid=peer_svid;
+      memcpy(&len,data+1,3);
+      data=(uint8_t*)std::realloc(data,len);
       return 1;}
     if(data[0]==MSGTYPE_SOK){
       std::cerr << "SYNC OK received\n";
@@ -518,10 +525,10 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
       mtx_.unlock();
       return(0);}
     for(auto k=know.begin();k!=know.end();k++){//known is expected to have random order (or order based on insertions)
-      auto s=busy.find(*k);
-      if(s==busy.end()){
+      auto s=sent.find(*k);
+      if(s==sent.end()){
         got=mynow;
-        busy.insert(*k);
+        sent.insert(*k); //will be also inserted by peer::handle_write after message submitted
         mtx_.unlock();
         std::cerr<<"REQUEST for "<<svid<<":"<<msid<<" from:"<<*k<<"\n";
         return(*k);}}
