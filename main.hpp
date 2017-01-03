@@ -40,11 +40,14 @@
 #define MAX_MSGWAIT 4 /*wait no more than 4s for a message*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
+#define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon)*/
 
 #define SERVER_TYPE 1
+#define OFFICE_PORT "9080"
 #define SERVER_PORT "9090"
 //#define PATHSHIFT 8
 #define PATHSHIFT 5
+#define MAXCLIENTS 128
 
 #define SERVER_DBL 0x1
 #define SERVER_VIP 0x2
@@ -76,21 +79,29 @@
 #define MSGTYPE_TXL 18  /* txslist request */
 #define MSGTYPE_TXP 19  /* txslist data */
 #define MSGTYPE_PAT 20  /* current sync path */
-
-
 #define MSGTYPE_SOK 99  /* peer synced */
+
+#define TXSTYPE_PER 1	/* peer connected */
+#define TXSTYPE_BRO 2	/* broadcast */
+#define TXSTYPE_CNP 3	/* create new peer */
+#define TXSTYPE_CNU 4	/* create new user (by bank) */
+#define TXSTYPE_RNU 5	/* request new user (by user) */
+#define TXSTYPE_ANU 6	/* accept new user (by bank) */
+#define TXSTYPE_SEN 7	/* send MoonBlocks */
+#define TXSTYPE_WIT 8	/* withdraw MoonBlocks */
+#define TXSTYPE_INF 99  /* get info */
 
 #pragma pack(1)
 typedef struct header_s {
-        uint32_t now; // start time of block, MUST BE FIRST ELEMENT
-        uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
-        uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
-        uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
-        uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
-        uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
-        uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
-        uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
-        uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
+	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
+	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
+	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
+	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
+	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
+	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
 #pragma pack()
 
@@ -101,5 +112,7 @@ typedef struct header_s {
 #include "candidate.hpp"
 #include "server.hpp"
 #include "peer.hpp"
+#include "office.hpp"
+#include "client.hpp"
 
 #endif

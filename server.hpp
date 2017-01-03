@@ -10,18 +10,19 @@ class server
 {
 public:
   server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
+    do_sync(1),
+    do_fast(1),
     io_service_(io_service),
     acceptor_(io_service, endpoint),
     opts_(opts),
-    votes_max(0.0),
     do_validate(0),
+    votes_max(0.0),
     do_vote(0),
-    do_block(0),
-    do_fast(1),
-    do_sync(1)
-  { uint32_t path=readmsid(); // reads msid_ and path
+    do_block(0)
+  { mkdir("usr",0755); // create dir for bank accounts
+    uint32_t path=readmsid(); // reads msid_ and path
     last_srvs_.get(path);
-    if(last_srvs_.nodes.size()<=opts_.svid){ 
+    if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
       exit(-1);} 
     if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
@@ -78,7 +79,7 @@ public:
   }
 
   void load_chain()
-  { char pathname[16];
+  { //char pathname[16];
     uint32_t now=time(NULL);
     now-=now%BLOCKSEC;
     do_validate=1;
@@ -388,7 +389,7 @@ public:
       std::cerr << "SORT \n";
       std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
-    for(int j=0;j<VOTES_MAX && j<svid_rank.size();j++){
+    for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
       std::cerr << "ELECTOR[" << svid_rank[j] << "]=" << srvs_.nodes[svid_rank[j]].weight << "\n";
@@ -406,7 +407,7 @@ public:
     h.dat[1]=0; // message type
     memcpy(h.dat+2,&msid,4);
     memcpy(h.dat+6,&svid,2);
-    fprintf(stderr,"HASH find:%0.16llX (%04X:%08X) %d:%d\n",h.num,svid,msid,svid,msid);
+    fprintf(stderr,"HASH find:%016lX (%04X:%08X) %d:%d\n",h.num,svid,msid,svid,msid);
     txs_.lock();
     auto mi=txs_msgs_.lower_bound(h.num);
     while(mi!=txs_msgs_.end() && mi->second->svid==svid && mi->second->msid==msid){
@@ -419,7 +420,7 @@ public:
   }
 
   message_ptr message_find(message_ptr msg,uint16_t svid)
-  { fprintf(stderr,"HASH find:%0.16llX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
+  { fprintf(stderr,"HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
     if(msg->data[0]==MSGTYPE_GET){
       txs_.lock();
       std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
@@ -440,7 +441,7 @@ public:
         it++;}
       cnd_.unlock();
 fprintf(stderr,"HASH find failed, CND db:\n");
-for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %0.16llX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
+for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH have: %016lX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
       return NULL;}
     if(msg->data[0]==MSGTYPE_BLG){
       blk_.lock();
@@ -530,7 +531,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   {
     assert(msg->hash.dat[1]==MSGTYPE_DBL);
     dbl_.lock(); // maybe no lock needed
-    fprintf(stderr,"HASH insert:%0.16llX (DBL)\n",msg->hash.num);
+    fprintf(stderr,"HASH insert:%016lX (DBL)\n",msg->hash.num);
     auto it=dbl_msgs_.find(msg->hash.num);
     if(it!=dbl_msgs_.end()){
       message_ptr osg=it->second;
@@ -572,7 +573,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int cnd_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_CND);
     cnd_.lock();
-    fprintf(stderr,"HASH insert:%0.16llX (CND)\n",msg->hash.num);
+    fprintf(stderr,"HASH insert:%016lX (CND)\n",msg->hash.num);
     std::map<uint64_t,message_ptr>::iterator it=cnd_msgs_.find(msg->hash.num);
     if(it!=cnd_msgs_.end()){
       message_ptr osg=it->second;
@@ -625,7 +626,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int blk_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_BLK);
     blk_.lock();
-    fprintf(stderr,"HASH insert:%0.16llX (BLK)\n",msg->hash.num);
+    fprintf(stderr,"HASH insert:%016lX (BLK)\n",msg->hash.num);
     std::map<uint64_t,message_ptr>::iterator it=blk_msgs_.find(msg->hash.num);
     if(it!=blk_msgs_.end()){
       message_ptr osg=it->second;
@@ -686,7 +687,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int txs_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_TXS);
     txs_.lock(); // maybe no lock needed
-    fprintf(stderr,"HASH insert:%0.16llX (TXS)\n",msg->hash.num);
+    fprintf(stderr,"HASH insert:%016lX (TXS)\n",msg->hash.num);
     std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.find(msg->hash.num);
     if(it!=txs_msgs_.end()){
       message_ptr osg=it->second;
@@ -832,7 +833,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         for(auto re=tmp_msgs_.begin();re!=tmp_msgs_.end();re++){
 	  uint16_t svid=(*re)->request();
           if(svid){
-            fprintf(stderr,"HASH request:%0.16llX [%0.16llX] (%0.4X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
+            fprintf(stderr,"HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
             std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<(*re)->svid<<":"<<(*re)->msid<<")\n";
             deliver((*re),svid);}}
         //checking waiting messages
@@ -868,7 +869,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           wait_.unlock();
           continue;}
         //if not valid, continue
+
         boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX))); //FIXME, this is the validation :-D
+
         msg->print_text(";VALID");
         msg->status=MSGSTAT_VAL;
         svid_.lock();
@@ -929,7 +932,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto mi=txs_msgs_.lower_bound(h.num);
       while(1){
         if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
-          fprintf(stderr,"FATAL, could not find svid_have message :-( %0.16llX\n",h.num);
+          fprintf(stderr,"FATAL, could not find svid_have message :-( %016lX\n",h.num);
           exit(-1);}
         if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
           last_block_svid_msgs[it->first]=mi->second;
@@ -951,7 +954,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto mi=txs_msgs_.lower_bound(h.num);
       while(1){
         if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
-          fprintf(stderr,"FATAL, could not find svid_miss message :-( %0.16llX\n",h.num);
+          fprintf(stderr,"FATAL, could not find svid_miss message :-( %016lX\n",h.num);
           exit(-1);}
         if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
           last_block_svid_msgs[it->first]=mi->second;
@@ -974,8 +977,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       nod->mtim=it->second->now; //TODO, it should be in the nodes already
       memcpy(nod->msha,it->second->sigh,sizeof(hash_t)); //TODO, it should be in the nodes already
       ed25519_key2text(hash,it->second->sigh,sizeof(hash_t));
-      fprintf(stderr,"DELTA: %d %d %.*s\n",it->first,it->second->msid,2*sizeof(hash_t),hash);
-      fprintf(fp,"%d %d %.*s\n",it->first,it->second->msid,2*sizeof(hash_t),hash);}
+      fprintf(stderr,"DELTA: %d %d %.*s\n",it->first,it->second->msid,(int)(2*sizeof(hash_t)),hash);
+      fprintf(fp,"%d %d %.*s\n",it->first,it->second->msid,(int)(2*sizeof(hash_t)),hash);}
     // confirm hash;
     hash_s last_block_message;
     message_shash(last_block_message.hash,last_block_svid_msgs);
@@ -987,8 +990,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       exit(-1);}
     cand_.unlock();
     ed25519_key2text(hash,last_block_message.hash,sizeof(hash_t));
-    fprintf(stderr,"DELTA: 0 0 %.*s\n",2*sizeof(hash_t),hash);
-    fprintf(fp,"0 0 %.*s\n",2*sizeof(hash_t),hash);
+    fprintf(stderr,"DELTA: 0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
+    fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fclose(fp); //TODO consider updating peers about correct block msgs hash
 
     std::stack<message_ptr> remove_msgs;
@@ -1048,21 +1051,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           mi->second->move(srvs_.now+BLOCKSEC);}}
       else{
         if(mi->second->len==message::header_length){
-          fprintf(stderr,"IGNOR: %d %d %.16s %0.16llX (%0.16llX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+          fprintf(stderr,"IGNOR: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
 //???, what about emsid ???
           continue;}
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
 	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          fprintf(stderr,"PATH?: %d %d %.16s %0.16llX (%0.16llX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
+          fprintf(stderr,"PATH?: %d %d %.16s %016lX (%016lX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
         //if(nmsid!=0xffffffff && mi->second->msid!=emsid)
         if(maxmsid!=0xffffffff && mi->second->msid!=minmsid){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          fprintf(stderr,"?????: %d %d %.16s %0.16llX (%0.16llX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+          fprintf(stderr,"?????: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
           //std::cerr << "ERROR, failed to read correct transaction order in block " << nsvid << ":" << mi->second->msid << "<>" << emsid << " (" << nmsid << ")\n";
           std::cerr << "ERROR, failed to read correct transaction order in block " << nsvid << ":" << mi->second->msid << "<>" << minmsid << " (max:" << maxmsid << ")\n";
           for(auto mx=txs_msgs_.begin();mx!=txs_msgs_.end();mx++){
-            fprintf(stderr,"%0.16llX\n",mx->first);}
+            fprintf(stderr,"%016lX\n",mx->first);}
           exit(-1);}
         if(!(mi->second->status & MSGSTAT_VAL)){
           std::cerr << "ERROR, invalid transaction in block\n";
@@ -1074,8 +1077,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         last_block_all_msgs[txcount]=mi->second;
         ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
         //fprintf(stderr,"BLOCK: %d %d %.*s\n",nsvid,mi->second->msid,2*sizeof(hash_t),hash);
-        fprintf(stderr,"BLOCK: %d %d %.16s %0.16llX (%0.16llX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
-        fprintf(fp,"%d %d %.*s\n",nsvid,mi->second->msid,2*sizeof(hash_t),hash);}}
+        fprintf(stderr,"BLOCK: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+        fprintf(fp,"%d %d %.*s\n",nsvid,mi->second->msid,(int)(2*sizeof(hash_t)),hash);}}
     txs_.unlock();
     //hash_s last_block_all_message;
     //message_shash(last_block_all_message.hash,last_block_all_msgs); // consider sending this hash to other peers
@@ -1084,7 +1087,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     srvs_.txs=last_block_all_msgs.size();
     srvs_.txs_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
     ed25519_key2text(hash,srvs_.txshash,sizeof(hash_t));
-    fprintf(fp,"0 0 %.*s\n",2*sizeof(hash_t),hash);
+    fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fclose(fp);
     for(;!remove_msgs.empty();remove_msgs.pop()){
       auto mi=remove_msgs.top();
@@ -1101,7 +1104,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto mi=invalidate_msgs.top();
       //std::cerr << "INVALIDATING message " << mi->svid << ":" << mi->msid << "\n";
       ed25519_key2text(hash,mi->sigh,sizeof(hash_t));
-      fprintf(stderr,"INVALIDATING %d %d %.16s %0.16llX\n",mi->svid,mi->msid,hash,mi->hash.num);
+      fprintf(stderr,"INVALIDATING %d %d %.16s %016lX\n",mi->svid,mi->msid,hash,mi->hash.num);
       mi->status &= ~MSGSTAT_VAL;
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
       check_msgs_.push_front(mi);}
@@ -1257,7 +1260,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           memcpy(put_msg->data+1,cand.hash,SHA256_DIGEST_LENGTH);
           char hash[2*SHA256_DIGEST_LENGTH]; hash[2*SHA256_DIGEST_LENGTH-1]='?';
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
-          fprintf(stderr,"LAST HASH put %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+          fprintf(stderr,"LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
         candidate_ptr c_ptr(new candidate());
         save_candidate(cand,c_ptr);
@@ -1288,7 +1291,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
-      if(!do_block && !do_hallo && now-srvs_.now>(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+      if(!do_block && !do_hallo && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
         std::cerr << "SILENCE, sending void message due to silence\n";
         std::string line("Hallo world @ ");
         line.append(std::to_string(now));

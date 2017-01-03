@@ -18,6 +18,7 @@ public:
 	bool init;
 	bool fast;
 	int mins;
+	int offi;
 	int port;
 	int svid;
 	std::string addr;
@@ -38,7 +39,8 @@ public:
 				("init,n", boost::program_options::value<bool>(&init)->default_value(0),			"start new chain")
 				("fast,f", boost::program_options::value<bool>(&fast)->default_value(0),			"fast sync without history")
 				("mins,m", boost::program_options::value<int>(&mins)->default_value(0),				"minimum number of offered block signatures to start sync (0:max/2)")
-				("port,p", boost::program_options::value<int>(&port)->default_value(std::atoi(SERVER_PORT)),	"service port")
+				("offi,o", boost::program_options::value<int>(&offi)->default_value(std::atoi(OFFICE_PORT)),	"office port (for clients)")
+				("port,p", boost::program_options::value<int>(&port)->default_value(std::atoi(SERVER_PORT)),	"service port (for peers)")
 				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"service address or hostname")
 				("svid,i", boost::program_options::value<int>(&svid),						"service id (assigned by the network)")
 				("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
@@ -67,6 +69,8 @@ public:
 				std::cout << "Service fast: " << vm["fast"].as<bool>() << std::endl;}
 			if(vm.count("mins")){
 				std::cout << "Service mins: " << vm["mins"].as<int>() << std::endl;}
+			if(vm.count("offi")){
+				std::cout << "Service offi: " << vm["offi"].as<int>() << std::endl;}
 			if(vm.count("port")){
 				std::cout << "Service port: " << vm["port"].as<int>() << std::endl;}
 			if (vm.count("addr")){

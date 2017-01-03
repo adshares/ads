@@ -14,7 +14,9 @@ g++ -DTEST options.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_program_opt
 #main
 #clear && g++ main.cpp options.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -o main 2>&1 | head -20
 
-clear && g++ -Wall main.cpp server.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -o main 2>&1 | head -20
+clear && g++ -Wall main.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -o main 2>&1 | head -20
+
+clear && g++ -Wall user.cpp ed25519/ed25519.c -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -o user 2>&1 | head -20
 
 # signatures:
 # http://stackoverflow.com/questions/2228860/signing-a-message-using-ecdsa-in-openssl

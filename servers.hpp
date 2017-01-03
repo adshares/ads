@@ -24,16 +24,30 @@ typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef struct node_s {
 	ed25519_public_key pk; // public key
 	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts
+	//uint8_t xash[SHA256_DIGEST_LENGTH]; // hash of additional data
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
 	uint32_t mtim; // time of last message
-	uint32_t status; // placeholder for future status settings
-	uint32_t weight; // placeholder for server weight (total assets)
+	//uint32_t mtim; // block of last message, FIXME, consider adding
+	uint64_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
+	uint32_t status; // placeholder for future status settings, can include hash type
+	//uint32_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
 	uint32_t users; // placeholder for users (size)
 	uint32_t port;
 	uint32_t ipv4;
 	//char host[64];
 } node_t;
+typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
+	uint32_t id; // id of last transaction, id==1 is the creation.
+	uint32_t block; // last txs block time [to find the transaction]
+	uint64_t weight; // balance
+	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
+	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
+	uint64_t withdraw; //amount to withdraw to target
+	uint32_t user; // target user
+	uint16_t node; // target node
+	uint16_t status; // includes status and account type
+} user_t;
 #pragma pack()
 	
 class node
@@ -45,8 +59,8 @@ public:
 		msha{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		msid(0),
 		mtim(0),
-		status(0),
 		weight(0),
+		status(0),
 		users(0),
 		port(0),
 		ipv4(0)
@@ -58,8 +72,9 @@ public:
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
 	uint32_t mtim; // time of last message
+	uint64_t weight; // placeholder for server weight (total assets)
 	uint32_t status; // placeholder for future status settings
-	uint32_t weight; // placeholder for server weight (total assets)
+	//uint32_t weight; // placeholder for server weight (total assets)
 	uint32_t users; // placeholder for users (size)
 	uint32_t port; // port
 	uint32_t ipv4; // ipv4
@@ -78,21 +93,23 @@ private:
 		ar & msha;
 	 	ar & msid;
 	 	ar & mtim;
+		ar & weight; //changed order !!!
+	 	ar & status; //changed order !!!
 	 	//if(version==0) ar & in;
 	 	//if(version==0) ar & out;
 	 	//if(version==0) ar & addr;
 	 	//if(version==1) ar & host;
 	 	//if(version==1) ar & port;
-	 	ar & status;
+	 	////ar & status;
 		//if(version>0) ar & weight;
-		ar & weight;
+		////ar & weight;
 	 	if(version>1) ar & users;
 	 	if(version>1) ar & port;
 	 	if(version>1) ar & ipv4;
 	}
 };
 BOOST_CLASS_VERSION(node, 2)
-class servers
+class servers // also a block
 {
 public:
 	uint32_t now; // start time of the block
@@ -106,6 +123,7 @@ public:
 	uint16_t vok;
 	uint16_t vno;
 	std::vector<node> nodes;
+	std::vector<void*> users; // place holder for user accounts
 	servers():
 		now(0),
 		//old(0), //FIXME, remove, oldhash will be '000...000' if old!=now-BLOCKSEC
@@ -120,25 +138,65 @@ public:
 	{}
 
 	int init(uint32_t newnow)
-	{	uint32_t num=0,w=0xFFFF;
+	{	uint16_t num=0;
+		uint64_t stw=TOTALMASS/(nodes.size()-1);
+		uint64_t sum=0;
                 now=newnow;
 		blockdir();
-		for(auto it=nodes.begin();it<nodes.end();it++,w--,num++){
+		for(auto it=nodes.begin();it<nodes.end();it++,num++){
 			bzero(it->hash,SHA256_DIGEST_LENGTH);
 			bzero(it->msha,SHA256_DIGEST_LENGTH);
 			it->msid=0;
 			it->mtim=0;
 			it->status=0;
-			it->weight=w;
-			if(num<VIP_MAX){
-				it->status|=SERVER_VIP;}}
+			if(num){
+				if(num<=VIP_MAX){
+					it->status|=SERVER_VIP;}
+				it->weight=stw-num;
+				sum+=it->weight;
+				// create the first user
+				add_user(num,0,it->weight,it->pk);}
+			else{
+				it->users=0;
+				it->weight=0;}}
+		nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
 		finish();
 		return(num<VIP_MAX?num:VIP_MAX);
 	}
 
+	void add_user(uint16_t peer,uint32_t uid,uint64_t weight,uint8_t* pk)
+	{	user_t u;
+		memset(&u,0,sizeof(user_t));
+		memset(&u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+		u.id=1; // always >0 to help identify holes in delta files
+		u.weight=weight;
+		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
+		//saving to file;
+	 	char filename[64];
+		sprintf(filename,"usr/%04X.dat",peer);
+		int fd=open(filename,O_WRONLY|O_CREAT,0644);
+		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+			exit(-1);}
+		lseek(fd,uid*sizeof(user_t),SEEK_SET);
+		write(fd,&u,sizeof(user_t));
+		close(fd);
+	}
+
+	void get_user(user_t& u,uint16_t peer,uint32_t uid)
+	{	char filename[64];
+		sprintf(filename,"usr/%04X.dat",peer);
+		int fd=open(filename,O_RDONLY);
+		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+			return;}
+		lseek(fd,uid*sizeof(user_t),SEEK_SET);
+		read(fd,&u,sizeof(user_t));
+		close(fd);
+	}
+
 	void add(node& n)
 	{	nodes.push_back(n);
+		//TODO create users file
 	}
 
 	void get()
@@ -217,7 +275,7 @@ public:
 	}
 	int load_txslist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
 	{	char* data=(char*)malloc(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
-		if(txs_get(data)!=SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH)){
+		if(txs_get(data)!=(int)(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH))){
 			free(data);
 			return(0);}
 		if(memcmp(data,txshash,SHA256_DIGEST_LENGTH)){
@@ -235,7 +293,7 @@ public:
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %d %d %d %d %d\n",
+			fprintf(stderr,"NOD: %08x %08x %08x %u %u %u %lu %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
 			SHA256_Update(&sha256,it->hash,SHA256_DIGEST_LENGTH);
@@ -479,7 +537,7 @@ public:
 	}
 
 	bool copy_nodes(node_t* peer_node,uint16_t peer_srvn)
-	{	int i;
+	{	uint32_t i;
 		if(nodes.size()!=peer_srvn){
 			return(false);}
 		//FIXME, we should lock this somehow :-(, then the for test could be faster
@@ -509,7 +567,7 @@ public:
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		for(i=0;i<peer_srvn;i++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %d %d %d %d %d\n",
+			fprintf(stderr,"NOD: %08x %08x %08x %u %u %u %lu %u\n",
 				(uint32_t)*((uint32_t*)&peer_node[i].pk[0]),(uint32_t)*((uint32_t*)&peer_node[i].hash[0]),(uint32_t)*((uint32_t*)&peer_node[i].msha[0]),
 				peer_node[i].msid,peer_node[i].mtim,peer_node[i].status,peer_node[i].weight,peer_node[i].users);
 			SHA256_Update(&sha256,peer_node[i].pk,sizeof(ed25519_public_key));
@@ -539,7 +597,7 @@ public:
 		vno=head.vno;
 		if(nodes.size()<nod){
 			nodes.resize(nod);}
-		for(int i=0;i<nod;i++){ // consider changing this to hashtree/hashcalendar
+		for(uint32_t i=0;i<nod;i++){ // consider changing this to hashtree/hashcalendar
 			memcpy(nodes[i].pk,peer_node[i].pk,sizeof(ed25519_public_key));
 			memcpy(nodes[i].hash,peer_node[i].hash,SHA256_DIGEST_LENGTH);
 			memcpy(nodes[i].msha,peer_node[i].msha,SHA256_DIGEST_LENGTH);
@@ -558,7 +616,7 @@ public:
 	}
 
 	int update_vip()
-	{	int i;
+	{	uint32_t i;
 		vok=0;
 		vno=0;
 		std::vector<uint16_t> svid_rank;

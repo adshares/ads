@@ -33,9 +33,9 @@ public:
   enum { max_length = 0xffffff }; // ignore this later
   enum { data_offset = 4+64+10 }; // replace this later
 
-  uint32_t len;		// length of data
   uint8_t sigh[SHA256_DIGEST_LENGTH]; // hash of signature
   uint8_t preh[SHA256_DIGEST_LENGTH]; // hash of previous signature
+  uint32_t len;		// length of data
   uint32_t msid;	// msid from the server
   uint32_t now;		// time message created, updated with every download request (busy_insert)
   uint32_t got;		// time message received
@@ -58,10 +58,10 @@ public:
 	msid(0),
 	now(0),
 	got(0),
+	path(0),
 	svid(0),
         peer(0),
-	status(MSGSTAT_INF),
-	path(0)
+	status(MSGSTAT_INF)
   { data=(uint8_t*)std::malloc(len); //len=8
     hash.num=0;
   }
@@ -71,10 +71,10 @@ public:
 	msid(*msidp),
 	now(0),
 	got(0),
+	path(mypath),
 	svid(*svidp),
         peer(0),
-	status(MSGSTAT_INF),
-	path(mypath)
+	status(MSGSTAT_INF)
   { data=(uint8_t*)std::malloc(len); //len=8
     memcpy(sigh,sighp,SHA256_DIGEST_LENGTH);
     memcpy(hash.dat+2,&msid,4);
@@ -97,10 +97,10 @@ public:
 	msid(0),
 	now(0),
 	got(0),
+	path(0),
 	svid(0),
         peer(0),
-	status(MSGSTAT_DAT), // not VAL because not yet saved
-	path(0)
+	status(MSGSTAT_DAT) // not VAL because not yet saved
   { data=(uint8_t*)std::malloc(len);
     hash.num=0;
   }
@@ -108,10 +108,10 @@ public:
   message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,ed25519_public_key mypk) : // create from terminal/rpc
 	len(data_offset+text_len),
 	msid(mymsid),
+	path(0),
 	svid(mysvid),
 	peer(mysvid),
-	status(MSGSTAT_DAT), // not VAL because not yet saved
-	path(0)
+	status(MSGSTAT_DAT) // not VAL because not yet saved
   { data=(uint8_t*)std::malloc(len);
     now=time(NULL);
     path=now-(now%BLOCKSEC);
@@ -314,17 +314,11 @@ public:
       memcpy( &now,data+4+4+64+6,4);}
   }
 
-  //int check_signature(servers& srvs,uint16_t mysvid)
   int check_signature(const uint8_t* svpk,uint16_t mysvid)
   {
     //FIXME, should include previous hash in signed message
     if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
-      //memcpy(&svid,data+4+64+0,2);
-      //memcpy(&msid,data+4+64+2,4);
-      //memcpy( &now,data+4+64+6,4);
-      //if(srvs.nodes.size()<=svid){ //unknown svid
-      //  return(-1);}
-std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
+      //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
       status=MSGSTAT_DAT; // have data
       hash_signature(data+4);
       hash.num=dohash(mysvid);
@@ -332,16 +326,14 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
 	  std::cerr<<"ERROR, BLK message msid error\n";
 	  return(1);}
-        //return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,srvs.nodes[svid].pk,data+4));
         return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,svpk,data+4));}
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
-        //return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),srvs.nodes[svid].pk,data+4));
         return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));}
-      //return(ed25519_sign_open(data+4+64,len-4-64,srvs.nodes[svid].pk,data+4));
       return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
 //FIXME, check time, if any of the 2 messages is too old ignore dbl spend and maybe react
 //FIXME, compare only same type of message, detect type based on length
+//FIXME, should provide previous hash
       uint32_t len1,len2,msid2,now2;
       uint16_t svid2;
       uint8_t *data1,*data2; 
@@ -349,9 +341,6 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
       memcpy(&len1,data1+1,3);
       if(len<4+len1+4+64+10){ // bad format
         return(-1);}
-      //memcpy(&svid,data1+4+64+0,2);
-      //memcpy(&msid,data1+4+64+2,4);
-      //memcpy( &now,data1+4+64+6,4);
       memcpy(&len2,data1+len1+1,3);
       data2=data1+len1;
       if(4+len1+len2!=len){ // bad format
@@ -366,11 +355,8 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
         return(-1);}
       if(len1==len2 && !memcmp(data1+4+64,data2+4+64,len1-4-64)){ // equal messages
         return(-1);}
-      //if(srvs.nodes.size()<=svid){ //unknown svid
-      //  return(-1);}
       const uint8_t* m[2]={data1+4+64,data2+4+64};
       size_t mlen[2]={len1,len2};
-      //const uint8_t* pk[2]={srvs.nodes[svid].pk,srvs.nodes[svid].pk};
       const uint8_t* pk[2]={svpk,svpk};
       const uint8_t* rs[2]={data1+4,data2+4};
       int valid[2];
@@ -378,17 +364,18 @@ std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n
       status=MSGSTAT_DAT; // have data
       hash_signature(NULL);
       return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
+    return(1); //return error
   }
 
   void print_text(const char* suffix) const
-  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,time,len-4-64-10);
+  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,now,len-4-64-10);
     if(len>4+64+10){
       std::cout.write((char*)data+4+64+10,len-4-64-10);}
     std::cout << suffix << "/" << msid << "\n";
   }
 
   void print(const char* suffix) const
-  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,time,len-4-64-10);
+  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,now,len-4-64-10);
     //std::cout << suffix << "\n";
     std::cout << suffix << "/" << msid << "\n";
   }

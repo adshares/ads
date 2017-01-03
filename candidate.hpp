@@ -17,8 +17,8 @@ public:
   bool failed_peer; // candidate will not be accepted i
 
   candidate() :
-	score(0),
 	peer(0),
+	score(0),
 	failed_peer(false)
   {
   }

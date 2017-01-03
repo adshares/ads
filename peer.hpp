@@ -4,15 +4,15 @@
 class peer : public boost::enable_shared_from_this<peer>
 {
 public:
-  peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts)
-    : socket_(io_service),
+  peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts) :
+      svid(0),
+      socket_(io_service),
       server_(srv),
       incoming_(in),
       srvs_(srvs),
       opts_(opts),
       addr(""),
       port(0),
-      svid(0),
       do_sync(1),
       files_out(0),
       files_in(0),
@@ -108,7 +108,7 @@ public:
       put_msg->svid=msg->svid;
       put_msg->msid=msg->msid;
       put_msg->hash.num=put_msg->dohash(put_msg->data);
-      fprintf(stderr,"HASH update:%0.16llX [%0.16llX] (%0.4X) %d:%d\n",put_msg->hash.num,*((uint64_t*)put_msg->data),svid,msg->svid,msg->msid); // could be bad allignment
+      fprintf(stderr,"HASH update:%016lX [%016lX] (%04X) %d:%d\n",put_msg->hash.num,*((uint64_t*)put_msg->data),svid,msg->svid,msg->msid); // could be bad allignment
     if(BLOCK_MODE_SERVER){
       wait_msgs_.push_back(put_msg);
       mtx_.unlock();
@@ -240,7 +240,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         server_.leave(shared_from_this());
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
-        fprintf(stderr,"HASH offered:%0.16llX [%0.16llX] (%0.4X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
+        fprintf(stderr,"HASH offered:%016lX [%016lX] (%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
         if(read_msg_->data[0]==MSGTYPE_PUT){
           read_msg_->data[0]=MSGTYPE_GET;}
         if(read_msg_->data[0]==MSGTYPE_CNP){
@@ -264,7 +264,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
             read_msg_->busy_insert(svid);
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
-        fprintf(stderr,"HASH requested:%0.16llX [%0.16llX] (%0.4X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
+        fprintf(stderr,"HASH requested:%016lX [%016lX] (%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
           if(read_msg_->load()){
@@ -410,7 +410,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       std::cerr<<"READING block headers starting after "<<from<<" and ending before "<<to<<" ("<<(num-1)<<")\n"; 
       char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)); assert(peer_nods!=NULL);
       int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));
-      if(len!=SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)){
+      if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1))){
         std::cerr << "READ headers error\n";
         free(data);
         server_.leave(shared_from_this());
@@ -485,7 +485,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
     put_msg->data[0]=MSGTYPE_TXP;
     memcpy(put_msg->data+1,&len,3); //bigendian
     memcpy(put_msg->data+4,&header.now,4);
-    if(header.txs_get((char*)(put_msg->data+8))!=SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH)){
+    if(header.txs_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH))){
       std::cerr<<"FAILED to read txslist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, consider responding with error
       return;}
     std::cerr<<"SENDING block txslist for block "<<header.now<<" to svid:"<<svid<<"\n";
@@ -559,7 +559,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
     send_sync(put_msg);
     peer_nods=(node_t*)malloc(peer_hs.head.nod*sizeof(node_t)); assert(peer_nods!=NULL);
     int len=boost::asio::read(socket_,boost::asio::buffer(peer_nods,peer_hs.head.nod*sizeof(node_t)));
-    if(len!=peer_hs.head.nod*sizeof(node_t)){
+    if(len!=(int)(peer_hs.head.nod*sizeof(node_t))){
       std::cerr << "READ servers error\n";
       free(peer_svsi);
       free(peer_nods);
@@ -597,7 +597,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
     //  boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
   }
 
-  int authenticate()
+  int authenticate() //FIXME, don't send last block because signatures are missing; send the one before last
   { uint32_t now=time(NULL);
     uint32_t blocknow=now-(now%BLOCKSEC);
     memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
@@ -667,7 +667,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
     std::cerr << "Authenticated, expecting sync data ("<<(uint32_t)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))<<" bytes)\n";
     peer_svsi=(svsi_t*)malloc((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)); //FIXME, send only vok
     int len=boost::asio::read(socket_,boost::asio::buffer(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));
-    if(len!=(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)){
+    if(len!=(int)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))){
       std::cerr << "READ block signatures error\n";
       free(peer_svsi);
       return(0);}
@@ -749,7 +749,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
           boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         return;}
       header_t* h=(header_t*)(read_msg_->data+4+64+10);
-      read_msg_->len+sizeof(header_t);
+      read_msg_->len+=sizeof(header_t);
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
       server_.last_srvs_.header(*h);}
     read_msg_->read_head();
@@ -940,7 +940,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       free(read_msg_->data);
       read_msg_->len=(4+SHA256_DIGEST_LENGTH)*svid_msid_server_missing.size();
       read_msg_->data=(uint8_t*)malloc(read_msg_->len);
-      fprintf(stderr,"WAITING for %d hashes from PEER [%d]\n",svid_msid_server_missing.size(),read_msg_->len);
+      fprintf(stderr,"WAITING for %lu hashes from PEER [%d]\n",svid_msid_server_missing.size(),read_msg_->len);
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,read_msg_->len),
         boost::bind(&peer::read_peer_missing_hashes,shared_from_this(),boost::asio::placeholders::error));}
@@ -1192,6 +1192,11 @@ private:
   servers& srvs_; //FIXME ==server_.srvs_
   options& opts_; //FIXME ==server_.opts_
 
+  // data from peer
+  std::string addr;
+  uint32_t port; // not needed
+  uint32_t msid;
+
   uint32_t peer_path; //used to load data when syncing
   int do_sync;
 
@@ -1214,10 +1219,6 @@ private:
   uint32_t files_in;
   uint64_t bytes_out;
   uint64_t bytes_in;
-  // data from peer
-  std::string addr;
-  uint32_t port; // not needed
-  uint32_t msid;
   //uint32_t ipv4; // not needed
   //uint32_t srvn;
   //uint8_t oldhash[SHA256_DIGEST_LENGTH]; //used in authentication
