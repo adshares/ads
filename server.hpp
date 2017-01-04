@@ -331,7 +331,7 @@ public:
   void count_votes(uint32_t now,hash_s& cand) // cand_.locked()
   { candidate_ptr num1=NULL;
     candidate_ptr num2=NULL;
-    float votes_counted=0;
+    uint64_t votes_counted=0;
     hash_s best;
     cand_.lock();
     for(auto it=candidates_.begin();it!=candidates_.end();it++){ // cand_ is locked
@@ -1369,8 +1369,8 @@ private:
   boost::mutex blk_;
   boost::mutex dbl_;
   // voting
-  std::map<uint16_t,uint32_t> electors;
-  float votes_max;
+  std::map<uint16_t,uint64_t> electors;
+  uint64_t votes_max;
   int do_vote;
   int do_block;
   //int vip_ok;

@@ -10,7 +10,7 @@ public:
   //std::set<uint16_t> missed_peer; // hashes missed by peer
   std::map<uint16_t,msidhash_t> svid_miss; // hashes missed by server
   std::map<uint16_t,msidhash_t> svid_have; // hashes missed by peer
-  uint32_t score; // 
+  uint64_t score; // 
   std::set<message_ptr> votes; // messages with votes, probably not used, but could be used for reporting
   std::set<uint16_t> peers; // used by save_candidate
   std::set<uint16_t> waiting_server; //hashes still missing by server during block building
