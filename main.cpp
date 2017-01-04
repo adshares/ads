@@ -1,16 +1,30 @@
 #include "main.hpp"
 
 void iorun(boost::asio::io_service& io_service)
-{ //while(1){
+{ /*//while(1){
     //if(io_service.stopped()){
     //  std::cerr << "Service.Run exit\n"; //Now we know the server is down.
     //  return;}
+    std::cerr << "Service.Run starting\n";
     try{
       io_service.run();
       std::cerr << "Service.Run finished\n";} //Now we know the server is down.
     catch (std::exception& e){
       std::cerr << "Service.Run: " << e.what() << "\n";}
-  //  sleep(1);}// just in case there is something wrong with 'run'
+  //  sleep(1);}// just in case there is something wrong with 'run'*/
+  while(1){
+    //if(io_service.stopped()){
+    //  std::cerr << "Service.Run exit\n"; //Now we know the server is down.
+    //  return;}
+    try{
+      std::cerr << "Service.Run starting\n";
+      io_service.run();
+      std::cerr << "Service.Run finished\n";} //Now we know the server is down.
+    catch (std::exception& e){
+      std::cerr << "Service.Run: " << e.what() << "\n";
+      //sleep(1);// just in case there is something wrong with 'run'
+      continue;}
+    return;}
 }
 
 int main(int argc, char* argv[])
@@ -55,21 +69,33 @@ int main(int argc, char* argv[])
 // office <-> client
 void office::start_accept()
 { client_ptr c(new client(io_service_,*this,opts_,srv_));
-  while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
-    //crerate client timeout inside the client
-    std::cerr<<"OFFICE offline\n";
-    boost::this_thread::sleep(boost::posix_time::seconds(2));}
+  std::cerr<<"OFFICE online\n";
+  //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
+  //  //crerate client timeout inside the client
+  //  std::cerr<<"OFFICE offline\n";
+  //  boost::this_thread::sleep(boost::posix_time::seconds(1));}
   acceptor_.async_accept(c->socket(),boost::bind(&office::handle_accept,this,c,boost::asio::placeholders::error));
 }
 void office::handle_accept(client_ptr c,const boost::system::error_code& error)
 { //uint32_t now=time(NULL);
+  std::cerr<<"OFFICE new ticket (total open:"<<clients_.size()<<")\n";
+  start_accept(); //FIXME, change this to a non blocking office
+  if(clients_.size()>=MAXCLIENTS || srv_.do_sync){
+    std::cerr<<"OFFICE busy, dropping connection\n";
+    return;}
   if (!error){
     //c->up=now; //should be in c->start()
     client_.lock();
     clients_.insert(c);
     client_.unlock();
-    c->start();}
-  start_accept();
+    try{
+      c->start();}
+    catch (std::exception& e){
+      std::cerr << "Client exception: " << e.what() << "\n";}
+    client_.lock();
+    clients_.erase(c);
+    client_.unlock();}
+  //start_accept(); //FIXME, change this to a non blocking office
 }
 void office::leave(client_ptr c)
 { client_.lock();

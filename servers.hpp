@@ -152,6 +152,7 @@ public:
 			if(num){
 				if(num<=VIP_MAX){
 					it->status|=SERVER_VIP;}
+				it->users=1;
 				it->weight=stw-num;
 				sum+=it->weight;
 				// create the first user

@@ -109,8 +109,10 @@ int main(int argc, char* argv[])
       //TODO, send to server
       talk(socket,sts);
       socket.connect(*endpoint_iterator, error);
-      if(!error){
-        break;}}}
+      if(error){
+        std::cerr<<"ERROR connecting again\n";
+        break;}}
+    socket.close();}
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   return 0;

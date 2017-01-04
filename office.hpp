@@ -21,6 +21,7 @@ public:
     opts_(opts),
     srv_(srv)
   { 
+    std::cerr<<"OFFICE ("<<opts_.svid<<") open\n";
     start_accept();
   }
 

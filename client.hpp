@@ -11,6 +11,7 @@ public:
       srv_(srv)
       //,data(NULL)
   {  //read_msg_ = boost::make_shared<message>();
+    std::cerr<<"OFFICER ready ("<<opts_.svid<<")\n";
   }
 
   ~client()
@@ -26,8 +27,8 @@ public:
 
   void start() //TODO consider providing a local user file pointer
   { addr = socket_.remote_endpoint().address().to_string();
-    port = socket_.remote_endpoint().port();
-    std::cerr << "Client joined " << socket_.remote_endpoint().address().to_string() << ":" << socket_.remote_endpoint().port() << "\n";
+    port = std::to_string(socket_.remote_endpoint().port());
+    std::cerr << "Client entered " << addr << ":" << port << "\n";
     started=time(NULL);
 
 /* do not use handshake
@@ -41,9 +42,9 @@ public:
       offi_.leave(shared_from_this());} */
 
 //FIXME, user try/catch !!!
-    char txstype;
-    uint16_t cbank;
-    uint32_t cuser;
+    char txstype=0;
+    uint16_t cbank=0;
+    uint32_t cuser=0;
     //uint32_t ctime;
     //uint8_t pk[32];
     int len=boost::asio::read(socket_,boost::asio::buffer(&txstype,1));
@@ -61,12 +62,12 @@ public:
         return;}
       memcpy(&cbank,msg+1,2);
       if(opts_.svid!=cbank){
-	std::cerr<<"ERROR: bad bank ("<<cbank<<")\n";
+	std::cerr<<"ERROR: bad bank ("<<opts_.svid<<"<>"<<cbank<<")\n";
         offi_.leave(shared_from_this());
         return;}
       memcpy(&cuser,msg+3,4);
       if(srv_.last_srvs_.nodes[cbank].users<=cuser){ //TODO, maybe should read current user limits !
-	std::cerr<<"ERROR: bad bank ("<<cuser<<")\n";
+	std::cerr<<"ERROR: bad user ("<<cuser<<")\n";
         offi_.leave(shared_from_this());
         return;}
       user_t u;
