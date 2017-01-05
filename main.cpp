@@ -38,23 +38,22 @@ int main(int argc, char* argv[])
     boost::asio::io_service::work peer_work(peer_io_service); //to start io_service before the server
     boost::thread st(iorun,boost::ref(peer_io_service));
     server s(peer_io_service,peer_endpoint,opt);
-    //office
-    boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
-    boost::asio::io_service offi_io_service;
-    boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
-    boost::thread ot(iorun,boost::ref(offi_io_service));
-    office o(offi_io_service,offi_endpoint,opt,s);
+    //if(opt.offi){ //office
+      boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
+      boost::asio::io_service offi_io_service;
+      boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
+      boost::thread ot(iorun,boost::ref(offi_io_service));
+      office o(offi_io_service,offi_endpoint,opt,s);
+      s.ofip=&o;
+    //}
     //for (std::string p : opt.peer) {
     //  s.connect(p); }
     std::string line;
     while (std::getline(std::cin,line)){
       if(line[0]=='.' && line[1]=='\0'){
         break;}
-      if(line[0]=='>'){
-	//convert line to transfer transaction
-	
-
-	}
+      //FIXME, send a broadcast
+      s.make_broadcast(line);
       s.write_message(line);}
     std::cerr << "out\n";
     offi_io_service.stop();
@@ -68,7 +67,8 @@ int main(int argc, char* argv[])
 
 // office <-> client
 void office::start_accept()
-{ client_ptr c(new client(io_service_,*this,opts_,srv_));
+{ if(!run){ return;}
+  client_ptr c(new client(io_service_,*this,opts_,srv_));
   std::cerr<<"OFFICE online\n";
   //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
   //  //crerate client timeout inside the client
@@ -78,9 +78,10 @@ void office::start_accept()
 }
 void office::handle_accept(client_ptr c,const boost::system::error_code& error)
 { //uint32_t now=time(NULL);
+  if(!run){ return;}
   std::cerr<<"OFFICE new ticket (total open:"<<clients_.size()<<")\n";
   start_accept(); //FIXME, change this to a non blocking office
-  if(clients_.size()>=MAXCLIENTS || srv_.do_sync){
+  if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
     std::cerr<<"OFFICE busy, dropping connection\n";
     return;}
   if (!error){
@@ -95,13 +96,21 @@ void office::handle_accept(client_ptr c,const boost::system::error_code& error)
     client_.lock();
     clients_.erase(c);
     client_.unlock();}
+  //std::cerr<<"OFFICE rest\n";
+  //boost::this_thread::sleep(boost::posix_time::seconds(1));//do this to test if function is blocking
+  //std::cerr<<"OFFICE done\n";
   //start_accept(); //FIXME, change this to a non blocking office
 }
-void office::leave(client_ptr c)
-{ client_.lock();
-  clients_.erase(c);
-  client_.unlock();
-}
+//void office::leave(client_ptr c)
+//{ client_.lock();
+//  clients_.erase(c);
+//  client_.unlock();
+//}
+
+//// server <-> office
+//void server::start_office()
+//{ ofip->start();
+//}
 
 // server <-> peer
 void server::join(peer_ptr p)

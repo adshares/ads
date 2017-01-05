@@ -3,6 +3,7 @@
 
 #include "main.hpp"
  
+class office;
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;
 
@@ -19,6 +20,7 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0)
+    //ofip(NULL)
   { mkdir("usr",0755); // create dir for bank accounts
     uint32_t path=readmsid(); // reads msid_ and path
     last_srvs_.get(path);
@@ -64,9 +66,16 @@ public:
         do_fast=0;}
       std::cerr<<"START syncing headers\n";
       load_chain();} // sets do_sync=0;
+    //load old messages or check/modify
 
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept(); // should consider sending a 'hallo world' message
+    //if(!opts_.offi){
+    //  return;}
+    //while(ofip==NULL){
+    //  std::cerr<<"WAITING for office\n";
+    //  boost::this_thread::sleep(boost::posix_time::seconds(2));}
+    //start_office();
   }
   ~server()
   { 
@@ -890,6 +899,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           blk_.unlock();}}}
   }
 
+  bool accept_message(uint32_t lastmsid)
+  { return(lastmsid<=msid_ && msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
+  }
+
   void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,uint16_t peer_svid)
   { txs_.lock();
     for(auto me=txs_msgs_.begin();me!=txs_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
@@ -1162,7 +1175,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(msg);
   }
 
-  void write_message(std::string line) // assume single threaded
+  void make_broadcast(std::string line)
+  { char ins[4];
+    ins[0]=TXSTYPE_BRO;
+    uint32_t len=line.length();
+    memcpy(ins+1,&len,3);
+    line.insert(0,ins,4);
+  }
+
+  uint32_t write_message(std::string line) // assume single threaded
   { static boost::mutex mtx_;
     mtx_.lock();
     int msid=++msid_; // can be atomic
@@ -1172,6 +1193,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
+    return(msid_);
     //update(msg);
   }
 
@@ -1321,6 +1343,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   { return(check_msgs_.size());
   }
 
+  //void officep(office& o)
+  //{ ofip=&o;
+  //}
+  //void start_office();
+
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
   std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
   //FIXME, use serv_.now instead
@@ -1335,6 +1362,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   boost::mutex peer_; //FIXME, make this private
   std::list<servers> headers; //FIXME, make this private
   uint32_t get_txslist; //block id of the requested txslist of messages
+  office* ofip;
 private:
   enum { max_connections = 4 };
   enum { max_recent_msgs = 1024 }; // this is the block chain :->

@@ -40,7 +40,7 @@
 #define MAX_MSGWAIT 4 /*wait no more than 4s for a message*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-#define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon)*/
+#define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon) or in seconds*/
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9080"
@@ -90,6 +90,19 @@
 #define TXSTYPE_SEN 7	/* send MoonBlocks */
 #define TXSTYPE_WIT 8	/* withdraw MoonBlocks */
 #define TXSTYPE_INF 99  /* get info */
+
+#define TXS_SEN_FEE(x) (0x1000+0.0001*(x)) /* minimum 1hour fee */
+#define TIME_FEE(x) (x) /* seconds */
+#define MIN_MASS (0x800000) /* minimum 97days fee */
+
+#define BANK_PROFIT(x) ((x)>>3) /* 1/8 of fees */
+#define BANK_USER_FEE(x) ((x)>>6) /* 1s per 64 accounts (bank makes 8s on these accounts) */
+#define BANK_TIME_FEE(x) (0x40*(x)) /* must have minimum of 512 accounts to make profits */
+#define BANK_MIN_MASS (0x20000000) /* minimum 97days fee */
+
+#define MESSAGE_TOO_LONG 0x800000
+#define MESSAGE_LEN_OK 0x10000
+#define MESSAGE_WAIT 5
 
 #pragma pack(1)
 typedef struct header_s {

@@ -29,7 +29,7 @@ typedef struct node_s {
 	uint32_t msid; // last message, server closed if msid==0xffffffff
 	uint32_t mtim; // time of last message
 	//uint32_t mtim; // block of last message, FIXME, consider adding
-	uint64_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
+	 int64_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
 	uint32_t status; // placeholder for future status settings, can include hash type
 	//uint32_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
 	uint32_t users; // placeholder for users (size)
@@ -39,11 +39,11 @@ typedef struct node_s {
 } node_t;
 typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
 	uint32_t id; // id of last transaction, id==1 is the creation.
-	uint32_t block; // last txs block time [to find the transaction]
-	uint64_t weight; // balance
+	uint32_t block; // last txs block time [to find the transaction], last bit=0 if confirmed
+	 int64_t weight; // balance
 	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
 	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
-	uint64_t withdraw; //amount to withdraw to target
+	 int64_t withdraw; //amount to withdraw to target
 	uint32_t user; // target user
 	uint16_t node; // target node
 	uint16_t status; // includes status and account type
@@ -72,7 +72,7 @@ public:
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
 	uint32_t mtim; // time of last message
-	uint64_t weight; // placeholder for server weight (total assets)
+	 int64_t weight; // placeholder for server weight (total assets)
 	uint32_t status; // placeholder for future status settings
 	//uint32_t weight; // placeholder for server weight (total assets)
 	uint32_t users; // placeholder for users (size)
@@ -139,8 +139,8 @@ public:
 
 	int init(uint32_t newnow)
 	{	uint16_t num=0;
-		uint64_t stw=TOTALMASS/(nodes.size()-1);
-		uint64_t sum=0;
+		 int64_t stw=TOTALMASS/(nodes.size()-1);
+		 int64_t sum=0;
                 now=newnow;
 		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
@@ -166,12 +166,13 @@ public:
 		return(num<VIP_MAX?num:VIP_MAX);
 	}
 
-	void add_user(uint16_t peer,uint32_t uid,uint64_t weight,uint8_t* pk)
+	void add_user(uint16_t peer,uint32_t uid, int64_t weight,uint8_t* pk)
 	{	user_t u;
 		memset(&u,0,sizeof(user_t));
 		memset(&u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		u.id=1; // always >0 to help identify holes in delta files
 		u.weight=weight;
+                u.block=now;
 		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
 		//saving to file;
 	 	char filename[64];

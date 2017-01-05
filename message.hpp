@@ -370,8 +370,13 @@ public:
   void print_text(const char* suffix) const
   { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,now,len-4-64-10);
     if(len>4+64+10){
-      std::cout.write((char*)data+4+64+10,len-4-64-10);}
-    std::cout << suffix << "/" << msid << "\n";
+      if(data[4+64+10]==TXSTYPE_BRO){
+        uint32_t mlen;
+        memcpy(&mlen,data+4+64+10+1,3);
+        std::cout.write((char*)data+4+64+10+4,mlen);}
+      if(data[4+64+10]==TXSTYPE_SEN){
+        std::cout<<"SEND";}} //TODO, print more data
+    std::cout << " " << suffix << "/" << msid << "\n";
   }
 
   void print(const char* suffix) const

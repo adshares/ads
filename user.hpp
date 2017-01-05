@@ -47,7 +47,7 @@
 typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
 	uint32_t id; // id of last transaction, id==1 is the creation.
 	uint32_t block; // last txs block time [to find the transaction]
-	uint64_t weight; // balance
+	 int64_t weight; // balance
 	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
 	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
 	uint64_t withdraw; //amount to withdraw to target

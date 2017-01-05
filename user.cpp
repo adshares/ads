@@ -7,7 +7,7 @@ int msgl;
 int run(settings& sts,std::string& line)
 { uint32_t to_bank; //actually uint16_t
   uint32_t to_user;
-  uint64_t to_mass;
+   int64_t to_mass;
   uint32_t now=time(NULL);
   char msgtxt[0xff];
   if(!strncmp(line.c_str(),"INFO",4)){
@@ -22,21 +22,23 @@ int run(settings& sts,std::string& line)
     msgp=(char*)msg;
     msgl=11+64;
     return(11+64);}
-  if(sscanf(line.c_str(),"SEND:%u:%u:%lu",&to_bank,&to_user,&to_mass)){
+  if(sscanf(line.c_str(),"SEND:%u:%u:%ld",&to_bank,&to_user,&to_mass)){
+    if(to_mass<=0){
+      return(0);}
     static uint8_t msg[(32+1+28+64)];
-    memcpy(msg,&sts.hash,32);
+    memcpy(msg,sts.ha,32);
     msg[32]=TXSTYPE_SEN;
     memcpy(msg+33+0,&sts.bank,2);
     memcpy(msg+33+2,&sts.user,4);
     memcpy(msg+33+6,&sts.msid,4); // sign last message id
     memcpy(msg+33+10,&to_bank,2);
     memcpy(msg+33+12,&to_user,4);
-    memcpy(msg+33+16,&to_mass,8); // should be a float
+    memcpy(msg+33+16,&to_mass,8); // could be a float
     memcpy(msg+33+24,&now,4); // could be used as additional placeholder
     ed25519_sign(msg,32+1+28,sts.sk,sts.pk,msg+32+1+28);
     ed25519_key2text(msgtxt,msg+32,1+28+64); // do not send last hash
     fprintf(stdout,"%.*s\n",(1+28+64)*2,msgtxt);
-    msgp=(char*)msg;
+    msgp=(char*)msg+32;
     msgl=1+28+64;
     return(1+28+64);}
   return 0;
@@ -54,17 +56,21 @@ void print_user(user_t& u)
 
 void talk(boost::asio::ip::tcp::socket& socket,settings& sts) //len can be deduced from txstype
 { char buf[0xff];
-  boost::asio::write(socket,boost::asio::buffer(msgp,msgl));
-  if(*msgp==TXSTYPE_INF){
-    int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-    if(len!=sizeof(user_t)){
-      std::cerr<<"ERROR reading txstype_inf\n";}
-    else{
-      memcpy(&myuser,buf,sizeof(user_t));
-      print_user(myuser);
-      sts.msid=myuser.id;
-      //memcpy(sts.hash.c_str(),myuser.hash,SHA256_DIGEST_LENGTH);}}
-      sts.hash.assign((char*)myuser.hash,SHA256_DIGEST_LENGTH);}}
+  try{
+    boost::asio::write(socket,boost::asio::buffer(msgp,msgl));
+    if(*msgp==TXSTYPE_INF || *msgp==TXSTYPE_SEN){
+      int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+      if(len!=sizeof(user_t)){
+        std::cerr<<"ERROR reading confirmation\n";}
+      else{
+        memcpy(&myuser,buf,sizeof(user_t));
+        print_user(myuser);
+        if(*msgp==TXSTYPE_SEN && (uint32_t)sts.msid+1!=myuser.id){
+          std::cerr<<"ERROR SEND failed\n";}
+        sts.msid=myuser.id;
+        memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}}
+  catch (std::exception& e){
+    std::cerr << "Exception: " << e.what() << "\n";}
   socket.close();
 }
 
