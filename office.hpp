@@ -55,6 +55,7 @@ public:
       //TODO, clear hanging clients
       boost::this_thread::sleep(boost::posix_time::seconds(2));
       if(message.empty()){
+        srv_.break_silence(now,message);
         continue;}
       if(message.length()<MESSAGE_LEN_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
@@ -125,11 +126,11 @@ public:
     mfee+=BANK_PROFIT(fee); //do we need this?
   }
 
-  void lock_user(uint32_t cuser)
+  void lock_user(uint32_t cuser) // not used
   { users_[cuser & 0xff].lock();
   }
 
-  void unlock_user(uint32_t cuser)
+  void unlock_user(uint32_t cuser) // not used
   { users_[cuser & 0xff].unlock();
   }
 
@@ -141,7 +142,9 @@ public:
   uint16_t svid;
   uint32_t users; //number of users of the bank
   std::vector<int64_t> deposit; //resizing will require a stop of processing
-  boost::mutex users_[0x100];
+  boost::mutex users_[0x10]; //used ???
+  std::string message;
+  boost::mutex message_;
 private:
   boost::asio::io_service& io_service_;
   boost::asio::ip::tcp::acceptor acceptor_;
@@ -153,8 +156,6 @@ private:
   boost::mutex file_;
   uint32_t msid;
    int64_t mfee; // let's see if we need this
-  std::string message;
-  boost::mutex message_;
   uint32_t message_sent;
   boost::thread* clock_thread;
 };

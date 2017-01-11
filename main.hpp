@@ -32,6 +32,7 @@
 #include <vector>
 
 #define BLOCKSEC 0x30
+#define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define VOTES_MAX 127
 #define VIP_MAX 127
@@ -79,6 +80,8 @@
 #define MSGTYPE_TXL 18  /* txslist request */
 #define MSGTYPE_TXP 19  /* txslist data */
 #define MSGTYPE_PAT 20  /* current sync path */
+#define MSGTYPE_USR 21  /* bank file */
+#define MSGTYPE_USG 22  /* bank file request */
 #define MSGTYPE_SOK 99  /* peer synced */
 
 #define TXSTYPE_PER 1	/* peer connected */
@@ -103,6 +106,8 @@
 #define MESSAGE_TOO_LONG 0x800000
 #define MESSAGE_LEN_OK 0x10000
 #define MESSAGE_WAIT 5
+#define MESSAGE_TOO_OLD (60*60*24*7)
+#define MESSAGE_USRCHUNK 0x10000
 
 #pragma pack(1)
 typedef struct header_s {
@@ -116,6 +121,17 @@ typedef struct header_s {
 	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
+typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
+	uint32_t id; // id of last transaction, id==1 is the creation.
+	uint32_t block; // last txs block time [to find the transaction], last bit=0 if confirmed
+	 int64_t weight; // balance
+	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
+	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
+	 int64_t withdraw; //amount to withdraw to target
+	uint32_t user; // target user
+	uint16_t node; // target node
+	uint16_t status; // includes status and account type
+} user_t;
 #pragma pack()
 
 #include "ed25519/ed25519.h"

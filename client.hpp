@@ -99,13 +99,14 @@ public:
       memcpy(&to_bank,msg+33+10,2);
       memcpy(&to_user,msg+33+12,4);
       memcpy(&to_mass,msg+33+16,8); // should be a float
+      //memcpy(&ctime,msg+33+24,4);
+      //FIXME, read and enforce time
       if(to_mass<=0){
 	std::cerr<<"ERROR: bad txs value ("<<to_mass<<")\n";
         return;}
       if(!offi_.check_account(to_bank,to_user)){
 	std::cerr<<"ERROR: bad to_account ("<<to_user<<":"<<to_bank<<")\n";
         return;}
-      //memcpy(&ctime,msg+33+24,4);
       user_t u;
       offi_.lock_user(cuser);
       offi_.get_user(u,cbank,cuser);

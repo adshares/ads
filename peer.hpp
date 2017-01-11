@@ -175,15 +175,16 @@ public:
   { //FIXME, make this a blocking write
     assert(do_sync);
     put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
-    mtx_.lock();
-    bool no_write_in_progress = write_msgs_.empty();
-    write_msgs_.push_back(put_msg);
-    if(no_write_in_progress){
-std::cerr<<"SENDING in sync mode "<<write_msgs_.front()->len<<" bytes\n";
-      boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,write_msgs_.front()->len),
-        boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));}
-    else{
-std::cerr<<"SENDING in sync mode busy ("<<write_msgs_.size()<<"), queued "<<write_msgs_.back()->len<<" bytes\n";}
+    mtx_.lock(); //most likely no lock needed
+    boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
+    //bool no_write_in_progress = write_msgs_.empty();
+    //write_msgs_.push_back(put_msg);
+    //if(no_write_in_progress){
+    //std::cerr<<"SENDING in sync mode "<<write_msgs_.front()->len<<" bytes\n";
+    //  boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,write_msgs_.front()->len),
+    //    boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));}
+    //else{
+    //std::cerr<<"SENDING in sync mode busy("<<write_msgs_.size()<<"), queued("<<write_msgs_.back()->len<<"B)\n";}
     mtx_.unlock();
   }
 
@@ -292,6 +293,8 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
 	write_servers();}
       else if(read_msg_->data[0]==MSGTYPE_TXL){ //txs list request
 	write_txslist();}
+      else if(read_msg_->data[0]==MSGTYPE_USR){
+	write_bank();}
       else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
         memcpy(&peer_path,read_msg_->data+1,4);
 	std::cerr<<"DEBUG, got sync path "<<peer_path<<"\n";}
@@ -325,6 +328,12 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_txslist,shared_from_this(),boost::asio::placeholders::error));
+	return;}
+      if(read_msg_->data[0]==MSGTYPE_USR){
+        std::cerr << "READ bank\n";
+        boost::asio::async_read(socket_,
+          boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
+          boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_BLK){
         std::cerr << "READ block header\n";
@@ -530,6 +539,172 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
   }
 
+  void write_bank()
+  { uint32_t path=read_msg_->msid;
+    uint16_t bank=read_msg_->svid;
+    if(1+(srvs_.now-path)/BLOCKSEC>MAX_UNDO){
+      std::cerr<<"ERROR, too old sync point\n";
+      server_.leave(shared_from_this());
+      return;}
+    //check the numer of users at block time
+    servers s;
+    s.get(path);
+    if(bank>=s.nodes.size()){
+      std::cerr<<"ERROR, bad bank at sync point\n";
+      server_.leave(shared_from_this());
+      return;}
+    std::vector<int> ud;
+    uint32_t users=s.nodes[bank].users;
+    //TODO, consider checking that the final hash is correct
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat",bank);
+    int fd=open(filename,O_RDONLY);
+    int ld=0;
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open bank, weird !!!\n";
+      server_.leave(shared_from_this());
+      return;}
+    for(uint32_t block=path;block<=srvs_.now;block++){
+      sprintf(filename,"%08X/und/%04X.dat",block,bank);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        continue;}
+      ud.push_back(fd);}
+    if(ud.size()){
+      ld=ud.back();}
+    int msid=0;
+     int64_t weight=0;
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    for(uint32_t user=0;user<users;msid++){
+      uint32_t end=user+MESSAGE_USRCHUNK;
+      if(end>users){
+        end=users;}
+      int len=end-user;
+      message_ptr put_msg(new message(8+len*sizeof(user_t))); //6Mb working space
+      put_msg->data[0]=MSGTYPE_USR;
+      memcpy(put_msg->data+1,&len,3); // this is number of users (max 0x10000)
+      memcpy(put_msg->data+4,&msid,2); // this is the chunk id
+      memcpy(put_msg->data+6,&bank,2); // this is the bank
+      user_t* u=(user_t*)(put_msg->data+8);
+      for(;user<end;user++,u++){
+        u->id=0;
+        for(auto it=ud.begin();it!=ud.end();it++){
+          read(*it,(char*)u,sizeof(user_t));
+          if(u->id){
+            goto NEXTUSER;}}
+        read(fd,u,sizeof(user_t));
+        if(ld){ //confirm again that the undo file has not changed
+          user_t v;
+          v.id=0;
+          lseek(ld,-sizeof(user_t),SEEK_CUR);
+          read(ld,&v,sizeof(user_t));
+          if(v.id){ //overwrite user info
+            memcpy((char*)u,&v,sizeof(user_t));}}
+        NEXTUSER:;
+        weight+=u->weight;
+        SHA256_Update(&sha256,u,sizeof(user_t));}
+      send_sync(put_msg); // send even if we have errors
+      if(user==users){
+        uint8_t hash[32];
+        SHA256_Final(hash,&sha256);
+        if(memcmp(s.nodes[bank].hash,hash,32)){
+          //unlink(filename); //TODO, enable this later
+          std::cerr << "ERROR sending bank "<<bank<<" (bad hash)\n";
+          server_.leave(shared_from_this());
+          return;}
+        if(s.nodes[bank].weight!=weight){
+          //unlink(filename); //TODO, enable this later
+          std::cerr << "ERROR sending bank "<<bank<<" (bad sum)\n";
+          server_.leave(shared_from_this());
+          return;}}}
+  }
+
+  void handle_read_bank(const boost::system::error_code& error)
+  { static uint16_t last_bank=0;
+    static uint16_t last_msid=0;
+    static  int64_t weight=0;
+    static SHA256_CTX sha256;
+    int fd;
+    if(error){
+      std::cerr << "ERROR reading message\n";
+      server_.leave(shared_from_this());
+      return;}
+    //read_msg_->read_head();
+    uint16_t bank=read_msg_->svid;
+    if(!bank || bank>=server_.last_srvs_.nodes.size()){
+      std::cerr << "ERROR reading bank "<<bank<<" (bad svid)\n";
+      server_.leave(shared_from_this());
+      return;}
+    if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
+      std::cerr << "ERROR reading bank "<<bank<<" (bad block)\n";
+      server_.leave(shared_from_this());
+      return;}
+    if(read_msg_->len+0x10000*read_msg_->msid>server_.last_srvs_.nodes[bank].users){
+      std::cerr << "ERROR reading bank "<<bank<<" (too many users)\n";
+      server_.leave(shared_from_this());
+      return;}
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
+    uint64_t hnum=server_.need_bank(bank);
+    if(!hnum){
+      unlink(filename);
+      return;}
+    if(!read_msg_->msid){
+      last_bank=bank;
+      last_msid=0;
+      weight=0;
+      SHA256_Init(&sha256);
+      fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);}
+    else{
+      if(last_bank!=bank||last_msid!=read_msg_->msid-1){
+        unlink(filename);
+        std::cerr << "ERROR reading bank "<<bank<<" (incorrect message order)\n";
+        server_.leave(shared_from_this());
+        return;}
+      last_msid=read_msg_->msid;
+      fd=open(filename,O_WRONLY|O_APPEND,0644);}
+    if(fd<0){ //trow or something :-)
+      std::cerr << "ERROR creating bank "<<bank<<" file\n";
+      return;}
+    if((int)(read_msg_->len*sizeof(user_t))!=write(fd,read_msg_->data+8,read_msg_->len*sizeof(user_t))){
+      close(fd);
+      unlink(filename);
+      std::cerr << "ERROR writing bank "<<bank<<" file\n";
+      return;}
+    close(fd);
+    user_t* u=(user_t*)(read_msg_->data+8);
+    for(uint32_t i=0;i<read_msg_->len;i++,u++){
+      weight+=u->weight;
+      SHA256_Update(&sha256,u,sizeof(user_t));}
+    if(read_msg_->len+0x10000*read_msg_->msid<server_.last_srvs_.nodes[bank].users){
+      read_msg_ = boost::make_shared<message>();
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data,message::header_length),
+        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+      return;}
+    uint8_t hash[32];
+    SHA256_Final(hash,&sha256);
+    if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32)){
+      //unlink(filename); //TODO, enable this later
+      std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
+      server_.leave(shared_from_this());
+      return;}
+    if(server_.last_srvs_.nodes[bank].weight!=weight){
+      //unlink(filename); //TODO, enable this later
+      std::cerr << "ERROR reading bank "<<bank<<" (bad sum)\n";
+      server_.leave(shared_from_this());
+      return;}
+    char new_name[64];
+    sprintf(new_name,"usr/%04X.dat",bank);
+    rename(filename,new_name);
+    server_.have_bank(hnum);
+    read_msg_ = boost::make_shared<message>();
+    boost::asio::async_read(socket_,
+      boost::asio::buffer(read_msg_->data,message::header_length),
+      boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+  }
+
   void write_servers()
   { uint32_t now;
     memcpy(&now,read_msg_->data+1,4);
@@ -574,27 +749,10 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       free(peer_nods);
       server_.leave(shared_from_this());
       return;}
-    handle_read_banks();
-  }
-
-  void handle_read_banks()
-  { //later try reading from more peers or decide to load messages rather than banks again
-    //TODO, will need to create directory to store data (earlier than in fast_sync)
-
     std::cerr<<"FINISH SYNC\n";
     server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
     free(peer_svsi);
     free(peer_nods);
-    //message_ptr put_msg(new message());
-    //put_msg->data[0]=MSGTYPE_SOK;
-    //std::cerr<<"FINISH SYNC SOK\n";
-    //send_sync(put_msg);
-    //do_sync=0;
-    //read_msg_ = boost::make_shared<message>();
-    //std::cerr<<"CONTINUE\n";
-    //boost::asio::async_read(socket_,
-    //  boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
-    //  boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
   }
 
   int authenticate() //FIXME, don't send last block because signatures are missing; send the one before last

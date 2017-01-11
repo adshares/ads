@@ -22,7 +22,8 @@ public:
     do_block(0)
     //ofip(NULL)
   { mkdir("usr",0755); // create dir for bank accounts
-    uint32_t path=readmsid(); // reads msid_ and path
+    mkdir("und",0755); // create dir for undo accounts
+    uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
     last_srvs_.get(path);
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
@@ -34,9 +35,9 @@ public:
       exit(-1);}
     //TODO, check vok and vno, if bad, inform user and suggest an older starting point
 
-    uint32_t now=time(NULL);
-    now-=now%BLOCKSEC;
     if(opts_.init){
+      uint32_t now=time(NULL);
+      now-=now%BLOCKSEC;
       last_srvs_.init(now-BLOCKSEC);}
     srvs_=last_srvs_;
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
@@ -44,13 +45,20 @@ public:
     srvs_.blockdir();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
 
-    if(last_srvs_.now==now-BLOCKSEC){ // maybe we should run sync anyway (unless we are the only vip)
-      //assume database correct, allow very fast start, consider adding a startpoint option
-      do_sync=0;}
-    else{
-      if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
-        std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
+    if(!undo_bank()){//check database consistance, if 
+      if(!opts_.fast){
+        std::cerr<<"DATABASE check failed, must use fast option to load new datase from network\n";
+        exit(-1);}
       do_sync=1;}
+    else{
+      uint32_t now=time(NULL);
+      now-=now%BLOCKSEC;
+      if(last_srvs_.now==now-BLOCKSEC){
+        do_sync=0;}
+      else{
+        if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
+          std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
+        do_sync=1;}}
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     for(std::string addr : opts_.peer){
@@ -61,7 +69,9 @@ public:
     if(do_sync){
       if(opts_.fast){ //FIXME, do slow sync after fast sync
         while(do_fast){ // fast_sync changes the status, FIXME use future/promis
-          boost::this_thread::sleep(boost::posix_time::seconds(1));}}
+          boost::this_thread::sleep(boost::posix_time::seconds(1));}
+        //wait for all user files to arrive
+        load_banks();}
       else{
         do_fast=0;}
       std::cerr<<"START syncing headers\n";
@@ -78,13 +88,108 @@ public:
     //start_office();
   }
   ~server()
-  { 
-    //threadpool.interrupt_all();
+  { //threadpool.interrupt_all();
     do_validate=0;
     threadpool.join_all();
 
     clock_thread->interrupt();
     clock_thread->join();
+  }
+
+  int undo_bank() //will undo database changes and check if the database is consistant
+  { //could use multiple threads but disk access could limit the processing anyway
+    uint32_t path=last_srvs_.now;
+    for(uint16_t bank=0;bank<last_srvs_.nodes.size();bank++){
+      char filename[64];
+      sprintf(filename,"usr/%04X.dat",bank);
+      int fd=open(filename,O_RDWR);
+      if(fd<0){
+        return(0);}
+      sprintf(filename,"%08X/und/%04X.dat",path,bank);
+      int ud=open(filename,O_RDONLY);
+      uint32_t users=last_srvs_.nodes[bank].users;
+       int64_t weight=0;
+      SHA256_CTX sha256;
+      SHA256_Init(&sha256);
+      for(uint32_t user=0;user<users;user++){
+        user_t u;
+        if(ud>=0){
+          u.id=0;
+          if(sizeof(user_t)==read(ud,&u,sizeof(user_t)) && u.id){
+            write(fd,&u,sizeof(user_t)); //overwrite bank file
+            goto NEXTUSER;}}
+        if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
+          close(fd);
+          if(ud>=0){
+            close(ud);}
+          std::cerr << "ERROR loading bank "<<bank<<" (bad read)\n";
+          return(0);}
+        NEXTUSER:;
+        weight+=u.weight;
+        SHA256_Update(&sha256,&u,sizeof(user_t));}
+      close(fd);
+      if(ud>=0){
+        close(ud);}
+      if(last_srvs_.nodes[bank].weight!=weight){
+        std::cerr << "ERROR loading bank "<<bank<<" (bad sum)\n";
+        return(0);}
+      uint8_t hash[32];
+      SHA256_Final(hash,&sha256);
+      if(memcmp(last_srvs_.nodes[bank].hash,hash,32)){
+        std::cerr << "ERROR loading bank "<<bank<<" (bad hash)\n";
+        return(0);}
+      if(ud>=0){
+        unlink(filename);}}
+    return(1);
+  }
+
+  void load_banks()
+  {
+    //create missing bank messages
+    uint16_t end=last_srvs_.nodes.size();
+    missing_.lock();
+    for(uint16_t bank=1;bank<end;bank++){
+      //TODO, unlikely but maybe we have the correct bank already, we could check this
+      message_ptr put_msg(new message());
+      put_msg->data[0]=MSGTYPE_USR;
+      put_msg->data[1]=0;
+      memcpy(put_msg->data+2,&last_srvs_.now,4);
+      memcpy(put_msg->data+6,&bank,2);
+      put_msg->dohash(put_msg->data);
+      put_msg->got=0; // do first request emidiately
+      missing_msgs_[put_msg->hash.num]=put_msg;
+      fillknown(put_msg);
+      uint16_t peer=put_msg->request();
+      if(peer){
+        std::cerr << "REQUESTING USR from "<<peer<<"\n";
+        deliver(put_msg,peer);}}
+    while(missing_msgs_.size()){
+      //do new requests here
+      missing_.unlock();
+      boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
+      missing_.lock();}
+    missing_.unlock();
+    //we should have now all banks
+  }
+
+  uint64_t need_bank(uint16_t bank)
+  { union {uint64_t num; uint8_t dat[8];} h;
+    h.dat[0]=0;
+    h.dat[1]=MSGTYPE_USR;
+    memcpy(h.dat+2,&last_srvs_.now,4);
+    memcpy(h.dat+6,&bank,2);
+    missing_.lock();
+    if(missing_msgs_.find(h.num)!=missing_msgs_.end()){
+      missing_.unlock();
+      return(h.num);}
+    missing_.unlock();
+    return(0);
+  }
+
+  void have_bank(uint64_t hnum)
+  { missing_.lock();
+    missing_msgs_.erase(hnum);
+    missing_.lock();
   }
 
   void load_chain()
@@ -256,6 +361,8 @@ public:
 	last_srvs_.put();
 	std::cerr<<"SYNC put signatures\n";
 	last_srvs_.put_signatures(head,svsi);
+
+        //FIXME, do this after loading banks
 	std::cerr<<"SYNC copy\n";
         srvs_=last_srvs_; //FIXME, create a copy function
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
@@ -864,6 +971,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       else{
         message_ptr msg=check_msgs_.front();
 	check_msgs_.pop_front();
+        //could concider a custom lock check against opening the same usr/XXXX.dat file
+        //this will be needed later if we need to provide usr/XXXX.dat file for syncing
         check_.unlock();
         if(srvs_.nodes[msg->svid].status & SERVER_DBL){ // ignore messages from DBL server
           continue;} // no update
@@ -871,32 +980,302 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(srvs_.nodes[msg->svid].msid>=msg->msid){
           std::cerr <<"WARNING ignoring validation of old message "<<msg->svid<<":"<<msg->msid<<"<="<<srvs_.nodes[msg->svid].msid<<"\n";
           continue;}
-	if(srvs_.nodes[msg->svid].msid!=msg->msid-1){
+	if(srvs_.nodes[msg->svid].msid!=msg->msid-1){ //assume only 1 validator per bank
           std::cerr <<"WARNING postponing validation of future message "<<msg->svid<<":"<<msg->msid<<"!="<<srvs_.nodes[msg->svid].msid<<"+1\n";
           wait_.lock();
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
-        //if not valid, continue
-
-        boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX))); //FIXME, this is the validation :-D
-
-        msg->print_text(";VALID");
-        msg->status=MSGSTAT_VAL;
-        svid_.lock();
-        node* nod=&srvs_.nodes[msg->svid];
-        nod->msid=msg->msid;
-        nod->mtim=msg->now;
-        memcpy(nod->msha,msg->sigh,sizeof(hash_t));
-        svid_msgs_[msg->svid]=msg;
-        svid_.unlock();
-        if(!do_sync){
-          update_candidates(msg);
-          update(msg);}
+        //boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX)));
+        bool valid=process_message(msg); //maybe ERROR should be also returned.
+        if(valid){
+          msg->print_text(";VALID");
+          msg->status=MSGSTAT_VAL;
+          svid_.lock();
+          node* nod=&srvs_.nodes[msg->svid];
+          nod->msid=msg->msid;
+          nod->mtim=msg->now;
+          memcpy(nod->msha,msg->sigh,sizeof(hash_t));
+          svid_msgs_[msg->svid]=msg;
+          svid_.unlock();}
         else{
+          //TODO, inform peer if peer==author;
+          }
+        if(!do_sync){
+          if(valid){
+            update_candidates(msg);
+            update(msg);}}
+        else{
+          if(!valid){
+            std::cerr<<"ERROR, sync failed :-( :-(\n";
+            msg->print("");
+            exit(-1);}
           blk_.lock();
           blk_msgs_.erase(msg->hash.num);
           blk_.unlock();}}}
+  }
+
+  bool undo_message(message_ptr msg)
+  { char* p=(char*)msg->data+4+64+10;
+    std::map<uint32_t,user_t> undo;
+    std::map<uint32_t,int64_t> local_deposit;
+    std::map<uint64_t,int64_t> txs_deposit;
+    while(p<=(char*)msg->data+msg->len){
+      char txstype=*p;
+      if(txstype==TXSTYPE_SEN){
+        uint32_t cuser;
+        uint16_t to_bank;
+        uint32_t to_user;
+         int64_t to_mass;
+        memcpy(&cuser,p+1+2,4);
+        memcpy(&to_bank,p+1+10,2);
+        memcpy(&to_user,p+1+12,4);
+        memcpy(&to_mass,p+1+16,8); // should be a float
+	local_deposit[cuser]=0; //this user must be in undo file
+        if(to_bank==msg->svid){
+	  local_deposit[to_user]-=to_mass;}
+        else{
+          union {uint64_t big;uint32_t small[2];} to;
+          to.small[0]=to_user; //assume big endian
+          to.small[1]=to_bank; //assume big endian
+          txs_deposit[to.big]-=to_mass;}
+        p+=1+28+64;
+        continue;}
+      if(txstype==TXSTYPE_BRO){
+        uint32_t len;
+        memcpy(&len,p+1,3);
+        p+=len;
+        continue;}
+      std::cerr<<"ERROR, unknown transaction type\n";
+      return(false);}
+    //load undo file
+    msg->load_undo(undo);
+    user_t u;
+    int offset=(char*)&u.weight-(char*)&u;
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat",msg->svid);
+    int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      exit(-1);}
+    for(auto it=local_deposit.begin();it!=local_deposit.end();it++){
+      auto jt=undo.find(it->first);
+      if(jt!=undo.end()){
+        lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
+        write(fd,&jt->second,sizeof(user_t));}
+      else{
+        uint64_t val;
+        lseek(fd,it->first*sizeof(user_t)+offset,SEEK_SET);
+        read(fd,&val,sizeof(uint64_t));
+        val+=it->second;
+        lseek(fd,-sizeof(uint64_t),SEEK_CUR);
+        write(fd,&val,sizeof(uint64_t));}}
+    close(fd);
+    //commit remote deposits
+    deposit_.lock();
+    for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
+      deposit[it->first]+=it->second;}
+    deposit_.unlock();
+    return(true);
+  }
+
+  bool process_message(message_ptr msg)
+  { char* p=(char*)msg->data+4+64+10;
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat",msg->svid);
+    int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      exit(-1);}
+    sprintf(filename,"%08X/und/%04X.dat",srvs_.now,msg->svid);
+    int ud=open(filename,O_WRONLY|O_CREAT,0644);
+    if(ud<0){
+      std::cerr<<"ERROR, failed to open bank undo "<<msg->svid<<", fatal\n";
+      exit(-1);}
+    std::map<uint32_t,user_t> changes;
+    std::map<uint32_t,user_t> undo;
+    std::map<uint32_t,int64_t> local_deposit;
+    std::map<uint64_t,int64_t> txs_deposit;
+    while(p<=(char*)msg->data+msg->len){
+      char txstype=*p;
+      if(txstype==TXSTYPE_SEN){
+        uint8_t cmsg[(32+1+28+64)];
+        uint16_t cbank; //consider changing order to improve allignment
+        uint32_t cuser;
+        uint32_t msid;
+        uint16_t to_bank;
+        uint32_t to_user;
+         int64_t to_mass;
+        uint32_t ctime;
+        if(p+1+28+64>(char*)msg->data+msg->len){
+          std::cerr<<"ERROR, bad SEN message lenght\n";
+          return(false);}
+        memcpy(cmsg+32,p,1+28+64);
+        memcpy(&cbank,cmsg+33+0,2);
+        memcpy(&cuser,cmsg+33+2,4);
+        memcpy(&msid,cmsg+33+6,4); // sign last message id
+        memcpy(&to_bank,cmsg+33+10,2);
+        memcpy(&to_user,cmsg+33+12,4);
+        memcpy(&to_mass,cmsg+33+16,8); // should be a float
+        memcpy(&ctime,cmsg+33+24,4);
+        if(cbank!=msg->svid){
+          std::cerr<<"ERROR, bad cbank "<<cbank<<"n";
+          return(false);}
+        if(cuser>=srvs_.nodes[cbank].users){
+          std::cerr<<"ERROR, bad cuser "<<cuser<<"\n";
+          return(false);}
+        if(to_mass<=0){
+          std::cerr<<"ERROR, bad amount "<<to_mass<<"\n";
+          return(false);}
+        if(to_bank>=srvs_.nodes.size()){
+          std::cerr<<"ERROR, bad tbank "<<to_bank<<"n";
+          return(false);}
+        if(to_user>=srvs_.nodes[to_bank].users){
+          std::cerr<<"ERROR, bad tuser "<<to_user<<"\n";
+          return(false);}
+        if(ctime+MESSAGE_TOO_OLD<srvs_.now){
+          std::cerr<<"ERROR, bad time "<<ctime<<"\n";
+          return(false);}
+	if(changes.find(cuser)==changes.end()){ // make this global !!!
+          user_t u;
+          lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+          read(fd,&u,sizeof(user_t));
+          srvs_.save_undo(ud,msg->svid,cuser,u); //save to undo file
+          changes[cuser]=u;
+          undo[cuser]=u;}
+        if(ctime<=changes[cuser].block){
+          std::cerr<<"ERROR, bad time series "<<ctime<<"\n";
+          return(false);}
+        if(msid!=changes[cuser].id){
+          std::cerr<<"ERROR, bad id "<<ctime<<"\n";
+          return(false);}
+         int64_t fee=TXS_SEN_FEE(to_mass)+TIME_FEE(ctime-changes[cuser].block); //modify time fee ... devide by 8s.
+        if(to_mass+fee+MIN_MASS>changes[cuser].weight+local_deposit[cuser]){ // always sets local_deposit !!!
+          std::cerr<<"ERROR, low balance "<<changes[cuser].weight<<"\n";
+          return(false);}
+        memcpy(cmsg,changes[cuser].hash,32);
+        if(ed25519_sign_open(cmsg,32+1+28,changes[cuser].pkey,cmsg+32+1+28)){
+          std::cerr<<"ERROR, bad signature\n";
+          return(false);}
+        //message accepted
+        changes[cuser].id++;
+        changes[cuser].block=ctime;
+        SHA256_CTX sha256;
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256,cmsg+32,1+28+64);
+        SHA256_Final(cmsg+32,&sha256); //overwrite msg!!!
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256,cmsg,64); //make newhash=hash(oldhash+newmessagehash);
+        SHA256_Final(changes[cuser].hash,&sha256);
+	changes[cuser].weight-=to_mass+fee;
+        if(to_bank==cbank){
+	  //if(changes.find(to_user)==changes.end()){
+          //  user_t u;
+          //  lseek(fd,to_user*sizeof(user_t),SEEK_SET);
+          //  read(fd,&u,sizeof(user_t));
+          //  changes[to_user]=u;
+          //  undo[cuser]=u;}
+          //changes[to_user].weight+=to_mass;}
+          local_deposit[to_user]+=to_mass;}
+        else{
+          //uint64_t to=to_user; //assume big endian
+          //memcpy((((uint16_t*)&to)+2),&to_bank,2);
+          //((uint32_t*)&to)[1]=to_bank;
+          //assert(to==((((uint64_t)to_bank)<<32)+to_user));
+          union {uint64_t big;uint32_t small[2];} to;
+          to.small[0]=to_user; //assume big endian
+          to.small[1]=to_bank; //assume big endian
+          txs_deposit[to.big]+=to_mass;}
+        p+=1+28+64;
+        continue;}
+      if(txstype==TXSTYPE_BRO){
+        uint32_t len;
+        memcpy(&len,p+1,3);
+        //TODO, store data in local broadcast swap space
+        p+=len;
+        continue;}
+      std::cerr<<"ERROR, unknown transaction type\n";
+      return(false);}
+    //all transactions accepted
+    //save undo file
+    msg->save_undo(undo);
+    //commit local changes
+    user_t u;
+    int offset=(char*)&u.weight-(char*)&u;
+    //FIXME, lock here in case there is a bank read during sync, or accept errors when sending bank
+    for(auto it=local_deposit.begin();it!=local_deposit.end();it++){
+      auto jt=changes.find(it->first);
+      if(jt!=changes.end()){
+        jt->second.weight+=it->second;
+        lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
+        write(fd,&jt->second,sizeof(user_t));}
+      else{
+        lseek(fd,it->first*sizeof(user_t),SEEK_SET);
+        read(fd,&u,sizeof(user_t));
+        srvs_.save_undo(ud,msg->svid,it->first,u); //save to undo file
+        u.weight+=it->second;
+        lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
+        write(fd,&u.weight,sizeof(uint64_t));}}
+    close(ud);
+    close(fd);
+    //commit remote deposits
+    //check for maximum deposits.size(), if too large, save old deposits and work on new ones;
+    deposit_.lock();
+    for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
+      deposit[it->first]+=it->second;}
+    deposit_.unlock();
+    return(true);
+  }
+
+  void commit_deposit(std::set<uint16_t>& update) //assume single thread
+  { uint16_t lastsvid=0;
+    int ud=0,fd=0;
+    user_t u;
+    int offset=(char*)&u.weight-(char*)&u;
+    for(auto it=deposit.begin();it!=deposit.end();it++){
+      if(it->second==0){
+        continue;}
+      union {uint64_t big;uint32_t small[2];} to;
+      to.big=it->first;
+      uint32_t user=to.small[0];
+      uint16_t svid=to.small[1];
+      if(svid!=lastsvid){
+        //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
+	update.insert(svid);
+        char filename[64];
+        if(fd){
+          close(fd);}
+        if(ud){
+          close(ud);}
+        lastsvid=svid;
+        fprintf(stderr,"DEPOSIT to usr/%04X.dat",svid);
+        sprintf(filename,"usr/%04X.dat",svid);
+        fd=open(filename,O_RDWR,0644);
+        if(fd<0){
+          std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+          exit(-1);}
+        sprintf(filename,"%08X/und/%04X.dat",srvs_.now,svid);
+        ud=open(filename,O_WRONLY|O_CREAT,0644);
+        if(ud<0){
+          std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+          exit(-1);}}
+      lseek(fd,user*sizeof(user_t),SEEK_SET);
+      read(fd,&u,sizeof(user_t));
+      srvs_.save_undo(ud,svid,user,u); //save to undo file
+      u.weight+=it->second;
+      lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
+      write(fd,&u.weight,sizeof(uint64_t));}
+      //uint64_t val;
+      //lseek(fd,user*sizeof(user_t)+offset,SEEK_SET);
+      //read(fd,&val,sizeof(uint64_t));
+      //val+=it->second;
+      //lseek(fd,-sizeof(uint64_t),SEEK_CUR);
+      //write(fd,&val,sizeof(uint64_t));
+    if(ud){
+      close(ud);}
+    if(fd){
+      close(fd);}
+    deposit.clear(); //remove deposits after commiting
   }
 
   bool accept_message(uint32_t lastmsid)
@@ -1025,6 +1404,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto mi=mj++;
       if(mi->second->path>0 && mi->second->path<srvs_.now){
         std::cerr << "ERASE message " << mi->second->svid << ":" << mi->second->msid << "\n";
+	mi->second->remove_undo();
         txs_msgs_.erase(mi); // forget old messages
         continue;}
       if(nsvid!=mi->second->svid){
@@ -1105,6 +1485,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     for(;!remove_msgs.empty();remove_msgs.pop()){
       auto mi=remove_msgs.top();
       if(mi->status & MSGSTAT_VAL){ // invalidate first
+	undo_message(mi);
         mi->status &= ~MSGSTAT_VAL;}
 //FIXME, make sure this message is not in other queue !!!
 //FIXME, remove from all places or mark as removed :-/
@@ -1113,19 +1494,28 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 //FIXME, update peers.svid_msid_new !!!
       mi->remove();}
     check_.lock();
-    for(;!invalidate_msgs.empty();invalidate_msgs.pop()){ // this will also invalidate all votes
+    for(;!invalidate_msgs.empty();invalidate_msgs.pop()){
       auto mi=invalidate_msgs.top();
       //std::cerr << "INVALIDATING message " << mi->svid << ":" << mi->msid << "\n";
       ed25519_key2text(hash,mi->sigh,sizeof(hash_t));
       fprintf(stderr,"INVALIDATING %d %d %.16s %016lX\n",mi->svid,mi->msid,hash,mi->hash.num);
+      undo_message(mi);
       mi->status &= ~MSGSTAT_VAL;
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
       check_msgs_.push_front(mi);}
     check_.unlock();
+    std::set<uint16_t> update;
+    commit_deposit(update);
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
+      update.insert((*mi)->svid);
       std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";}
+//TODO, save current account status
+    std::cerr << "UPDATE accounts\n";
+    for(auto it=update.begin();it!=update.end();it++){
+      assert(*it<srvs_.nodes.size());
+      //consider locking
+      srvs_.update_nodehash(*it);} //also calculates weight of the node
 
-// TODO, save current account status
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
@@ -1257,7 +1647,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
     // block creation cycle
     hash_s cand;
-    bool do_hallo=false;
     while(1){
       uint32_t now=time(NULL);
       std::cerr << "CLOCK: " << ((long)(srvs_.now+BLOCKSEC)-(long)now) << "\n";
@@ -1289,7 +1678,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         prepare_poll(); // sets do_vote
         do_block=1;
         do_validate=1;
-        do_hallo=false;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
       if(do_block>0 && do_block<3){
@@ -1313,14 +1701,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
-      if(!do_block && !do_hallo && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
-        std::cerr << "SILENCE, sending void message due to silence\n";
-        std::string line("Hallo world @ ");
-        line.append(std::to_string(now));
-        write_message(line);
-        do_hallo=true;}
       boost::this_thread::sleep(boost::posix_time::seconds(1));
     }
+  }
+
+  bool break_silence(uint32_t now,std::string& message)
+  { static uint32_t do_hallo=0;
+    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+      std::cerr << "SILENCE, sending void message due to silence\n";
+      std::string line("Hallo world @ ");
+      line.append(std::to_string(now));
+      make_broadcast(line);
+      message.append(line);
+      do_hallo=srvs_.now;
+      return(true);}
+    return(false);
   }
 
   struct hash_cmp
@@ -1404,6 +1799,8 @@ private:
   //int vip_ok;
   //int vip_no;
   //std::map<uint16_t,uint32_t> svid_msid; //TODO, maybe not used
+  std::map<uint64_t,int64_t> deposit;
+  boost::mutex deposit_;
 };
 
 #endif

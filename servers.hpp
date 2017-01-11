@@ -37,17 +37,6 @@ typedef struct node_s {
 	uint32_t ipv4;
 	//char host[64];
 } node_t;
-typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
-	uint32_t id; // id of last transaction, id==1 is the creation.
-	uint32_t block; // last txs block time [to find the transaction], last bit=0 if confirmed
-	 int64_t weight; // balance
-	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
-	 int64_t withdraw; //amount to withdraw to target
-	uint32_t user; // target user
-	uint16_t node; // target node
-	uint16_t status; // includes status and account type
-} user_t;
 #pragma pack()
 	
 class node
@@ -75,7 +64,7 @@ public:
 	 int64_t weight; // placeholder for server weight (total assets)
 	uint32_t status; // placeholder for future status settings
 	//uint32_t weight; // placeholder for server weight (total assets)
-	uint32_t users; // placeholder for users (size)
+	uint32_t users;
 	uint32_t port; // port
 	uint32_t ipv4; // ipv4
 
@@ -83,6 +72,7 @@ public:
 	//std::string addr; // hostname or address ... remove later
 	//std::list<int> in; // incomming connections
 	//std::list<int> out; // outgoing connections
+	std::vector<uint64_t> changed; //account changed bits
 private:
 	friend class boost::serialization::access;
 	template<class Archive> void serialize(Archive & ar, const unsigned int version)
@@ -123,7 +113,7 @@ public:
 	uint16_t vok;
 	uint16_t vno;
 	std::vector<node> nodes;
-	std::vector<void*> users; // place holder for user accounts
+	//std::vector<void*> users; // place holder for user accounts
 	servers():
 		now(0),
 		//old(0), //FIXME, remove, oldhash will be '000...000' if old!=now-BLOCKSEC
@@ -190,15 +180,51 @@ public:
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
 		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
-			return;}
+			exit(-1);}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		read(fd,&u,sizeof(user_t));
 		close(fd);
 	}
 
+	void update_nodehash(uint16_t peer)
+	{	char filename[64];
+		sprintf(filename,"usr/%04X.dat",peer);
+		int fd=open(filename,O_RDONLY);
+		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+			exit(-1);}
+		SHA256_CTX sha256;
+		SHA256_Init(&sha256);
+		uint32_t end=nodes[peer].users;
+		uint64_t weight=0;
+		for(uint32_t i=0;i<end;i++){
+			user_t u;
+			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
+				std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+				exit(-1);}
+			weight+=u.weight;
+			SHA256_Update(&sha256,&u,sizeof(user_t));}
+		SHA256_Final(nodes[peer].hash,&sha256);
+		nodes[peer].weight=weight;
+		close(fd);
+	}
+
+	void save_undo(int fd,uint16_t svid,uint32_t user,user_t& u)
+	{	int i=user/64;
+		int j=1<<(user%64);
+		if(nodes[svid].changed[i]&j){
+			return;}
+		nodes[svid].changed[i]|=j;
+		lseek(fd,user*sizeof(user_t),SEEK_SET);
+		write(fd,&u,sizeof(user_t));
+	}
+
+	void clear_undo()
+	{	for(auto n=nodes.begin();n!=nodes.end();n++){
+			n->changed.clear();}
+	}
+
 	void add(node& n)
 	{	nodes.push_back(n);
-		//TODO create users file
 	}
 
 	void get()
@@ -329,6 +355,7 @@ public:
 		ha << vok;
 		ha << vno;*/
 		header_print();
+		clear_undo();
 	}
 	void hashnow()
 	{	SHA256_CTX sha256;
@@ -634,10 +661,12 @@ public:
 		return(i<VIP_MAX?i:VIP_MAX);
 	}
 
-	int blockdir()
+	int blockdir() //not only dir ... should be called blockstart
 	{	char pathname[16];
 		sprintf(pathname,"%08X",now);
 		return(mkdir(pathname,0755));
+		for(auto n=nodes.begin();n!=nodes.end();n++){
+			n->changed.resize(n->users);}
 	}
 
 private:

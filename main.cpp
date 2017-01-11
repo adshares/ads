@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
         break;}
       //FIXME, send a broadcast
       s.make_broadcast(line);
-      s.write_message(line);}
+      o.message.append(line);}
     std::cerr << "out\n";
     offi_io_service.stop();
     peer_io_service.stop();
@@ -68,6 +68,8 @@ int main(int argc, char* argv[])
 // office <-> client
 void office::start_accept()
 { if(!run){ return;}
+  //FIXME, use io_service_pool_
+  //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/server.cpp
   client_ptr c(new client(io_service_,*this,opts_,srv_));
   std::cerr<<"OFFICE online\n";
   //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
@@ -174,6 +176,8 @@ void server::svid_msid_rollback(message_ptr msg)
 }
 void server::start_accept()
 {	peer_ptr new_peer(new peer(io_service_,*this,true,srvs_,opts_));
+	//FIXME !!! create separate io_service per peer
+        //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/io_service_pool.cpp
 	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::handle_accept,this,new_peer,boost::asio::placeholders::error));
 }
 void server::handle_accept(peer_ptr new_peer,const boost::system::error_code& error)

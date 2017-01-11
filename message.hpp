@@ -183,6 +183,8 @@ public:
       h.dat[1]=MSGTYPE_CND;}
     if(*d==MSGTYPE_BLP||*d==MSGTYPE_BLG){
       h.dat[1]=MSGTYPE_BLK;}
+    if(*d==MSGTYPE_USG){
+      h.dat[1]=MSGTYPE_USR;}
     if(*d==MSGTYPE_DBP||*d==MSGTYPE_DBG){
       h.dat[1]=MSGTYPE_DBL;}
     memcpy(h.dat+2,&msid,4);
@@ -213,12 +215,13 @@ public:
     peer=peer_svid; // set source of message
     if( data[0]==MSGTYPE_PUT||
         data[0]==MSGTYPE_GET||
-        data[0]==MSGTYPE_DBP||
-        data[0]==MSGTYPE_DBG||
+        data[0]==MSGTYPE_CNP||
+        data[0]==MSGTYPE_CNG||
         data[0]==MSGTYPE_BLP||
         data[0]==MSGTYPE_BLG||
-        data[0]==MSGTYPE_CNP||
-        data[0]==MSGTYPE_CNG){
+        data[0]==MSGTYPE_USG||
+        data[0]==MSGTYPE_DBP||
+        data[0]==MSGTYPE_DBG){
       memcpy(&msid,data+2,4);
       memcpy(&svid,data+6,2);
       hash.num=dohash(data);
@@ -230,6 +233,19 @@ public:
         std::cerr<<"ERROR in message format\n";
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
+      if(data==NULL){
+        std::cerr << "ERROR: failed to allocate memory\n"; // TODO, ban ip
+        return 0;}
+      return 2;}
+    if(data[0]==MSGTYPE_USR){
+      msid=0;
+      memcpy(&len,data+1,3); // this is number of users (max 0x10000)
+      memcpy(&msid,data+4,2); // this is the chunk id
+      memcpy(&svid,data+6,2); // this is the bank id
+      if(len>MESSAGE_USRCHUNK){
+        std::cerr<<"ERROR in user message length\n";
+        return 0;}
+      data=(uint8_t*)std::realloc(data,8+len*sizeof(user_t));
       if(data==NULL){
         std::cerr << "ERROR: failed to allocate memory\n"; // TODO, ban ip
         return 0;}
@@ -308,6 +324,9 @@ public:
       memcpy(&svid,data+4+64+0,2);
       memcpy(&msid,data+4+64+2,4);
       memcpy( &now,data+4+64+6,4);}
+    //if(data[0]==MSGTYPE_USR){ // double message //TODO untested !!!
+    //  memcpy(&svid,data+4+0,2);
+    //  memcpy(&msid,data+4+2,4);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
       memcpy(&svid,data+4+4+64+0,2);
       memcpy(&msid,data+4+4+64+2,4);
@@ -454,18 +473,54 @@ public:
     return(1);
   }
 
+  void save_undo(std::map<uint32_t,user_t>& undo) // assume no errors :-) FIXME
+  { char filename[64];
+    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+    for(auto it=undo.begin();it!=undo.end();it++){
+      write(fd,&it->first,sizeof(uint32_t));
+      write(fd,&it->second,sizeof(user_t));}
+    close(fd);
+  }
+
+  void load_undo(std::map<uint32_t,user_t>& undo)
+  { char filename[64];
+    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    int fd=open(filename,O_RDONLY);
+    for(;;){
+      uint32_t i;
+      user_t u;
+      if(read(fd,&i,sizeof(uint32_t))!=sizeof(uint32_t)){
+        return;}
+      if(read(fd,&u,sizeof(user_t))!=sizeof(user_t)){
+        return;}
+      undo[i]=u;}
+    close(fd);
+  }
+
   int move(uint32_t nextpath) //TODO, consider locking
   { char oldname[64];
     char newname[64];
-    sprintf(oldname,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
-    sprintf(newname,"%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(oldname,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(newname,"%08X/%02x_%04x_%08x.und",nextpath,(uint32_t)hashtype(),svid,msid);
+    rename(oldname,newname);
+    sprintf(oldname,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(newname,"%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid);
     path=nextpath;
     return(rename(oldname,newname));
   }
 
-  void remove() //TODO, consider locking
+  void remove_undo() //TODO, consider locking
   { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    unlink(filename);
+    return;
+  }
+
+  void remove() //TODO, consider locking
+  { remove_undo();
+    char filename[64];
+    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
     unlink(filename);
     return;
   }
