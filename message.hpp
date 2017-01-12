@@ -243,6 +243,8 @@ public:
       memcpy(&msid,data+4,2); // this is the chunk id
       memcpy(&svid,data+6,2); // this is the bank id
       if(len>MESSAGE_USRCHUNK){
+        uint64_t h=*((uint64_t*)data);
+        fprintf(stderr,"USR HEADER:%016lX\n",h);
         std::cerr<<"ERROR in user message length\n";
         return 0;}
       data=(uint8_t*)std::realloc(data,8+len*sizeof(user_t));
@@ -291,10 +293,10 @@ public:
     return 0;
   }
 
-  int sigh_check()
+  int sigh_check(uint8_t* sig)
   { uint64_t h[4];
     uint64_t g[8];
-    memcpy(g,sigh,8*sizeof(uint64_t));
+    memcpy(g,sig,8*sizeof(uint64_t));
     h[0]=g[0]^g[4];
     h[1]=g[1]^g[5];
     h[2]=g[2]^g[6];
@@ -418,7 +420,7 @@ public:
     fprintf(stderr,"NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
-  int load() //TODO, consider locking 
+  int load() //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
   { uint32_t head;
     char filename[64];
       //std::cerr << "ERROR: loading message while data not empty\n";
@@ -450,6 +452,8 @@ public:
       data=NULL;
       return(0);}
     myfile.close();
+    //TODO, check if we need more test
+    //hash_signature(data+4)
     //status=MSGSTAT_VAL;
     return(1);
   }
@@ -562,13 +566,19 @@ public:
     mtx_.unlock();
   }
 
+  void sent_erase(uint16_t p)
+  { mtx_.lock();
+    sent.erase(p);
+    mtx_.unlock();
+  }
+
   uint16_t request() //find a peer from which we will request the message
   { if(status>=MSGSTAT_DAT || len!=header_length){
       std::cerr<<"IGNORING REQUEST for "<<svid<<":"<<msid<<"\n";
       return(0);}
     uint32_t mynow=time(NULL);
     mtx_.lock();
-    if(mynow<=got+MAX_MSGWAIT){
+    if(mynow<=got+MAX_MSGWAIT+(data[0]==MSGTYPE_USR?MAX_USRWAIT:0)){ //FIXME, make MAX_MSGWAIT dependend on expected size
       mtx_.unlock();
       return(0);}
     for(auto k=know.begin();k!=know.end();k++){//known is expected to have random order (or order based on insertions)

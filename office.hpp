@@ -64,6 +64,7 @@ public:
 	std::cerr<<"WARNING, server not ready for a new message ("<<msid<<")\n";
         continue;}
       message_.lock();
+      std::cerr<<"SENDING new message (old msid:"<<msid<<")\n";
       msid=srv_.write_message(message);
       message.clear();
       message_.unlock();

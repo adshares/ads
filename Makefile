@@ -1,7 +1,7 @@
 .PHONY: clean
 .PHONY: restart
 .PHONY: all
-CCP=g++ -Wall -fmax-errors=5
+CCP=g++ -Wall -fmax-errors=5 -fPIC
 restart: main user
 all: main user
 ed25519/ed25519.o: ed25519/ed25519.c
@@ -15,4 +15,4 @@ main: main.o ed25519/ed25519.o
 user: user.o ed25519/ed25519.o
 	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lrt -o $@
 clean:
-	rm -f *.o main user
+	rm ed25519/ed25519.o user.o main.o main user

@@ -272,13 +272,19 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
             std::cerr << "PROVIDING MESSAGE\n";
             send_sync(read_msg_);} //deliver will not work in do_sync mode
           else{
-            std::cerr << "IGNORING download request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
+            std::cerr << "FAILED answering request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";}}
         else{
           message_ptr msg=server_.message_find(read_msg_,svid);
           if(msg!=NULL){
             if(msg->len>message::header_length){
               if(msg->sent.find(svid)!=msg->sent.end()){
-                std::cerr << "IGNORING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";}
+                //if(peer_hs.head.now+BLOCKSEC < msg->path ){ //FIXME, check correct condition !
+                  std::cerr << "REJECTING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";
+                //}
+                //else{
+                //  std::cerr << "ACCEPTING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";
+                //  deliver(msg);}
+                }
               else{
                 std::cerr << "PROVIDING MESSAGE\n";
                 msg->sent_insert(svid);
@@ -293,7 +299,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
 	write_servers();}
       else if(read_msg_->data[0]==MSGTYPE_TXL){ //txs list request
 	write_txslist();}
-      else if(read_msg_->data[0]==MSGTYPE_USR){
+      else if(read_msg_->data[0]==MSGTYPE_USG){
 	write_bank();}
       else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
         memcpy(&peer_path,read_msg_->data+1,4);
@@ -330,9 +336,10 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
           boost::bind(&peer::handle_read_txslist,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_USR){
-        std::cerr << "READ bank\n";
+        //FIXME, accept only if needed !!
+        std::cerr << "READ bank "<<read_msg_->svid<<"["<<read_msg_->len<<"] \n";
         boost::asio::async_read(socket_,
-          boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
+          boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
           boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_BLK){
@@ -542,6 +549,13 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
   void write_bank()
   { uint32_t path=read_msg_->msid;
     uint16_t bank=read_msg_->svid;
+
+//FIXME !!!
+//FIXME !!! check if the first undo directory is needed !!!
+//FIXME !!! if peer starts at 'path' and receives messages in 'path' then it has to start from state before path
+//FIXME !!! then the path/und files are needed to start in correct position
+//FIXME !!!
+
     if(1+(srvs_.now-path)/BLOCKSEC>MAX_UNDO){
       std::cerr<<"ERROR, too old sync point\n";
       server_.leave(shared_from_this());
@@ -604,6 +618,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
         NEXTUSER:;
         weight+=u->weight;
         SHA256_Update(&sha256,u,sizeof(user_t));}
+      std::cerr << "SENDING bank "<<bank<<" ("<<msid<<")\n";
       send_sync(put_msg); // send even if we have errors
       if(user==users){
         uint8_t hash[32];
@@ -630,26 +645,39 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       std::cerr << "ERROR reading message\n";
       server_.leave(shared_from_this());
       return;}
+    if(!server_.do_sync){
+      std::cerr << "DEBUG ignore usr message\n";
+      read_msg_ = boost::make_shared<message>();
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data,message::header_length),
+        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+      return;}
     //read_msg_->read_head();
     uint16_t bank=read_msg_->svid;
     if(!bank || bank>=server_.last_srvs_.nodes.size()){
       std::cerr << "ERROR reading bank "<<bank<<" (bad svid)\n";
       server_.leave(shared_from_this());
       return;}
-    if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
-      std::cerr << "ERROR reading bank "<<bank<<" (bad block)\n";
-      server_.leave(shared_from_this());
-      return;}
+    //if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
+    //  std::cerr << "ERROR reading bank "<<bank<<" (bad block)\n";
+    //  server_.leave(shared_from_this());
+    //  return;}
     if(read_msg_->len+0x10000*read_msg_->msid>server_.last_srvs_.nodes[bank].users){
       std::cerr << "ERROR reading bank "<<bank<<" (too many users)\n";
       server_.leave(shared_from_this());
       return;}
-    char filename[64];
-    sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
+    std::cerr << "NEED bank "<<bank<<" ?\n";
     uint64_t hnum=server_.need_bank(bank);
     if(!hnum){
-      unlink(filename);
+      std::cerr << "NEED bank "<<bank<<" NO\n";
+      read_msg_ = boost::make_shared<message>();
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data,message::header_length),
+        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
+    std::cerr << "PROCESSING bank "<<bank<<"\n";
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
     if(!read_msg_->msid){
       last_bank=bank;
       last_msid=0;
@@ -666,12 +694,12 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       fd=open(filename,O_WRONLY|O_APPEND,0644);}
     if(fd<0){ //trow or something :-)
       std::cerr << "ERROR creating bank "<<bank<<" file\n";
-      return;}
+      exit(-1);}
     if((int)(read_msg_->len*sizeof(user_t))!=write(fd,read_msg_->data+8,read_msg_->len*sizeof(user_t))){
       close(fd);
       unlink(filename);
       std::cerr << "ERROR writing bank "<<bank<<" file\n";
-      return;}
+      exit(-1);}
     close(fd);
     user_t* u=(user_t*)(read_msg_->data+8);
     for(uint32_t i=0;i<read_msg_->len;i++,u++){
@@ -698,7 +726,9 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
     char new_name[64];
     sprintf(new_name,"usr/%04X.dat",bank);
     rename(filename,new_name);
+    std::cerr << "PROCESSED bank "<<bank<<"\n";
     server_.have_bank(hnum);
+    std::cerr << "CONTINUE\n";
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),

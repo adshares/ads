@@ -143,11 +143,14 @@ public:
 				if(num<=VIP_MAX){
 					it->status|=SERVER_VIP;}
 				it->users=1;
-				it->weight=stw-num;
-				sum+=it->weight;
+				//it->weight=stw-num;
+				//add_user(num,0,it->weight,it->pk);
 				// create the first user
-				add_user(num,0,it->weight,it->pk);}
+				add_user(num,0,stw-num,it->pk);
+				update_nodehash(num);
+				sum+=it->weight;}
 			else{
+				bzero(it->pk,SHA256_DIGEST_LENGTH);
 				it->users=0;
 				it->weight=0;}}
 		nodes.begin()->weight=TOTALMASS-sum;
@@ -187,7 +190,8 @@ public:
 	}
 
 	void update_nodehash(uint16_t peer)
-	{	char filename[64];
+	{	assert(peer);
+                char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
 		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
@@ -661,10 +665,12 @@ public:
 		return(i<VIP_MAX?i:VIP_MAX);
 	}
 
-	int blockdir() //not only dir ... should be called blockstart
+	void blockdir() //not only dir ... should be called blockstart
 	{	char pathname[16];
 		sprintf(pathname,"%08X",now);
-		return(mkdir(pathname,0755));
+		mkdir(pathname,0755);
+		sprintf(pathname,"%08X/und",now);
+		mkdir(pathname,0755);
 		for(auto n=nodes.begin();n!=nodes.end();n++){
 			n->changed.resize(n->users);}
 	}

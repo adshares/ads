@@ -38,7 +38,8 @@
 #define VIP_MAX 127
 #define MIN_MSGNUM 1 /*minimum number of messages to prevent hallo world, change to higher number later*/
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
-#define MAX_MSGWAIT 4 /*wait no more than 4s for a message*/
+#define MAX_MSGWAIT 8 /*wait no more than 8s for a message*/
+#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
 #define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon) or in seconds*/

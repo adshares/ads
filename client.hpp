@@ -122,7 +122,7 @@ public:
       if(msid!=u.id){
 	std::cerr<<"ERROR: bad msid ("<<msid<<"<>"<<u.id<<")\n";
         return;}
-      if(started<=!u.block){
+      if(started<=u.block){
 	std::cerr<<"ERROR: too many transactions ("<<started<<"<="<<u.block<<")\n"; //TODO, ignore during testing
         return;}
        int64_t fee=TXS_SEN_FEE(to_mass)+TIME_FEE(started-u.block);

@@ -51,6 +51,7 @@ public:
         exit(-1);}
       do_sync=1;}
     else{
+      std::cerr<<"DATABASE check passed\n";
       uint32_t now=time(NULL);
       now-=now%BLOCKSEC;
       if(last_srvs_.now==now-BLOCKSEC){
@@ -78,6 +79,7 @@ public:
       load_chain();} // sets do_sync=0;
     //load old messages or check/modify
 
+    writemsid(); // synced to new position
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept(); // should consider sending a 'hallo world' message
     //if(!opts_.offi){
@@ -96,10 +98,12 @@ public:
     clock_thread->join();
   }
 
+  //update_nodehash is similar
   int undo_bank() //will undo database changes and check if the database is consistant
   { //could use multiple threads but disk access could limit the processing anyway
-    uint32_t path=last_srvs_.now;
-    for(uint16_t bank=0;bank<last_srvs_.nodes.size();bank++){
+    uint32_t path=srvs_.now; //use undo from next block
+    fprintf(stderr,"CHECK DATA @ %08X (and undo @ %08X)\n",last_srvs_.now,path);
+    for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
       char filename[64];
       sprintf(filename,"usr/%04X.dat",bank);
       int fd=open(filename,O_RDWR);
@@ -116,6 +120,7 @@ public:
         if(ud>=0){
           u.id=0;
           if(sizeof(user_t)==read(ud,&u,sizeof(user_t)) && u.id){
+            std::cerr<<"OVERWRITE: "<<bank<<":"<<user<<" ("<<u.weight<<")\n";
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
         if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
@@ -131,7 +136,7 @@ public:
       if(ud>=0){
         close(ud);}
       if(last_srvs_.nodes[bank].weight!=weight){
-        std::cerr << "ERROR loading bank "<<bank<<" (bad sum)\n";
+        std::cerr << "ERROR loading bank "<<bank<<" (bad sum:"<<last_srvs_.nodes[bank].weight<<"<>"<<weight<<")\n";
         return(0);}
       uint8_t hash[32];
       SHA256_Final(hash,&sha256);
@@ -151,28 +156,31 @@ public:
     for(uint16_t bank=1;bank<end;bank++){
       //TODO, unlikely but maybe we have the correct bank already, we could check this
       message_ptr put_msg(new message());
-      put_msg->data[0]=MSGTYPE_USR;
+      put_msg->data[0]=MSGTYPE_USG;
       put_msg->data[1]=0;
       memcpy(put_msg->data+2,&last_srvs_.now,4);
       memcpy(put_msg->data+6,&bank,2);
-      put_msg->dohash(put_msg->data);
+      put_msg->msid=last_srvs_.now;
+      put_msg->svid=bank;
+      put_msg->hash.num=put_msg->dohash(put_msg->data);
       put_msg->got=0; // do first request emidiately
       missing_msgs_[put_msg->hash.num]=put_msg;
       fillknown(put_msg);
       uint16_t peer=put_msg->request();
       if(peer){
-        std::cerr << "REQUESTING USR from "<<peer<<"\n";
+        std::cerr << "REQUESTING USR "<<bank<<" from "<<peer<<"\n";
         deliver(put_msg,peer);}}
     while(missing_msgs_.size()){
       //do new requests here
       missing_.unlock();
-      boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
+      std::cerr << "WAITING for banks\n";
+      boost::this_thread::sleep(boost::posix_time::seconds(2)); //yes, yes, use futur/promise instead
       missing_.lock();}
     missing_.unlock();
     //we should have now all banks
   }
 
-  uint64_t need_bank(uint16_t bank)
+  uint64_t need_bank(uint16_t bank) //FIXME, return 0 if not at this stage
   { union {uint64_t num; uint8_t dat[8];} h;
     h.dat[0]=0;
     h.dat[1]=MSGTYPE_USR;
@@ -189,7 +197,7 @@ public:
   void have_bank(uint64_t hnum)
   { missing_.lock();
     missing_msgs_.erase(hnum);
-    missing_.lock();
+    missing_.unlock();
   }
 
   void load_chain()
@@ -248,9 +256,11 @@ public:
       blk_.lock();
       blk_msgs_.clear();
       blk_.unlock();
+      std::set<uint16_t> update;
       missing_.lock();
       for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
         missing_.unlock();
+        update.insert(it->second->svid);
 	auto jt=it++;
         blk_.lock();
         blk_msgs_[jt->first]=jt->second; //overload the use of blk_msgs_ , during sync store here the list of messages to be validated (meybe we should use a different container for ths later)
@@ -263,12 +273,17 @@ public:
           txs_.lock();
           txs_msgs_[jt->first]=jt->second;
           txs_.unlock();}
-	if(jt->second->load() && !jt->second->sigh_check()){
-          std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<")\n";
-          check_.lock();
-          check_msgs_.push_back(jt->second); // send to validator
-          check_.unlock();
-          missing_msgs_erase(jt->second);
+	if(jt->second->load()){
+          if(!jt->second->sigh_check(jt->second->data+4)){
+            jt->second->read_head(); //to get 'now'
+            std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database ("<<jt->second->path<<")\n";
+            check_.lock();
+            check_msgs_.push_back(jt->second); // send to validator
+            check_.unlock();
+            missing_msgs_erase(jt->second);}
+          else{
+            std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
+            jt->second->len=message::header_length;}
           continue;} // assume no lock needed
 	fillknown(jt->second);
 	uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
@@ -284,6 +299,13 @@ public:
         boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
 	blk_.lock();}
       blk_.unlock();
+      std::cerr << "COMMIT deposits\n";
+      commit_deposit(update);
+      std::cerr << "UPDATE accounts\n";
+      for(auto it=update.begin();it!=update.end();it++){
+        assert(*it<srvs_.nodes.size());
+        //this can be slow :-( maybe we could run this at the end of sync only :-(
+        srvs_.update_nodehash(*it);} //also calculates weight of the node
       //finish block
       srvs_.finish(); //FIXME, add locking
       if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
@@ -1000,6 +1022,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           svid_.unlock();}
         else{
           //TODO, inform peer if peer==author;
+          std::cerr<<"WARNING, have invalid message !!!\n";
           }
         if(!do_sync){
           if(valid){
@@ -1020,7 +1043,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint32_t,user_t> undo;
     std::map<uint32_t,int64_t> local_deposit;
     std::map<uint64_t,int64_t> txs_deposit;
-    while(p<=(char*)msg->data+msg->len){
+    while(p<(char*)msg->data+msg->len){
       char txstype=*p;
       if(txstype==TXSTYPE_SEN){
         uint32_t cuser;
@@ -1042,11 +1065,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         p+=1+28+64;
         continue;}
       if(txstype==TXSTYPE_BRO){
-        uint32_t len;
+        uint32_t len=0;
         memcpy(&len,p+1,3);
-        p+=len;
+        p+=4+len;
         continue;}
-      std::cerr<<"ERROR, unknown transaction type\n";
+      std::cerr<<"ERROR, unknown transaction type ("<<txstype<<")\n";
       return(false);}
     //load undo file
     msg->load_undo(undo);
@@ -1096,7 +1119,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint32_t,user_t> undo;
     std::map<uint32_t,int64_t> local_deposit;
     std::map<uint64_t,int64_t> txs_deposit;
-    while(p<=(char*)msg->data+msg->len){
+    while(p<(char*)msg->data+msg->len){
       char txstype=*p;
       if(txstype==TXSTYPE_SEN){
         uint8_t cmsg[(32+1+28+64)];
@@ -1189,12 +1212,17 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         p+=1+28+64;
         continue;}
       if(txstype==TXSTYPE_BRO){
-        uint32_t len;
+        uint32_t len=0;
         memcpy(&len,p+1,3);
         //TODO, store data in local broadcast swap space
-        p+=len;
+        std::cout << "BROADCAST: ";
+        std::cout.write(p+4,len);
+        std::cout << "\n";
+        p+=4+len;
         continue;}
-      std::cerr<<"ERROR, unknown transaction type\n";
+      int a=p-(char*)msg->data;
+      int b=msg->len;
+      std::cerr<<"ERROR, unknown transaction type ("<<txstype<<","<<a<<","<<b<<")\n";
       return(false);}
     //all transactions accepted
     //save undo file
@@ -1290,6 +1318,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         h.num=me->first;
         h.dat[0]=MSGTYPE_PUT;
         h.dat[1]=me->second->hashval(peer_svid); //data[4+(peer_svid%64)]
+        me->second->sent_erase(peer_svid);
         txs.push_back(h.num);}}
     txs_.unlock();
     dbl_.lock();
@@ -1299,6 +1328,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         h.num=me->first;
         h.dat[0]=MSGTYPE_DBP;
         h.dat[1]=0;//me->second->data[4+(peer_svid%64)];
+        me->second->sent_erase(peer_svid);
         dbl.push_back(h.num);}}
     dbl_.unlock();
   }
@@ -1511,6 +1541,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";}
 //TODO, save current account status
     std::cerr << "UPDATE accounts\n";
+//TODO
+//TODO try running update_nodehash in background while working on a new block
+//TODO
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
       //consider locking
@@ -1565,7 +1598,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(msg);
   }
 
-  void make_broadcast(std::string line)
+  void make_broadcast(std::string& line)
   { char ins[4];
     ins[0]=TXSTYPE_BRO;
     uint32_t len=line.length();
