@@ -85,16 +85,6 @@
 #define MSGTYPE_USG 22  /* bank file request */
 #define MSGTYPE_SOK 99  /* peer synced */
 
-#define TXSTYPE_PER 1	/* peer connected */
-#define TXSTYPE_BRO 2	/* broadcast */
-#define TXSTYPE_CNP 3	/* create new peer */
-#define TXSTYPE_CNU 4	/* create new user (by bank) */
-#define TXSTYPE_RNU 5	/* request new user (by user) */
-#define TXSTYPE_ANU 6	/* accept new user (by bank) */
-#define TXSTYPE_SEN 7	/* send MoonBlocks */
-#define TXSTYPE_WIT 8	/* withdraw MoonBlocks */
-#define TXSTYPE_INF 99  /* get info */
-
 #define TXS_SEN_FEE(x) (0x1000+0.0001*(x)) /* minimum 1hour fee */
 #define TIME_FEE(x) (x) /* seconds */
 #define MIN_MASS (0x800000) /* minimum 97days fee */
@@ -122,19 +112,9 @@ typedef struct header_s {
 	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
-typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
-	uint32_t id; // id of last transaction, id==1 is the creation.
-	uint32_t block; // last txs block time [to find the transaction], last bit=0 if confirmed
-	 int64_t weight; // balance
-	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
-	 int64_t withdraw; //amount to withdraw to target
-	uint32_t user; // target user
-	uint16_t node; // target node
-	uint16_t status; // includes status and account type
-} user_t;
 #pragma pack()
 
+#include "user.hpp"
 #include "ed25519/ed25519.h"
 #include "options.hpp"
 #include "message.hpp"

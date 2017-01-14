@@ -1,47 +1,29 @@
 #ifndef USER_HPP
 #define USER_HPP
 
-#include <algorithm>
-#include <atomic>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/trim.hpp>
-//#include <boost/archive/text_iarchive.hpp>
-//#include <boost/archive/text_oarchive.hpp>
-#include <boost/asio.hpp>
-//#include <boost/bind.hpp>
-//#include <boost/date_time/posix_time/posix_time.hpp>
-//#include <boost/enable_shared_from_this.hpp>
-//#include <boost/make_shared.hpp>
-#include <boost/program_options.hpp>
-//#include <boost/serialization/list.hpp>
-//#include <boost/serialization/vector.hpp>
-//#include <boost/shared_ptr.hpp>
-//#include <boost/thread/thread.hpp>
-//#include <boost/container/flat_set.hpp>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <deque>
-#include <forward_list>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <list>
-#include <openssl/sha.h>
-#include <set>
-#include <stack>
-#include <vector>
-
-#define TXSTYPE_PER 1	/* peer connected */
-#define TXSTYPE_BRO 2	/* broadcast */
-#define TXSTYPE_CNP 3	/* create new peer */
-#define TXSTYPE_CNU 4	/* create new user (by bank) */
-#define TXSTYPE_RNU 5	/* request new user (by user) */
-#define TXSTYPE_ANU 6	/* accept new user (by bank) */
-#define TXSTYPE_SEN 7	/* send MoonBlocks */
-#define TXSTYPE_WIT 8	/* withdraw MoonBlocks */
-#define TXSTYPE_INF 99	/* get info */
+#define TXSTYPE_INF 0	/* info */			/* no broadcast, just for office comunication */
+#define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
+#define TXSTYPE_BRO 2	/* broadcast */			/* send ads to network */
+#define TXSTYPE_PUT 3	/* send funds */	
+#define TXSTYPE_USR 4	/* create new user */		
+#define TXSTYPE_BNK 5	/* create new bank */
+#define TXSTYPE_GET 6	/* get funds */			/* retreive funds from remote/dead bank */
+#define TXSTYPE_KEY 7	/* change account key */
+#define TXSTYPE_BKY 8	/* change bank key */
+#define TXSTYPE_STP 9	/* die/stop processing bank */	/* restart requires a new BKY transaction */
+#define TXSTYPE_MAX 10
+const int txslen[TXSTYPE_MAX]={ //length does not include variable part and input hash
+	1+2+4+4,		//INF 'amsid' is current time
+	0,			//CON not defined yet
+	1+2+4+4+4+2,		//BRO 'bbank' is message length
+	1+2+4+4+4+2+4+8,	//PUT
+	1+2+4+4+4+2,		//USR
+	1+2+4+4+4,		//BNK
+	1+2+4+4+4+2+4+8,	//GET
+	1+2+4+4+4+32,		//KEY
+	1+2+4+4+4+32,		//BKY
+	0}; 			//CON not defined yet
+	
 
 #pragma pack(1)
 typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
@@ -57,7 +39,44 @@ typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
 } user_t;
 #pragma pack()
 
-#include "ed25519/ed25519.h"
-#include "settings.hpp"
+class usertxs
+{
+public:
+	uint8_t  ttype;
+	uint16_t abank;
+	uint32_t auser;
+	uint32_t amsid;
+	uint32_t ttime;
+	uint16_t bbank;
+	uint32_t buser;
+	 int64_t tmass;
 
+	usertxs()
+	{
+	}
+	
+	bool parse(char* txs)
+	{	ttype=*txs;
+		if(ttype>=TXSTYPE_MAX){
+			return(false);}
+		memcpy(&abank,txs+1+0 ,2);
+		memcpy(&auser,txs+1+2 ,4);
+		memcpy(&amsid,txs+1+6 ,4);
+		memcpy(&ttime,txs+1+10,4);
+		int len=txslen[ttype];
+		if(len>=1+2+4+4+4+32){
+			return(true);}
+		if(len>=1+2+4+4+4+2){
+			memcpy(&bbank,txs+1+14,2);}
+		if(len>=1+2+4+4+4+2+4+8){
+			memcpy(&buser,txs+1+16,4);
+			memcpy(&tmass,txs+1+20,2);}
+                return(true);
+	}
+
+
+
+
+private:
+};
 #endif

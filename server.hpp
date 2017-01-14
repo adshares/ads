@@ -1045,7 +1045,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint64_t,int64_t> txs_deposit;
     while(p<(char*)msg->data+msg->len){
       char txstype=*p;
-      if(txstype==TXSTYPE_SEN){
+      if(txstype==TXSTYPE_PUT){
         uint32_t cuser;
         uint16_t to_bank;
         uint32_t to_user;
@@ -1121,7 +1121,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint64_t,int64_t> txs_deposit;
     while(p<(char*)msg->data+msg->len){
       char txstype=*p;
-      if(txstype==TXSTYPE_SEN){
+      if(txstype==TXSTYPE_PUT){
         uint8_t cmsg[(32+1+28+64)];
         uint16_t cbank; //consider changing order to improve allignment
         uint32_t cuser;

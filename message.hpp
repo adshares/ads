@@ -395,7 +395,7 @@ public:
         uint32_t mlen;
         memcpy(&mlen,data+4+64+10+1,3);
         std::cout.write((char*)data+4+64+10+4,mlen);}
-      if(data[4+64+10]==TXSTYPE_SEN){
+      if(data[4+64+10]==TXSTYPE_PUT){
         std::cout<<"SEND";}} //TODO, print more data
     std::cout << " " << suffix << "/" << msid << "\n";
   }
