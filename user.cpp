@@ -22,149 +22,60 @@
 #include "ed25519/ed25519.h"
 #include "settings.hpp"
 
-user_t myuser;
-char* msgp;
-int msgl;
+int cmpkey2(std::string& line)
+{ if(line.length()<4+64){
+    return(-1);}
+  uint8_t msgtxt[64];
+  ed25519_text2key((uint8_t*)msgtxt,line.c_str()+4,32); // do not send last hash
+  return(memcmp(msgtxt,sts.pn,32));
+}
 
-int run(settings& sts,std::string& line)
-{ uint32_t to_bank; //actually uint16_t
-  uint32_t to_user;
-   int64_t to_mass;
+usertxs_ptr run(settings& sts,std::string& line)
+{ uint32_t to_bank=0; //actually uint16_t
+  uint32_t to_user=0;
+   int64_t to_mass=0;
+  uint64_t to_info=0;
   uint32_t now=time(NULL);
-  char msgtxt[0xff];
-  static uint8_t* msg=NULL;
-  if(msg==NULL){
-    msg=(uint8_t*)std::malloc(1);}
-  if(!strncmp(line.c_str(),"INF:",4)){ // get info
-    msg=(uint8_t*)std::realloc(msg,11+64);
-    msg[0]=TXSTYPE_CON;
-    memcpy(msg+1,&sts.bank,2);
-    memcpy(msg+3,&sts.user,4);
-    memcpy(msg+7,&now ,4);
-    ed25519_sign(msg,11,sts.sk,sts.pk,msg+11);
-    ed25519_key2text(msgtxt,msg,11+64);
-    fprintf(stdout,"%.*s\n",(11+64)*2,msgtxt);
-    msgp=(char*)msg;
-    msgl=11+64;
-    return(msgl);}
-  if(!strncmp(line.c_str(),"BRO:",4)){ // broadcast message
-    msgl=line.length()-4;
-    msg=(uint8_t*)std::realloc(msg,32+1+2+4+4+2+msgl+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_BRO;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&msgl,2); // data length
-    memcpy(msg+33+12,line.c_str()+4,msgl); // sign last message id
-    ed25519_sign(msg,32+1+2+4+4+2+msgl,sts.sk,sts.pk,msg+32+1+2+4+4+2+msgl);
-      ed25519_key2text(msgtxt,msg+32,1+2+4+4+2); // do not send last hash
-      fprintf(stdout,"%.*s...\n",(1+2+4+4+2)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl+=1+2+4+4+2+64;
-    return(msgl);}
-  if(sscanf(line.c_str(),"PUT:%u:%u:%ld",&to_bank,&to_user,&to_mass)){ // send funds
-    if(to_mass<=0){
-      return(0);}
-    msg=(uint8_t*)std::realloc(msg,32+1+28+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_PUT;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&to_bank,2);
-    memcpy(msg+33+12,&to_user,4);
-    memcpy(msg+33+16,&to_mass,8); // could be a float
-    memcpy(msg+33+24,&now,4); // could be used as additional placeholder
-    ed25519_sign(msg,32+1+28,sts.sk,sts.pk,msg+32+1+28);
-      ed25519_key2text(msgtxt,msg+32,1+28+64); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+28+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl=1+28+64;
-    return(msgl);}
-  if(sscanf(line.c_str(),"USR:%u",&to_bank)){ // create new local user
-    msg=(uint8_t*)std::realloc(msg,32+1+2+4+4+2+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_USR;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&to_bank,2); // must be target bank
-    ed25519_sign(msg,32+1+2+4+4+2,sts.sk,sts.pk,msg+32+1+2+4+4+2);
-      ed25519_key2text(msgtxt,msg+32,1+2+4+4+2); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+2+4+4+2+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl+=1+2+4+4+2+64;
-    return(msgl);}
-  if(!strncmp(line.c_str(),"BNK:",4)){ // create new bank
-    msg=(uint8_t*)std::realloc(msg,32+1+2+4+4+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_BNK;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    ed25519_sign(msg,32+1+2+4+4,sts.sk,sts.pk,msg+32+1+2+4+4);
-      ed25519_key2text(msgtxt,msg+32,1+2+4+4); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+2+4+4+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl+=1+2+4+4+64;
-    return(msgl);}
-  if(sscanf(line.c_str(),"GET:%u:%u:%ld",&to_bank,&to_user,&to_mass)){ // retreive funds
-    if(to_mass<=0){
-      return(0);}
-    msg=(uint8_t*)std::realloc(msg,32+1+28+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_GET;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&to_bank,2);
-    memcpy(msg+33+12,&to_user,4);
-    memcpy(msg+33+16,&to_mass,8); // could be a float
-    memcpy(msg+33+24,&now,4); // could be used as additional placeholder
-    ed25519_sign(msg,32+1+28,sts.sk,sts.pk,msg+32+1+28);
-      ed25519_key2text(msgtxt,msg+32,1+28+64); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+28+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl=1+28+64;
-    return(msgl);}
-  if(sscanf(line.c_str(),"KEY:%64s",msgtxt+32)){ // change user key
-    ed25519_text2key((uint8_t*)msgtxt,msgtxt+32,32); // do not send last hash
-    if(memcmp(msgtxt,sts.pn,32)){
-      return(0);}
-    msg=(uint8_t*)std::realloc(msg,32+1+2+4+4+4+64+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_KEY;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&now,4); // could be used as additional placeholder
-    ed25519_sign(msg,32+1+2+4+4+4,sts.sk,sts.pk,msg+32+1+2+4+4+4);
-    ed25519_sign(msg,32+1+2+4+4+4,sts.sn,sts.sn,msg+32+1+2+4+4+4+64);
-      ed25519_key2text(msgtxt,msg+32,1+2+4+4+4+64+64); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+2+4+4+4+64+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl=1+2+4+4+4+64+64;
-    return(msgl);}
-  if(sscanf(line.c_str(),"BKY:%64s",msgtxt+32)){ // change bank key
-    ed25519_text2key((uint8_t*)msgtxt,msgtxt+32,32); // do not send last hash
-    if(memcmp(msgtxt,sts.pn,32)){
-      return(0);}
-    msg=(uint8_t*)std::realloc(msg,32+1+2+4+4+4+64+64);
-    memcpy(msg,sts.ha,32);
-    msg[32]=TXSTYPE_BKY;
-    memcpy(msg+33+0,&sts.bank,2);
-    memcpy(msg+33+2,&sts.user,4);
-    memcpy(msg+33+6,&sts.msid,4); // sign last message id
-    memcpy(msg+33+10,&now,4); // could be used as additional placeholder
-    ed25519_sign(msg,32+1+2+4+4+4,sts.sk,sts.pk,msg+32+1+2+4+4+4);
-    ed25519_sign(msg,32+1+2+4+4+4,sts.sn,sts.sn,msg+32+1+2+4+4+4+64);
-      ed25519_key2text(msgtxt,msg+32,1+2+4+4+4+64+64); // do not send last hash
-      fprintf(stdout,"%.*s\n",(1+2+4+4+4+64+64)*2,msgtxt);
-    msgp=(char*)msg+32;
-    msgl=1+2+4+4+4+64+64;
-    return(msgl);}
-  return 0;
+  if(!strncmp(line.c_str(),"ME::",4)){ // get info about me
+    usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user);}
+  else if(sscanf(line.c_str(),"INF:%u:%u",&to_bank,&to_user)){ // get info about a different user
+    usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user);}
+  else if(!strncmp(line.c_str(),"BRO:",4)){ // broadcast message
+    usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,line.length()-4,to_user,to_mass,line.c_str()+4);}
+  else if(sscanf(line.c_str(),"PUT:%u:%u:%ld:%ld",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
+    usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL);}
+  else if(sscanf(line.c_str(),"USR:%u",&to_bank)){ // create new user @ to_bank
+    usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL);}
+  else if(!strncmp(line.c_str(),"BNK:",4)){ // create new bank
+    usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL);}
+  else if(sscanf(line.c_str(),"GET:%u:%u",&to_bank,&to_user)){ // retreive funds
+    usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL);}
+  else if(!strncmp(line.c_str(),"KEY:",4)){ // get info
+    if(!check_key2(line)){
+      return(NULL);}
+    hash_t key;
+    ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
+    usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,key,NULL);
+    txs->sign(sts.ha,sts.sk,sts.pk);
+    txs->sign2(sts.sn,sts.pn);
+    txs->print();
+    return(txs);}
+  else if(!strncmp(line.c_str(),"BKY:",4)){ // get info
+    if(cmpkey2(line)){
+      return(NULL);}
+    hash_t key;
+    ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
+    usertxs_ptr txs(new usertxs(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,key,sts.po);
+    txs->sign(sts.ha,sts.sk,sts.pk);
+    txs->sign2(sts.sn,sts.pn);
+    txs->sign3(sts.so,sts.po); //add this !!!
+    txs->print();
+    return(txs);}
+  else{
+    return(NULL);}
+  txs->sign(sts.ha,sts.sk,sts.pk);
+  txs->print();
+  return(txs);
 }
 
 void print_user(user_t& u)
@@ -173,19 +84,20 @@ void print_user(user_t& u)
    ed25519_key2text(pkey,u.pkey,32);
    ed25519_key2text(hash,u.hash,32);
    fprintf(stdout,
-     "id:%08X block:%08X weight:%016lX withdraw:%016lX user:%08X node:%04X status:%04X\npkey:%.64s\nhash:%.64s\n",
-     u.id,u.block,u.weight,u.withdraw,u.user,u.node,u.status,pkey,hash);
+     "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
+     u.id,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);
 }
 
-void talk(boost::asio::ip::tcp::socket& socket,settings& sts) //len can be deduced from txstype
+void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
-    boost::asio::write(socket,boost::asio::buffer(msgp,msgl));
+    boost::asio::write(socket,boost::asio::buffer(txs.message(),txs.length()));
     if(*msgp==TXSTYPE_INF || *msgp==TXSTYPE_PUT){
       int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
       if(len!=sizeof(user_t)){
         std::cerr<<"ERROR reading confirmation\n";}
       else{
+        user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
         print_user(myuser);
         if(*msgp==TXSTYPE_PUT && (uint32_t)sts.msid+1!=myuser.id){
@@ -221,10 +133,10 @@ int main(int argc, char* argv[])
   std::cerr<<"CONNECTED\n";
   try{
     if(!sts.exec.empty()){
-      int len=run(sts,sts.exec);
-      if(!len){
+      usertxs_ptr txs=run(sts,sts.exec);
+      if(txs==NULL){
         std::cerr << "ERROR\n";}
-      talk(socket,sts);
+      talk(socket,sts,txs);
       return(0);}
     std::string line;
     while (std::getline(std::cin,line)){
@@ -232,11 +144,11 @@ int main(int argc, char* argv[])
         break;}
       if(line[0]=='.'){
         break;}
-      int len=run(sts,line);
-      if(!len){
+      usertxs_ptr txs=run(sts,line);
+      if(txs==NULL){
         break;}
       //TODO, send to server
-      talk(socket,sts);
+      talk(socket,sts,txs);
       socket.connect(*endpoint_iterator, error);
       if(error){
         std::cerr<<"ERROR connecting again\n";

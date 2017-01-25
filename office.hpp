@@ -82,41 +82,145 @@ public:
   }
 
   void get_user(user_t& u,uint16_t cbank,uint32_t cuser)
-  { assert(cbank==svid);
-    assert(cuser<users);
-    u.id=0;
-    file_.lock();
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-    read(fd,&u,sizeof(user_t));
-    u.weight+=deposit[cuser];
-    if(u.id){
+  { u.id=0;
+    if(cbank==svid){
+      assert(cuser<users);
+      file_.lock();
+      lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+      read(fd,&u,sizeof(user_t));}
+    if(!u.id){
+      srv_.last_srvs_.get_user(u,cbank,cuser); //watch out for deadlocks
+    if(!u.id){
       file_.unlock();
       return;}
-    srv_.last_srvs_.get_user(u,cbank,cuser); //watch out for deadlocks
-    u.weight+=deposit[cuser];
-    deposit[cuser]=0;
-    assert(u.weight>=0);
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-    write(fd,&u,sizeof(user_t));
+    if(cbank==svid && deposit[cuser]){
+      u.weight+=deposit[cuser];
+      deposit[cuser]=0;
+      assert(u.weight>=0);
+      lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+      write(fd,&u,sizeof(user_t));}
     file_.unlock();
   }
 
-  void set_user(user_t& u,uint16_t cbank,uint32_t cuser, int64_t deduct)
-  { assert(cbank==svid);
-    assert(cuser<users);
+  uint32_t add_user(uint16_t abank) // will create new account or overwrite old one
+  { static uint32_t nuser=0;
+    static uint32_t lastnow=0;
+    uint32_t now=srv_.last_srvs_.now;
+    user_t nu;
+    char filename[64];
+    sprintf(filename,"ofi/%04X.dat",svid);
+    int nd=open(filename,O_RDONLY);
+    if(!nd){
+      std::cerr<<"ERROR, failed to open office register\n";
+      return(0);}
+    if(lastnow!=now){
+      lastnow=now;
+      nuser=1;}
+    else{
+      nuser++;}
+    lseek(nd,nuser*sizeof(user_t),SEEK_SET); //skip first account
+    for(;nuser<users;nuser++){ // try overwriting old dead account
+      read(nd,&nu,sizeof(user_t));
+      if(nu.weight-TIME_FEE(now,nu.block)<0){ // try changing this account
+//FIXME, do not change accounts that are open for too short
+      //if(nu.status & USER_CLOSED){ // try changing this account
+        file_.lock();
+        lseek(fd,nuser*sizeof(user_t),SEEK_SET);
+        read(fd,&nu,sizeof(user_t));
+//FIXME !!!
+//FIXME, network conflict ... somebody can wire funds to this account while the account is beeing overwritten
+//FIXME !!! (maybe create a slow 'account close' transaction)
+        if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
+//FIXME, do not change accounts that are open for too short
+          std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
+          memset(nu,0,sizeof(user_t));
+          memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
+          nu.id=1;
+          nu.time=now;
+          nu.node=0;
+          nu.user=nuser; // record user_id
+          nu.lpath=now;
+          nu.rpath=now-START_AGE;
+          nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
+          memcpy(nu.pkey,u.pk,SHA256_DIGEST_LENGTH);
+          lseek(fd,-sizeof(user_t),SEEK_CUR);
+          write(fd,&nu,sizeof(user_t));
+          file_.unlock();
+          close(nd);
+          return(nuser);}
+        file_.unlock();}}
+    close(nd);
+    if(users>=MAX_USERS){
+      return(0);}
+    // no old account found, creating new account
+    memset(nu,0,sizeof(user_t));
+    memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
+    nu.id=1;
+    nu.time=now;
+    nu.node=0;
+    nu.user=nuser; // record user_id
+    nu.lpath=now;
+    nu.rpath=now-START_AGE;
+    nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
+    memcpy(nu.pkey,u.pk,SHA256_DIGEST_LENGTH);
+    std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
-    u.weight+=deposit[cuser]-deduct;
-    deposit[cuser]=0;
+    if(users>=MAX_USERS){
+      file_.unlock();
+      return(0);}
+    nuser=users++;
+    deposit.push_back(0);
+    lseek(fd,nuser*sizeof(user_t),SEEK_SET);
+    write(fd,&nu,sizeof(user_t));
+    file_.unlock();
+    return(nuser);
+  }
+
+  void set_user(user_t& u, int64_t deduct)
+  { assert(u.bank==svid);
+    assert(u.user<users);
+    file_.lock();
+    u.weight+=deposit[u.user]-deduct;
+    deposit[u.user]=0;
     assert(u.weight>=0);
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    lseek(fd,u.user*sizeof(user_t),SEEK_SET);
     write(fd,&u,sizeof(user_t));
     file_.unlock();
   }
 
-  void add_deposit(uint32_t cuser, int64_t cadd)
+  void add_deposit(usertxs& utxs)
   { file_.lock();
-    deposit[cuser]+=cadd;
+    deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
+    //FIXME, save in local transaction history
+    //save in loc/XX/XX/XX/XX.dat
+
+    //FIXME, process contracts if needed
+  }
+
+  bool try_account(hash_t* key)
+  { account_.lock()
+    if(accounts_.size()>MAX_ACCOUNT){
+      for(auto it=accounts_.begin();it!=accounts_.end();){
+        auto jt=it++;
+        user_t u;
+        get_user(u,svid,jt->second); //watch out for deadlocks
+        if(u.weight>=MIN_MASS){
+          accounts_.erase(jt);}}
+      if(accounts_.size()>MAX_ACCOUNT){
+        account_.unlock();
+        return(false);}}
+    if(accounts_.find(*key)!=accounts_.end()){
+      account_.unlock();
+      return(false);}}
+    account_.unlock();
+    return(true);
+  }
+
+  void add_account(hash_t* key,uint32_t user)
+  { account_.lock()
+    accounts_[*key]=user;
+    account_.unlock();
   }
 
   void add_msg(uint8_t* msg,int len, int64_t fee)
@@ -125,13 +229,13 @@ public:
     message.append((char*)msg,len);
     message_.unlock();
     mfee+=BANK_PROFIT(fee); //do we need this?
+    //mfee should be commited to bank from time to time.
   }
 
-  void lock_user(uint32_t cuser) // not used
-  { users_[cuser & 0xff].lock();
+  void lock_user(uint32_t cuser)
   }
 
-  void unlock_user(uint32_t cuser) // not used
+  void unlock_user(uint32_t cuser)
   { users_[cuser & 0xff].unlock();
   }
 
@@ -139,18 +243,22 @@ public:
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
   //void leave(client_ptr c); // main.cpp
 
+  uint8_t pkey()
+  { return(opts_.pk);
+  }
+
   bool run;
   uint16_t svid;
   uint32_t users; //number of users of the bank
   std::vector<int64_t> deposit; //resizing will require a stop of processing
-  boost::mutex users_[0x10]; //used ???
+  boost::mutex users_[0x10];
   std::string message;
   boost::mutex message_;
 private:
   boost::asio::io_service& io_service_;
   boost::asio::ip::tcp::acceptor acceptor_;
-  options& opts_;
   server& srv_;
+  options& opts_;
   std::set<client_ptr> clients_;
   boost::mutex client_;
   int fd; // user file descriptor
@@ -159,6 +267,8 @@ private:
    int64_t mfee; // let's see if we need this
   uint32_t message_sent;
   boost::thread* clock_thread;
+  std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates
+  boost::mutex account_;
 };
 
 #endif

@@ -477,17 +477,19 @@ public:
     return(1);
   }
 
-  void save_undo(std::map<uint32_t,user_t>& undo) // assume no errors :-) FIXME
+  void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users) // assume no errors :-) FIXME
   { char filename[64];
     sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+    assert(fd);
     for(auto it=undo.begin();it!=undo.end();it++){
       write(fd,&it->first,sizeof(uint32_t));
       write(fd,&it->second,sizeof(user_t));}
+    write(fd,&users,sizeof(uint32_t));
     close(fd);
   }
 
-  void load_undo(std::map<uint32_t,user_t>& undo)
+  uint32_t load_undo(std::map<uint32_t,user_t>& undo)
   { char filename[64];
     sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
@@ -495,11 +497,12 @@ public:
       uint32_t i;
       user_t u;
       if(read(fd,&i,sizeof(uint32_t))!=sizeof(uint32_t)){
-        return;}
+        close(fd);
+        return(0);}
       if(read(fd,&u,sizeof(user_t))!=sizeof(user_t)){
-        return;}
+        close(fd);
+        return(i);}
       undo[i]=u;}
-    close(fd);
   }
 
   int move(uint32_t nextpath) //TODO, consider locking

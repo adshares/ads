@@ -43,6 +43,9 @@
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
 #define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon) or in seconds*/
+#define MAX_USERS 0x80000000
+#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
+#define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9080"
@@ -85,14 +88,25 @@
 #define MSGTYPE_USG 22  /* bank file request */
 #define MSGTYPE_SOK 99  /* peer synced */
 
-#define TXS_SEN_FEE(x) (0x1000+0.0001*(x)) /* minimum 1hour fee */
-#define TIME_FEE(x) (x) /* seconds */
+#define TXS_BRO_FEE(x) (0x1000+1*(x)) /* minimum 1hour fee + len_fee */
+#define TXS_PUT_FEE(x) (0x1000+0.0001*(x)) /* minimum 1hour fee */
+#define TXS_BNK_FEE    (0x10000000) /* */
+#define TXS_GET_FEE    (0x100000) /* */
+#define TXS_KEY_FEE    (0x1000) /* minimum 1hour fee */
+#define TXS_BKY_FEE    (0x1000000) /* */
+
+#define START_AGE      (0x100*BLOCKSEC) /* 100 blocks fee */
+
+#define TIME_FEE(x,y) (0x10*((x)-(y))/BLOCKSEC) /* seconds */
 #define MIN_MASS (0x800000) /* minimum 97days fee */
 
-#define BANK_PROFIT(x) ((x)>>3) /* 1/8 of fees */
+#define BANK_MAX (0xffff)
+#define BANK_PROFIT(x) ((x)>>4) /* 1/16 of fees */
 #define BANK_USER_FEE(x) ((x)>>6) /* 1s per 64 accounts (bank makes 8s on these accounts) */
 #define BANK_TIME_FEE(x) (0x40*(x)) /* must have minimum of 512 accounts to make profits */
-#define BANK_MIN_MASS (0x20000000) /* minimum 97days fee */
+#define BANK_MIN_MASS   (0x20000000) /*FIXME, reduce !!! minimum 97days fee in admin account to send transactions */
+#define BANK_MIN_MTIME (0x200*BLOCKSEC) /* if not transaction in this period bank can be taken over */
+#define BANK_MIN_WEIGHT (0x1000000000) /* if bank weight below this value, bank can be taken over */
 
 #define MESSAGE_TOO_LONG 0x800000
 #define MESSAGE_LEN_OK 0x10000
@@ -112,6 +126,8 @@ typedef struct header_s {
 	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
+typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
+typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32]} get_t;
 #pragma pack()
 
 #include "user.hpp"

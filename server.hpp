@@ -44,6 +44,7 @@ public:
     srvs_.now+=BLOCKSEC;
     srvs_.blockdir();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
+    bank_fee.resize(srvs_.nodes.size());
 
     if(!undo_bank()){//check database consistance, if 
       if(!opts_.fast){
@@ -300,11 +301,12 @@ public:
 	blk_.lock();}
       blk_.unlock();
       std::cerr << "COMMIT deposits\n";
+      //FIXME, add block transactions
       commit_deposit(update);
       std::cerr << "UPDATE accounts\n";
       for(auto it=update.begin();it!=update.end();it++){
         assert(*it<srvs_.nodes.size());
-        //this can be slow :-( maybe we could run this at the end of sync only :-(
+        //FIXME, this can be slow :-( maybe we could run this at the end of sync only :-(
         srvs_.update_nodehash(*it);} //also calculates weight of the node
       //finish block
       srvs_.finish(); //FIXME, add locking
@@ -1038,67 +1040,95 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           blk_.unlock();}}}
   }
 
+  uint64_t make_ppi(uint32_t amsid,uint16_t abank,uint16_t bbank)
+  { ppi_t ppi;
+    ppi.v32[0]=amsid;
+    ppi.v16[2]=abank;
+    ppi.v16[3]=bbank;
+    return(ppi.v64);
+  }
+
+  uint16_t ppi_abank(uint64_t& ppi)
+  { ppi_t *p=(ppi_t*)&ppi;
+    return(p->v16[2]);
+  }
+
+  uint16_t ppi_bbank(uint64_t& ppi)
+  { ppi_t *p=(ppi_t*)&ppi;
+    return(p->v16[3]);
+  }
+
+  /*uint64_t make_put(uint32_t auser,uint32_t buser)
+  { put_t put;
+    ppi.v32[0]=auser;
+    ppi.v32[1]=buser;
+    return(ppi.v64);
+  }
+
+  uint32_t put_auser(uint64_t& put)
+  { put_t *p=(put_t*)&put;
+    return(p->v32[0]);
+  }
+
+  uint32_t put_buser(uint64_t& put)
+  { put_t *p=(put_t*)&put;
+    return(p->v32[1]);
+  }*/
+
   bool undo_message(message_ptr msg)
   { char* p=(char*)msg->data+4+64+10;
-    std::map<uint32_t,user_t> undo;
-    std::map<uint32_t,int64_t> local_deposit;
     std::map<uint64_t,int64_t> txs_deposit;
+    std::set<uint64_t> txs_get; //set lock / withdraw
+    //TODO, load message from file
     while(p<(char*)msg->data+msg->len){
       char txstype=*p;
-      if(txstype==TXSTYPE_PUT){
-        uint32_t cuser;
-        uint16_t to_bank;
-        uint32_t to_user;
-         int64_t to_mass;
-        memcpy(&cuser,p+1+2,4);
-        memcpy(&to_bank,p+1+10,2);
-        memcpy(&to_user,p+1+12,4);
-        memcpy(&to_mass,p+1+16,8); // should be a float
-	local_deposit[cuser]=0; //this user must be in undo file
-        if(to_bank==msg->svid){
-	  local_deposit[to_user]-=to_mass;}
-        else{
+      usertxs utxs;
+      assert(*p<TXSTYPE_INF);
+      if(*txstype==TXSTYPE_PUT){
+        utxs.parse(p);
+        if(utxs.abank!=utxs.bbank){
           union {uint64_t big;uint32_t small[2];} to;
-          to.small[0]=to_user; //assume big endian
-          to.small[1]=to_bank; //assume big endian
-          txs_deposit[to.big]-=to_mass;}
-        p+=1+28+64;
-        continue;}
-      if(txstype==TXSTYPE_BRO){
-        uint32_t len=0;
-        memcpy(&len,p+1,3);
-        p+=4+len;
-        continue;}
-      std::cerr<<"ERROR, unknown transaction type ("<<txstype<<")\n";
-      return(false);}
-    //load undo file
-    msg->load_undo(undo);
-    user_t u;
-    int offset=(char*)&u.weight-(char*)&u;
+          to.small[0]=utxs.buser; //assume big endian
+          to.small[1]=utxs.bbank; //assume big endian
+          txs_deposit[to.big]+=utxs.tmass;}
+	p+=utxs.size;
+	continue;}
+      if(*txstype==TXSTYPE_GET){
+        utxs.parse(p);
+        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
+        txs_get.insert(ppi);
+	p+=utxs.size;
+	continue;}
+      if(*txstype==TXSTYPE_BKY){ //reverse bank key change
+        memcpy(srvs_.nodes[msg->svid].pk,utxs.key2(p),32);}
+      p+=utxs.get_size(p);}
+    uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
+    blk_.lock();
+    //blk_bky.erase(ppi);
+    blk_bnk.erase(ppi);
+    //blk_put.erase(ppi);
+    for(auto it=txs_get.begin();it!=txs_get.end();it++){
+      blk_get.erase(*it);}
+    blk_.unlock();
+    deposit_.lock();
+    for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
+      deposit[it->first]-=it->second;}
+    deposit_.unlock();
+    std::map<uint32_t,user_t> undo;
+    uint32_t users=msg->load_undo(undo);
+    //this could be a srvs_.function()
+    if(users){
+      srvs_.nodes[msg->svid].users=users;}
     char filename[64];
     sprintf(filename,"usr/%04X.dat",msg->svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
     if(fd<0){
       std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
       exit(-1);}
-    for(auto it=local_deposit.begin();it!=local_deposit.end();it++){
-      auto jt=undo.find(it->first);
-      if(jt!=undo.end()){
-        lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
-        write(fd,&jt->second,sizeof(user_t));}
-      else{
-        uint64_t val;
-        lseek(fd,it->first*sizeof(user_t)+offset,SEEK_SET);
-        read(fd,&val,sizeof(uint64_t));
-        val+=it->second;
-        lseek(fd,-sizeof(uint64_t),SEEK_CUR);
-        write(fd,&val,sizeof(uint64_t));}}
+    for(auto it=undo.begin();it!=undo.end();it++){
+      lseek(fd,it->first*sizeof(user_t),SEEK_SET);
+      write(fd,&it->second,sizeof(uint64_t));}
     close(fd);
-    //commit remote deposits
-    deposit_.lock();
-    for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
-      deposit[it->first]+=it->second;}
-    deposit_.unlock();
     return(true);
   }
 
@@ -1110,123 +1140,197 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(fd<0){
       std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
       exit(-1);}
-    sprintf(filename,"%08X/und/%04X.dat",srvs_.now,msg->svid);
-    int ud=open(filename,O_WRONLY|O_CREAT,0644);
-    if(ud<0){
-      std::cerr<<"ERROR, failed to open bank undo "<<msg->svid<<", fatal\n";
-      exit(-1);}
+    //sprintf(filename,"%08X/und/%04X.dat",srvs_.now,msg->svid);
+    //int ud=open(filename,O_WRONLY|O_CREAT,0644);
+    //if(ud<0){
+    //  std::cerr<<"ERROR, failed to open bank undo "<<msg->svid<<", fatal\n";
+    //  exit(-1);}
     std::map<uint32_t,user_t> changes;
     std::map<uint32_t,user_t> undo;
     std::map<uint32_t,int64_t> local_deposit;
     std::map<uint64_t,int64_t> txs_deposit;
+    //std::map<uint64_t,std::vector<hash_s>> txs_bky; //change bank key
+    //std::map<uint64_t,hash_s> txs_bky; //change bank key
+    std::map<uint64_t,std::vector<uint32_t>> txs_bnk; //create new bank
+    std::map<uint64_t,std::vector<get_t>> txs_get; //set lock / withdraw
+    //std::map<uint64_t,std::vector<uint32_t>> txs_put; //cancel lock
+    uint32_t users=srvs_.nodes[msg->svid].users;
+    uint32_t lpath=srvs_.now;
+    hash_t new_bky;
+    bool set_pky=false;
     while(p<(char*)msg->data+msg->len){
       char txstype=*p;
-      if(txstype==TXSTYPE_PUT){
-        uint8_t cmsg[(32+1+28+64)];
-        uint16_t cbank; //consider changing order to improve allignment
-        uint32_t cuser;
-        uint32_t msid;
-        uint16_t to_bank;
-        uint32_t to_user;
-         int64_t to_mass;
-        uint32_t ctime;
-        if(p+1+28+64>(char*)msg->data+msg->len){
-          std::cerr<<"ERROR, bad SEN message lenght\n";
+      uint32_t luser=0;
+      uint16_t lnode=0;
+      int64_t deduct=0;
+      int64_t fee=0;
+      /************* START PROCESSING **************/
+      user_t& usera;
+      usertxs utxs;
+      if(!utxs.parse(buf)){
+        std::cerr<<"ERROR: failed to parse transaction\n";
+        return(false);}
+      if(*p>=TXSTYPE_INF){
+        std::cerr<<"ERROR: unknown transaction\n";
+        return(false);}
+      if(utxs.abank!=msg->svid && *p!=TXSTYPE_USR){
+        std::cerr<<"ERROR: bad bank\n";
+        return(false);}
+      if(*p==TXSTYPE_USR){ // check lock first
+        if(utxs.bbank!=msg->svid){
+          std::cerr<<"ERROR: bad target bank\n";
           return(false);}
-        memcpy(cmsg+32,p,1+28+64);
-        memcpy(&cbank,cmsg+33+0,2);
-        memcpy(&cuser,cmsg+33+2,4);
-        memcpy(&msid,cmsg+33+6,4); // sign last message id
-        memcpy(&to_bank,cmsg+33+10,2);
-        memcpy(&to_user,cmsg+33+12,4);
-        memcpy(&to_mass,cmsg+33+16,8); // should be a float
-        memcpy(&ctime,cmsg+33+24,4);
-        if(cbank!=msg->svid){
-          std::cerr<<"ERROR, bad cbank "<<cbank<<"n";
+        //TXSTYPE_USER then the account was checked by the bank 
+        //bank has created new account with (user,pkey) supplied
+        //this transaction must be also reversible
+	luser=utxs.nuser(p);
+        char* npkey=utxs.npkey(p);
+        user_t& userl=NULL; //old user
+        if(luser>users){
+          std::cerr<<"ERROR: bad target user id "<<luser<<"\n";
           return(false);}
-        if(cuser>=srvs_.nodes[cbank].users){
-          std::cerr<<"ERROR, bad cuser "<<cuser<<"\n";
-          return(false);}
-        if(to_mass<=0){
-          std::cerr<<"ERROR, bad amount "<<to_mass<<"\n";
-          return(false);}
-        if(to_bank>=srvs_.nodes.size()){
-          std::cerr<<"ERROR, bad tbank "<<to_bank<<"n";
-          return(false);}
-        if(to_user>=srvs_.nodes[to_bank].users){
-          std::cerr<<"ERROR, bad tuser "<<to_user<<"\n";
-          return(false);}
-        if(ctime+MESSAGE_TOO_OLD<srvs_.now){
-          std::cerr<<"ERROR, bad time "<<ctime<<"\n";
-          return(false);}
-	if(changes.find(cuser)==changes.end()){ // make this global !!!
+	if(luser<users){ //1. check if overwriting was legal
+          userl=changes.find(luser); // get user
+          if(userl==changes.end()){
+            user_t u;
+            lseek(fd,luser*sizeof(user_t),SEEK_SET);
+            read(fd,&u,sizeof(user_t));
+            //srvs_.save_undo(ud,utxs.abank,luser,u); //save to undo file
+            changes[luser]=u;
+            undo[luser]=u;
+            userl=changes[luser];}
+          if(userl.weight-TIME_FEE(lpath,userl.lpath)>=0){
+            std::cerr<<"ERROR: illegal overwriting of account "<<utxs.bbank<<":"luser"\n";
+            return(false);}}
+        else{ //TODO, consider locking
           user_t u;
-          lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-          read(fd,&u,sizeof(user_t));
-          srvs_.save_undo(ud,msg->svid,cuser,u); //save to undo file
-          changes[cuser]=u;
-          undo[cuser]=u;}
-        if(ctime<=changes[cuser].block){
-          std::cerr<<"ERROR, bad time series "<<ctime<<"\n";
+          users++;
+          changes[luser]=u;
+          //undo[luser]=u;
+          userl=changes[luser];}
+        srvs_.init_user(u,msg->svid,luser,0,npkey);
+        if(utxs.abank!=utxs.bbank){
+          p+=utxs.size;
+          continue;}}
+      if(utxs.auser>=users){
+        std::cerr<<"ERROR, bad userid "<<utxs.abank<<":"<<utxs.auser<<"\n";
+        return(false);}
+      usera=changes.find(utxs.auser); // get user
+      if(usera==changes.end()){
+        user_t u;
+        lseek(fd,utxs.auser*sizeof(user_t),SEEK_SET);
+        read(fd,&u,sizeof(user_t));
+        //srvs_.save_undo(ud,utxs.abank,utxs.auser,u); //save to undo file
+        changes[utxs.auser]=u;
+        undo[utxs.auser]=u;
+        usera=changes[utxs.auser];}
+      //if(!offi_.get_user(usera,utxs.abank,utxs.auser)){
+      //  std::cerr<<"ERROR: read user failed\n";
+      //  return(false);}
+      if(utxs.wrong_sig(buf,usera.hash,usera.pk)){
+        std::cerr<<"ERROR: bad signature\n";
+        return(false);}
+      if(usera.msid!=utxs.amsid){
+        std::cerr<<"ERROR: bad msid ("<<usera.msid<<"<>"<<utxs.amsid<<")\n";
+        return(false);}
+      //if(usera.time>utxs.ttime){ //does not work because of _GET
+      //  std::cerr<<"ERROR: bad transaction time ("<<usera.time<<">"<<utxs.ttime<<")\n";
+      //  return(false);}
+      //process transactions
+      if(usera.time+2*LOCK_TIME<lpath && usera.luser && usera.lnode){//check account lock
+        if(*p!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
+          std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
           return(false);}
-        if(msid!=changes[cuser].id){
-          std::cerr<<"ERROR, bad id "<<ctime<<"\n";
+        if(usera.lpath>usera.time){
+          std::cerr<<"ERROR: account unlock in porgress\n";
           return(false);}
-         int64_t fee=TXS_SEN_FEE(to_mass)+TIME_FEE(ctime-changes[cuser].block); //modify time fee ... devide by 8s.
-        if(to_mass+fee+MIN_MASS>changes[cuser].weight+local_deposit[cuser]){ // always sets local_deposit !!!
-          std::cerr<<"ERROR, low balance "<<changes[cuser].weight<<"\n";
+        //when locked user,path and time are not modified
+        //fee=TXS_LOCKCANCEL_FEE;
+        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
+        //txs_put[ppi].push_back(utxs.auser);
+        utxs.ttime=usera.time; // do not change the time
+        luser=usera.luser;
+        lnode=usera.lnode;}
+      else if(*txstype==TXSTYPE_BRO){
+        print_broadcast(utxs);
+        fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_PUT){
+        if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
+          utxs.tmass=0;}
+        //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser)){
+        if(!check_user(utxs.bbank,utxs.buser)){
+          // does not check if account closed [consider adding this slow check]
+          std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<utxs.buser")\n";
+          offi_.unlock_user(utxs.auser);
           return(false);}
-        memcpy(cmsg,changes[cuser].hash,32);
-        if(ed25519_sign_open(cmsg,32+1+28,changes[cuser].pkey,cmsg+32+1+28)){
-          std::cerr<<"ERROR, bad signature\n";
-          return(false);}
-        //message accepted
-        changes[cuser].id++;
-        changes[cuser].block=ctime;
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256,cmsg+32,1+28+64);
-        SHA256_Final(cmsg+32,&sha256); //overwrite msg!!!
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256,cmsg,64); //make newhash=hash(oldhash+newmessagehash);
-        SHA256_Final(changes[cuser].hash,&sha256);
-	changes[cuser].weight-=to_mass+fee;
-        if(to_bank==cbank){
-	  //if(changes.find(to_user)==changes.end()){
-          //  user_t u;
-          //  lseek(fd,to_user*sizeof(user_t),SEEK_SET);
-          //  read(fd,&u,sizeof(user_t));
-          //  changes[to_user]=u;
-          //  undo[cuser]=u;}
-          //changes[to_user].weight+=to_mass;}
-          local_deposit[to_user]+=to_mass;}
+        if(utxs.abank==utxs.bbank){
+          local_deposit[utxs.buser]+=utxs.tmass;}
         else{
-          //uint64_t to=to_user; //assume big endian
-          //memcpy((((uint16_t*)&to)+2),&to_bank,2);
-          //((uint32_t*)&to)[1]=to_bank;
-          //assert(to==((((uint64_t)to_bank)<<32)+to_user));
           union {uint64_t big;uint32_t small[2];} to;
-          to.small[0]=to_user; //assume big endian
-          to.small[1]=to_bank; //assume big endian
-          txs_deposit[to.big]+=to_mass;}
-        p+=1+28+64;
-        continue;}
-      if(txstype==TXSTYPE_BRO){
-        uint32_t len=0;
-        memcpy(&len,p+1,3);
-        //TODO, store data in local broadcast swap space
-        std::cout << "BROADCAST: ";
-        std::cout.write(p+4,len);
-        std::cout << "\n";
-        p+=4+len;
-        continue;}
-      int a=p-(char*)msg->data;
-      int b=msg->len;
-      std::cerr<<"ERROR, unknown transaction type ("<<txstype<<","<<a<<","<<b<<")\n";
-      return(false);}
+          to.small[0]=utxs.buser; //assume big endian
+          to.small[1]=utxs.bbank; //assume big endian
+          txs_deposit[to.big]+=utxs.tmass;}
+        deduct=utxs.tmass;
+        fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_USR){
+        deduct=MIN_MASS;
+        fee=TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_BNK){ // we will get a confirmation from the network
+        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
+        txs_bnk[ppi].push_back(utxs.auser);
+        deduct=BANK_MIN_MASS;
+        fee=TXS_BNK_FEE*TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_GET){
+        if(utxs.abank==utxs.bbank){
+          std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
+          return(false);}
+        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
+        get_t get;
+        get.auser=utxs.auser;
+        get.buser=utxs.buser;
+        memcpy(get.pkey,usera.pkey);
+        txs_get[ppi].push_back(pet);
+        fee=TXS_GET_FEE*TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_KEY){
+        memcpy(usera.pkey,utxs.key(p),32);
+        fee=TXS_KEY_FEE*TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_BKY){ // we will get a confirmation from the network
+        if(utxs.auser){
+          std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
+          return(false);}
+        memcpy(new_bky,utxs.key(p),sizeof(hash_t));
+        //txs_bky[ppi].push_back(hash_s);
+        //txs_bky[ppi]=hash_s;
+        //blk_.lock();
+        //blk_bky[ppi]=hash_s;
+        //blk_.unlock();
+        fee=TXS_BKY_FEE*TIME_FEE(lpath,usera.lpath);}
+      else if(*txstype==TXSTYPE_STP){ // we will get a confirmation from the network
+        assert(0); //TODO, not implemented later
+        fee=TXS_STP_FEE*TIME_FEE(lpath,usera.lpath);}
+      if(deduct+fee+MIN_MASS>usera.weight){
+        std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
+        return(false);}
+      usera.msid++;
+      usera.time=utxs.ttime;
+      usera.node=lnode;
+      usera.user=luser;
+      usera.lpath=lpath;
+      //convert message to hash
+      uint8_t hash[32];
+      SHA256_CTX sha256;
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,p,utxs.size);
+      SHA256_Final(hash,&sha256); //overwrite msg!!!
+      //make newhash=hash(oldhash+newmessagehash);
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,usera.hash,32);
+      SHA256_Update(&sha256,hash,32);
+      SHA256_Final(usera.hash,&sha256);
+      usera.weight+=local_deposit[utxs.auser]-deduct-fee;
+      local_deposit[utxs.auser]=0;//to find changes[utxs.auser]
+      p+=utxs.size;}
     //all transactions accepted
-    //save undo file
-    msg->save_undo(undo);
     //commit local changes
     user_t u;
     int offset=(char*)&u.weight-(char*)&u;
@@ -1235,24 +1339,156 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto jt=changes.find(it->first);
       if(jt!=changes.end()){
         jt->second.weight+=it->second;
+        //assert(it->first<=srvs_.nodes[msg->svid].users);
+        //if(it->first>=srvs_.nodes[msg->svid].users){ //create new user
+        //  user_t u;
+        //  memset(&u,0,sizeof(user_t));
+        //  //srvs_.save_undo(ud,msg->svid,it->first,u); //save empty user in undo
+        //  put_user(jt->second,msg->svid,it->first);} //will update node users
+        //else{
         lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
-        write(fd,&jt->second,sizeof(user_t));}
+        write(fd,&jt->second,sizeof(user_t));}//}
       else{
         lseek(fd,it->first*sizeof(user_t),SEEK_SET);
         read(fd,&u,sizeof(user_t));
-        srvs_.save_undo(ud,msg->svid,it->first,u); //save to undo file
+        undo[utxs.auser]=u;
         u.weight+=it->second;
         lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
         write(fd,&u.weight,sizeof(uint64_t));}}
-    close(ud);
+    //close(ud);
     close(fd);
+    //save undo files
+    msg->save_undo(undo,users); //message
+    srvs_.save_undo(msg->svid,undo,users); //databank, will change srvs_.nodes[msg->svid].users
     //commit remote deposits
     //check for maximum deposits.size(), if too large, save old deposits and work on new ones;
     deposit_.lock();
     for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
       deposit[it->first]+=it->second;}
     deposit_.unlock();
+    //store block transactions
+    blk_.lock();
+    if(set_pky){
+      //FIXME, check if this is not me ... reload options if yes
+      memcpy(srvs_.nodes[msg->svid].pk,newpky,32);}
+    //blk_bky.insert(txs_bky.begin(),txs_bky.end());
+    blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
+    blk_get.insert(txs_get.begin(),txs_get.end());
+    //blk_put.insert(txs_put.begin(),txs_put.end());
+    blk_.unlock();
     return(true);
+  }
+
+  int open_bank(uint16_t svid) //
+  { char filename[64];
+    fprintf(stderr,"DEPOSIT to usr/%04X.dat",svid);
+    sprintf(filename,"usr/%04X.dat",svid);
+    fd=open(filename,O_RDWR,0644);
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+      exit(-1);}
+    return(fd);
+    //sprintf(filename,"%08X/und/%04X.dat",srvs_.now,svid);
+    //ud=open(filename,O_WRONLY|O_CREAT,0644);
+    //if(ud<0){
+    //  std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+    //  exit(-1);}
+  }
+
+  void commit_block(std::set<uint16_t>& update) //assume single thread
+  { blk.lock(); //no lock needed probably
+
+    //create new banks
+    if(!blk_bkn.empty()){
+      std::set<uint64_t> new_bnk; // list of available banks for takeover
+      uint16_t peer=0;
+      for(auto it=srvrs_.nodes.begin();it!=srvs_.nodes.end();it++,peer++){
+        if(it->mtime+BANK_MIN_MTIME<srvs_.now && it->weight<BANK_MIN_WEIGHT){
+          uint64_t bnk=it->weight<<16;
+          bnk|=peer;
+          new_bank.insert(bnk);}}}
+      for(auto it=blk_bkn.begin();it!=blk_bkn.end();it++){
+        uint16_t abank=ppi_abank(it->first);
+//FIXME !!!
+//FIXME, report to local office if this is the local bank
+//FIXME !!!
+        fd=open_bank(peer);
+        for(auto tx=it->second.begin();tx!=it->second.end();tx++){
+          user_t u;
+          lseek(fd,(*tx)*sizeof(user_t),SEEK_SET);
+          read(fd,&u,sizeof(user_t));
+          uint16_t peer=0;
+          // create new bank and new user
+          if(!new_bnk.empty()){
+            auto bi=new_bnk.begin();
+            peer=(*bi)&0xffff;
+            new_bnk.erase(bi);
+            srvs_.put_node(u,peer,*tx);}
+          else if(srvs_.nodes.size()<BANK_MAX-1){
+            peer=srvs_.add_node(u,*tx);}
+          else{
+            close(fd);
+            goto BLK_END;}
+          u.node=peer;
+          u.user=0;
+          lseek(fd,-sizeof(user_t),SEEK_CUR);
+          write(fd,&u,sizeof(user_t));}
+        close(fd);}
+       BLK_END:blk_bkn.clear();}
+
+    //withdraw funds
+    uint16_t svid=0;
+    int fd=0;
+    std::map<uint32_t,user_t> undo;
+    for(auto it=blk_get.begin();it!=blk_get.end();it++){
+      uint16_t abank=ppi_abank(it->first);
+      uint16_t bbank=ppi_bbank(it->first);
+      update.insert(abank);
+      if(bbank!=svid){
+//FIXME !!!
+//FIXME, report to local office if this is the local bank
+//FIXME !!!
+        srvs_.save_undo(svid,undo,0);
+        undo.clear();
+        svid=bank;
+        fd=open_bank(svid);}
+      union {uint64_t big;uint32_t small[2];} to;
+      to.small[1]=abank; //assume big endian
+      for(auto tx=it->second.begin();tx!=it->second.end();tx++){
+        user_t u;
+        lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
+        read(fd,&u,sizeof(user_t));
+        if(!memcmp(u.pkey,tx->pkey,32)){ //FIXME, add transaction fees processing
+          if(u.weight<=0){
+            continue;}
+          if(u.node!=abank||u.user!=tx->auser){
+            undo[it->second.buser]=u;
+            u.node=abank;
+            u.user=tx->auser;
+            u.time=srvs_.now;}
+          else if(u.time+2*LOCK_TIME>srvs_.now){
+            continue;}
+          else{ // withdraw all funds
+            int64_t weight=u.weight;
+            int64_t bfee=TIME_FEE(srvs_.now,u.rpath);
+            weight-=bfee;
+            int64_t afee=TXS_PUT_FEE(weight);
+            weight-=afee;
+            if(weight<=0){
+              continue;}
+            to.small[0]=tx->user; //assume big endian
+            deposit[to.big]+=weight;
+            bank_fee[bbank]+=bfee;
+            bank_fee[abank]+=afee;
+            u.weight=0;
+            u.rpath=srvs_.now;}} 
+          lseek(fd,-sizeof(user_t),SEEK_CUR);
+          write(fd,&u,sizeof(user_t));}}}
+    if(svid){
+      srvs_.save_undo(svid,undo,0);
+      undo.clear();}
+
+    blk.unlock();
   }
 
   void commit_deposit(std::set<uint16_t>& update) //assume single thread
@@ -1289,7 +1525,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           exit(-1);}}
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
-      srvs_.save_undo(ud,svid,user,u); //save to undo file
+      srvs_.save_undo(ud,svid,user,u);
       u.weight+=it->second;
       lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
       write(fd,&u.weight,sizeof(uint64_t));}
@@ -1535,10 +1771,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       check_msgs_.push_front(mi);}
     check_.unlock();
     std::set<uint16_t> update;
-    commit_deposit(update);
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       update.insert((*mi)->svid);
       std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";}
+    commit_block(update); // process bkn and get transactions
+    commit_deposit(update);
 //TODO, save current account status
     std::cerr << "UPDATE accounts\n";
 //TODO
@@ -1834,6 +2071,11 @@ private:
   //std::map<uint16_t,uint32_t> svid_msid; //TODO, maybe not used
   std::map<uint64_t,int64_t> deposit;
   boost::mutex deposit_;
+  //std::map<uint64_t,hash_s> blk_bky; //change bank key
+  std::map<uint64_t,std::vector<uint32_t>> blk_bnk; //create new bank
+  std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
+  //std::map<uint64_t,std::vector<uint32_t>> blk_put; //cancel lock
+  std::vector<int64_t> bank_fee;
 };
 
 #endif

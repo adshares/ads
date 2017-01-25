@@ -146,7 +146,9 @@ public:
 				//it->weight=stw-num;
 				//add_user(num,0,it->weight,it->pk);
 				// create the first user
-				add_user(num,0,stw-num,it->pk);
+				user_t u;
+				init_user(u,num,0,stw-num,it->pk);
+				put_user(u,num,0);
 				update_nodehash(num);
 				sum+=it->weight;}
 			else{
@@ -159,16 +161,49 @@ public:
 		return(num<VIP_MAX?num:VIP_MAX);
 	}
 
-	void add_user(uint16_t peer,uint32_t uid, int64_t weight,uint8_t* pk)
-	{	user_t u;
-		memset(&u,0,sizeof(user_t));
+	uint16_t add_node(user_t& ou,uint32_t uid)
+	{	node nn;
+		nn.mtim=srvs_.now;
+		nn.users=1;
+		memcpy(nn.pkey,ou.pkey,32);
+	 	nodes.push_back(nn);
+		uint16_t peer=nodes.size()-1;
+		user_t nu;
+		init_user(nu,peer,0,0,ou.pkey);
+		nu.node=peer;
+		nu.user=uid;
+		put_user(nu,peer,0);
+		return(peer);
+	}
+
+	void put_node(user_t& ou,uint16_t peer,uint32_t uid)
+	{	std::map<uint32_t,user_t> undo;
+	 	user_t nu;
+		get_user(nu,peer,0);
+		undo[0]=nu;
+		save_undo(peer,undo,0);
+		init_user(nu,peer,0,nu.weight,ou.pkey);
+		nu.node=peer;
+		nu.user=uid;
+		put_user(nu,peer,0);
+		return(peer);
+	}
+
+	void init_user(user_t& u,uint16_t peer,uint32_t uid, int64_t weight,uint8_t* pk)
+	{	memset(&u,0,sizeof(user_t));
 		memset(&u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		u.id=1; // always >0 to help identify holes in delta files
+                u.time=now;
+		u.node=peer;
+		u.user=uid;
+                u.lpath=now;
+                u.rpath=now-START_AGE;
 		u.weight=weight;
-                u.block=now;
 		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
-		//saving to file;
-	 	char filename[64];
+        }
+
+	void put_user(user_t& u,uint16_t peer,uint32_t uid)
+	{	char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
@@ -176,6 +211,9 @@ public:
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		write(fd,&u,sizeof(user_t));
 		close(fd);
+		if(nodes[peer].users<=uid){ //consider locking
+			nodes[peer].users=uid+1;
+			nodes[peer].changed.resize(1+uid/64);}
 	}
 
 	void get_user(user_t& u,uint16_t peer,uint32_t uid)
@@ -212,23 +250,30 @@ public:
 		close(fd);
 	}
 
-	void save_undo(int fd,uint16_t svid,uint32_t user,user_t& u)
-	{	int i=user/64;
-		int j=1<<(user%64);
-		if(nodes[svid].changed[i]&j){
-			return;}
-		nodes[svid].changed[i]|=j;
-		lseek(fd,user*sizeof(user_t),SEEK_SET);
-		write(fd,&u,sizeof(user_t));
+	void save_undo(uint16_t svid,std::map<uint32_t,user_t>& undo,uint32_t users)
+	{	char filename[64];
+		sprintf(filename,"%08X/und/%04X.dat",now,svid);
+		int fd=open(filename,O_WRONLY|O_CREAT,0644);
+		if(fd<0){
+			std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+			exit(-1);}
+		if(nodes[svid].users<=users){ //consider locking
+			nodes[svid].users=users;
+			nodes[svid].changed.resize(1+users/64);}
+		for(auto it=undo.begin();it!=undo.end();it++){
+			int i=(it->first)/64;
+			int j=1<<((it->first)%64);
+			if(nodes[svid].changed[i]&j){
+				return;}
+			nodes[svid].changed[i]|=j;
+			lseek(fd,(it->first)*sizeof(user_t),SEEK_SET);
+			write(fd,&it->second,sizeof(user_t));}
+		close(fd);
 	}
 
 	void clear_undo()
 	{	for(auto n=nodes.begin();n!=nodes.end();n++){
 			n->changed.clear();}
-	}
-
-	void add(node& n)
-	{	nodes.push_back(n);
 	}
 
 	void get()
@@ -672,7 +717,7 @@ public:
 		sprintf(pathname,"%08X/und",now);
 		mkdir(pathname,0755);
 		for(auto n=nodes.begin();n!=nodes.end();n++){
-			n->changed.resize(n->users);}
+			n->changed.resize(1+n->users/64);}
 	}
 
 private:
