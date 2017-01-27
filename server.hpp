@@ -23,6 +23,8 @@ public:
     //ofip(NULL)
   { mkdir("usr",0755); // create dir for bank accounts
     mkdir("und",0755); // create dir for undo accounts
+    mklogdir(opts_.svid);
+    mklogfile(opts_.svid,0);
     uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
     last_srvs_.get(path);
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
@@ -97,6 +99,163 @@ public:
 
     clock_thread->interrupt();
     clock_thread->join();
+  }
+
+  void mklogdir(uint16_t svid)
+  { char filename[64];
+    sprintf(filename,"log/%04X",svid);
+    mkdir("log",0755); // create dir for user history
+    mkdir(filename,0755);
+  }
+
+  void mklogfile(uint16_t svid,uint32_t user)
+  { char filename[64];
+    sprintf(filename,"log/%04X/%03X",svid,user>>20);
+    mkdir(filename,0755);
+    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
+    mkdir(filename,0755);
+    //create log file ... would be created later anyway
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      std::cerr<<"ERROR, failed to create log directory "<<filename<<"\n";}
+    close(fd);
+  }
+
+  int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
+  { log_t log;
+    assert(!(4096%sizeof(log_t));
+    int size=lseek(fd,0,SEEK_END); // maybe stat would be faster
+    if(size%sizeof(log_t){
+      std::cerr<<"ERROR, log corrupt register "<<filename<<"\n";
+      return(-2);}
+    if(size<LOG_PURGE_START){
+      return(0);}
+    lock_user(user);
+    size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
+    for(;size>=LOG_PURGE_START;size-=4096){
+      if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)){
+        unlock_user(user);
+        std::cerr<<"ERROR, log lseek error for "<<filename<<"\n";
+        return(-1);}
+      if(read(fd,&log,sizeof(log_t))!=sizeof(log_t)){
+        unlock_user(user);
+        std::cerr<<"ERROR, log read error for "<<filename<<"\n";
+        return(-1);}
+      if(log.time+MAX_LOG_AGE>=srvs_.now){ // purge first block
+        unlock_user(user);
+        return(0);}
+      if(fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096)<0){
+        unlock_user(user);
+        std::cerr<<"ERROR, log purge failed for "<<filename<<"\n";
+        return(-1);}}
+    unlock_user(user);
+    return(0);
+  }
+
+  // use (2) fallocate to remove beginning of files
+  // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
+  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log)
+  { uint32_t luser=MAX_USERS;
+    int fd=-1;
+    if(log.empty()){
+      return;}
+    for(auto it=log.begin();it!=log.end();it++){
+      uint32_t user=(it->first)>>32;
+      if(luser!=user){
+        if(fd>=0){
+          purge_log(fd,luser);
+          close(fd);
+          //unlock_user(luser);
+          }
+        luser=user;
+        char filename[64];
+        sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+        fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+        if(fd<0){
+          std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+          return;} // :-( maybe we should throw here something
+        //lock_user(user); // needed only when purging
+        }
+//TODO, monotonic time increase would help
+      write(fd,&it->second,sizeof(log_t));}
+    purge_log(fd,luser);
+    close(fd);
+    //unlock_user(luser);
+  }
+
+  bool fix_log(uint16_t svid,uint32_t user)
+  { char filename[64];
+    struct stat sb;
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(rd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for reading\n";
+      return(false);}
+    stat(rb,&sb);
+    if(!(sb.st_size%sizeof(log_t))){ // file is ok
+      close(rd);
+      return(false);}
+    int l=lseek(rd,sb.st_size%sizeof(log_t),SEEK_SET);
+    int ad=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+    if(ad<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for appending\n";
+      close(rd);
+      return(false);}
+    log_t log;
+    memset(&log,0,sizeof(log_t));
+    write(ad,&log,l); // append a suffix
+    close(ad);
+    int wd=open(filename,O_WRONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(wd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for writing\n";
+      close(rd);
+      return(false);}
+    stat(wb,&sb);
+    if(sb.st_size%sizeof(log_t)){ // file is ok
+      std::cerr<<"ERROR, failed to append log register "<<filename<<", why ???\n";
+      close(rd);
+      close(wd);
+      return(false);}
+    for(l=sizeof(log_t);l<sb.st_size;l+=sizeof(log_t)){
+      if(read(rd,&log,sizeof(log_t))!=sizeof(log_t)){
+        std::cerr<<"ERROR, failed to read log register "<<filename<<" while fixing\n";
+        break;}
+      if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
+        std::cerr<<"ERROR, failed to write log register "<<filename<<" while fixing\n";
+        break;}}
+    if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
+      std::cerr<<"ERROR, failed to write log register "<<filename<<" while duplicating last log\n";}
+    close(rd);
+    close(wd);
+    return(false);
+  }
+
+  bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
+  { char filename[64];
+    struct stat sb;
+    if(from==0xffffffff){
+      fix_log(svid,user);}
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    fd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+      return(false);}
+    stat(fb,&sb);
+    uint32_t len=sb.st_size;
+    slog.append((char*),&len,4);
+    if(len%sizeof(log_t)){
+      std::cerr<<"ERROR, log corrupt register "<<filename<<"\n";
+      from=0;} // ignore from 
+    log_t log;
+    for(int tot=0;(int l=read(fd,&log,sizeof(log_t)))>0 && tot<len;tot+=l){
+      if(log.time<from){
+        continue;}
+      slog.append((char*)&log,l);}
+    if(!(len%sizeof(log_t))){
+      purge_log(fd,user);}
+    close(fd);
+    return(true);
   }
 
   //update_nodehash is similar
@@ -1058,22 +1217,47 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(p->v16[3]);
   }
 
-  /*uint64_t make_put(uint32_t auser,uint32_t buser)
-  { put_t put;
-    ppi.v32[0]=auser;
-    ppi.v32[1]=buser;
-    return(ppi.v64);
+  bool remove_message(message_ptr msg) // log removing of message
+  { char* p=(char*)msg->data+4+64+10;
+    std::map<uint64_t,log_t> log;
+    //TODO, load message from file
+    uint32_t now=time(NULL);
+    while(p<(char*)msg->data+msg->len){
+      char txstype=*p;
+      usertxs utxs;
+      assert(*p<TXSTYPE_INF);
+      utxs.parse(p);
+      uint32_t mpos=(p-msg->data);
+      if(msg->svid==opts_.svid){
+        uint64_t key=utxs.auser<<32;
+        key|=mpos;
+        log_t alog
+        alog.time=now;
+        alog.type=txstype|0x4000; //outgoing|removed
+        alog.node=utxs.bbank;
+        alog.nmid=msg->msid;
+        alog.user=utxs.buser;
+        alog.umid=utxs.amsid;
+        alog.mpos=mpos;
+        alog.weight=utxs.tmass;
+        log[key]=alog;}
+      if((txstype==TXSTYPE_PUT || txstype==TXSTYPE_GET) && utxs.bbank==opts_.svid){
+        uint64_t key=utxs.buser<<32;
+        key|=mpos;
+        log_t blog
+        blog.time=now;
+        blog.type=txstype|0x8000|0x4000; //incoming|removed
+        blog.node=utxs.abank;
+        blog.nmid=msg->msid;
+        blog.user=utxs.auser;
+        blog.umid=utxs.amsid;
+        blog.mpos=mpos;
+        blog.weight=utxs.tmass;
+        log[key]=blog;}
+      p+=utxs.size;}
+    put_log(opts_.svid,log); //TODO, add loging options for multiple banks
+    return(true);
   }
-
-  uint32_t put_auser(uint64_t& put)
-  { put_t *p=(put_t*)&put;
-    return(p->v32[0]);
-  }
-
-  uint32_t put_buser(uint64_t& put)
-  { put_t *p=(put_t*)&put;
-    return(p->v32[1]);
-  }*/
 
   bool undo_message(message_ptr msg)
   { char* p=(char*)msg->data+4+64+10;
@@ -1145,6 +1329,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //if(ud<0){
     //  std::cerr<<"ERROR, failed to open bank undo "<<msg->svid<<", fatal\n";
     //  exit(-1);}
+    std::map<uint64_t,log_t> log;
     std::map<uint32_t,user_t> changes;
     std::map<uint32_t,user_t> undo;
     std::map<uint32_t,int64_t> local_deposit;
@@ -1156,6 +1341,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //std::map<uint64_t,std::vector<uint32_t>> txs_put; //cancel lock
     uint32_t users=srvs_.nodes[msg->svid].users;
     uint32_t lpath=srvs_.now;
+    uint32_t now=time(NULL); //needed for the log
     hash_t new_bky;
     bool set_pky=false;
     while(p<(char*)msg->data+msg->len){
@@ -1243,25 +1429,25 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           return(false);}
         if(usera.lpath>usera.time){
           std::cerr<<"ERROR: account unlock in porgress\n";
-          return(false);}
+          return(false);}}
         //when locked user,path and time are not modified
         //fee=TXS_LOCKCANCEL_FEE;
-        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
+        //uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
         //txs_put[ppi].push_back(utxs.auser);
-        utxs.ttime=usera.time; // do not change the time
-        luser=usera.luser;
-        lnode=usera.lnode;}
-      else if(*txstype==TXSTYPE_BRO){
+        //change to unlock
+        //utxs.ttime=usera.time;
+        //luser=usera.luser;
+        //lnode=usera.lnode;
+      else if(txstype==TXSTYPE_BRO){
         print_broadcast(utxs);
         fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_PUT){
+      else if(txstype==TXSTYPE_PUT){
         if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
           utxs.tmass=0;}
         //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser)){
         if(!check_user(utxs.bbank,utxs.buser)){
           // does not check if account closed [consider adding this slow check]
           std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<utxs.buser")\n";
-          offi_.unlock_user(utxs.auser);
           return(false);}
         if(utxs.abank==utxs.bbank){
           local_deposit[utxs.buser]+=utxs.tmass;}
@@ -1272,15 +1458,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           txs_deposit[to.big]+=utxs.tmass;}
         deduct=utxs.tmass;
         fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_USR){
+      else if(txstype==TXSTYPE_USR){
         deduct=MIN_MASS;
         fee=TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_BNK){ // we will get a confirmation from the network
+      else if(txstype==TXSTYPE_BNK){ // we will get a confirmation from the network
         uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
         txs_bnk[ppi].push_back(utxs.auser);
         deduct=BANK_MIN_MASS;
         fee=TXS_BNK_FEE*TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_GET){
+      else if(txstype==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
           std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
           return(false);}
@@ -1291,10 +1477,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         memcpy(get.pkey,usera.pkey);
         txs_get[ppi].push_back(pet);
         fee=TXS_GET_FEE*TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_KEY){
+      else if(txstype==TXSTYPE_KEY){
         memcpy(usera.pkey,utxs.key(p),32);
         fee=TXS_KEY_FEE*TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_BKY){ // we will get a confirmation from the network
+      else if(txstype==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
           std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
           return(false);}
@@ -1305,12 +1491,40 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //blk_bky[ppi]=hash_s;
         //blk_.unlock();
         fee=TXS_BKY_FEE*TIME_FEE(lpath,usera.lpath);}
-      else if(*txstype==TXSTYPE_STP){ // we will get a confirmation from the network
+      else if(txstype==TXSTYPE_STP){ // we will get a confirmation from the network
         assert(0); //TODO, not implemented later
         fee=TXS_STP_FEE*TIME_FEE(lpath,usera.lpath);}
       if(deduct+fee+MIN_MASS>usera.weight){
         std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
         return(false);}
+      /* save log , only opts_.svid logging supported */
+      uint32_t mpos=(p-msg->data);
+      if(msg->svid==opts_.svid){
+        uint64_t key=utxs.auser<<32;
+        key|=mpos;
+        log_t alog
+        alog.time=lpath;
+        alog.type=txstype; //outgoing
+        alog.node=utxs.bbank;
+        alog.nmid=msg->msid;
+        alog.user=utxs.buser;
+        alog.umid=utxs.amsid;
+        alog.mpos=mpos;
+        alog.weight=utxs.tmass;
+        log[key]=alog;}
+      if((txstype==TXSTYPE_PUT || txstype==TXSTYPE_GET) && utxs.bbank==opts_.svid){
+        uint64_t key=utxs.buser<<32;
+        key|=mpos;
+        log_t blog
+        blog.time=lpath;
+        blog.type=txstype|0x8000; //incoming
+        blog.node=utxs.abank;
+        blog.nmid=msg->msid;
+        blog.user=utxs.auser;
+        blog.umid=utxs.amsid;
+        blog.mpos=mpos;
+        blog.weight=utxs.tmass;
+        log[key]=blog;}
       usera.msid++;
       usera.time=utxs.ttime;
       usera.node=lnode;
@@ -1376,6 +1590,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     blk_get.insert(txs_get.begin(),txs_get.end());
     //blk_put.insert(txs_put.begin(),txs_put.end());
     blk_.unlock();
+    put_log(opts_.svid,log); //TODO, add loging options for multiple banks
     return(true);
   }
 
@@ -1758,6 +1973,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       std::cerr << "REMOVING message " << mi->svid << ":" << mi->msid << "\n";
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
 //FIXME, update peers.svid_msid_new !!!
+      remove_message(mi); //FIXME add this , must log message removal
       mi->remove();}
     check_.lock();
     for(;!invalidate_msgs.empty();invalidate_msgs.pop()){
@@ -2013,6 +2229,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   //}
   //void start_office();
 
+  void lock_user(uint32_t cuser)
+  { ulock_[cuser & 0xff].lock();
+  }
+
+  void unlock_user(uint32_t cuser)
+  { ulock_[cuser & 0xff].unlock();
+  }
+
+
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
   std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
   //FIXME, use serv_.now instead
@@ -2029,6 +2254,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   uint32_t get_txslist; //block id of the requested txslist of messages
   office* ofip;
 private:
+  boost::mutex ulock_[0x100];
   enum { max_connections = 4 };
   enum { max_recent_msgs = 1024 }; // this is the block chain :->
   boost::asio::io_service& io_service_;

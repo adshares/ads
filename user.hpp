@@ -11,10 +11,11 @@
 #define TXSTYPE_KEY 7	/* change account key */
 #define TXSTYPE_BKY 8	/* change bank key */
 #define TXSTYPE_INF 9	/* strating from this message only messages between wallet and client.hpp */
-#define TXSTYPE_MAX 10
+#define TXSTYPE_LOG 10	/* return user status and log */
+#define TXSTYPE_MAX 11
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
-	1+2+4+2+4+4,		//INF
+	0,			//STP not defined yet
 	0,			//CON not defined yet
 	1+2+4+4+4+2,		//BRO 'bbank' is message length
 	1+2+4+4+4+2+4+8+8,	//PUT, extra parameter = official message (8 byte)
@@ -23,7 +24,8 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4+2+4,		//GET,
 	1+2+4+4+4+32,		//KEY
 	1+2+4+4+4+32+32,	//BKY
-	0, 			//CON not defined yet
+	1+2+4+2+4+4,		//INF
+	1+2+4+2+4+4,		//LOG
 	1+2+4+4+4+32+32};	//MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
@@ -41,6 +43,16 @@ typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
 	uint32_t rpath; // block time of incomming transaction
 	 int64_t weight; // balance
 } user_t;
+typedef struct log_s {
+	uint32_t time;
+	uint16_t type;
+	uint16_t node;
+	uint32_t nmid; // peer msid
+	uint32_t user;
+	uint32_t umid; // user msid
+	uint32_t mpos; // position in file or remote user in 'get'
+	 int64_t weight; // position in file
+} log_t;
 #pragma pack()
 
 class usertxs : public boost::enable_shared_from_this<usertxs>
@@ -83,6 +95,25 @@ public:
 		memcpy(data+32+3,&auser,4);
 		memcpy(data+32+7,&bbank,2);
 		memcpy(data+32+9,&buser,4);
+		memcpy(data+32+13,&ttime,4);
+	}
+
+	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t nttime) :
+		ttype(nttype),
+		abank(nabank),
+		auser(nauser),
+		bbank(nbbank),
+		buser(nbuser),
+		ttime(nttime),
+		data(NULL)
+	{	assert(ttype==TXSTYPE_LOG);
+		size=32+txslen[TXSTYPE_LOG]+64;
+		data=(char*)std::malloc(size);
+		data[32]=TXSTYPE_LOG;
+		memcpy(data+32+1,&abank,2);
+		memcpy(data+32+3,&auser,4);
+		memcpy(data+32+7,&abank,2);
+		memcpy(data+32+9,&auser,4);
 		memcpy(data+32+13,&ttime,4);
 	}
 

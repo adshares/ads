@@ -90,6 +90,8 @@ public:
       //  std::cerr<<"ERROR: high time difference ("<<diff<<">5)\n";
       //  offi_.unlock_user(utxs.auser);
       //  return;}
+//FIXME, read data also from server
+//FIXME, if local account locked, check if unlock was successfull based on time passed after change
       if(utxs.abank!=offi.svid || utxs.bbank!=offi.svid){
         std::cerr<<"ERROR: bad bank\n";
         offi_.unlock_user(utxs.auser);
@@ -104,6 +106,21 @@ public:
       else{
         boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));}
       //consider sending aditional optional info
+      offi_.unlock_user(utxs.auser);
+      //offi_.purge_log(...);
+      return;}
+    if(*txstype==TXSTYPE_LOG){
+      if(utxs.abank!=offi.svid){
+        std::cerr<<"ERROR: bad bank\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));
+      std::string slog;
+      if(!get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
+        std::cerr<<"ERROR: bad bank\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}
     if(utxs.abank!=offi.svid && *txstype!=TXSTYPE_USR){
@@ -132,7 +149,8 @@ public:
         return;}
       //when locked user,path and time are not modified
       //fee=TXS_LOCKCANCEL_FEE; no fee needed because only 1 cancel permitted
-      utxs.ttime=usera.time;//lock time not changes
+      utxs.ttime=usera.time;//lock time not changed
+      //need to read data with _INF to confirm unlock !!!
       luser=usera.luser;
       lnode=usera.lnode;}
     else if(*txstype==TXSTYPE_BRO){

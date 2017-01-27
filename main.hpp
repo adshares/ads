@@ -29,6 +29,9 @@
 #include <openssl/sha.h>
 #include <set>
 #include <stack>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
 
 #define BLOCKSEC 0x30
@@ -46,6 +49,8 @@
 #define MAX_USERS 0x80000000
 #define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
+#define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
+#define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9080"

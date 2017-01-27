@@ -27,10 +27,11 @@ public:
     mkdir("ofi",0755);
     char filename[64];
     sprintf(filename,"ofi/%04X.dat",svid);
-    fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+    fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
     if(!fd){
       std::cerr<<"ERROR, failed to open office register\n";}
     msid=srv_.msid_;
+
 
     run=true;
     start_accept();
@@ -232,12 +233,13 @@ public:
     //mfee should be commited to bank from time to time.
   }
 
-  void lock_user(uint32_t cuser)
+  /*void lock_user(uint32_t cuser) // moved to server
+  { users_[cuser & 0xff].lock();
   }
 
   void unlock_user(uint32_t cuser)
   { users_[cuser & 0xff].unlock();
-  }
+  }*/
 
   void start_accept(); // main.cpp
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
@@ -251,7 +253,7 @@ public:
   uint16_t svid;
   uint32_t users; //number of users of the bank
   std::vector<int64_t> deposit; //resizing will require a stop of processing
-  boost::mutex users_[0x10];
+  //boost::mutex users_[0x10]; //moved to server
   std::string message;
   boost::mutex message_;
 private:
