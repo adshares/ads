@@ -33,9 +33,12 @@ public:
 	ed25519_public_key pk;	// calculated
 	ed25519_secret_key sn;
 	ed25519_public_key pn;	// calculated
+	ed25519_secret_key so;
+	ed25519_public_key po;	// calculated
 	std::string skey;
 	std::string pkey;
 	std::string snew;
+	std::string sold;
 	std::string exec;
 	std::string hash;	// my last message hash
 
@@ -57,7 +60,8 @@ public:
 				("hash,j", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
 				("skey,s", boost::program_options::value<std::string>(&skey),					"secret key [64chars in hext format / 32bytes]")
 				("pkey,k", boost::program_options::value<std::string>(&pkey),					"public key [64chars in hext format / 32bytes]")
-				("snew,n", boost::program_options::value<std::string>(&skey),					"secret key [64chars in hext format / 32bytes]")
+				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [64chars in hext format / 32bytes]")
+				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [64chars in hext format / 32bytes]")
 				("exec,e", boost::program_options::value<std::string>(&exec),					"command to execute")
 				;
 			boost::program_options::options_description cmdline_options;
@@ -114,18 +118,32 @@ public:
 					SHA256_CTX sha256;
 					SHA256_Init(&sha256);
 					SHA256_Update(&sha256,line.c_str(),line.length());
-					SHA256_Final(sk,&sha256);}
+					SHA256_Final(sn,&sha256);}
 				else{
-					ed25519_text2key(sk,snew.c_str(),32);}
+					ed25519_text2key(sn,snew.c_str(),32);}
 				ed25519_publickey(sn,pn);
 				ed25519_key2text(pktext,pn,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "Second public key: " << std::string(pktext) << std::endl;}
-			else{
-				ed25519_publickey(sk,pk);
-				ed25519_key2text(pktext,pk,32);
+				std::cout << "New public key: " << std::string(pktext) << std::endl;}
+			if (vm.count("sold")){
+				if(sold.length()!=64){
+					std::cout << "ENTER passphrase\n";
+					std::string line;
+					std::getline(std::cin,line);
+					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
+					if(line.empty()){
+						std::cout << "ERROR, failed to read passphrase\n";
+						exit(1);}
+					SHA256_CTX sha256;
+					SHA256_Init(&sha256);
+					SHA256_Update(&sha256,line.c_str(),line.length());
+					SHA256_Final(so,&sha256);}
+				else{
+					ed25519_text2key(so,sold.c_str(),32);}
+				ed25519_publickey(so,po);
+				ed25519_key2text(pktext,po,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "Public key: " << std::string(pktext) << std::endl;}
+				std::cout << "old public key: " << std::string(pktext) << std::endl;}
 			if(vm.count("pkey")){
 				if(memcmp(pkey.c_str(),pktext,2*32)){
 					std::cout << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
@@ -172,4 +190,4 @@ public:
 	}
 };
 
-#endif
+#endif // SETTINGS_HPP

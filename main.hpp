@@ -99,6 +99,7 @@
 #define TXS_GET_FEE    (0x100000) /* */
 #define TXS_KEY_FEE    (0x1000) /* minimum 1hour fee */
 #define TXS_BKY_FEE    (0x1000000) /* */
+#define TXS_STP_FEE    (0x1000) /* minimum 1hour fee */
 
 #define START_AGE      (0x100*BLOCKSEC) /* 100 blocks fee */
 
@@ -132,11 +133,11 @@ typedef struct header_s {
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
-typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32]} get_t;
+typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32];} get_t;
 #pragma pack()
 
-#include "user.hpp"
 #include "ed25519/ed25519.h"
+#include "user.hpp"
 #include "options.hpp"
 #include "message.hpp"
 #include "servers.hpp"
@@ -146,4 +147,4 @@ typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32]} get_t;
 #include "office.hpp"
 #include "client.hpp"
 
-#endif
+#endif // MAIN_HPP

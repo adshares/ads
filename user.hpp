@@ -55,7 +55,8 @@ typedef struct log_s {
 } log_t;
 #pragma pack()
 
-class usertxs : public boost::enable_shared_from_this<usertxs>
+class usertxs :
+  public boost::enable_shared_from_this<usertxs>
 {
 public:
 	uint8_t  ttype;
@@ -67,7 +68,7 @@ public:
 	uint32_t buser;
 	 int64_t tmass;
 	uint64_t tinfo;
-	char* data;
+	uint8_t* data;
 	int size;
 
 	usertxs() :
@@ -83,13 +84,13 @@ public:
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
+		ttime(nttime),
 		bbank(nbbank),
 		buser(nbuser),
-		ttime(nttime),
 		data(NULL)
 	{	assert(ttype==TXSTYPE_INF);
 		size=32+txslen[TXSTYPE_INF]+64;
-		data=(char*)std::malloc(size);
+		data=(uint8_t*)std::malloc(size);
 		data[32]=TXSTYPE_INF;
 		memcpy(data+32+1,&abank,2);
 		memcpy(data+32+3,&auser,4);
@@ -102,13 +103,11 @@ public:
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
-		bbank(nbbank),
-		buser(nbuser),
 		ttime(nttime),
 		data(NULL)
 	{	assert(ttype==TXSTYPE_LOG);
 		size=32+txslen[TXSTYPE_LOG]+64;
-		data=(char*)std::malloc(size);
+		data=(uint8_t*)std::malloc(size);
 		data[32]=TXSTYPE_LOG;
 		memcpy(data+32+1,&abank,2);
 		memcpy(data+32+3,&auser,4);
@@ -117,7 +116,7 @@ public:
 		memcpy(data+32+13,&ttime,4);
 	}
 
-	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,char* text,char* okey) :
+	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
@@ -129,7 +128,8 @@ public:
 		tinfo(ntinfo),
 		data(NULL)
 	{	if(ttype>=TXSTYPE_MAX){
-			return(false);}
+			size=0;
+			return;}
 		int len=txslen[ttype];
 		if(ttype==TXSTYPE_BRO){
 			size=32+len+bbank+64;}
@@ -139,27 +139,27 @@ public:
 			size=32+len+64+64+64;}
 		else{
 			size=32+len+64;}
-		data=(char*)std::malloc(size);
+		data=(uint8_t*)std::malloc(size);
 		data[32]=ttype;
 		memcpy(data+32+1   ,&abank,2);
 		memcpy(data+32+1+2 ,&auser,4);
 		memcpy(data+32+1+6 ,&amsid,4);
 		memcpy(data+32+1+10,&ttime,4);
-		if(len==1+2+4+4+4)
+		if(len==1+2+4+4+4){
 			return;}
 		if(ttype==TXSTYPE_KEY){
 			memcpy(data+32+1+14,text,32);
 			return;}
 		if(ttype==TXSTYPE_BKY){
 			memcpy(data+32+1+14,text,32);
-			memcpy(data+32+1+14+32,text2,32);
+			memcpy(data+32+1+14+32,okey,32);
 			return;}
 		memcpy(data+32+1+14,&bbank,2);
 		if(ttype==TXSTYPE_BRO){
 			memcpy(data+32+1+16,text,bbank);
 			return;}
 		if(len>=1+2+4+4+4+2+4){
-			memcpy(data+32+1+16,&buser,4);
+			memcpy(data+32+1+16,&buser,4);}
 		if(len>=1+2+4+4+4+2+4+8+8){
 			memcpy(data+32+1+20,&tmass,8);
 			memcpy(data+32+1+28,&tinfo,8);}
@@ -167,12 +167,12 @@ public:
 
 	uint32_t get_size(char* txs)
 	{	if(*txs==TXSTYPE_USR){
-			return(txslen[*txs]+64+4+32);}
+			return(txslen[(int)*txs]+64+4+32);}
                 if(*txs==TXSTYPE_BRO){
 			uint16_t len;
 			memcpy(&len,txs+1+14,2);
-			return(txslen[*txs]+64+len);}
-                return(txslen[*txs]+64);
+			return(txslen[(int)*txs]+64+len);}
+                return(txslen[(int)*txs]+64);
 	}
 
 	bool parse(char* txs) //TODO, should return parsed buffer length
@@ -226,7 +226,7 @@ public:
 		ed25519_sign(data,32+txslen[ttype],sk,pk3,data+32+txslen[ttype]+64+64);
 	}
 
-	int wrong_sig(char* buf,uint8_t* hash,uint8_t* pk)
+	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
 	{	if(ttype==TXSTYPE_INF){
 			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
 		if(ttype==TXSTYPE_BRO){
@@ -234,12 +234,12 @@ public:
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
 	}
 
-	int wrong_sig2(char* buf,uint8_t* hash) // additional signature with client
+	int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
 	{	assert(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY);
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
 	}
 
-	int wrong_sig3(char* buf,uint8_t* hash) // additional signature with client
+	int wrong_sig3(uint8_t* buf,uint8_t* hash) // additional signature with client
 	{	assert(ttype==TXSTYPE_BKY);
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4+32,buf+txslen[ttype]+64+64));
 	}
@@ -274,12 +274,16 @@ public:
 	{	return(buf+1+2+4+4+4+32);
 	}
 
+	void print_broadcast(char* buf)
+	{	fprintf(stdout,"BRO:%.*s\n",bbank,broadcast(buf));
+	}
+
 	char* broadcast(char* buf) //return broadcast buffer in message
 	{	return(buf+1+2+4+4+4+2);
 	}
 
 	uint32_t nuser(char* buf) //return second user in message
-	{	return((uint32_t*)(buf+1+2+4+4+4+2));
+	{	return(*((uint32_t*)(buf+1+2+4+4+4+2)));
 	}
 
 	char* npkey(char* buf) //return second user key in message
@@ -289,4 +293,4 @@ public:
 private:
 };
 typedef boost::shared_ptr<usertxs> usertxs_ptr;
-#endif
+#endif // USER_HPP

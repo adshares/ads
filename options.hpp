@@ -102,4 +102,4 @@ public:
 	}
 };
 
-#endif
+#endif // OPTIONS_HPP

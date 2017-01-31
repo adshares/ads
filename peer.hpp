@@ -602,18 +602,18 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       memcpy(put_msg->data+6,&bank,2); // this is the bank
       user_t* u=(user_t*)(put_msg->data+8);
       for(;user<end;user++,u++){
-        u->id=0;
+        u->msid=0;
         for(auto it=ud.begin();it!=ud.end();it++){
           read(*it,(char*)u,sizeof(user_t));
-          if(u->id){
+          if(u->msid){
             goto NEXTUSER;}}
         read(fd,u,sizeof(user_t));
         if(ld){ //confirm again that the undo file has not changed
           user_t v;
-          v.id=0;
+          v.msid=0;
           lseek(ld,-sizeof(user_t),SEEK_CUR);
           read(ld,&v,sizeof(user_t));
-          if(v.id){ //overwrite user info
+          if(v.msid){ //overwrite user info
             memcpy((char*)u,&v,sizeof(user_t));}}
         NEXTUSER:;
         weight+=u->weight;
@@ -1423,4 +1423,4 @@ private:
   uint8_t BLOCK_MODE_PEER;
 };
 
-#endif
+#endif // PEER_HPP

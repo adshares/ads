@@ -163,9 +163,9 @@ public:
 
 	uint16_t add_node(user_t& ou,uint32_t uid)
 	{	node nn;
-		nn.mtim=srvs_.now;
+		nn.mtim=now;
 		nn.users=1;
-		memcpy(nn.pkey,ou.pkey,32);
+		memcpy(nn.pk,ou.pkey,32);
 	 	nodes.push_back(nn);
 		uint16_t peer=nodes.size()-1;
 		user_t nu;
@@ -186,13 +186,12 @@ public:
 		nu.node=peer;
 		nu.user=uid;
 		put_user(nu,peer,0);
-		return(peer);
 	}
 
-	void init_user(user_t& u,uint16_t peer,uint32_t uid, int64_t weight,uint8_t* pk)
+	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk)
 	{	memset(&u,0,sizeof(user_t));
 		memset(&u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
-		u.id=1; // always >0 to help identify holes in delta files
+		u.msid=1; // always >0 to help identify holes in delta files
                 u.time=now;
 		u.node=peer;
 		u.user=uid;
@@ -225,6 +224,12 @@ public:
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		read(fd,&u,sizeof(user_t));
 		close(fd);
+	}
+
+	bool check_user(uint16_t peer,uint32_t uid)
+	{	if(peer>=nodes.size() || nodes[peer].users>=uid){
+			return(false);}
+		return(true);
 	}
 
 	void update_nodehash(uint16_t peer)
@@ -743,4 +748,4 @@ private:
 };
 BOOST_CLASS_VERSION(servers, 3)
 
-#endif
+#endif // SERVERS_HPP

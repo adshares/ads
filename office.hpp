@@ -15,8 +15,8 @@ public:
   office(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts,server& srv) :
     io_service_(io_service),
     acceptor_(io_service, endpoint),
-    opts_(opts),
     srv_(srv),
+    opts_(opts),
     fd(0),
     message_sent(0)
   { svid=opts_.svid,
@@ -82,18 +82,19 @@ public:
     return(true);
   }
 
-  void get_user(user_t& u,uint16_t cbank,uint32_t cuser)
-  { u.id=0;
+  bool get_user(user_t& u,uint16_t cbank,uint32_t cuser)
+  { u.msid=0;
+    if(cuser>=users){
+      return(false);}
     if(cbank==svid){
-      assert(cuser<users);
       file_.lock();
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));}
-    if(!u.id){
-      srv_.last_srvs_.get_user(u,cbank,cuser); //watch out for deadlocks
-    if(!u.id){
+    if(!u.msid){
+      srv_.last_srvs_.get_user(u,cbank,cuser);} //watch out for deadlocks
+    if(!u.msid){
       file_.unlock();
-      return;}
+      return(false);}
     if(cbank==svid && deposit[cuser]){
       u.weight+=deposit[cuser];
       deposit[cuser]=0;
@@ -101,9 +102,10 @@ public:
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       write(fd,&u,sizeof(user_t));}
     file_.unlock();
+    return(true);
   }
 
-  uint32_t add_user(uint16_t abank) // will create new account or overwrite old one
+  uint32_t add_user(uint16_t abank,uint8_t* pk) // will create new account or overwrite old one
   { static uint32_t nuser=0;
     static uint32_t lastnow=0;
     uint32_t now=srv_.last_srvs_.now;
@@ -122,7 +124,7 @@ public:
     lseek(nd,nuser*sizeof(user_t),SEEK_SET); //skip first account
     for(;nuser<users;nuser++){ // try overwriting old dead account
       read(nd,&nu,sizeof(user_t));
-      if(nu.weight-TIME_FEE(now,nu.block)<0){ // try changing this account
+      if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // try changing this account
 //FIXME, do not change accounts that are open for too short
       //if(nu.status & USER_CLOSED){ // try changing this account
         file_.lock();
@@ -134,16 +136,16 @@ public:
         if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
 //FIXME, do not change accounts that are open for too short
           std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
-          memset(nu,0,sizeof(user_t));
+          memset(&nu,0,sizeof(user_t));
           memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-          nu.id=1;
+          nu.msid=1;
           nu.time=now;
           nu.node=0;
           nu.user=nuser; // record user_id
           nu.lpath=now;
           nu.rpath=now-START_AGE;
           nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-          memcpy(nu.pkey,u.pk,SHA256_DIGEST_LENGTH);
+          memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&nu,sizeof(user_t));
           file_.unlock();
@@ -154,16 +156,16 @@ public:
     if(users>=MAX_USERS){
       return(0);}
     // no old account found, creating new account
-    memset(nu,0,sizeof(user_t));
+    memset(&nu,0,sizeof(user_t));
     memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-    nu.id=1;
+    nu.msid=1;
     nu.time=now;
     nu.node=0;
     nu.user=nuser; // record user_id
     nu.lpath=now;
     nu.rpath=now-START_AGE;
     nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-    memcpy(nu.pkey,u.pk,SHA256_DIGEST_LENGTH);
+    memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     if(users>=MAX_USERS){
@@ -177,14 +179,13 @@ public:
     return(nuser);
   }
 
-  void set_user(user_t& u, int64_t deduct)
-  { assert(u.bank==svid);
-    assert(u.user<users);
+  void set_user(uint32_t user,user_t& u, int64_t deduct)
+  { assert(user<users);
     file_.lock();
-    u.weight+=deposit[u.user]-deduct;
-    deposit[u.user]=0;
+    u.weight+=deposit[user]-deduct;
+    deposit[user]=0;
     assert(u.weight>=0);
-    lseek(fd,u.user*sizeof(user_t),SEEK_SET);
+    lseek(fd,user*sizeof(user_t),SEEK_SET);
     write(fd,&u,sizeof(user_t));
     file_.unlock();
   }
@@ -199,8 +200,8 @@ public:
     //FIXME, process contracts if needed
   }
 
-  bool try_account(hash_t* key)
-  { account_.lock()
+  bool try_account(hash_s* key)
+  { account_.lock();
     if(accounts_.size()>MAX_ACCOUNT){
       for(auto it=accounts_.begin();it!=accounts_.end();){
         auto jt=it++;
@@ -213,13 +214,13 @@ public:
         return(false);}}
     if(accounts_.find(*key)!=accounts_.end()){
       account_.unlock();
-      return(false);}}
+      return(false);}
     account_.unlock();
     return(true);
   }
 
-  void add_account(hash_t* key,uint32_t user)
-  { account_.lock()
+  void add_account(hash_s* key,uint32_t user)
+  { account_.lock();
     accounts_[*key]=user;
     account_.unlock();
   }
@@ -233,27 +234,41 @@ public:
     //mfee should be commited to bank from time to time.
   }
 
-  /*void lock_user(uint32_t cuser) // moved to server
+  void lock_user(uint32_t cuser)
   { users_[cuser & 0xff].lock();
   }
 
   void unlock_user(uint32_t cuser)
   { users_[cuser & 0xff].unlock();
-  }*/
+  }
 
   void start_accept(); // main.cpp
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
   //void leave(client_ptr c); // main.cpp
 
-  uint8_t pkey()
+  uint8_t* pkey()
   { return(opts_.pk);
+  }
+
+  //void get_user(user_t& u,uint16_t peer,uint32_t uid)
+  //{ return(srv_.srvs_.get_user(u,peer,uid);
+  //}
+
+  bool check_user(uint16_t peer,uint32_t uid)
+  { if(peer!=svid){
+      return(srv_.last_srvs_.check_user(peer,uid));} //use last_srvs_ for safety
+    return(uid<=users);
+  }
+
+  bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
+  { return(srv_.get_log(svid,user,from,slog));
   }
 
   bool run;
   uint16_t svid;
   uint32_t users; //number of users of the bank
   std::vector<int64_t> deposit; //resizing will require a stop of processing
-  //boost::mutex users_[0x10]; //moved to server
+  boost::mutex users_[0x100];
   std::string message;
   boost::mutex message_;
 private:
@@ -273,4 +288,4 @@ private:
   boost::mutex account_;
 };
 
-#endif
+#endif // OFFICE_HPP

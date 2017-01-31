@@ -35,28 +35,28 @@ public:
     int64_t deposit=-1; // if deposit=0 inform target
     int64_t deduct=0;
     int64_t fee=0;
-    buf=malloc(txslen[TXSTYPE_MAX]+64);
+    buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64);
 
     char *txstype=buf;
     int len=boost::asio::read(socket_,boost::asio::buffer(buf,1));
     if(!len && *txstype>=TXSTYPE_MAX){
       std::cerr<<"ERROR: read start failed\n";
       return;}
-    len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[*txstype]+64-1));
-    if(len!=txslen[*txstype]+64){
+    len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[(int)*txstype]+64-1));
+    if(len!=txslen[(int)*txstype]+64){
       std::cerr<<"ERROR: read message failed\n";
       return;}
-    if(*txstype==TXSTYPE_BRO){
-      //extralen=utxs.bbank;
-      buf=std::realloc(buf,txslen[TXSTYPE_BRO]+64+utxs.bbank);
-      len=boost::asio::read(socket_,boost::asio::buffer(buf+txslen[TXSTYPE_BRO]+64,utxs.bbank));
-      if(len!=utxs.bbank){
-        std::cerr<<"ERROR: read broadcast failed\n";
-        return;}}
     /************* START PROCESSING **************/
     user_t usera;
     usertxs utxs;
     utxs.parse(buf);
+    if(*txstype==TXSTYPE_BRO){
+      //extralen=utxs.bbank;
+      buf=(char*)std::realloc(buf,txslen[TXSTYPE_BRO]+64+utxs.bbank);
+      len=boost::asio::read(socket_,boost::asio::buffer(buf+txslen[TXSTYPE_BRO]+64,utxs.bbank));
+      if(len!=utxs.bbank){
+        std::cerr<<"ERROR: read broadcast failed\n";
+        return;}}
     offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     //consider adding a max txs limit per user
     if(*txstype>=TXSTYPE_MAX){
@@ -67,20 +67,20 @@ public:
       std::cerr<<"ERROR: read user failed\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if(utxs.wrong_sig(buf,usera.hash,usera.pk)){
+    if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
       std::cerr<<"ERROR: bad signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if((ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY) && utxs.wrong_sig2(buf,usera.hash)){
+    if((*txstype==TXSTYPE_KEY || *txstype==TXSTYPE_BKY) && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
       std::cerr<<"ERROR: bad second signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if(ttype==TXSTYPE_BKY){
+    if(*txstype==TXSTYPE_BKY){
       if(memcmp(utxs.key2(buf),offi_.pkey(),32)){
         std::cerr<<"ERROR: bad old key\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      if(utxs.wrong_sig3(buf,usera.hash)){
+      if(utxs.wrong_sig3((uint8_t*)buf,(uint8_t*)usera.hash)){
         std::cerr<<"ERROR: bad second signature\n";
         offi_.unlock_user(utxs.auser);
         return;}}
@@ -92,16 +92,16 @@ public:
       //  return;}
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
-      if(utxs.abank!=offi.svid || utxs.bbank!=offi.svid){
+      if(utxs.abank!=offi_.svid || utxs.bbank!=offi_.svid){
         std::cerr<<"ERROR: bad bank\n";
         offi_.unlock_user(utxs.auser);
         return;}
       std::cerr<<"SENDING user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
-      if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser)
+      if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         user_t userb;
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
           offi_.unlock_user(utxs.auser);
-          return;}}
+          return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       else{
         boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));}
@@ -110,20 +110,20 @@ public:
       //offi_.purge_log(...);
       return;}
     if(*txstype==TXSTYPE_LOG){
-      if(utxs.abank!=offi.svid){
+      if(utxs.abank!=offi_.svid){
         std::cerr<<"ERROR: bad bank\n";
         offi_.unlock_user(utxs.auser);
         return;}
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));
       std::string slog;
-      if(!get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
+      if(!offi_.get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
         std::cerr<<"ERROR: bad bank\n";
         offi_.unlock_user(utxs.auser);
         return;}
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}
-    if(utxs.abank!=offi.svid && *txstype!=TXSTYPE_USR){
+    if(utxs.abank!=offi_.svid && *txstype!=TXSTYPE_USR){
       std::cerr<<"ERROR: bad bank\n";
       offi_.unlock_user(utxs.auser);
       return;}
@@ -138,7 +138,7 @@ public:
     //include additional 2FA later
 
     //commit trasaction
-    if(usera.time+LOCK_TIME<lpath && usera.luser && usera.lpath){//check account lock
+    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node){//check account lock
       if(*txstype!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
         std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
         offi_.unlock_user(utxs.auser);
@@ -151,17 +151,17 @@ public:
       //fee=TXS_LOCKCANCEL_FEE; no fee needed because only 1 cancel permitted
       utxs.ttime=usera.time;//lock time not changed
       //need to read data with _INF to confirm unlock !!!
-      luser=usera.luser;
-      lnode=usera.lnode;}
+      luser=usera.user;
+      lnode=usera.node;}
     else if(*txstype==TXSTYPE_BRO){
       fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
     else if(*txstype==TXSTYPE_PUT){
       if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
         utxs.tmass=0;}
       //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser)){
-      if(!check_user(utxs.bbank,utxs.buser)){
+      if(!offi_.check_user(utxs.bbank,utxs.buser)){
         // does not check if account closed [consider adding this slow check]
-	std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<utxs.buser")\n";
+	std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
         offi_.unlock_user(utxs.auser);
         return;}
       deposit=utxs.tmass;
@@ -178,31 +178,31 @@ public:
         std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      if(!utxs.abank==offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
+      if(utxs.abank!=offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
         std::cerr<<"ERROR: failed to open account (pkey known)\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      uint32_t nuser=offi_.add_user(utxs.abank,utxs.auser);
+      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey);
       if(!nuser){
         std::cerr<<"ERROR: failed to open account\n";
         offi_.unlock_user(utxs.auser);
         return;}
       //extralen=4+32;
-      //buf=std::realloc(buf,txslen[*txstype]+64+extralen);
-      buf=std::realloc(buf,utxs.size);
-      memcpy(buf+txslen[*txstype]+64+0,&nuser,4);
-      memcpy(buf+txslen[*txstype]+64+4,usera.pkey,32);
+      //buf=std::realloc(buf,txslen[(int)*txstype]+64+extralen);
+      buf=(char*)std::realloc(buf,utxs.size);
+      memcpy(buf+txslen[(int)*txstype]+64+0,&nuser,4);
+      memcpy(buf+txslen[(int)*txstype]+64+4,usera.pkey,32);
       if(utxs.abank==offi_.svid){
         lnode=0;
         luser=nuser;} // record new user id
       else{
         //FIXME, check if original bank is in our whitelist
-        //offi_.add_msg(buf,txslen[*txstype]+64+extralen,0); //TODO, could return pointer to file
-        offi_.add_msg(buf,utxs.auser,0); //TODO, could return pointer to file
+        //offi_.add_msg(buf,txslen[(int)*txstype]+64+extralen,0); //TODO, could return pointer to file
+        offi_.add_msg((uint8_t*)buf,utxs.auser,0); //TODO, could return pointer to file
         offi_.unlock_user(utxs.auser);
-        offi_.add_account((hash_s*)users.pkey,nuser); //blacklist
+        offi_.add_account((hash_s*)usera.pkey,nuser); //blacklist
         user_t userb;
-        get_user(userb,utxs.bbank,nuser); // send userb
+        offi_.get_user(userb,utxs.bbank,nuser); // send userb
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
         return;}}
     else if(*txstype==TXSTYPE_BNK){ // we will get a confirmation from the network
@@ -231,8 +231,8 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     //send message
-    //offi_.add_msg(buf,txslen[*txstype]+64+extralen,fee); //TODO, could return pointer to file
-    offi_.add_msg(buf,utxs.size,fee); //TODO, could return pointer to file
+    //offi_.add_msg(buf,txslen[(int)*txstype]+64+extralen,fee); //TODO, could return pointer to file
+    offi_.add_msg((uint8_t*)buf,utxs.size,fee); //TODO, could return pointer to file
     //commit changes
     usera.msid++;
     usera.time=utxs.ttime;
@@ -243,7 +243,7 @@ public:
     uint8_t hash[32];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
-    //SHA256_Update(&sha256,buf,txslen[*txstype]+64+extralen);
+    //SHA256_Update(&sha256,buf,txslen[(int)*txstype]+64+extralen);
     SHA256_Update(&sha256,buf,utxs.size);
     SHA256_Final(hash,&sha256); //overwrite msg!!!
     //make newhash=hash(oldhash+newmessagehash);
@@ -251,7 +251,7 @@ public:
     SHA256_Update(&sha256,usera.hash,32);
     SHA256_Update(&sha256,hash,32);
     SHA256_Final(usera.hash,&sha256);
-    offi_.set_user(usera,deduct+fee);
+    offi_.set_user(utxs.auser,usera,deduct+fee);
     offi_.unlock_user(utxs.auser);
     if(deposit>=0 && utxs.abank==utxs.bbank){
       offi_.add_deposit(utxs);}
@@ -269,4 +269,4 @@ private:
   char* buf;
 };
 
-#endif
+#endif // CLIENT_HPP
