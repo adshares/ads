@@ -56,7 +56,9 @@ public:
       //TODO, clear hanging clients
       boost::this_thread::sleep(boost::posix_time::seconds(2));
       if(message.empty()){
+        message_.lock();
         srv_.break_silence(now,message);
+        message_.unlock();
         continue;}
       if(message.length()<MESSAGE_LEN_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";

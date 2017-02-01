@@ -43,13 +43,14 @@ public:
       std::cerr<<"ERROR: read start failed\n";
       return;}
     len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[(int)*txstype]+64-1));
-    if(len!=txslen[(int)*txstype]+64){
+    if(len!=txslen[(int)*txstype]+64-1){
       std::cerr<<"ERROR: read message failed\n";
       return;}
     /************* START PROCESSING **************/
     user_t usera;
     usertxs utxs;
     utxs.parse(buf);
+    utxs.print_head();
     if(*txstype==TXSTYPE_BRO){
       //extralen=utxs.bbank;
       buf=(char*)std::realloc(buf,txslen[TXSTYPE_BRO]+64+utxs.bbank);
@@ -60,7 +61,7 @@ public:
     offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     //consider adding a max txs limit per user
     if(*txstype>=TXSTYPE_MAX){
-      std::cerr<<"ERROR: read user failed\n";
+      std::cerr<<"ERROR: read type failed\n";
       offi_.unlock_user(utxs.auser);
       return;}
     if(!offi_.get_user(usera,utxs.abank,utxs.auser)){
@@ -70,6 +71,7 @@ public:
     if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
       std::cerr<<"ERROR: bad signature\n";
       offi_.unlock_user(utxs.auser);
+      utxs.print();
       return;}
     if((*txstype==TXSTYPE_KEY || *txstype==TXSTYPE_BKY) && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
       std::cerr<<"ERROR: bad second signature\n";
@@ -92,14 +94,15 @@ public:
       //  return;}
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
-      if(utxs.abank!=offi_.svid || utxs.bbank!=offi_.svid){
-        std::cerr<<"ERROR: bad bank\n";
+      if(utxs.abank!=offi_.svid && utxs.bbank!=offi_.svid){
+        std::cerr<<"ERROR: bad bank for INF\n";
         offi_.unlock_user(utxs.auser);
         return;}
       std::cerr<<"SENDING user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         user_t userb;
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
+          std::cerr<<"FAILED to get user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
           offi_.unlock_user(utxs.auser);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
@@ -111,13 +114,14 @@ public:
       return;}
     if(*txstype==TXSTYPE_LOG){
       if(utxs.abank!=offi_.svid){
-        std::cerr<<"ERROR: bad bank\n";
+        std::cerr<<"ERROR: bad bank for LOG\n";
         offi_.unlock_user(utxs.auser);
         return;}
+      std::cerr<<"SENDING user log ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));
       std::string slog;
       if(!offi_.get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
-        std::cerr<<"ERROR: bad bank\n";
+        std::cerr<<"ERROR: get log failed\n";
         offi_.unlock_user(utxs.auser);
         return;}
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));

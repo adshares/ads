@@ -1228,6 +1228,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       usertxs utxs;
       assert(*p<TXSTYPE_INF);
       utxs.parse((char*)p);
+      if(*p==TXSTYPE_CON){
+        p+=utxs.size;
+        continue;}
       uint32_t mpos=(p-msg->data);
       if(msg->svid==opts_.svid){
         uint64_t key=((uint64_t)utxs.auser)<<32;
@@ -1236,10 +1239,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         alog.time=now;
         alog.type=*p|0x4000; //outgoing|removed
         alog.node=utxs.bbank;
-        alog.nmid=msg->msid;
         alog.user=utxs.buser;
         alog.umid=utxs.amsid;
-        alog.mpos=mpos;
+        alog.nmid=msg->msid; //can be overwritten with info
+        alog.mpos=mpos; //can be overwritten with info
         alog.weight=utxs.tmass;
         log[key]=alog;}
       if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
@@ -1249,10 +1252,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blog.time=now;
         blog.type=*p|0x8000|0x4000; //incoming|removed
         blog.node=utxs.abank;
-        blog.nmid=msg->msid;
         blog.user=utxs.auser;
         blog.umid=utxs.amsid;
-        blog.mpos=mpos;
+        blog.nmid=msg->msid; //can be overwritten with info
+        blog.mpos=mpos; //can be overwritten with info
         blog.weight=utxs.tmass;
         log[key]=blog;}
       p+=utxs.size;}
@@ -1359,11 +1362,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(!utxs.parse(p)){
         std::cerr<<"ERROR: failed to parse transaction\n";
         return(false);}
+      if(*p==TXSTYPE_CON){
+        std::cerr<<"INFO: parsed CON transaction\n";
+        p+=utxs.size;
+        continue;}
       if(*p>=TXSTYPE_INF){
         std::cerr<<"ERROR: unknown transaction\n";
         return(false);}
       if(utxs.abank!=msg->svid && *p!=TXSTYPE_USR){
         std::cerr<<"ERROR: bad bank\n";
+        utxs.print_head();
         return(false);}
       if(*p==TXSTYPE_USR){ // check lock first
         if(utxs.bbank!=msg->svid){
@@ -1514,10 +1522,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         alog.time=now;
         alog.type=*p; //outgoing
         alog.node=utxs.bbank;
-        alog.nmid=msg->msid;
         alog.user=utxs.buser;
         alog.umid=utxs.amsid;
-        alog.mpos=mpos;
+        alog.nmid=msg->msid; //can be overwritten with info
+        alog.mpos=mpos; //can be overwritten with info
         alog.weight=utxs.tmass;
         log[key]=alog;}
       if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
@@ -1527,10 +1535,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blog.time=now;
         blog.type=*p|0x8000; //incoming
         blog.node=utxs.abank;
-        blog.nmid=msg->msid;
         blog.user=utxs.auser;
         blog.umid=utxs.amsid;
-        blog.mpos=mpos;
+        blog.nmid=msg->msid; //can be overwritten with info
+        blog.mpos=mpos; //can be overwritten with info
         blog.weight=utxs.tmass;
         log[key]=blog;}
       usera->msid++;
@@ -2075,14 +2083,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(msg);
   }
 
-  void make_broadcast(std::string& line)
-  { char ins[4];
-    ins[0]=TXSTYPE_BRO;
-    uint32_t len=line.length();
-    memcpy(ins+1,&len,3);
-    line.insert(0,ins,4);
-  }
-
   uint32_t write_message(std::string line) // assume single threaded
   { static boost::mutex mtx_;
     mtx_.lock();
@@ -2215,14 +2215,12 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     }
   }
 
-  bool break_silence(uint32_t now,std::string& message)
+  bool break_silence(uint32_t now,std::string& message) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
     if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
       std::cerr << "SILENCE, sending void message due to silence\n";
-      std::string line("Hallo world @ ");
-      line.append(std::to_string(now));
-      make_broadcast(line);
-      message.append(line);
+      usertxs txs(TXSTYPE_CON,0,0,now);
+      message.append((char*)txs.data,txs.size);
       do_hallo=srvs_.now;
       return(true);}
     return(false);

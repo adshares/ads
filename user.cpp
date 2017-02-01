@@ -50,44 +50,36 @@ usertxs_ptr run(settings& sts,std::string& line)
   if(!strncmp(line.c_str(),"ME::",4)){ // get info about me
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(sscanf(line.c_str(),"INF:%u:%u",&to_bank,&to_user)){ // get info about a different user
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(sscanf(line.c_str(),"LOG:%u",&now)){ // get info about me and my log since 'now'
-    usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
+    usertxs_ptr txs(new usertxs(TXSTYPE_LOG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(!strncmp(line.c_str(),"BRO:",4)){ // broadcast message
     usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,line.length()-4,to_user,to_mass,to_info,line.c_str()+4,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(sscanf(line.c_str(),"PUT:%u:%u:%ld:%ld",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
     usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(sscanf(line.c_str(),"USR:%u",&to_bank)){ // create new user @ to_bank
     usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(!strncmp(line.c_str(),"BNK:",4)){ // create new bank
     usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
   else if(sscanf(line.c_str(),"GET:%u:%u",&to_bank,&to_user)){ // retreive funds
     usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->print();
     return(txs);}
-  else if(!strncmp(line.c_str(),"KEY:",4)){ // get info
+  else if(!strncmp(line.c_str(),"KEY:",4)){ // change user key
     //if(!check_key2(line)){
     if(cmpkey2(line,sts.pn)){
       return(NULL);}
@@ -95,19 +87,17 @@ usertxs_ptr run(settings& sts,std::string& line)
     ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
     usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->sign2(sts.sn,sts.pn);
-    txs->print();
+    txs->sign2(sts.ha,sts.sn,sts.pn);
     return(txs);}
-  else if(!strncmp(line.c_str(),"BKY:",4)){ // get info
+  else if(!strncmp(line.c_str(),"BKY:",4)){ // change bank key
     if(cmpkey2(line,sts.pn)){
       return(NULL);}
     hash_t key;
     ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
     usertxs_ptr txs(new usertxs(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key,(const char*)sts.po));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->sign2(sts.sn,sts.pn);
-    txs->sign3(sts.so,sts.po); //add this !!!
-    txs->print();
+    txs->sign2(sts.ha,sts.sn,sts.pn);
+    txs->sign3(sts.ha,sts.so,sts.po);
     return(txs);}
   else{
     return(NULL);}
@@ -131,12 +121,14 @@ void print_log(log_t* log,int len)
     std::cerr<<"ERROR, bad log allignment, viewer not yet implemanted, hex-view usr.log to investigate\n";}
   for(log_t* end=log+len/sizeof(log_t);log<end;log++){
     fprintf(stdout,"%08X %04X %04X %08X %08X %08X %08X %016lX\n",
-      log->time,log->type,log->node,log->nmid,log->user,log->umid,log->mpos,log->weight);}
+      log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}
 }
 
 void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
+    txs->print_head();
+    txs->print();
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
     int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
     if(len!=sizeof(user_t)){
@@ -145,10 +137,13 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
       user_t myuser;
       memcpy(&myuser,buf,sizeof(user_t));
       print_user(myuser);
-      if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
-        std::cerr<<"ERROR transaction failed\n";}
-      sts.msid=myuser.msid;
-      memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}
+      if(txs->ttype!=TXSTYPE_INF || ((int)txs->buser==sts.user && (int)txs->bbank==sts.bank)){
+        if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
+          std::cerr<<"ERROR transaction failed (bad msid)\n";}
+	if(memcmp(sts.pk,myuser.pkey,32)){
+          std::cerr<<"PKEY differs\n";}
+        sts.msid=myuser.msid;
+        memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
     if(txs->ttype==TXSTYPE_LOG){
       int len;
       if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){

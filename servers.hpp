@@ -227,7 +227,11 @@ public:
 	}
 
 	bool check_user(uint16_t peer,uint32_t uid)
-	{	if(peer>=nodes.size() || nodes[peer].users>=uid){
+	{	if(peer>=nodes.size()){
+			fprintf(stderr,"ERROR, bad user %04X:%08X (bad node)\n",peer,uid);
+			return(false);}
+	 	if(nodes[peer].users<=uid){
+			fprintf(stderr,"ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
 			return(false);}
 		return(true);
 	}

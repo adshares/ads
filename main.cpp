@@ -53,8 +53,11 @@ int main(int argc, char* argv[])
       if(line[0]=='.' && line[1]=='\0'){
         break;}
       //FIXME, send a broadcast
-      s.make_broadcast(line);
-      o.message.append(line);}
+      uint32_t now=time(NULL);
+      usertxs txs(TXSTYPE_CON,0,0,now);
+      o.message.append((char*)txs.data,txs.size);}
+      //s.make_broadcast(line);
+      //o.message.append(line);}
     std::cerr << "out\n";
     offi_io_service.stop();
     peer_io_service.stop();

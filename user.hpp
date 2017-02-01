@@ -16,7 +16,7 @@
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//STP not defined yet
-	0,			//CON not defined yet
+	1+2+4+  4,		//CON
 	1+2+4+4+4+2,		//BRO 'bbank' is message length
 	1+2+4+4+4+2+4+8+8,	//PUT, extra parameter = official message (8 byte)
 	1+2+4+4+4+2,		//USR
@@ -47,11 +47,11 @@ typedef struct log_s {
 	uint32_t time;
 	uint16_t type;
 	uint16_t node;
-	uint32_t nmid; // peer msid
 	uint32_t user;
 	uint32_t umid; // user msid
-	uint32_t mpos; // position in file or remote user in 'get'
-	 int64_t weight; // position in file
+	uint32_t nmid; // peer msid, could overwrite this also with info
+	uint32_t mpos; // position in file or remote user in 'get', could overwrite this with info
+	 int64_t weight; // value
 } log_t;
 #pragma pack()
 
@@ -71,7 +71,12 @@ public:
 	uint8_t* data;
 	int size;
 
+	~usertxs()
+	{	free(data);
+	}
+
 	usertxs() :
+		ttype(TXSTYPE_MAX),
 		abank(0),
 		auser(0),
 		bbank(0),
@@ -84,36 +89,48 @@ public:
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
+		amsid(0),
 		ttime(nttime),
 		bbank(nbbank),
 		buser(nbuser),
 		data(NULL)
 	{	assert(ttype==TXSTYPE_INF);
-		size=32+txslen[TXSTYPE_INF]+64;
+		size=txslen[TXSTYPE_INF]+64;
 		data=(uint8_t*)std::malloc(size);
-		data[32]=TXSTYPE_INF;
-		memcpy(data+32+1,&abank,2);
-		memcpy(data+32+3,&auser,4);
-		memcpy(data+32+7,&bbank,2);
-		memcpy(data+32+9,&buser,4);
-		memcpy(data+32+13,&ttime,4);
+		data[0]=TXSTYPE_INF;
+		memcpy(data+1,&abank,2);
+		memcpy(data+3,&auser,4);
+		memcpy(data+7,&bbank,2);
+		memcpy(data+9,&buser,4);
+		memcpy(data+13,&ttime,4);
 	}
 
 	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t nttime) :
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
+		amsid(0),
 		ttime(nttime),
 		data(NULL)
-	{	assert(ttype==TXSTYPE_LOG);
-		size=32+txslen[TXSTYPE_LOG]+64;
-		data=(uint8_t*)std::malloc(size);
-		data[32]=TXSTYPE_LOG;
-		memcpy(data+32+1,&abank,2);
-		memcpy(data+32+3,&auser,4);
-		memcpy(data+32+7,&abank,2);
-		memcpy(data+32+9,&auser,4);
-		memcpy(data+32+13,&ttime,4);
+	{	if(ttype==TXSTYPE_CON){
+	 		size=txslen[TXSTYPE_CON];
+			data=(uint8_t*)std::malloc(size);
+			data[0]=TXSTYPE_CON;
+			memcpy(data+1  ,&abank,2);
+			memcpy(data+1+2,&auser,4);
+			memcpy(data+1+6,&ttime,4);
+			return;}
+	 	if(ttype==TXSTYPE_LOG){
+			size=txslen[TXSTYPE_LOG]+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=TXSTYPE_LOG;
+			memcpy(data+1,&abank,2);
+			memcpy(data+3,&auser,4);
+			memcpy(data+7,&abank,2);
+			memcpy(data+9,&auser,4);
+			memcpy(data+13,&ttime,4);
+			return;}
+		fprintf(stderr,"BAD MSG: %X\n",ttype);
 	}
 
 	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
@@ -128,45 +145,56 @@ public:
 		tinfo(ntinfo),
 		data(NULL)
 	{	if(ttype>=TXSTYPE_MAX){
+			fprintf(stderr,"ERROR, creating message\n");
 			size=0;
 			return;}
 		int len=txslen[ttype];
-		if(ttype==TXSTYPE_BRO){
-			size=32+len+bbank+64;}
+		if(ttype==TXSTYPE_CON){
+			size=len;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1  ,&abank,2);
+			memcpy(data+1+2,&auser,4);
+			memcpy(data+1+6,&ttime,4);
+			return;}
+		else if(ttype==TXSTYPE_BRO){
+			size=len+bbank+64;}
 	 	else if(ttype==TXSTYPE_KEY){ //user,newkey
-			size=32+len+64+64;}
+			size=len+64+64;}
 	 	else if(ttype==TXSTYPE_BKY){ //user0,newkey,oldkey
-			size=32+len+64+64+64;}
+			size=len+64+64+64;}
 		else{
-			size=32+len+64;}
+			size=len+64;}
 		data=(uint8_t*)std::malloc(size);
-		data[32]=ttype;
-		memcpy(data+32+1   ,&abank,2);
-		memcpy(data+32+1+2 ,&auser,4);
-		memcpy(data+32+1+6 ,&amsid,4);
-		memcpy(data+32+1+10,&ttime,4);
+		data[0]=ttype;
+		memcpy(data+1   ,&abank,2);
+		memcpy(data+1+2 ,&auser,4);
+		memcpy(data+1+6 ,&amsid,4);
+		memcpy(data+1+10,&ttime,4);
 		if(len==1+2+4+4+4){
 			return;}
 		if(ttype==TXSTYPE_KEY){
-			memcpy(data+32+1+14,text,32);
+			memcpy(data+1+14,text,32);
 			return;}
 		if(ttype==TXSTYPE_BKY){
-			memcpy(data+32+1+14,text,32);
-			memcpy(data+32+1+14+32,okey,32);
+			memcpy(data+1+14,text,32);
+			memcpy(data+1+14+32,okey,32);
 			return;}
-		memcpy(data+32+1+14,&bbank,2);
+		memcpy(data+1+14,&bbank,2);
 		if(ttype==TXSTYPE_BRO){
-			memcpy(data+32+1+16,text,bbank);
+			memcpy(data+1+16,text,bbank);
 			return;}
 		if(len>=1+2+4+4+4+2+4){
-			memcpy(data+32+1+16,&buser,4);}
+			memcpy(data+1+16,&buser,4);}
 		if(len>=1+2+4+4+4+2+4+8+8){
-			memcpy(data+32+1+20,&tmass,8);
-			memcpy(data+32+1+28,&tinfo,8);}
+			memcpy(data+1+20,&tmass,8);
+			memcpy(data+1+28,&tinfo,8);}
 	}
 
 	uint32_t get_size(char* txs)
-	{	if(*txs==TXSTYPE_USR){
+	{	if(*txs==TXSTYPE_CON){
+			return(txslen[(int)*txs]);} // no signature
+	 	if(*txs==TXSTYPE_USR){
 			return(txslen[(int)*txs]+64+4+32);}
                 if(*txs==TXSTYPE_BRO){
 			uint16_t len;
@@ -178,13 +206,17 @@ public:
 	bool parse(char* txs) //TODO, should return parsed buffer length
 	{	ttype=*txs;
 		if(ttype>=TXSTYPE_MAX){
+			fprintf(stderr,"ERROR, parsing message\n");
 			return(false);}
 		size=txslen[ttype]+64;
 		memcpy(&abank,txs+1+0 ,2);
 		memcpy(&auser,txs+1+2 ,4);
-		if(ttype==TXSTYPE_INF){
-			memcpy(&bbank,txs+1+6 ,2);
-			memcpy(&buser,txs+1+8 ,4);
+		if(ttype==TXSTYPE_CON){
+			memcpy(&ttime,txs+1+6,4);
+			return(true);}
+		if(ttype==TXSTYPE_INF || ttype==TXSTYPE_LOG){
+			memcpy(&bbank,txs+1+6,2);
+			memcpy(&buser,txs+1+8,4);
 			memcpy(&ttime,txs+1+12,4);
 			return(true);}
 		memcpy(&amsid,txs+1+6 ,4);
@@ -200,35 +232,38 @@ public:
                 return(true);
 	}
 
-	~usertxs()
-	{	free(data);
-	}
-
 	void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk)
-	{	if(hash==NULL){
-			assert(ttype==TXSTYPE_INF);
-			ed25519_sign(data+32,txslen[TXSTYPE_INF],sk,pk,data+32+txslen[TXSTYPE_INF]);
+	{	if(ttype==TXSTYPE_CON){
 			return;}
-		memcpy(data,hash,32);
+		if(ttype==TXSTYPE_INF){
+			ed25519_sign(data,txslen[TXSTYPE_INF],sk,pk,data+txslen[TXSTYPE_INF]);
+			return;}
+		if(ttype==TXSTYPE_LOG){
+			ed25519_sign(data,txslen[TXSTYPE_LOG],sk,pk,data+txslen[TXSTYPE_LOG]);
+			return;}
 		if(ttype==TXSTYPE_BRO){
-			ed25519_sign(data,32+txslen[TXSTYPE_BRO]+bbank,sk,pk,data+32+txslen[TXSTYPE_BRO]+bbank);
+			ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
 			return;}
-		ed25519_sign(data,32+txslen[ttype],sk,pk,data+32+txslen[ttype]);
+		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
 	}
 
-	void sign2(uint8_t* sk,uint8_t* pk2) // additional signature with client, no need to supply pk (is in data)
+	void sign2(uint8_t* hash,uint8_t* sk,uint8_t* pk2) // additional signature, no need to supply pk (is in data)
 	{	assert(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY);
-		ed25519_sign(data,32+txslen[ttype],sk,pk2,data+32+txslen[ttype]+64);
+		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk2,data+txslen[ttype]+64);
 	}
 
-	void sign3(uint8_t* sk,uint8_t* pk3) // additional signature with client, no need to supply pk (is in data)
+	void sign3(uint8_t* hash,uint8_t* sk,uint8_t* pk3) // additional signature, no need to supply pk (is in data)
 	{	assert(ttype==TXSTYPE_BKY);
-		ed25519_sign(data,32+txslen[ttype],sk,pk3,data+32+txslen[ttype]+64+64);
+		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk3,data+txslen[ttype]+64+64);
 	}
 
 	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
-	{	if(ttype==TXSTYPE_INF){
+	{	if(ttype==TXSTYPE_CON){
+			return(0);}
+		if(ttype==TXSTYPE_INF){
 			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
+		if(ttype==TXSTYPE_LOG){
+			return(ed25519_sign_open(buf,txslen[TXSTYPE_LOG],pk,buf+txslen[TXSTYPE_LOG]));}
 		if(ttype==TXSTYPE_BRO){
 			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));}
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
@@ -244,27 +279,22 @@ public:
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4+32,buf+txslen[ttype]+64+64));
 	}
 
+	void print_head()
+	{	fprintf(stdout,"MSG: %1X %04X %08X %08X %08X %04X %08X %016lX (%d)\n",
+			ttype,abank,auser,amsid,ttime,bbank,buser,tmass,size);
+	}
+
 	void print()
 	{	char msgtxt[0x200];
 	 	if(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY){
 			assert((txslen[ttype]+64+64)*2<0x200);
-			ed25519_key2text(msgtxt,data+32,txslen[ttype]+64+64); // do not send last hash
+			ed25519_key2text(msgtxt,data,txslen[ttype]+64+64); // do not send last hash
 			fprintf(stdout,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 		else{
 			assert((txslen[ttype]+64)*2<0x200);
-			ed25519_key2text(msgtxt,data+32,txslen[ttype]+64); // do not send last hash
+			ed25519_key2text(msgtxt,data,txslen[ttype]+64); // do not send last hash
 			fprintf(stdout,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 	}
-
-	/*char* message() //FIXME, don't use 32byte prefix
-	{	assert(data!=NULL);
-		return(data+32);
-	}
-
-	int length() //FIXME, don't use 32byte prefix
-	{	assert(data!=NULL);
-		return(size-32);
-	}*/
 
 	char* key(char* buf) //return new key in message
 	{	return(buf+1+2+4+4+4);

@@ -25,6 +25,7 @@ void curved25519_scalarmult_basepoint(curved25519_key pk, const curved25519_key 
 
 //LESZEK
 int ed25519_sign_open2(const unsigned char *m, size_t mlen,const unsigned char *m2, size_t mlen2, const ed25519_public_key pk, const ed25519_signature RS);
+void ed25519_sign2(const unsigned char *m, size_t mlen, const unsigned char *m2, size_t mlen2, const ed25519_secret_key sk, const ed25519_public_key pk, ed25519_signature RS);
 void ed25519_text2key(uint8_t* key,const char* text,int len);
 void ed25519_key2text(char* text,const uint8_t* key,int len);
 typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[2]

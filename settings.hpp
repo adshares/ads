@@ -60,8 +60,8 @@ public:
 				("hash,j", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
 				("skey,s", boost::program_options::value<std::string>(&skey),					"secret key [64chars in hext format / 32bytes]")
 				("pkey,k", boost::program_options::value<std::string>(&pkey),					"public key [64chars in hext format / 32bytes]")
-				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [64chars in hext format / 32bytes]")
-				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [64chars in hext format / 32bytes]")
+				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [32bytes]")
+				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [32bytes]")
 				("exec,e", boost::program_options::value<std::string>(&exec),					"command to execute")
 				;
 			boost::program_options::options_description cmdline_options;
