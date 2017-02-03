@@ -897,7 +897,8 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       server_.leave(shared_from_this());
       return;}
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid)){
-      std::cerr << "BAD signature\n";
+      std::cerr << "BAD signature from "<<read_msg_->svid<<"\n";
+      ed25519_printkey(srvs_.nodes[read_msg_->svid].pk,32);
       server_.leave(shared_from_this());
       return;}
     if(!svid){ // FIXME, move this to 'start()'

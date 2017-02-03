@@ -21,6 +21,7 @@ public:
     message_sent(0)
   { svid=opts_.svid,
     users=srv_.last_srvs_.nodes[svid].users;
+    memcpy(pkey,srv_.pkey,32);
     deposit.resize(users), // a buffer to enable easy resizing of the account vector
     std::cerr<<"OFFICE ("<<svid<<") open\n";
     // prapare local register [this could be in RAM later or be on a RAM disk]
@@ -248,9 +249,9 @@ public:
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
   //void leave(client_ptr c); // main.cpp
 
-  uint8_t* pkey()
-  { return(opts_.pk);
-  }
+  //uint8_t* pkey()
+  //{ return(opts_.pk);
+  //}
 
   //void get_user(user_t& u,uint16_t peer,uint32_t uid)
   //{ return(srv_.srvs_.get_user(u,peer,uid);
@@ -266,6 +267,10 @@ public:
   { return(srv_.get_log(svid,user,from,slog));
   }
 
+  bool find_key(uint8_t* pkey,uint8_t* skey)
+  { return(srv_.last_srvs_.find_key(pkey,skey));
+  }
+
   bool run;
   uint16_t svid;
   uint32_t users; //number of users of the bank
@@ -273,6 +278,7 @@ public:
   boost::mutex users_[0x100];
   std::string message;
   boost::mutex message_;
+  hash_t pkey; // local copy for managing updates
 private:
   boost::asio::io_service& io_service_;
   boost::asio::ip::tcp::acceptor acceptor_;

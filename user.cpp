@@ -60,23 +60,23 @@ usertxs_ptr run(settings& sts,std::string& line)
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(!strncmp(line.c_str(),"BRO:",4)){ // broadcast message
-    usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,line.length()-4,to_user,to_mass,to_info,line.c_str()+4,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,line.length()-4,to_user,to_mass,to_info,line.c_str()+4));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(sscanf(line.c_str(),"PUT:%u:%u:%ld:%ld",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
-    usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(sscanf(line.c_str(),"USR:%u",&to_bank)){ // create new user @ to_bank
-    usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(!strncmp(line.c_str(),"BNK:",4)){ // create new bank
-    usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(sscanf(line.c_str(),"GET:%u:%u",&to_bank,&to_user)){ // retreive funds
-    usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
   else if(!strncmp(line.c_str(),"KEY:",4)){ // change user key
@@ -85,19 +85,20 @@ usertxs_ptr run(settings& sts,std::string& line)
       return(NULL);}
     hash_t key;
     ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
-    usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key,NULL));
+    usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->sign2(sts.ha,sts.sn,sts.pn);
+    txs->sign2(sts.ha,sts.sn);
+    //txs->sign2(sts.ha,sts.sn,sts.pn);
     return(txs);}
   else if(!strncmp(line.c_str(),"BKY:",4)){ // change bank key
-    if(cmpkey2(line,sts.pn)){
-      return(NULL);}
+    //if(cmpkey2(line,sts.pn)){
+    //  return(NULL);}
     hash_t key;
     ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
-    usertxs_ptr txs(new usertxs(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key,(const char*)sts.po));
+    usertxs_ptr txs(new usertxs(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->sign2(sts.ha,sts.sn,sts.pn);
-    txs->sign3(sts.ha,sts.so,sts.po);
+    //txs->sign2(sts.ha,sts.sn,sts.pn); // server shoudl sign this !!!
+    //txs->sign3(sts.ha,sts.so,sts.po); // now needed, messages signed by the server wthi old key anyway 
     return(txs);}
   else{
     return(NULL);}

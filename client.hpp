@@ -6,7 +6,7 @@
 class client : public boost::enable_shared_from_this<client>
 {
 public:
-  client(boost::asio::io_service& io_service,office& offi,options& opts,server& srv)
+  client(boost::asio::io_service& io_service,office& offi)
     : socket_(io_service),
       offi_(offi),
       buf(NULL)
@@ -43,10 +43,8 @@ public:
       std::cerr<<"ERROR: read start failed\n";
       return;}
     int more=0;
-    if(*txstype==TXSTYPE_KEY){
+    if(*txstype==TXSTYPE_KEY){ // additional confirmation signature
       more=64;}
-    if(*txstype==TXSTYPE_BKY){
-      more=128;}
     len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[(int)*txstype]+64+more-1));
     if(len!=txslen[(int)*txstype]+64+more-1){
       std::cerr<<"ERROR: read message failed\n";
@@ -78,16 +76,13 @@ public:
       std::cerr<<"ERROR: bad signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if((*txstype==TXSTYPE_KEY || *txstype==TXSTYPE_BKY) && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
+    if(*txstype==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
       std::cerr<<"ERROR: bad second signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
     if(*txstype==TXSTYPE_BKY){
-      if(memcmp(utxs.key2(buf),offi_.pkey(),32)){
-        std::cerr<<"ERROR: bad old key\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
-      if(utxs.wrong_sig3((uint8_t*)buf,(uint8_t*)usera.hash)){
+      hash_t skey;
+      if(!offi_.find_key((uint8_t*)utxs.key(buf),skey)){
         std::cerr<<"ERROR: bad second signature\n";
         offi_.unlock_user(utxs.auser);
         return;}}
@@ -198,7 +193,7 @@ public:
         return;}
       //extralen=4+32;
       //buf=std::realloc(buf,txslen[(int)*txstype]+64+extralen);
-      buf=(char*)std::realloc(buf,utxs.size);
+      //buf=(char*)std::realloc(buf,utxs.size);
       memcpy(buf+txslen[(int)*txstype]+64+0,&nuser,4);
       memcpy(buf+txslen[(int)*txstype]+64+4,usera.pkey,32);
       if(utxs.abank==offi_.svid){
@@ -232,6 +227,7 @@ public:
 	std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
         offi_.unlock_user(utxs.auser);
         return;}
+      //buf=(char*)std::realloc(buf,utxs.size);
       fee=TXS_BKY_FEE*TIME_FEE(lpath,usera.lpath);} 
     else if(*txstype==TXSTYPE_STP){ // we will get a confirmation from the network
       assert(0); //TODO, not implemented later
@@ -241,6 +237,10 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     //send message
+    //commit bank key change
+    if(*txstype==TXSTYPE_BKY){ // commit key change
+      memcpy(utxs.opkey(buf),offi_.pkey,32);
+      memcpy(offi_.pkey,utxs.key(buf),32);}
     //offi_.add_msg(buf,txslen[(int)*txstype]+64+extralen,fee); //TODO, could return pointer to file
     offi_.add_msg((uint8_t*)buf,utxs.size,fee); //TODO, could return pointer to file
     //commit changes
@@ -254,7 +254,8 @@ public:
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     //SHA256_Update(&sha256,buf,txslen[(int)*txstype]+64+extralen);
-    SHA256_Update(&sha256,buf,utxs.size); // we add here the respose from the office for _USR !!!
+    //SHA256_Update(&sha256,buf,utxs.size); // we add here the respose from the office for _USR and _BKY !!! remove this !!! FIXME
+    SHA256_Update(&sha256,buf,txslen[(int)*txstype]+64);
     SHA256_Final(hash,&sha256);
     //make newhash=hash(oldhash+newmessagehash);
     SHA256_Init(&sha256);

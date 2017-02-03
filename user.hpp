@@ -23,10 +23,10 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4,		//5:BNK
 	1+2+4+4+4+2+4,		//6:GET,
 	1+2+4+4+4+32,		//7:KEY
-	1+2+4+4+4+32+32,	//8:BKY
+	1+2+4+4+4+32,		//8:BKY, old key appended to undo message
 	1+2+4+2+4+4,		//9:INF
 	1+2+4+2+4+4,		//10:LOG
-	1+2+4+4+4+32+32};	//11:MAX fixed buffer size
+	1+2+4+4+4+32};		//11:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
@@ -133,7 +133,8 @@ public:
 		fprintf(stderr,"BAD MSG: %X\n",ttype);
 	}
 
-	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
+	//usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
+	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text) :
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
@@ -160,9 +161,9 @@ public:
 		else if(ttype==TXSTYPE_BRO){
 			size=len+bbank+64;}
 	 	else if(ttype==TXSTYPE_KEY){ //user,newkey
-			size=len+64+64;}
-	 	else if(ttype==TXSTYPE_BKY){ //user0,newkey,oldkey
-			size=len+64+64+64;}
+			size=len+64+64;} // size on the peer network is reduced back to len+64;
+	 	//else if(ttype==TXSTYPE_BKY){ //user0,newkey,oldkey
+		//	size=len+64+64+64;}
 		else{
 			size=len+64;}
 		data=(uint8_t*)std::malloc(size);
@@ -173,13 +174,13 @@ public:
 		memcpy(data+1+10,&ttime,4);
 		if(len==1+2+4+4+4){
 			return;}
-		if(ttype==TXSTYPE_KEY){
+		if(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY){ // for BKY, office adds old key
 			memcpy(data+1+14,text,32);
 			return;}
-		if(ttype==TXSTYPE_BKY){
-			memcpy(data+1+14,text,32);
-			memcpy(data+1+14+32,okey,32);
-			return;}
+		//if(ttype==TXSTYPE_BKY){
+		//	memcpy(data+1+14,text,32);
+		//	memcpy(data+1+14+32,okey,32);
+		//	return;}
 		memcpy(data+1+14,&bbank,2);
 		if(ttype==TXSTYPE_BRO){
 			memcpy(data+1+16,text,bbank);
@@ -194,12 +195,16 @@ public:
 	uint32_t get_size(char* txs)
 	{	if(*txs==TXSTYPE_CON){
 			return(txslen[TXSTYPE_CON]);} // no signature
+	 	if(*txs==TXSTYPE_BKY){
+			return(txslen[TXSTYPE_BKY]+64+32);}
 	 	if(*txs==TXSTYPE_USR){
 			return(txslen[TXSTYPE_USR]+64+4+32);}
                 if(*txs==TXSTYPE_BRO){
 			uint16_t len;
 			memcpy(&len,txs+1+14,2);
 			return(txslen[TXSTYPE_BRO]+64+len);}
+	 	//if(*txs==TXSTYPE_KEY || *txs==TXSTYPE_BKY){ //user,newkey
+                //	return(txslen[(int)*txs]+64+64);} // no need to send the second signature to the network
                 return(txslen[(int)*txs]+64);
 	}
 
@@ -226,10 +231,14 @@ public:
 		memcpy(&buser,txs+1+16,4);
 		memcpy(&tmass,txs+1+20,8);
 		memcpy(&tinfo,txs+1+28,8);
-                if(ttype==TXSTYPE_USR){
+                if(ttype==TXSTYPE_BKY){
+                  size+=32;}
+                else if(ttype==TXSTYPE_USR){
                   size+=4+32;}
                 else if(ttype==TXSTYPE_BRO){
                   size+=bbank;}
+                //else if(ttype==TXSTYPE_BKY || ttype==TXSTYPE_KEY){ // not needed on the network !!!
+                //  size+=64;}
                 return(true);
 	}
 
@@ -248,16 +257,17 @@ public:
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
 	}
 
-	void sign2(uint8_t* hash,uint8_t* sk,uint8_t* pk2) // additional signature, no need to supply pk (is in data)
-	{	assert(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY);
-		assert(!memcmp(pk2,data+1+2+4+4+4,32));
-		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk2,data+txslen[ttype]+64);
+	//void sign2(uint8_t* hash,uint8_t* sk,uint8_t* pk2)
+	void sign2(uint8_t* hash,uint8_t* sk) // additional signature, no need to supply pk (is in data)
+	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
+		//assert(!memcmp(pk2,data+1+2+4+4+4,32));
+		ed25519_sign2(hash,32,data,txslen[ttype],sk,data+1+2+4+4+4,data+txslen[ttype]+64);
 	}
 
-	void sign3(uint8_t* hash,uint8_t* sk,uint8_t* pk3) // additional signature, no need to supply pk (is in data)
-	{	assert(ttype==TXSTYPE_BKY);
-		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk3,data+txslen[ttype]+64+64);
-	}
+	//void sign3(uint8_t* hash,uint8_t* sk,uint8_t* pk3) // additional signature, no need to supply pk (is in data)
+	//{	assert(ttype==TXSTYPE_BKY);
+	//	ed25519_sign2(hash,32,data,txslen[ttype],sk,pk3,data+txslen[ttype]+64+64);
+	//}
 
 	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
 	{	if(ttype==TXSTYPE_CON){
@@ -272,14 +282,14 @@ public:
 	}
 
 	int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
-	{	assert(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY);
+	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
 	}
 
-	int wrong_sig3(uint8_t* buf,uint8_t* hash) // additional signature with client
-	{	assert(ttype==TXSTYPE_BKY);
-		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4+32,buf+txslen[ttype]+64+64));
-	}
+	//int wrong_sig3(uint8_t* buf,uint8_t* hash) // additional signature with client
+	//{	assert(ttype==TXSTYPE_BKY);
+	//	return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4+32,buf+txslen[ttype]+64+64));
+	//}
 
 	void print_head()
 	{	fprintf(stdout,"MSG: %1X %04X %08X %08X %08X %04X %08X %016lX (%d)\n",
@@ -288,7 +298,7 @@ public:
 
 	void print()
 	{	char msgtxt[0x200];
-	 	if(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY){
+	 	if(ttype==TXSTYPE_KEY){
 			assert((txslen[ttype]+64+64)*2<0x200);
 			ed25519_key2text(msgtxt,data,txslen[ttype]+64+64); // do not send last hash
 			fprintf(stdout,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
@@ -300,10 +310,6 @@ public:
 
 	char* key(char* buf) //return new key in message
 	{	return(buf+1+2+4+4+4);
-	}
-
-	char* key2(char* buf) //return old key in message
-	{	return(buf+1+2+4+4+4+32);
 	}
 
 	void print_broadcast(char* buf)
@@ -321,6 +327,11 @@ public:
 	char* npkey(char* buf) //return second user key in message
 	{	return(buf+1+2+4+4+4+2+64+4);
 	}
+
+	char* opkey(char* buf) //return old key in message
+	{	return(buf+1+2+4+4+4+32+64);
+	}
+
 
 private:
 };

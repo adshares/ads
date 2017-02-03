@@ -192,7 +192,9 @@ public:
 
 	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk)
 	{	memset(&u,0,sizeof(user_t));
-		memset(&u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+		memset(u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+		memcpy(u.hash,&uid,4); // always start with a unique hash
+		memcpy(u.hash+4,&peer,2); // always start with a unique hash
 		u.msid=1; // always >0 to help identify holes in delta files
                 u.time=now;
 		u.node=peer;
@@ -236,6 +238,24 @@ public:
 			fprintf(stderr,"ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
 			return(false);}
 		return(true);
+	}
+
+	bool find_key(uint8_t* pkey,uint8_t* skey)
+	{	FILE* fp=fopen("key/key.txt","r");
+		char line[128];
+		if(fp==NULL){
+			return(false);}
+		while(fgets(line,128,fp)>0){
+			if(line[0]=='#' || strlen(line)<64){
+				continue;}
+			hash_t pk;
+			ed25519_text2key(skey,line,32); // do not send last hash
+			ed25519_publickey(skey,pk);
+			if(!memcmp(pkey,pk,32)){
+				fclose(fp);
+				return(true);}}
+		fclose(fp);
+		return(false);
 	}
 
 	void update_nodehash(uint16_t peer)

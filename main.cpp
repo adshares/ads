@@ -73,7 +73,7 @@ void office::start_accept()
 { if(!run){ return;}
   //FIXME, use io_service_pool_
   //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/server.cpp
-  client_ptr c(new client(io_service_,*this,opts_,srv_));
+  client_ptr c(new client(io_service_,*this));
   std::cerr<<"OFFICE online\n";
   //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
   //  //crerate client timeout inside the client

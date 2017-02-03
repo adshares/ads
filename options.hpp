@@ -22,9 +22,9 @@ public:
 	int port;
 	int svid;
 	std::string addr;
-	std::string skey;
-	ed25519_secret_key sk;
-	ed25519_public_key pk; // calculated
+	//std::string skey;
+	//ed25519_secret_key sk;
+	//ed25519_public_key pk; // calculated
 	std::vector<std::string> peer;
 
 	void get(int ac, char *av[])
@@ -43,7 +43,7 @@ public:
 				("port,p", boost::program_options::value<int>(&port)->default_value(std::atoi(SERVER_PORT)),	"service port (for peers)")
 				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"service address or hostname")
 				("svid,i", boost::program_options::value<int>(&svid),						"service id (assigned by the network)")
-				("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
+				//("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
 				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port or hostname:port, multiple peers allowed")
 				;
 			boost::program_options::options_description cmdline_options;
@@ -80,7 +80,7 @@ public:
 			else{
 				std::cout << "ERROR: Service svid missing!" << std::endl;
 				exit(1);}
-			if (vm.count("skey")){
+			/*if (vm.count("skey")){
 				char pktext[2*32+1]; pktext[2*32]='\0';
 				if(skey.length()!=64){
 					std::cerr << "ERROR: Service secret key wrong length (should be 64): " << vm["skey"].as<std::string>() << std::endl;
@@ -92,7 +92,7 @@ public:
 				std::cout << "Service public key: " << std::string(pktext) << std::endl;}
 			else{
 				std::cout << "ERROR: Service secret key missing!" << std::endl;
-				exit(1);}
+				exit(1);}*/
 			if (vm.count("peer")){
 				std::cout << "Peers are: " << vm["peer"].as<std::vector<std::string>>() << std::endl;}}
 		catch(std::exception &e){

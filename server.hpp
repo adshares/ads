@@ -30,10 +30,12 @@ public:
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
       exit(-1);} 
-    if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
+    //if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
+    pkey=last_srvs_.nodes[opts_.svid].pk;
+    if(!last_srvs_.find_key(pkey,skey)){
       char pktext[2*32+1]; pktext[2*32]='\0';
-      ed25519_key2text(pktext,last_srvs_.nodes[opts_.svid].pk,32);
-      std::cerr << "ERROR: server_public_key mismatch: " << pktext << "\n";
+      ed25519_key2text(pktext,pkey,32);
+      std::cerr << "ERROR: failed to find secret key for key:\n"<<pktext<<"\n";
       exit(-1);}
     //TODO, check vok and vno, if bad, inform user and suggest an older starting point
 
@@ -42,6 +44,7 @@ public:
       now-=now%BLOCKSEC;
       last_srvs_.init(now-BLOCKSEC);}
     srvs_=last_srvs_;
+    pkey=srvs_.nodes[opts_.svid].pk;
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     srvs_.now+=BLOCKSEC;
     srvs_.blockdir();
@@ -1268,6 +1271,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint64_t,int64_t> txs_deposit;
     std::set<uint64_t> txs_get; //set lock / withdraw
     //TODO, load message from file
+    bool old_bky=false;
     while(p<(char*)msg->data+msg->len){
       //char txstype=*p;
       usertxs utxs;
@@ -1287,8 +1291,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         txs_get.insert(ppi);
 	p+=utxs.size;
 	continue;}
-      if(*p==TXSTYPE_BKY){ //reverse bank key change
-        memcpy(srvs_.nodes[msg->svid].pk,utxs.key2(p),32);}
+      if(*p==TXSTYPE_BKY && old_bky==false){ //reverse bank key change
+        old_bky=true;
+        memcpy(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32);
+        if(msg->svid==opts_.svid){
+          fprintf(stderr,"WARNING undoing local bank key change \n");}}
       p+=utxs.get_size(p);}
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     blk_.lock();
@@ -1461,7 +1468,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       else if(*p==TXSTYPE_PUT){
         if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
           utxs.tmass=0;}
-        //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser)){
+        //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser))
         if(!srvs_.check_user(utxs.bbank,utxs.buser)){
           // does not check if account closed [consider adding this slow check]
           std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
@@ -1481,8 +1488,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       else if(*p==TXSTYPE_BNK){ // we will get a confirmation from the network
         uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank);
         txs_bnk[ppi].push_back(utxs.auser);
-	//set_bky=true;
-        //memcpy(new_bky,utxs.key(p),32);
         fee=TXS_BNK_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
@@ -1502,8 +1507,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(utxs.auser){
           std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
           return(false);}
-        if(memcmp(srvs_.nodes[msg->svid].pk,utxs.key2(p),32)){
-          std::cerr<<"ERROR: bad old key\n";
+        if(memcmp(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32)){
+          std::cerr<<"ERROR: bad current key\n";
           return(false);}
 	set_bky=true;
         memcpy(new_bky,utxs.key(p),sizeof(hash_t));
@@ -1556,8 +1561,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint8_t hash[32];
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
-      SHA256_Update(&sha256,p,utxs.size);
-      SHA256_Final(hash,&sha256); //overwrite msg!!!
+      SHA256_Update(&sha256,p,txslen[(int)*p]+64);
+      SHA256_Final(hash,&sha256);
       //make newhash=hash(oldhash+newmessagehash);
       SHA256_Init(&sha256);
       SHA256_Update(&sha256,usera->hash,32);
@@ -1605,8 +1610,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //store block transactions
     blk_.lock();
     if(set_bky){
-      //FIXME, check if this is not me ... reload options if yes
-      memcpy(srvs_.nodes[msg->svid].pk,new_bky,32);}
+      memcpy(srvs_.nodes[msg->svid].pk,new_bky,32);
+      if(msg->svid==opts_.svid){
+        if(!srvs_.find_key(new_bky,skey)){
+          fprintf(stderr,"ERROR, failed to change to new bank key, fatal!\n");
+          exit(-1);}}}
     //blk_bky.insert(txs_bky.begin(),txs_bky.end());
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
     blk_get.insert(txs_get.begin(),txs_get.end());
@@ -2090,7 +2098,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     else{
       bzero(hs.msha,SHA256_DIGEST_LENGTH);
       hs.msid=0;}
-    message_ptr msg(new message(MSGTYPE_INI,(uint8_t*)&hs,(int)sizeof(handshake_t),opts_.svid,msid_,opts_.sk,opts_.pk));
+    //ed25519_printkey(skey,32);
+    //ed25519_printkey(pkey,32);
+    message_ptr msg(new message(MSGTYPE_INI,(uint8_t*)&hs,(int)sizeof(handshake_t),opts_.svid,msid_,skey,pkey));
     return(msg);
   }
 
@@ -2100,7 +2110,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     int msid=++msid_; // can be atomic
     mtx_.unlock();
     writemsid(); //FIXME we should save the message before updating the message counter
-    message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,opts_.sk,opts_.pk));
+    message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey));
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
@@ -2110,7 +2120,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void write_candidate(const hash_s& last_message)
   { do_vote=0;
-    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,opts_.sk,opts_.pk)); //FIXME, consider msid=0 ???
+    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,skey,pkey)); //FIXME, consider msid=0 ???
 //FIXME, is hash ok ?
     if(!cnd_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
@@ -2146,7 +2156,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void write_header()
   { header_t head;
     last_srvs_.header(head);
-    message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),opts_.svid,head.now,opts_.sk,opts_.pk));
+    message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),opts_.svid,head.now,skey,pkey));
     if(!blk_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
@@ -2286,7 +2296,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   std::list<servers> headers; //FIXME, make this private
   uint32_t get_txslist; //block id of the requested txslist of messages
   office* ofip;
+  uint8_t *pkey; //used by office/client to create BKY transaction
 private:
+  hash_t skey;
   boost::mutex ulock_[0x100];
   enum { max_connections = 4 };
   enum { max_recent_msgs = 1024 }; // this is the block chain :->
