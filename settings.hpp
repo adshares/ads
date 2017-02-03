@@ -106,6 +106,13 @@ public:
 				ed25519_key2text(pktext,pk,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
 				std::cout << "Public key: " << std::string(pktext) << std::endl;}
+			if(vm.count("pkey")){
+				if(memcmp(pkey.c_str(),pktext,2*32)){
+					std::cout << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
+					exit(1);}}
+			else{
+				std::cout << "INFO: suply public key to proceed\n";
+				exit(0);}
 			if (vm.count("snew")){
 				if(snew.length()!=64){
 					std::cout << "ENTER passphrase\n";
@@ -144,13 +151,6 @@ public:
 				ed25519_key2text(pktext,po,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
 				std::cout << "old public key: " << std::string(pktext) << std::endl;}
-			if(vm.count("pkey")){
-				if(memcmp(pkey.c_str(),pktext,2*32)){
-					std::cout << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
-					exit(1);}}
-			else{
-				std::cout << "INFO: suply public key to proceed\n";
-				exit(0);}
 			if(vm.count("port")){
 				std::cout << "Bank port: " << vm["port"].as<int>() << std::endl;}
 			else{

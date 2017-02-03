@@ -137,7 +137,7 @@ public:
 			bzero(it->hash,SHA256_DIGEST_LENGTH);
 			bzero(it->msha,SHA256_DIGEST_LENGTH);
 			it->msid=0;
-			it->mtim=0;
+			it->mtim=now;
 			it->status=0;
 			if(num){
 				if(num<=VIP_MAX){
@@ -173,6 +173,7 @@ public:
 		nu.node=peer;
 		nu.user=uid;
 		put_user(nu,peer,0);
+		//update_nodehash(peer);
 		return(peer);
 	}
 
@@ -186,6 +187,7 @@ public:
 		nu.node=peer;
 		nu.user=uid;
 		put_user(nu,peer,0);
+		nodes[peer].mtim=now;
 	}
 
 	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk)
@@ -250,8 +252,11 @@ public:
 		for(uint32_t i=0;i<end;i++){
 			user_t u;
 			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
-				std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+				fprintf(stderr,"ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
 				exit(-1);}
+//FIXME, remove
+        fprintf(stderr,"USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+          peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
 			weight+=u.weight;
 			SHA256_Update(&sha256,&u,sizeof(user_t));}
 		SHA256_Final(nodes[peer].hash,&sha256);
@@ -379,7 +384,7 @@ public:
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %u %u %u %lu %u\n",
+			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
 			SHA256_Update(&sha256,it->hash,SHA256_DIGEST_LENGTH);

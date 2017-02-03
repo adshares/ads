@@ -114,7 +114,7 @@ void print_user(user_t& u)
 }
 
 void print_log(log_t* log,int len)
-{ int fd=open("usr.log",O_RDONLY|O_CREAT);
+{ int fd=open("usr.log",O_RDONLY|O_CREAT,0640);
   write(fd,(char*)log,len);
   close(fd);
   if(len%sizeof(log_t)){

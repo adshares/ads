@@ -15,18 +15,18 @@
 #define TXSTYPE_MAX 11
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
-	0,			//STP not defined yet
-	1+2+4+  4,		//CON
-	1+2+4+4+4+2,		//BRO 'bbank' is message length
-	1+2+4+4+4+2+4+8+8,	//PUT, extra parameter = official message (8 byte)
-	1+2+4+4+4+2,		//USR
-	1+2+4+4+4,		//BNK
-	1+2+4+4+4+2+4,		//GET,
-	1+2+4+4+4+32,		//KEY
-	1+2+4+4+4+32+32,	//BKY
-	1+2+4+2+4+4,		//INF
-	1+2+4+2+4+4,		//LOG
-	1+2+4+4+4+32+32};	//MAX fixed buffer size
+	0,			//0:STP not defined yet
+	1+2+4+  4,		//1:CON
+	1+2+4+4+4+2,		//2:BRO 'bbank' is message length
+	1+2+4+4+4+2+4+8+8,	//3:PUT, extra parameter = official message (8 byte)
+	1+2+4+4+4+2,		//4:USR
+	1+2+4+4+4,		//5:BNK
+	1+2+4+4+4+2+4,		//6:GET,
+	1+2+4+4+4+32,		//7:KEY
+	1+2+4+4+4+32+32,	//8:BKY
+	1+2+4+2+4+4,		//9:INF
+	1+2+4+2+4+4,		//10:LOG
+	1+2+4+4+4+32+32};	//11:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
@@ -193,13 +193,13 @@ public:
 
 	uint32_t get_size(char* txs)
 	{	if(*txs==TXSTYPE_CON){
-			return(txslen[(int)*txs]);} // no signature
+			return(txslen[TXSTYPE_CON]);} // no signature
 	 	if(*txs==TXSTYPE_USR){
-			return(txslen[(int)*txs]+64+4+32);}
+			return(txslen[TXSTYPE_USR]+64+4+32);}
                 if(*txs==TXSTYPE_BRO){
 			uint16_t len;
 			memcpy(&len,txs+1+14,2);
-			return(txslen[(int)*txs]+64+len);}
+			return(txslen[TXSTYPE_BRO]+64+len);}
                 return(txslen[(int)*txs]+64);
 	}
 
@@ -213,6 +213,7 @@ public:
 		memcpy(&auser,txs+1+2 ,4);
 		if(ttype==TXSTYPE_CON){
 			memcpy(&ttime,txs+1+6,4);
+		        size=txslen[TXSTYPE_CON]; // no signature !
 			return(true);}
 		if(ttype==TXSTYPE_INF || ttype==TXSTYPE_LOG){
 			memcpy(&bbank,txs+1+6,2);
@@ -249,6 +250,7 @@ public:
 
 	void sign2(uint8_t* hash,uint8_t* sk,uint8_t* pk2) // additional signature, no need to supply pk (is in data)
 	{	assert(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY);
+		assert(!memcmp(pk2,data+1+2+4+4+4,32));
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk2,data+txslen[ttype]+64);
 	}
 
@@ -313,11 +315,11 @@ public:
 	}
 
 	uint32_t nuser(char* buf) //return second user in message
-	{	return(*((uint32_t*)(buf+1+2+4+4+4+2)));
+	{	return(*((uint32_t*)(buf+1+2+4+4+4+2+64)));
 	}
 
 	char* npkey(char* buf) //return second user key in message
-	{	return(buf+1+2+4+4+4+2+4);
+	{	return(buf+1+2+4+4+4+2+64+4);
 	}
 
 private:

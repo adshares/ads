@@ -578,11 +578,12 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       std::cerr<<"ERROR, failed to open bank, weird !!!\n";
       server_.leave(shared_from_this());
       return;}
-    for(uint32_t block=path;block<=srvs_.now;block++){
+    for(uint32_t block=path+BLOCKSEC;block<=srvs_.now;block++){
       sprintf(filename,"%08X/und/%04X.dat",block,bank);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
         continue;}
+      fprintf(stderr,"USING bank %04X block %08X undo %s\n",bank,path,filename);
       ud.push_back(fd);}
     if(ud.size()){
       ld=ud.back();}
@@ -603,9 +604,14 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
       user_t* u=(user_t*)(put_msg->data+8);
       for(;user<end;user++,u++){
         u->msid=0;
-        for(auto it=ud.begin();it!=ud.end();it++){
+        int junk=0;
+        for(auto it=ud.begin();it!=ud.end();it++,junk++){
           read(*it,(char*)u,sizeof(user_t));
           if(u->msid){
+            fprintf(stderr,"USING bank %04X undo user %08X file %d\n",bank,user,junk);
+            lseek(fd,sizeof(user_t),SEEK_CUR);
+            for(it++;it!=ud.end();it++){
+              lseek(*it,sizeof(user_t),SEEK_CUR);}
             goto NEXTUSER;}}
         read(fd,u,sizeof(user_t));
         if(ld){ //confirm again that the undo file has not changed
@@ -616,21 +622,25 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
           if(v.msid){ //overwrite user info
             memcpy((char*)u,&v,sizeof(user_t));}}
         NEXTUSER:;
+        //print user
+        fprintf(stderr,"USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+          user,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
         weight+=u->weight;
         SHA256_Update(&sha256,u,sizeof(user_t));}
-      std::cerr << "SENDING bank "<<bank<<" ("<<msid<<")\n";
+      fprintf(stderr,"SENDING bank %04X block %08X msid %08X max user %08X sum %016lX\n",bank,path,msid,user,s.nodes[bank].weight);
       send_sync(put_msg); // send even if we have errors
       if(user==users){
         uint8_t hash[32];
         SHA256_Final(hash,&sha256);
+//FIXME, should compare with previous hash !!!
+        if(s.nodes[bank].weight!=weight){
+          //unlink(filename); //TODO, enable this later
+          fprintf(stderr,"ERROR sending bank %04X bad sum %016lX<>%016lX\n",bank,s.nodes[bank].weight,weight);
+          server_.leave(shared_from_this());
+          return;}
         if(memcmp(s.nodes[bank].hash,hash,32)){
           //unlink(filename); //TODO, enable this later
           std::cerr << "ERROR sending bank "<<bank<<" (bad hash)\n";
-          server_.leave(shared_from_this());
-          return;}
-        if(s.nodes[bank].weight!=weight){
-          //unlink(filename); //TODO, enable this later
-          std::cerr << "ERROR sending bank "<<bank<<" (bad sum)\n";
           server_.leave(shared_from_this());
           return;}}}
   }
@@ -738,7 +748,7 @@ std::cerr << "HANDLE WRITE sending "<<len<<" bytes\n";
   void write_servers()
   { uint32_t now;
     memcpy(&now,read_msg_->data+1,4);
-    std::cerr<<"SENDING block servers for block "<<now<<"\n";
+    fprintf(stderr,"SENDING block servers for block %08X\n",now);
     if(server_.last_srvs_.now!=now){
       //FIXME, try getting data from repository
       std::cerr<<"ERROR, bad time "<<server_.last_srvs_.now<<"<>"<<now<<"\n";

@@ -35,15 +35,20 @@ public:
     int64_t deposit=-1; // if deposit=0 inform target
     int64_t deduct=0;
     int64_t fee=0;
-    buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64);
+    buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64+128);
 
     char *txstype=buf;
     int len=boost::asio::read(socket_,boost::asio::buffer(buf,1));
     if(!len && *txstype>=TXSTYPE_MAX){
       std::cerr<<"ERROR: read start failed\n";
       return;}
-    len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[(int)*txstype]+64-1));
-    if(len!=txslen[(int)*txstype]+64-1){
+    int more=0;
+    if(*txstype==TXSTYPE_KEY){
+      more=64;}
+    if(*txstype==TXSTYPE_BKY){
+      more=128;}
+    len=boost::asio::read(socket_,boost::asio::buffer(buf+1,txslen[(int)*txstype]+64+more-1));
+    if(len!=txslen[(int)*txstype]+64+more-1){
       std::cerr<<"ERROR: read message failed\n";
       return;}
     /************* START PROCESSING **************/
@@ -58,6 +63,7 @@ public:
       if(len!=utxs.bbank){
         std::cerr<<"ERROR: read broadcast failed\n";
         return;}}
+//FIXME, read the rest ... add additional signatures
     offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     //consider adding a max txs limit per user
     if(*txstype>=TXSTYPE_MAX){
@@ -71,7 +77,6 @@ public:
     if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
       std::cerr<<"ERROR: bad signature\n";
       offi_.unlock_user(utxs.auser);
-      utxs.print();
       return;}
     if((*txstype==TXSTYPE_KEY || *txstype==TXSTYPE_BKY) && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
       std::cerr<<"ERROR: bad second signature\n";
@@ -202,7 +207,8 @@ public:
       else{
         //FIXME, check if original bank is in our whitelist
         //offi_.add_msg(buf,txslen[(int)*txstype]+64+extralen,0); //TODO, could return pointer to file
-        offi_.add_msg((uint8_t*)buf,utxs.auser,0); //TODO, could return pointer to file
+//FIXME, what length ???
+        offi_.add_msg((uint8_t*)buf,utxs.size,0); //TODO, could return pointer to file
         offi_.unlock_user(utxs.auser);
         offi_.add_account((hash_s*)usera.pkey,nuser); //blacklist
         user_t userb;
@@ -248,8 +254,8 @@ public:
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     //SHA256_Update(&sha256,buf,txslen[(int)*txstype]+64+extralen);
-    SHA256_Update(&sha256,buf,utxs.size);
-    SHA256_Final(hash,&sha256); //overwrite msg!!!
+    SHA256_Update(&sha256,buf,utxs.size); // we add here the respose from the office for _USR !!!
+    SHA256_Final(hash,&sha256);
     //make newhash=hash(oldhash+newmessagehash);
     SHA256_Init(&sha256);
     SHA256_Update(&sha256,usera.hash,32);

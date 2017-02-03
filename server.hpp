@@ -22,7 +22,7 @@ public:
     do_block(0)
     //ofip(NULL)
   { mkdir("usr",0755); // create dir for bank accounts
-    mkdir("und",0755); // create dir for undo accounts
+    //mkdir("und",0755); // create dir for undo accounts, not needed
     mklogdir(opts_.svid);
     mklogfile(opts_.svid,0);
     uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
@@ -1348,6 +1348,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     uint32_t now=time(NULL); //needed for the log
     hash_t new_bky;
     bool set_bky=false;
+    fprintf(stderr,"PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
     while(p<(char*)msg->data+msg->len){
       //char txstype=*p;
       uint32_t luser=0;
@@ -1362,6 +1363,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(!utxs.parse(p)){
         std::cerr<<"ERROR: failed to parse transaction\n";
         return(false);}
+      utxs.print_head();
       if(*p==TXSTYPE_CON){
         std::cerr<<"INFO: parsed CON transaction\n";
         p+=utxs.size;
@@ -1407,6 +1409,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //undo[luser]=u;
           usera=&changes[luser];}
         srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)npkey);
+        srvs_.put_user(*usera,msg->svid,luser);
         if(utxs.abank!=utxs.bbank){
           p+=utxs.size;
           continue;}}
@@ -1476,11 +1479,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         deduct=MIN_MASS;
         fee=TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_BNK){ // we will get a confirmation from the network
-        if(memcmp(srvs_.nodes[msg->svid].pk,utxs.key2(p),32)){
-          std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
-          return(false);}
-	set_bky=true;
-        memcpy(new_bky,utxs.key(p),32);
+        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank);
+        txs_bnk[ppi].push_back(utxs.auser);
+	//set_bky=true;
+        //memcpy(new_bky,utxs.key(p),32);
         fee=TXS_BNK_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
@@ -1500,6 +1502,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(utxs.auser){
           std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
           return(false);}
+        if(memcmp(srvs_.nodes[msg->svid].pk,utxs.key2(p),32)){
+          std::cerr<<"ERROR: bad old key\n";
+          return(false);}
+	set_bky=true;
         memcpy(new_bky,utxs.key(p),sizeof(hash_t));
         //txs_bky[ppi].push_back(hash_s);
         //txs_bky[ppi]=hash_s;
@@ -1612,9 +1618,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   int open_bank(uint16_t svid) //
   { char filename[64];
-    fprintf(stderr,"DEPOSIT to usr/%04X.dat",svid);
+    fprintf(stderr,"OPEN usr/%04X.dat",svid);
     sprintf(filename,"usr/%04X.dat",svid);
-    int fd=open(filename,O_RDWR,0644);
+    int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
       std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
       exit(-1);}
@@ -1631,7 +1637,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(!blk_bnk.empty()){
       std::set<uint64_t> new_bnk; // list of available banks for takeover
       uint16_t peer=0;
-      for(auto it=srvs_.nodes.begin();it!=srvs_.nodes.end();it++,peer++){
+      for(auto it=srvs_.nodes.begin()+1;it!=srvs_.nodes.end();it++,peer++){ // start with bank=1
         if(it->mtim+BANK_MIN_MTIME<srvs_.now && it->weight<BANK_MIN_WEIGHT){
           uint64_t bnk=it->weight<<16;
           bnk|=peer;
@@ -1643,7 +1649,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 //FIXME, report to local office if this is the local bank
 //FIXME !!!
         }
-        int fd=open_bank(peer);
+        int fd=open_bank(abank);
+        update.insert(abank);
         for(auto tx=it->second.begin();tx!=it->second.end();tx++){
           user_t u;
           lseek(fd,(*tx)*sizeof(user_t),SEEK_SET);
@@ -1654,12 +1661,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             auto bi=new_bnk.begin();
             peer=(*bi)&0xffff;
             new_bnk.erase(bi);
+            fprintf(stderr,"BANK, overwrite %04X\n",peer);
             srvs_.put_node(u,peer,*tx);}
           else if(srvs_.nodes.size()<BANK_MAX-1){
-            peer=srvs_.add_node(u,*tx);}
+            peer=srvs_.add_node(u,*tx);
+            fprintf(stderr,"BANK, add new bank %04X\n",peer);}
           else{
             close(fd);
             goto BLK_END;}
+          update.insert(peer);
           u.node=peer;
           u.user=0;
           lseek(fd,-sizeof(user_t),SEEK_CUR);
@@ -1675,6 +1685,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint16_t abank=ppi_abank(it->first);
       uint16_t bbank=ppi_bbank(it->first);
       update.insert(abank);
+      update.insert(bbank);
       if(bbank!=svid){
 	if(svid==opts_.svid){
 //FIXME !!!
@@ -1700,7 +1711,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           if(u.weight<=0){
             continue;}
           if(u.node!=abank||u.user!=tx->auser){
-            undo.emplace(tx->buser,u); //FIXME, emplace !!!
+            undo.emplace(tx->buser,u);
             u.node=abank;
             u.user=tx->auser;
             u.time=srvs_.now;}
@@ -1746,17 +1757,17 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint32_t user=to.small[0];
       uint16_t svid=to.small[1];
       if(svid!=lastsvid){
-        srvs_.save_undo(svid,undo,0);
+        srvs_.save_undo(lastsvid,undo,0);
         undo.clear();
         //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
-	update.insert(svid);
         char filename[64];
         if(fd){
           close(fd);}
         if(ud){
           close(ud);}
         lastsvid=svid;
-        fprintf(stderr,"DEPOSIT to usr/%04X.dat",svid);
+	update.insert(svid);
+        fprintf(stderr,"DEPOSIT to usr/%04X.dat\n",svid);
         sprintf(filename,"usr/%04X.dat",svid);
         fd=open(filename,O_RDWR,0644);
         if(fd<0){
