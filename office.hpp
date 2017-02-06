@@ -108,7 +108,7 @@ public:
     return(true);
   }
 
-  uint32_t add_user(uint16_t abank,uint8_t* pk) // will create new account or overwrite old one
+  uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when) // will create new account or overwrite old one
   { static uint32_t nuser=0;
     static uint32_t lastnow=0;
     uint32_t now=srv_.last_srvs_.now;
@@ -139,16 +139,20 @@ public:
         if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
 //FIXME, do not change accounts that are open for too short
           std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
-          memset(&nu,0,sizeof(user_t));
-          memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-          nu.msid=1;
-          nu.time=now;
-          nu.node=0;
-          nu.user=nuser; // record user_id
-          nu.lpath=now;
-          nu.rpath=now-START_AGE;
-          nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-          memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
+          //FIXME !!!  wrong time !!! must use time from txs
+          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
+          //memset(&nu,0,sizeof(user_t));
+          //memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
+          //memcpy(nu.hash,&nuser,4); // always start with a unique hash
+          //memcpy(nu.hash+4,&svid,2); // always start with a unique hash
+          //nu.msid=1;
+          //nu.time=now;
+          //nu.node=svid;
+          //nu.user=nuser; // record user_id
+          //nu.lpath=now;
+          //nu.rpath=now-START_AGE;
+          //nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
+          //memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&nu,sizeof(user_t));
           file_.unlock();
@@ -159,16 +163,20 @@ public:
     if(users>=MAX_USERS){
       return(0);}
     // no old account found, creating new account
-    memset(&nu,0,sizeof(user_t));
-    memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-    nu.msid=1;
-    nu.time=now;
-    nu.node=0;
-    nu.user=nuser; // record user_id
-    nu.lpath=now;
-    nu.rpath=now-START_AGE;
-    nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-    memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
+    //FIXME !!!  wrong time !!! must use time from txs
+    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
+    //memset(&nu,0,sizeof(user_t));
+    //memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
+    //memcpy(nu.hash,&nuser,4); // always start with a unique hash
+    //memcpy(nu.hash+4,&svid,2); // always start with a unique hash
+    //nu.msid=1;
+    //nu.time=now;
+    //nu.node=svid;
+    //nu.user=nuser; // record user_id
+    //nu.lpath=now;
+    //nu.rpath=now-START_AGE;
+    //nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
+    //memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     if(users>=MAX_USERS){

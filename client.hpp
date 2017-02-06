@@ -54,6 +54,7 @@ public:
     usertxs utxs;
     utxs.parse(buf);
     utxs.print_head();
+    int32_t diff=utxs.ttime-started;
     if(*txstype==TXSTYPE_BRO){
       //extralen=utxs.bbank;
       buf=(char*)std::realloc(buf,txslen[TXSTYPE_BRO]+64+utxs.bbank);
@@ -80,6 +81,10 @@ public:
       std::cerr<<"ERROR: bad second signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
+    if(diff>2){
+      std::cerr<<"ERROR: time in the future ("<<diff<<">2s)\n";
+      offi_.unlock_user(utxs.auser);
+      return;}
     if(*txstype==TXSTYPE_BKY){
       hash_t skey;
       if(!offi_.find_key((uint8_t*)utxs.key(buf),skey)){
@@ -87,11 +92,10 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}}
     if(*txstype==TXSTYPE_INF){ // this is special, just local info
-      //if((abs(utxs.ttime-started)>5)){
-      //  int diff=(utxs.ttime-started);
-      //  std::cerr<<"ERROR: high time difference ("<<diff<<">5)\n";
-      //  offi_.unlock_user(utxs.auser);
-      //  return;}
+      if((abs(diff)>2)){
+        std::cerr<<"ERROR: high time difference ("<<diff<<">2s)\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
       if(utxs.abank!=offi_.svid && utxs.bbank!=offi_.svid){
@@ -186,7 +190,7 @@ public:
         std::cerr<<"ERROR: failed to open account (pkey known)\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey);
+      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime);
       if(!nuser){
         std::cerr<<"ERROR: failed to open account\n";
         offi_.unlock_user(utxs.auser);
@@ -218,6 +222,7 @@ public:
 	std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
         offi_.unlock_user(utxs.auser);
         return;}
+//FIXME, check second user and stop transaction if GET is pednig
       fee=TXS_GET_FEE*TIME_FEE(lpath,usera.lpath);}
     else if(*txstype==TXSTYPE_KEY){
       memcpy(usera.pkey,utxs.key(buf),32);

@@ -47,7 +47,8 @@
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
 #define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon) or in seconds*/
 #define MAX_USERS 0x80000000
-#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
+//#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
+#define LOCK_TIME (0x2*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
 #define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */

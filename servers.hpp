@@ -147,7 +147,7 @@ public:
 				//add_user(num,0,it->weight,it->pk);
 				// create the first user
 				user_t u;
-				init_user(u,num,0,stw-num,it->pk);
+				init_user(u,num,0,stw-num,it->pk,now);
 				put_user(u,num,0);
 				update_nodehash(num);
 				sum+=it->weight;}
@@ -169,7 +169,7 @@ public:
 	 	nodes.push_back(nn);
 		uint16_t peer=nodes.size()-1;
 		user_t nu;
-		init_user(nu,peer,0,0,ou.pkey);
+		init_user(nu,peer,0,0,ou.pkey,now);
 		nu.node=peer;
 		nu.user=uid;
 		put_user(nu,peer,0);
@@ -183,24 +183,25 @@ public:
 		get_user(nu,peer,0);
 		undo[0]=nu;
 		save_undo(peer,undo,0);
-		init_user(nu,peer,0,nu.weight,ou.pkey);
+		init_user(nu,peer,0,nu.weight,ou.pkey,now);
 		nu.node=peer;
 		nu.user=uid;
 		put_user(nu,peer,0);
 		nodes[peer].mtim=now;
 	}
 
-	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk)
+	//FIXME, must use txs time to create users
+	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when)
 	{	memset(&u,0,sizeof(user_t));
 		memset(u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		memcpy(u.hash,&uid,4); // always start with a unique hash
 		memcpy(u.hash+4,&peer,2); // always start with a unique hash
 		u.msid=1; // always >0 to help identify holes in delta files
-                u.time=now;
+                u.time=when;
 		u.node=peer;
 		u.user=uid;
-                u.lpath=now;
-                u.rpath=now-START_AGE;
+                u.lpath=when;
+                u.rpath=when-START_AGE;
 		u.weight=weight;
 		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
         }

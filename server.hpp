@@ -1187,8 +1187,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           svid_.unlock();}
         else{
           //TODO, inform peer if peer==author;
-          std::cerr<<"WARNING, have invalid message !!!\n";
-          }
+          std::cerr<<"ERROR, have invalid message !!!\n";
+          exit(-1);}
         if(!do_sync){
           if(valid){
             update_candidates(msg);
@@ -1378,6 +1378,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(*p>=TXSTYPE_INF){
         std::cerr<<"ERROR: unknown transaction\n";
         return(false);}
+      if(utxs.ttime>lpath+BLOCKSEC+5){ // remember that values are unsigned !
+        //std::cerr<<"ERROR: time in the future block\n";
+	fprintf(stderr,"ERROR: time in the future block time:%08X block:%08X limit %08X\n",
+	  utxs.ttime,lpath,lpath+BLOCKSEC+5);
+        return(false);}
       if(utxs.abank!=msg->svid && *p!=TXSTYPE_USR){
         std::cerr<<"ERROR: bad bank\n";
         utxs.print_head();
@@ -1415,7 +1420,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           changes[luser]=u;
           //undo[luser]=u;
           usera=&changes[luser];}
-        srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)npkey);
+        srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)npkey,utxs.ttime);
         srvs_.put_user(*usera,msg->svid,luser);
         if(utxs.abank!=utxs.bbank){
           p+=utxs.size;
