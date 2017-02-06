@@ -82,8 +82,12 @@ public:
       else{
         do_fast=0;}
       std::cerr<<"START syncing headers\n";
-      load_chain();} // sets do_sync=0;
+      load_chain(); // sets do_sync=0;
+      svid_msgs_.clear();}
     //load old messages or check/modify
+
+    //should recycle old messages
+//FIXME, check is my global msid < local msid (in file), if yes, look for messages and resubmit
 
     writemsid(); // synced to new position
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
@@ -651,7 +655,9 @@ public:
         std::cerr << "CANDIDATE proposing\n";
         write_candidate(cand);}
       return;}
-    if(do_block<2 && num1->score>(num2!=NULL?num2->score:0)+(votes_max-votes_counted)){
+    if(do_block<2 && (
+        (num1->score>(num2!=NULL?num2->score:0)+(votes_max-votes_counted))||
+        (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
       float x=(num2!=NULL?num2->score:0);
       std::cerr << "BLOCK elected: " << num1->score << " second:" << x << " max:" << votes_max << " counted:" << votes_counted << "\n";
       do_block=2;
@@ -1173,7 +1179,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
-        //boost::this_thread::sleep(boost::posix_time::seconds(10.0*((float)random()/(float)RAND_MAX)));
         bool valid=process_message(msg); //maybe ERROR should be also returned.
         if(valid){
           msg->print_text(";VALID");
@@ -1190,6 +1195,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr<<"ERROR, have invalid message !!!\n";
           exit(-1);}
         if(!do_sync){
+          //simulate delay
+          boost::this_thread::sleep(boost::posix_time::seconds(5.0*((float)random()/(float)RAND_MAX)));
           if(valid){
             update_candidates(msg);
             update(msg);}}
@@ -1235,7 +1242,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         p+=utxs.size;
         continue;}
       uint32_t mpos=(p-msg->data);
-      if(msg->svid==opts_.svid){
+      //if(msg->svid==opts_.svid){
+      if(utxs.abank==opts_.svid){
         uint64_t key=((uint64_t)utxs.auser)<<32;
         key|=mpos;
         log_t alog;
@@ -1420,9 +1428,24 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           changes[luser]=u;
           //undo[luser]=u;
           usera=&changes[luser];}
-        srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)npkey,utxs.ttime);
+        srvs_.init_user(*usera,msg->svid,luser,(utxs.abank==utxs.bbank?MIN_MASS:0),(uint8_t*)npkey,utxs.ttime);
         srvs_.put_user(*usera,msg->svid,luser);
         if(utxs.abank!=utxs.bbank){
+          /* save log , only opts_.svid logging supported */
+          if(utxs.abank==opts_.svid){
+            uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
+            uint64_t key=(uint64_t)utxs.auser<<32;
+            key|=mpos;
+            log_t alog;
+            alog.time=now;
+            alog.type=*p; //outgoing
+            alog.node=utxs.bbank;
+            alog.user=utxs.buser;
+            alog.umid=utxs.amsid;
+            alog.nmid=msg->msid; //can be overwritten with info
+            alog.mpos=mpos; //can be overwritten with info
+            alog.weight=utxs.tmass;
+            log[key]=alog;}
           p+=utxs.size;
           continue;}}
       if(utxs.auser>=users){
@@ -1455,10 +1478,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(usera->time+2*LOCK_TIME<lpath && usera->user && usera->node){//check account lock
         if(*p!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
           std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
-          return(false);}
-        if(usera->lpath>usera->time){
-          std::cerr<<"ERROR: account unlock in porgress\n";
           return(false);}}
+        //if(usera->lpath>usera->time){
+        //  std::cerr<<"ERROR: account unlock in porgress\n";
+        //  return(false);}
         //when locked user,path and time are not modified
         //fee=TXS_LOCKCANCEL_FEE;
         //uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank); //FIXME, const ppi
@@ -1487,7 +1510,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           txs_deposit[to.big]+=utxs.tmass;}
         deduct=utxs.tmass;
         fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera->lpath);}
-      else if(*p==TXSTYPE_USR){
+      else if(*p==TXSTYPE_USR){ // this is local bank
+        assert(utxs.abank==msg->svid);
         deduct=MIN_MASS;
         fee=TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_BNK){ // we will get a confirmation from the network
@@ -1524,7 +1548,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //blk_.unlock();
         fee=TXS_BKY_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_STP){ // we will get a confirmation from the network
-        assert(0); //TODO, not implemented later
+        assert(0); //TODO, not implemented
         fee=TXS_STP_FEE*TIME_FEE(lpath,usera->lpath);}
       if(deduct+fee+MIN_MASS>usera->weight){
         std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera->weight<<")\n";

@@ -85,11 +85,11 @@ public:
     return(true);
   }
 
-  bool get_user(user_t& u,uint16_t cbank,uint32_t cuser)
+  bool get_user(user_t& u,uint16_t cbank,uint32_t cuser,bool global)
   { u.msid=0;
     if(cuser>=users){
       return(false);}
-    if(cbank==svid){
+    if(cbank==svid && !global){
       file_.lock();
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));}
@@ -217,7 +217,7 @@ public:
       for(auto it=accounts_.begin();it!=accounts_.end();){
         auto jt=it++;
         user_t u;
-        get_user(u,svid,jt->second); //watch out for deadlocks
+        get_user(u,svid,jt->second,false); //watch out for deadlocks
         if(u.weight>=MIN_MASS){
           accounts_.erase(jt);}}
       if(accounts_.size()>MAX_ACCOUNT){

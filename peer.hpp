@@ -209,6 +209,7 @@ std::cerr << "HANDLE WRITE start\n";
         mtx_.unlock();
         return;}
       if(!server_.do_sync && !do_sync && (write_msgs_.front()->data[0]==MSGTYPE_PUT || write_msgs_.front()->data[0]==MSGTYPE_DBP)){
+//FIXME, do not add messages that are in last block
         if(svid_msid_new[write_msgs_.front()->svid]<write_msgs_.front()->msid){
           svid_msid_new[write_msgs_.front()->svid]=write_msgs_.front()->msid; // maybe a lock on svid_msid_new would help
           fprintf(stderr,"UPDATE PEER SVID_MSID: %d:%d\n",write_msgs_.front()->svid,write_msgs_.front()->msid);}}

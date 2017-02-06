@@ -135,7 +135,8 @@ public:
 		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
 			bzero(it->hash,SHA256_DIGEST_LENGTH);
-			bzero(it->msha,SHA256_DIGEST_LENGTH);
+			memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+			memcpy(it->msha,&num,2); // always start with a unique hash
 			it->msid=0;
 			it->mtim=now;
 			it->status=0;
@@ -162,12 +163,14 @@ public:
 	}
 
 	uint16_t add_node(user_t& ou,uint32_t uid)
-	{	node nn;
+	{	uint16_t peer=nodes.size();
+		node nn;
 		nn.mtim=now;
 		nn.users=1;
 		memcpy(nn.pk,ou.pkey,32);
+		memset(nn.msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+		memcpy(nn.msha,&peer,2); // always start with a unique hash
 	 	nodes.push_back(nn);
-		uint16_t peer=nodes.size()-1;
 		user_t nu;
 		init_user(nu,peer,0,0,ou.pkey,now);
 		nu.node=peer;
@@ -190,7 +193,6 @@ public:
 		nodes[peer].mtim=now;
 	}
 
-	//FIXME, must use txs time to create users
 	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when)
 	{	memset(&u,0,sizeof(user_t));
 		memset(u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too

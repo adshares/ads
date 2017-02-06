@@ -145,6 +145,14 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           std::cerr<<"PKEY differs\n";}
         sts.msid=myuser.msid;
         memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+    if(txs->ttype==TXSTYPE_INF){
+      len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+      if(len!=sizeof(user_t)){
+        std::cerr<<"ERROR reading info\n";}
+      else{
+        user_t myuser;
+        memcpy(&myuser,buf,sizeof(user_t));
+        print_user(myuser);}}
     if(txs->ttype==TXSTYPE_LOG){
       int len;
       if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){

@@ -69,7 +69,7 @@ public:
       std::cerr<<"ERROR: read type failed\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if(!offi_.get_user(usera,utxs.abank,utxs.auser)){
+    if(!offi_.get_user(usera,utxs.abank,utxs.auser,false)){
       std::cerr<<"ERROR: read user failed\n";
       offi_.unlock_user(utxs.auser);
       return;}
@@ -103,16 +103,22 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       std::cerr<<"SENDING user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+      user_t userb;
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
-        user_t userb;
-        if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
-          std::cerr<<"FAILED to get user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+        if(!offi_.get_user(userb,utxs.bbank,utxs.buser,false)){
+          std::cerr<<"FAILED to get local user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
           offi_.unlock_user(utxs.auser);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       else{
         boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));}
+      if(!offi_.get_user(userb,utxs.bbank,utxs.buser,true)){
+        std::cerr<<"FAILED to get global user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
       //consider sending aditional optional info
+      //send also info from network
       offi_.unlock_user(utxs.auser);
       //offi_.purge_log(...);
       return;}
@@ -211,7 +217,7 @@ public:
         offi_.unlock_user(utxs.auser);
         offi_.add_account((hash_s*)usera.pkey,nuser); //blacklist
         user_t userb;
-        offi_.get_user(userb,utxs.bbank,nuser); // send userb
+        offi_.get_user(userb,utxs.bbank,nuser,false); // send userb
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
         return;}}
     else if(*txstype==TXSTYPE_BNK){ // we will get a confirmation from the network
