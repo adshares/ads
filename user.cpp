@@ -121,7 +121,7 @@ void print_log(log_t* log,int len)
   if(len%sizeof(log_t)){
     std::cerr<<"ERROR, bad log allignment, viewer not yet implemanted, hex-view usr.log to investigate\n";}
   for(log_t* end=log+len/sizeof(log_t);log<end;log++){
-    fprintf(stdout,"%08X %04X %04X %08X %08X %08X %08X %016lX\n",
+    fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX\n",
       log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}
 }
 

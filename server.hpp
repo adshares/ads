@@ -26,6 +26,8 @@ public:
     mklogdir(opts_.svid);
     mklogfile(opts_.svid,0);
     uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
+    uint32_t lastpath=path;
+    fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
     last_srvs_.get(path);
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
@@ -35,7 +37,8 @@ public:
     if(!last_srvs_.find_key(pkey,skey)){
       char pktext[2*32+1]; pktext[2*32]='\0';
       ed25519_key2text(pktext,pkey,32);
-      std::cerr << "ERROR: failed to find secret key for key:\n"<<pktext<<"\n";
+      //std::cerr << "ERROR: failed to find secret key for key:\n"<<pktext<<"\n";
+      fprintf(stderr,"ERROR: failed to find secret key for key:\n%.16s\n",pktext);
       exit(-1);}
     //TODO, check vok and vno, if bad, inform user and suggest an older starting point
 
@@ -86,9 +89,7 @@ public:
       svid_msgs_.clear();}
     //load old messages or check/modify
 
-    //should recycle old messages
-//FIXME, check is my global msid < local msid (in file), if yes, look for messages and resubmit
-
+    recyclemsid(lastpath+BLOCKSEC);
     writemsid(); // synced to new position
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept(); // should consider sending a 'hallo world' message
@@ -106,6 +107,42 @@ public:
 
     clock_thread->interrupt();
     clock_thread->join();
+  }
+
+  void recyclemsid(uint32_t lastpath)
+  { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
+    if(firstmsid>msid_){
+      std::cerr<<"WARNING increase msid\n";
+      msid_=firstmsid;
+      return;}
+    if(firstmsid==msid_){
+      std::cerr<<"NO recycle needed\n";
+      return;}
+    std::cerr<<"START recycle\n";
+    firstmsid++;
+    for(uint32_t lastmsid=firstmsid;lastmsid<=msid_;lastmsid++){
+//FIXME, must sign this message again if message too old !!!
+      message_ptr msg(new message(MSGTYPE_TXS,lastpath,opts_.svid,lastmsid,pkey)); //load from file
+      if(msg->status!=MSGSTAT_DAT){
+        fprintf(stderr,"ERROR, failed to read message %08X/%02x_%04x_%08x.txt\n",
+          lastpath,MSGTYPE_TXS,opts_.svid,lastmsid);
+        msid_=lastmsid;
+        return;}
+      fprintf(stderr,"RECYCLED message %04X:%08X from %08X/\n",opts_.svid,lastmsid,lastpath);
+      if(!txs_insert(msg)){ // will save message in new path if paths differ
+        //FIXME, this sometimes happens !!!
+        std::cerr << "FATAL message insert error for own message, dying !!!\n";
+        exit(-1);}}
+    std::cerr<<"FINISH recycle (remove old files)\n";
+    if(srvs_.now!=lastpath){
+      message_ptr msg(new message());
+      msg->path=lastpath;
+      msg->hashtype(MSGTYPE_TXS);
+      msg->svid=opts_.svid;
+      for(;firstmsid<=msid_;firstmsid++){
+        msg->msid=firstmsid;
+        fprintf(stderr,"REMOVING message %04X:%08X from %08X/\n",msg->svid,msg->msid,lastpath);
+        msg->remove();}}
   }
 
   void mklogdir(uint16_t svid)
@@ -132,7 +169,7 @@ public:
   int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
   { log_t log;
     assert(!(4096%sizeof(log_t)));
-    int size=lseek(fd,0,SEEK_END); // maybe stat would be faster
+    int r,size=lseek(fd,0,SEEK_END); // maybe stat would be faster
     if(size%sizeof(log_t)){
       std::cerr<<"ERROR, log corrupt register\n";
       return(-2);}
@@ -145,16 +182,18 @@ public:
         unlock_user(user);
         std::cerr<<"ERROR, log lseek error\n";
         return(-1);}
-      if(read(fd,&log,sizeof(log_t))!=sizeof(log_t)){
+      if((r=read(fd,&log,sizeof(log_t)))!=sizeof(log_t)){
         unlock_user(user);
-        std::cerr<<"ERROR, log read error\n";
+        //std::cerr<<"ERROR, log read error\n";
+        fprintf(stderr,"ERROR, log read error (%d,%s)\n",r,strerror(errno));
         return(-1);}
       if(log.time+MAX_LOG_AGE>=srvs_.now){ // purge first block
         unlock_user(user);
         return(0);}
-      if(fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096)<0){
+      if((r=fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096))<0){
         unlock_user(user);
-        std::cerr<<"ERROR, log purge failed\n";
+        //std::cerr<<"ERROR, log purge failed\n";
+        fprintf(stderr,"ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
         return(-1);}}
     unlock_user(user);
     return(0);
@@ -244,7 +283,7 @@ public:
     if(from==0xffffffff){
       fix_log(svid,user);}
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int fd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    int fd=open(filename,O_RDWR|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(fd<0){
       std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
       return(false);}
@@ -288,14 +327,16 @@ public:
         if(ud>=0){
           u.msid=0;
           if(sizeof(user_t)==read(ud,&u,sizeof(user_t)) && u.msid){
-            std::cerr<<"OVERWRITE: "<<bank<<":"<<user<<" ("<<u.weight<<")\n";
+            //std::cerr<<"OVERWRITE: "<<bank<<":"<<user<<" ("<<u.weight<<")\n";
+            fprintf(stderr,"OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
         if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
           close(fd);
           if(ud>=0){
             close(ud);}
-          std::cerr << "ERROR loading bank "<<bank<<" (bad read)\n";
+          //std::cerr << "ERROR loading bank "<<bank<<" (bad read)\n";
+          fprintf(stderr,"ERROR loading bank %04X (bad read)\n",bank);
           return(0);}
         NEXTUSER:;
         weight+=u.weight;
@@ -304,12 +345,15 @@ public:
       if(ud>=0){
         close(ud);}
       if(last_srvs_.nodes[bank].weight!=weight){
-        std::cerr << "ERROR loading bank "<<bank<<" (bad sum:"<<last_srvs_.nodes[bank].weight<<"<>"<<weight<<")\n";
+        //std::cerr << "ERROR loading bank "<<bank<<" (bad sum:"<<last_srvs_.nodes[bank].weight<<"<>"<<weight<<")\n";
+        fprintf(stderr,"ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
+          bank,last_srvs_.nodes[bank].weight,weight);
         return(0);}
       uint8_t hash[32];
       SHA256_Final(hash,&sha256);
       if(memcmp(last_srvs_.nodes[bank].hash,hash,32)){
-        std::cerr << "ERROR loading bank "<<bank<<" (bad hash)\n";
+        //std::cerr << "ERROR loading bank "<<bank<<" (bad hash)\n";
+        fprintf(stderr,"ERROR loading bank %04X (bad hash)\n",bank);
         return(0);}
       if(ud>=0){
         unlink(filename);}}
@@ -336,7 +380,8 @@ public:
       fillknown(put_msg);
       uint16_t peer=put_msg->request();
       if(peer){
-        std::cerr << "REQUESTING USR "<<bank<<" from "<<peer<<"\n";
+        //std::cerr << "REQUESTING USR "<<bank<<" from "<<peer<<"\n";
+        fprintf(stderr,"REQUESTING BANK %04X from %04X\n",bank,peer);
         deliver(put_msg,peer);}}
     while(missing_msgs_.size()){
       //do new requests here
@@ -377,13 +422,28 @@ public:
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
     for(auto block=headers.begin();srvs_.now<now;){
+      peer_.lock();
       if(block==headers.end()){ // wait for peers to load more blocks
-        std::cerr<<"WAITING for headers "<<block->now<<"\n";
-        boost::this_thread::sleep(boost::posix_time::seconds(2));
+        servers& peer_ls=headers.back();
+        peer_.unlock();
+	if(block!=headers.begin()){
+          //std::cerr<<"WAITING for headers "<<block->now<<", maybe need more peers\n";
+          //fprintf(stderr,"WAITING for headers %08X, maybe need more peers\n",headers.rbegin()->now+BLOCKSEC);
+          fprintf(stderr,"WAITING for headers %08X, maybe need more peers\n",peer_ls.now+BLOCKSEC);
+          get_more_headers(peer_ls.now+BLOCKSEC,peer_ls.nowhash);}
+        peer_.lock();
+        if(block==headers.end()){ // wait for peers to load more blocks
+          peer_.unlock();
+          boost::this_thread::sleep(boost::posix_time::seconds(2));}
+	else{
+          peer_.unlock();}
         continue;}
-      std::cerr<<"START syncing header "<<block->now<<"\n";
+      peer_.unlock();
+      //std::cerr<<"START syncing header "<<block->now<<"\n";
+      fprintf(stderr,"START syncing header %08X\n",block->now);
       if(srvs_.now!=block->now){
-        std::cerr<<"ERROR, got strange block numbers "<<srvs_.now<<"<>"<<block->now<<"\n";
+        //std::cerr<<"ERROR, got strange block numbers "<<srvs_.now<<"<>"<<block->now<<"\n";
+        fprintf(stderr,"ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
         exit(-1);} //FIXME, prevent this
       //srvs_.blockdir();
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
@@ -404,7 +464,8 @@ public:
             fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
             uint16_t svid=put_msg->request();
             if(svid){
-              std::cerr << "REQUESTING TXL from "<<svid<<"\n";
+              //std::cerr << "REQUESTING TXL from "<<svid<<"\n";
+              fprintf(stderr,"REQUESTING TXL from %04X\n",svid);
               deliver(put_msg,svid);}}
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
         srvs_.txs=block->txs; //check
@@ -444,19 +505,24 @@ public:
 	if(jt->second->load()){
           if(!jt->second->sigh_check(jt->second->data+4)){
             jt->second->read_head(); //to get 'now'
-            std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database ("<<jt->second->path<<")\n";
+            //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database ("<<jt->second->path<<")\n";
+            fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
+              jt->second->svid,jt->second->msid,jt->second->path);
             check_.lock();
             check_msgs_.push_back(jt->second); // send to validator
             check_.unlock();
             missing_msgs_erase(jt->second);}
           else{
-            std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
+            //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
+            fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X failed\n",
+              jt->second->svid,jt->second->msid,jt->second->path);
             jt->second->len=message::header_length;}
           continue;} // assume no lock needed
 	fillknown(jt->second);
 	uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
         if(svid){
-          std::cerr << "REQUESTING TXS from "<<svid<<"\n";
+          //std::cerr << "REQUESTING TXS from "<<svid<<"\n";
+          fprintf(stderr,"REQUESTING TXS from %04X\n",svid);
           deliver(jt->second,svid);}
         missing_.lock();}
       missing_.unlock();
@@ -468,7 +534,7 @@ public:
 	blk_.lock();}
       blk_.unlock();
       std::cerr << "COMMIT deposits\n";
-      //FIXME, add block transactions
+      commit_block(update); // process bkn and get transactions
       commit_deposit(update);
       std::cerr << "UPDATE accounts\n";
       for(auto it=update.begin();it!=update.end();it++){
@@ -478,7 +544,8 @@ public:
       //finish block
       srvs_.finish(); //FIXME, add locking
       if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
-        std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
+        //std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
+        fprintf(stderr,"ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
         exit(-1);}
       last_srvs_=srvs_; // consider not making copies of nodes
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
@@ -486,7 +553,9 @@ public:
       srvs_.blockdir();
       now=time(NULL);
       now-=now%BLOCKSEC;
-      block++;}
+      peer_.lock();
+      block++;
+      peer_.unlock();}
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     txs_.lock();
@@ -573,19 +642,6 @@ public:
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
   }
 
-  void join(peer_ptr participant);
-  void leave(peer_ptr participant);
-  int duplicate(peer_ptr participant);
-  void deliver(message_ptr msg);
-  void deliver(message_ptr msg,uint16_t svid);
-  void update(message_ptr msg);
-  void svid_msid_rollback(message_ptr msg);
-  void start_accept();
-  void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
-  void connect(std::string peer_address);
-  void fillknown(message_ptr msg);
-
-  //FIXME, move this to servers.hpp
   uint32_t readmsid()
   { if(opts_.init){
       msid_=0;
@@ -632,7 +688,7 @@ public:
       fprintf(stderr,"SHASH: %d:%d %.*s\n",(int)(it->first),(int)(it->second->msid),2*SHA256_DIGEST_LENGTH,sigh);
       // do not hash messages from ds_server
       SHA256_Update(&sha256,it->second->sigh,4*sizeof(uint64_t));}
-    SHA256_Final(mhash, &sha256);							std::cerr << "message_shash\n";
+    SHA256_Final(mhash, &sha256); // std::cerr << "message_shash\n";
   }
 
   void count_votes(uint32_t now,hash_s& cand) // cand_.locked()
@@ -658,8 +714,10 @@ public:
     if(do_block<2 && (
         (num1->score>(num2!=NULL?num2->score:0)+(votes_max-votes_counted))||
         (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
-      float x=(num2!=NULL?num2->score:0);
-      std::cerr << "BLOCK elected: " << num1->score << " second:" << x << " max:" << votes_max << " counted:" << votes_counted << "\n";
+      uint64_t x=(num2!=NULL?num2->score:0);
+      //std::cerr << "BLOCK elected: " << num1->score << " second:" << x << " max:" << votes_max << " counted:" << votes_counted << "\n";
+      fprintf(stderr,"BLOCK ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
+        num1->score,x,votes_max,votes_counted);
       do_block=2;
       winner=num1;
       if(winner->failed_peer){
@@ -690,22 +748,25 @@ public:
     for(auto it=last_svid_msgs.begin();it!=last_svid_msgs.end();++it){
       if(srvs_.nodes[it->second->svid].status & SERVER_DBL){
         continue;}
-      std::cerr << "ELECTOR accepted : " << it->second->svid << "(" << it->second->msid << ")\n";
+      //std::cerr << "ELECTOR accepted : " << it->second->svid << "(" << it->second->msid << ")\n";
+      fprintf(stderr,"ELECTOR accepted:%04X msid:%08X\n",it->second->svid,it->second->msid);
       svid_rank.push_back(it->second->svid);}
     if(!svid_rank.size()){
       std::cerr << "ERROR, no valid server for this block :-(, TODO create own block\n";}
     else{
-      std::cerr << "SORT \n";
+      //std::cerr << "SORT \n";
       std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
     for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      std::cerr << "ELECTOR[" << svid_rank[j] << "]=" << srvs_.nodes[svid_rank[j]].weight << "\n";
+      //std::cerr << "ELECTOR[" << svid_rank[j] << "]=" << srvs_.nodes[svid_rank[j]].weight << "\n";
+      fprintf(stderr,"ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
       electors[svid_rank[j]]=srvs_.nodes[svid_rank[j]].weight;
       votes_max+=srvs_.nodes[svid_rank[j]].weight;}
     winner=NULL;
-    std::cerr << "ELECTOR max:" << votes_max << "\n";
+    //std::cerr << "ELECTOR max:" << votes_max << "\n";
+    fprintf(stderr,"ELECTOR max:%016lX\n",votes_max);
     cand_.unlock();
   }
 
@@ -1074,7 +1135,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     msg->status=MSGSTAT_VAL; // all can vote
     cand_.lock();
     if(electors.find(msg->svid)==electors.end()){ //FIXME, electors should have assigned rank when building poll
-      std::cerr << "BAD ELECTOR "<< msg->svid <<" :-( \n";
+      //std::cerr << "BAD ELECTOR "<< msg->svid <<" :-( \n";
+      fprintf(stderr,"BAD ELECTOR %04X\n",msg->svid);
       cand_.unlock();
       return;}
     if(!electors[msg->svid]){
@@ -1088,7 +1150,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       cand_.unlock();
       return;}
     it->second->score+=electors[msg->svid]; // update sum of weighted votes
-    std::cerr << "CANDIDATE score: "<< it->second->score <<"(+"<< electors[msg->svid] <<")\n";
+    //std::cerr << "CANDIDATE score: "<< it->second->score <<"(+"<< electors[msg->svid] <<")\n";
+    fprintf(stderr,"CANDIDATE score:%016lX (added:%016lX)\n",it->second->score,electors[msg->svid]);
     electors[msg->svid]=0;
     cand_.unlock();
   }
@@ -1117,6 +1180,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(last_srvs_.vno>vip_max/2){
       std::cerr << "BAD BLOCK consensus :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
       exit(-1);}
+    if(no){
+      fprintf(stderr,"\n\nBLOCK differs, disconnect!\n\n\n\n");
+      disconnect(msg->svid);}
   }
 
   void validator(void)
@@ -1143,14 +1209,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	  uint16_t svid=(*re)->request();
           if(svid){
             fprintf(stderr,"HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
-            std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<(*re)->svid<<":"<<(*re)->msid<<")\n";
+            //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<(*re)->svid<<":"<<(*re)->msid<<")\n";
+            fprintf(stderr,"REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
             deliver((*re),svid);}}
         //checking waiting messages
         tmp_msgs_.clear();
         wait_.lock();
 	for(auto wa=wait_msgs_.begin();wa!=wait_msgs_.end();){
           if((*wa)->now<srvs_.now+BLOCKSEC && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
-            std::cerr << "QUEUING MESSAGE "<<(*wa)->svid<<":"<<(*wa)->msid<<"\n";
+            //std::cerr << "QUEUING MESSAGE "<<(*wa)->svid<<":"<<(*wa)->msid<<"\n";
+            fprintf(stderr,"QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
             tmp_msgs_.push_back(*wa);
             wa=wait_msgs_.erase(wa);}
           else{
@@ -1171,17 +1239,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           continue;} // no update
         //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid)
         if(srvs_.nodes[msg->svid].msid>=msg->msid){
-          std::cerr <<"WARNING ignoring validation of old message "<<msg->svid<<":"<<msg->msid<<"<="<<srvs_.nodes[msg->svid].msid<<"\n";
+          //std::cerr <<"WARNING ignoring validation of old message "<<msg->svid<<":"<<msg->msid<<"<="<<srvs_.nodes[msg->svid].msid<<"\n";
+          fprintf(stderr,"WARNING ignoring validation of old message %04X:%08X (<=%08X)\n",
+            msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
           continue;}
 	if(srvs_.nodes[msg->svid].msid!=msg->msid-1){ //assume only 1 validator per bank
-          std::cerr <<"WARNING postponing validation of future message "<<msg->svid<<":"<<msg->msid<<"!="<<srvs_.nodes[msg->svid].msid<<"+1\n";
+          //std::cerr <<"WARNING postponing validation of future message "<<msg->svid<<":"<<msg->msid<<"!="<<srvs_.nodes[msg->svid].msid<<"+1\n";
+          fprintf(stderr,"WARNING postponing validation of future message %04X:%08X (!=%08X+1)\n",
+            msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
           wait_.lock();
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
         bool valid=process_message(msg); //maybe ERROR should be also returned.
         if(valid){
-          msg->print_text(";VALID");
+          msg->print_text("VALID");
           msg->status=MSGSTAT_VAL;
           svid_.lock();
           node* nod=&srvs_.nodes[msg->svid];
@@ -1195,7 +1267,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr<<"ERROR, have invalid message !!!\n";
           exit(-1);}
         if(!do_sync){
-          //simulate delay
+          //simulate delay, FIXME, remove after sync tests
+          fprintf(stderr,"SLEEP 5s after validation\n");
           boost::this_thread::sleep(boost::posix_time::seconds(5.0*((float)random()/(float)RAND_MAX)));
           if(valid){
             update_candidates(msg);
@@ -1280,6 +1353,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::set<uint64_t> txs_get; //set lock / withdraw
     //TODO, load message from file
     bool old_bky=false;
+    //bool old_usr=false;
     while(p<(char*)msg->data+msg->len){
       //char txstype=*p;
       usertxs utxs;
@@ -1287,6 +1361,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(*p==TXSTYPE_PUT){
         utxs.parse(p);
         if(utxs.abank!=utxs.bbank){
+          fprintf(stderr,"WARNING undoing put\n");
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=utxs.buser; //assume big endian
           to.small[1]=utxs.bbank; //assume big endian
@@ -1298,12 +1373,23 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
         txs_get.insert(ppi);
 	p+=utxs.size;
+        fprintf(stderr,"WARNING undoing get\n");
 	continue;}
+      //this is added to undo file
+      /*if(*p==TXSTYPE_USR && old_usr==false){ //reverse bank key change
+        utxs.parse(p);
+	uint32_t luser=utxs.nuser(p);
+	if(luser>last_srvs_.nodes[msg->svid].users){
+          srvs_.nodes[msg->svid].users=luser;
+          old_usr=true;
+          fprintf(stderr,"WARNING undoing new user addition (users:%08X)\n",luser);}
+	p+=utxs.size;
+	continue;}*/
       if(*p==TXSTYPE_BKY && old_bky==false){ //reverse bank key change
         old_bky=true;
         memcpy(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32);
         if(msg->svid==opts_.svid){
-          fprintf(stderr,"WARNING undoing local bank key change \n");}}
+          fprintf(stderr,"WARNING undoing local bank key change\n");}}
       p+=utxs.get_size(p);}
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     blk_.lock();
@@ -1320,17 +1406,24 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint32_t,user_t> undo;
     uint32_t users=msg->load_undo(undo);
     //this could be a srvs_.function()
+    fprintf(stderr,"UNDO USERS:%08X\n",users);
     if(users){
+      if(srvs_.nodes[msg->svid].users!=users){
+        fprintf(stderr,"WARNING undoing user additions (users back to:%08X)\n",users);}
       srvs_.nodes[msg->svid].users=users;}
     char filename[64];
     sprintf(filename,"usr/%04X.dat",msg->svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
     if(fd<0){
-      std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      //std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",msg->svid);
       exit(-1);}
     for(auto it=undo.begin();it!=undo.end();it++){
+      user_t& u=it->second;
+      fprintf(stderr,"UNDO:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+        msg->svid,it->first,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
       lseek(fd,it->first*sizeof(user_t),SEEK_SET);
-      write(fd,&it->second,sizeof(uint64_t));}
+      write(fd,&it->second,sizeof(user_t));}
     close(fd);
     return(true);
   }
@@ -1341,7 +1434,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     sprintf(filename,"usr/%04X.dat",msg->svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
     if(fd<0){
-      std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      //std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
+      fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",msg->svid);
       exit(-1);}
     //sprintf(filename,"%08X/und/%04X.dat",srvs_.now,msg->svid);
     //int ud=open(filename,O_WRONLY|O_CREAT,0644);
@@ -1359,6 +1453,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint64_t,std::vector<get_t>> txs_get; //set lock / withdraw
     //std::map<uint64_t,std::vector<uint32_t>> txs_put; //cancel lock
     uint32_t users=srvs_.nodes[msg->svid].users;
+    uint32_t ousers=users;
     uint32_t lpath=srvs_.now;
     uint32_t now=time(NULL); //needed for the log
     hash_t new_bky;
@@ -1380,7 +1475,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         return(false);}
       utxs.print_head();
       if(*p==TXSTYPE_CON){
-        std::cerr<<"INFO: parsed CON transaction\n";
+        //std::cerr<<"INFO: parsed CON transaction\n";
         p+=utxs.size;
         continue;}
       if(*p>=TXSTYPE_INF){
@@ -1405,7 +1500,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	luser=utxs.nuser(p);
         char* npkey=utxs.npkey(p);
         if(luser>users){
-          std::cerr<<"ERROR: bad target user id "<<luser<<"\n";
+          //std::cerr<<"ERROR: bad target user id "<<luser<<"\n";
+          fprintf(stderr,"ERROR: bad target user id %08X\n",luser);
           return(false);}
 	if(luser<users){ //1. check if overwriting was legal
           auto lu=changes.find(luser); // get user
@@ -1413,14 +1509,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             user_t u;
             lseek(fd,luser*sizeof(user_t),SEEK_SET);
             read(fd,&u,sizeof(user_t));
-            //srvs_.save_undo(ud,utxs.abank,luser,u); //save to undo file
             changes[luser]=u;
             undo[luser]=u;
             usera=&changes[luser];}
           else{
             usera=&lu->second;}
           if(usera->weight-TIME_FEE(lpath,usera->lpath)>=0){
-            std::cerr<<"ERROR: illegal overwriting of account "<<utxs.bbank<<":"<<luser<<"\n";
+            //std::cerr<<"ERROR: illegal overwriting of account "<<utxs.bbank<<":"<<luser<<"\n";
+            fprintf(stderr,"WARNING, overwriting account %04X:%08X [weight:%016lX fee:%08X]\n",
+              utxs.bbank,luser,usera->weight,TIME_FEE(lpath,usera->lpath));
+            //fprintf(stderr,"ERROR: illegal overwriting of account %04X:%08X\n",utxs.bbank,luser);
             return(false);}}
         else{ //TODO, consider locking
           user_t u;
@@ -1449,14 +1547,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           p+=utxs.size;
           continue;}}
       if(utxs.auser>=users){
-        std::cerr<<"ERROR, bad userid "<<utxs.abank<<":"<<utxs.auser<<"\n";
+        //std::cerr<<"ERROR, bad userid "<<utxs.abank<<":"<<utxs.auser<<"\n";
+        fprintf(stderr,"ERROR, bad userid %04X:%08X\n",utxs.abank,utxs.auser);
         return(false);}
       auto au=changes.find(utxs.auser); // get user
       if(au==changes.end()){
         user_t u;
         lseek(fd,utxs.auser*sizeof(user_t),SEEK_SET);
         read(fd,&u,sizeof(user_t));
-        //srvs_.save_undo(ud,utxs.abank,utxs.auser,u); //save to undo file
         changes[utxs.auser]=u;
         undo[utxs.auser]=u;
         usera=&changes[utxs.auser];}
@@ -1469,7 +1567,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         std::cerr<<"ERROR: bad signature\n";
         return(false);}
       if(usera->msid!=utxs.amsid){
-        std::cerr<<"ERROR: bad msid ("<<usera->msid<<"<>"<<utxs.amsid<<")\n";
+        //std::cerr<<"ERROR: bad msid ("<<usera->msid<<"<>"<<utxs.amsid<<")\n";
+        fprintf(stderr,"ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
         return(false);}
       //if(usera->time>utxs.ttime){ //does not work because of _GET
       //  std::cerr<<"ERROR: bad transaction time ("<<usera->time<<">"<<utxs.ttime<<")\n";
@@ -1499,7 +1598,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser))
         if(!srvs_.check_user(utxs.bbank,utxs.buser)){
           // does not check if account closed [consider adding this slow check]
-          std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+          //std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+          fprintf(stderr,"ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
           return(false);}
         if(utxs.abank==utxs.bbank){
           local_deposit[utxs.buser]+=utxs.tmass;}
@@ -1520,7 +1620,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         fee=TXS_BNK_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
-          std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
+          //std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
+          fprintf(stderr,"ERROR: bad bank %04X, use PUT\n",utxs.bbank);
           return(false);}
         uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
         get_t get;
@@ -1534,7 +1635,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         fee=TXS_KEY_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
-          std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
+          //std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
+          fprintf(stderr,"ERROR: bad user %04X for this bank changes\n",utxs.auser);
           return(false);}
         if(memcmp(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32)){
           std::cerr<<"ERROR: bad current key\n";
@@ -1551,7 +1653,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         assert(0); //TODO, not implemented
         fee=TXS_STP_FEE*TIME_FEE(lpath,usera->lpath);}
       if(deduct+fee+MIN_MASS>usera->weight){
-        std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera->weight<<")\n";
+        //std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera->weight<<")\n";
+        fprintf(stderr,"ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+          deduct,fee,(uint64_t)MIN_MASS,usera->weight);
         return(false);}
       /* save log , only opts_.svid logging supported */
       uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
@@ -1613,7 +1717,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //if(it->first>=srvs_.nodes[msg->svid].users){ //create new user
         //  user_t u;
         //  memset(&u,0,sizeof(user_t));
-        //  //srvs_.save_undo(ud,msg->svid,it->first,u); //save empty user in undo
         //  put_user(jt->second,msg->svid,it->first);} //will update node users
         //else{
         lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
@@ -1628,8 +1731,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //close(ud);
     close(fd);
     //save undo files
-    msg->save_undo(undo,users); //message
-    srvs_.save_undo(msg->svid,undo,users); //databank, will change srvs_.nodes[msg->svid].users
+    msg->save_undo(undo,ousers); //message
+    srvs_.save_undo(msg->svid,undo,ousers); //databank, will change srvs_.nodes[msg->svid].users
     //commit remote deposits
     //check for maximum deposits.size(), if too large, save old deposits and work on new ones;
     deposit_.lock();
@@ -1659,7 +1762,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     sprintf(filename,"usr/%04X.dat",svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
-      std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+      //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+      fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
       exit(-1);}
     return(fd);
     //sprintf(filename,"%08X/und/%04X.dat",srvs_.now,svid);
@@ -1808,16 +1912,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         sprintf(filename,"usr/%04X.dat",svid);
         fd=open(filename,O_RDWR,0644);
         if(fd<0){
-          std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+          //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
+          fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
           exit(-1);}
         sprintf(filename,"%08X/und/%04X.dat",srvs_.now,svid);
         ud=open(filename,O_WRONLY|O_CREAT,0644);
         if(ud<0){
-          std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+          //std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+          fprintf(stderr,"ERROR, failed to open bank undo %04X, fatal\n",svid);
           exit(-1);}}
+//FIXME
+//FIXME, report to local bank !!!
+//FIXME
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
-      undo.emplace(user,u); //FIXME, emplace !!!
+      undo.emplace(user,u);
       u.weight+=it->second;
       lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
       write(fd,&u.weight,sizeof(uint64_t));}
@@ -1964,7 +2073,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     for(auto mj=txs_msgs_.begin();mj!=txs_msgs_.end();){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       auto mi=mj++;
       if(mi->second->path>0 && mi->second->path<srvs_.now){
-        std::cerr << "ERASE message " << mi->second->svid << ":" << mi->second->msid << "\n";
+        //std::cerr << "ERASE message " << mi->second->svid << ":" << mi->second->msid << "\n";
+        fprintf(stderr,"ERASE message %04X:%08X\n",mi->second->svid,mi->second->msid);
 	mi->second->remove_undo();
         txs_msgs_.erase(mi); // forget old messages
         continue;}
@@ -1981,7 +2091,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         fprintf(fp,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);}
       //if(nmsid==0xffffffff && mi->second->msid<0xffffffff)  // remove messages from dbl_spend server
       if(maxmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
-        std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later ! (DBL-spend server)\n";
+        //std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later ! (DBL-spend server)\n";
+        fprintf(stderr,"REMOVE message %04X:%08X later! (DBL-spend server)\n",nsvid,mi->second->msid);
         remove_msgs.push(mi->second);
         continue;}
       //if(mi->second->msid>nmsid)
@@ -1995,29 +2106,32 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             svid_msid_rollback(mi->second);}
           remove=true;}
         if(remove){
-          std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later !\n";
+          //std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later !\n";
+          fprintf(stderr,"REMOVE message %04X:%08X later!\n",nsvid,mi->second->msid);
           remove_msgs.push(mi->second);}
         else{
-          std::cerr << "MOVING message " << nsvid << ":" << mi->second->msid << " to next block\n";
           if(mi->second->status&MSGSTAT_VAL){
-            std::cerr << "INVALIDATE message " << nsvid << ":" << mi->second->msid << " later !\n";
+            fprintf(stderr,"INVALIDATE message %04X:%08X later!\n",nsvid,mi->second->msid);
             invalidate_msgs.push(mi->second);}
+          fprintf(stderr,"MOVING message %04X:%08X to %08X/\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
           mi->second->move(srvs_.now+BLOCKSEC);}}
       else{
         if(mi->second->len==message::header_length){
-          fprintf(stderr,"IGNOR: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+          ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
+          fprintf(stderr,"IGNOR: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
 //???, what about emsid ???
           continue;}
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
 	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          fprintf(stderr,"PATH?: %d %d %.16s %016lX (%016lX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
+          fprintf(stderr,"PATH?: %04X:%08X %.16s %016lX (%016lX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
         //if(nmsid!=0xffffffff && mi->second->msid!=emsid)
         if(maxmsid!=0xffffffff && mi->second->msid!=minmsid){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          fprintf(stderr,"?????: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+          fprintf(stderr,"?????: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
           //std::cerr << "ERROR, failed to read correct transaction order in block " << nsvid << ":" << mi->second->msid << "<>" << emsid << " (" << nmsid << ")\n";
-          std::cerr << "ERROR, failed to read correct transaction order in block " << nsvid << ":" << mi->second->msid << "<>" << minmsid << " (max:" << maxmsid << ")\n";
+          fprintf(stderr,"ERROR, failed to read correct transaction order in block %04x:%08X<>%08X (max:%08X)\n",
+            nsvid,mi->second->msid,minmsid,maxmsid);
           for(auto mx=txs_msgs_.begin();mx!=txs_msgs_.end();mx++){
             fprintf(stderr,"%016lX\n",mx->first);}
           exit(-1);}
@@ -2050,7 +2164,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         mi->status &= ~MSGSTAT_VAL;}
 //FIXME, make sure this message is not in other queue !!!
 //FIXME, remove from all places or mark as removed :-/
-      std::cerr << "REMOVING message " << mi->svid << ":" << mi->msid << "\n";
+      //std::cerr << "REMOVING message " << mi->svid << ":" << mi->msid << "\n";
+      fprintf(stderr,"REMOVING message %04X:%08X\n",mi->svid,mi->msid);
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
 //FIXME, update peers.svid_msid_new !!!
       remove_message(mi); //FIXME add this , must log message removal
@@ -2060,7 +2175,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       auto mi=invalidate_msgs.top();
       //std::cerr << "INVALIDATING message " << mi->svid << ":" << mi->msid << "\n";
       ed25519_key2text(hash,mi->sigh,sizeof(hash_t));
-      fprintf(stderr,"INVALIDATING %d %d %.16s %016lX\n",mi->svid,mi->msid,hash,mi->hash.num);
+      fprintf(stderr,"INVALIDATING %04X:%08X %.16s %016lX %08X/\n",mi->svid,mi->msid,hash,mi->hash.num,mi->path);
       undo_message(mi);
       mi->status &= ~MSGSTAT_VAL;
       //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
@@ -2069,7 +2184,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::set<uint16_t> update;
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       update.insert((*mi)->svid);
-      std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";}
+      //std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";
+      fprintf(stderr,"COMMITING message %04X:%08X\n",(*mi)->svid,(*mi)->msid);}
     commit_block(update); // process bkn and get transactions
     commit_deposit(update);
 //TODO, save current account status
@@ -2135,7 +2251,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   uint32_t write_message(std::string line) // assume single threaded
   { static boost::mutex mtx_;
-    mtx_.lock();
+    mtx_.lock(); //FIXME, probably no lock needed
     int msid=++msid_; // can be atomic
     mtx_.unlock();
     writemsid(); //FIXME we should save the message before updating the message counter
@@ -2209,7 +2325,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     hash_s cand;
     while(1){
       uint32_t now=time(NULL);
-      std::cerr << "CLOCK: " << ((long)(srvs_.now+BLOCKSEC)-(long)now) << "\n";
+      //std::cerr << "CLOCK: " << ((long)(srvs_.now+BLOCKSEC)-(long)now) << "\n";
+      fprintf(stderr,"CLOCK: %02lX\n",((long)(srvs_.now+BLOCKSEC)-(long)now));
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;
@@ -2310,6 +2427,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
 
+  void join(peer_ptr participant);
+  void leave(peer_ptr participant);
+  void disconnect(uint16_t svid);
+  int duplicate(peer_ptr participant);
+  void deliver(message_ptr msg);
+  void deliver(message_ptr msg,uint16_t svid);
+  void update(message_ptr msg);
+  void svid_msid_rollback(message_ptr msg);
+  void start_accept();
+  void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
+  void connect(std::string peer_address);
+  void fillknown(message_ptr msg);
+  void get_more_headers(uint32_t now,uint8_t* nowhash);
+
+  //FIXME, move this to servers.hpp
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
   std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
   //FIXME, use serv_.now instead

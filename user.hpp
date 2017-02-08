@@ -292,7 +292,7 @@ public:
 	//}
 
 	void print_head()
-	{	fprintf(stdout,"MSG: %1X %04X %08X %08X %08X %04X %08X %016lX (%d)\n",
+	{	fprintf(stdout,"MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
 			ttype,abank,auser,amsid,ttime,bbank,buser,tmass,size);
 	}
 

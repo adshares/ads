@@ -1,6 +1,7 @@
 #ifndef MAIN_HPP
 #define MAIN_HPP
 
+//#define _GNU_SOURCE
 #include <algorithm>
 #include <atomic>
 #include <boost/archive/text_iarchive.hpp>
@@ -21,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <fcntl.h>
 #include <forward_list>
 #include <fstream>
 #include <iostream>

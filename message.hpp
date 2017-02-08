@@ -139,10 +139,33 @@ public:
     hash.num=dohash(mysvid); //after hash_signature
   }
 
+  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk) :
+	len(header_length),
+	msid(mmsid),
+	path(mpath),
+	svid(msvid),
+	peer(msvid),
+	status(0)
+  { data=NULL;
+    hash.dat[1]=type;
+    if(!load()){
+      return;}
+    got=mpath; //TODO could be replaced with file creation time
+    assert(mmsid<=max_msid);
+    assert(len<=max_length);
+    assert(data!=NULL);
+    if(!check_signature(svpk,msvid)){
+      status=MSGSTAT_DAT;}
+  }
+
   ~message()
   { if(data!=NULL){
       free(data);
       data=NULL;}
+  }
+
+  void hashtype(uint8_t type)
+  { hash.dat[1]=type;
   }
 
   uint8_t hashtype(void)
@@ -389,7 +412,9 @@ public:
   }
 
   void print_text(const char* suffix) const
-  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,now,len-4-64-10);
+  { char hash[16];
+    ed25519_key2text((char*)hash,sigh,8);
+    fprintf(stderr,"%04X[%04X:%02X]now:%08X[l:%d] %.16s",peer,svid,msid&0xff,now,len-4-64-10,hash);
     if(len>4+64+10){
       if(data[4+64+10]==TXSTYPE_BRO){
         uint32_t mlen;
@@ -397,7 +422,7 @@ public:
         std::cout.write((char*)data+4+64+10+4,mlen);}
       if(data[4+64+10]==TXSTYPE_PUT){
         std::cout<<"SEND";}} //TODO, print more data
-    std::cout << " " << suffix << "/" << msid << "\n";
+    std::cout << " " << suffix << "\n";
   }
 
   void print(const char* suffix) const
@@ -493,6 +518,9 @@ public:
   { char filename[64];
     sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
+    if(fd<0){
+      fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
+      exit(-1);}
     for(;;){
       uint32_t i;
       user_t u;
@@ -508,13 +536,20 @@ public:
   int move(uint32_t nextpath) //TODO, consider locking
   { char oldname[64];
     char newname[64];
+    int r=-1;
     sprintf(oldname,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     sprintf(newname,"%08X/%02x_%04x_%08x.und",nextpath,(uint32_t)hashtype(),svid,msid);
-    rename(oldname,newname);
+    rename(oldname,newname); //does not exist before validation
+    //if(rename(oldname,newname)){
+    //  fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
+    //  exit(-1);} //FIXME, do not exit later
     sprintf(oldname,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
     sprintf(newname,"%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid);
+    if((r=rename(oldname,newname))){
+      fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
+      exit(-1);} //FIXME, do not exit later
     path=nextpath;
-    return(rename(oldname,newname));
+    return(r);
   }
 
   void remove_undo() //TODO, consider locking

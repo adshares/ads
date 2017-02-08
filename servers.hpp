@@ -212,7 +212,7 @@ public:
 	{	char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
 			exit(-1);}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		write(fd,&u,sizeof(user_t));
@@ -226,7 +226,7 @@ public:
 	{	char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
-		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
 			exit(-1);}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		read(fd,&u,sizeof(user_t));
@@ -266,7 +266,7 @@ public:
                 char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
-		if(!fd){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
 			exit(-1);}
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
@@ -362,7 +362,7 @@ public:
 	 	char filename[64];
 		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(!fd){ //trow or something :-)
+		if(fd<0){ //trow or something :-)
 			return;}
 		write(fd,txshash,SHA256_DIGEST_LENGTH);
 		for(auto it=map.begin();it!=map.end();it++){
@@ -375,7 +375,7 @@ public:
 	{	char filename[64];
 		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
 		int fd=open(filename,O_RDONLY);
-		if(!fd){
+		if(fd<0){
 			return(0);}
 		int len=read(fd,data,SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
 		close(fd);
@@ -587,14 +587,14 @@ public:
 		char filename[64];
 		sprintf(filename,"%08X/signatures.ok",path);
 		fd=open(filename,O_RDONLY);
-		if(fd){
+		if(fd>=0){
 			read(fd,data,sizeof(svsi_t)*nok);
 			//vok=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
 			//vok/=sizeof(svsi_t);
 			close(fd);}
 		sprintf(filename,"%08X/signatures.no",path);
 		fd=open(filename,O_RDONLY);
-		if(fd){
+		if(fd>=0){
 			read(fd,data+sizeof(svsi_t)*nok,sizeof(svsi_t)*nno);
 			//vno=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
 			//vno/=sizeof(svsi_t);
@@ -605,12 +605,12 @@ public:
 		char filename[64];
 		sprintf(filename,"%08X/signatures.ok",head.now);
 		fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(fd){
+		if(fd>=0){
 			write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
 			close(fd);}
 		sprintf(filename,"%08X/signatures.no",head.now);
 		fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(fd){
+		if(fd>=0){
 			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
 			close(fd);}
 	}
@@ -755,6 +755,8 @@ public:
 		mkdir(pathname,0755);
 		for(auto n=nodes.begin();n!=nodes.end();n++){
 			n->changed.resize(1+n->users/64);}
+		sprintf(pathname,"%08X",now+BLOCKSEC); // to make space for moved files
+		mkdir(pathname,0755);
 	}
 
 private:

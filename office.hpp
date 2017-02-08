@@ -20,7 +20,7 @@ public:
     fd(0),
     message_sent(0)
   { svid=opts_.svid,
-    users=srv_.last_srvs_.nodes[svid].users;
+    users=srv_.last_srvs_.nodes[svid].users; //FIXME !!! this maybe incorrect !!!
     memcpy(pkey,srv_.pkey,32);
     deposit.resize(users), // a buffer to enable easy resizing of the account vector
     std::cerr<<"OFFICE ("<<svid<<") open\n";
@@ -29,7 +29,7 @@ public:
     char filename[64];
     sprintf(filename,"ofi/%04X.dat",svid);
     fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
-    if(!fd){
+    if(fd<0){
       std::cerr<<"ERROR, failed to open office register\n";}
     msid=srv_.msid_;
 
@@ -116,7 +116,7 @@ public:
     char filename[64];
     sprintf(filename,"ofi/%04X.dat",svid);
     int nd=open(filename,O_RDONLY);
-    if(!nd){
+    if(nd<0){
       std::cerr<<"ERROR, failed to open office register\n";
       return(0);}
     if(lastnow!=now){
@@ -124,10 +124,14 @@ public:
       nuser=1;}
     else{
       nuser++;}
-    lseek(nd,nuser*sizeof(user_t),SEEK_SET); //skip first account
+    if(lseek(nd,nuser*sizeof(user_t),SEEK_SET)!=(int64_t)nuser*(int64_t)sizeof(user_t)){
+      fprintf(stderr,"ERROR seeking user %08X in office\n",nuser);
+      exit(-1);} //FIXME, do not exit
     for(;nuser<users;nuser++){ // try overwriting old dead account
-      read(nd,&nu,sizeof(user_t));
-      if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // try changing this account
+      if(read(nd,&nu,sizeof(user_t))!=sizeof(user_t) || !nu.msid){
+        fprintf(stderr,"ERROR reading user %08X (users:%08X) in office %s\n",nuser,users,filename);
+        exit(-1);} //FIXME, do not exit
+      if(now>nu.lpath+LOCK_TIME && nu.weight-TIME_FEE(now,nu.lpath)<0){ // try changing this account
 //FIXME, do not change accounts that are open for too short
       //if(nu.status & USER_CLOSED){ // try changing this account
         file_.lock();
@@ -138,7 +142,9 @@ public:
 //FIXME !!! (maybe create a slow 'account close' transaction)
         if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
 //FIXME, do not change accounts that are open for too short
-          std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
+          //std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
+          fprintf(stderr,"WARNING, overwriting account %08X [weight:%016lX fee:%08X]\n",
+            nuser,nu.weight,TIME_FEE(now,nu.lpath));
           //FIXME !!!  wrong time !!! must use time from txs
           srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
           //memset(&nu,0,sizeof(user_t));
