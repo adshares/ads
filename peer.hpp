@@ -108,7 +108,7 @@ public:
       put_msg->svid=msg->svid;
       put_msg->msid=msg->msid;
       put_msg->hash.num=put_msg->dohash(put_msg->data);
-      fprintf(stderr,"HASH update:%016lX [%016lX] (%04X) %04X:%08X\n",put_msg->hash.num,*((uint64_t*)put_msg->data),svid,msg->svid,msg->msid); // could be bad allignment
+      fprintf(stderr,"HASH %016lX [%016lX] (update:%04X) %04X:%08X\n",put_msg->hash.num,*((uint64_t*)put_msg->data),svid,msg->svid,msg->msid); // could be bad allignment
     if(BLOCK_MODE_SERVER){
       wait_msgs_.push_back(put_msg);
       mtx_.unlock();
@@ -243,7 +243,7 @@ public:
         server_.leave(shared_from_this());
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
-        fprintf(stderr,"HASH offered:%016lX [%016lX] (%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
+        fprintf(stderr,"HASH %016lX [%016lX] (from peer:%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
         if(read_msg_->data[0]==MSGTYPE_PUT){
           read_msg_->data[0]=MSGTYPE_GET;}
         if(read_msg_->data[0]==MSGTYPE_CNP){
@@ -268,7 +268,7 @@ public:
             read_msg_->busy_insert(svid);
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
-        fprintf(stderr,"HASH requested:%016lX [%016lX] (%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
+        fprintf(stderr,"HASH %016lX [%016lX] (requested by:%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
           if(read_msg_->load()){
@@ -294,7 +294,7 @@ public:
               else{
                 //std::cerr << "PROVIDING MESSAGE\n";
                 fprintf(stderr,"PROVIDING MESSAGE %04X:%08X\n",read_msg_->svid,read_msg_->msid);
-                msg->sent_insert(svid);
+                //msg->sent_insert(svid); // handle_write does this
                 deliver(msg);}} // must force deliver without checks
             else{ // no real message available
               //std::cerr << "BAD get request from " << std::to_string(svid) << "\n";
@@ -1275,7 +1275,7 @@ public:
       svid_miss[it->svid]=msha;
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,msha.sigh,SHA256_DIGEST_LENGTH);
-      fprintf(stderr,"PEER %04X:%08X->%08X %.*s\n",it->svid,it->msid,msha.msid,2*SHA256_DIGEST_LENGTH,hash);}
+      fprintf(stderr,"HREAD %04X:%08X->%08X %.*s\n",it->svid,it->msid,msha.msid,2*SHA256_DIGEST_LENGTH,hash);}
 
     //mpeer.reserve(svid_msid_peer_missing.size());
     bool failed=false;

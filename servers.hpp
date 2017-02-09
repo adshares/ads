@@ -682,7 +682,7 @@ public:
 		SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		for(i=0;i<peer_srvn;i++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %u %u %u %lu %u\n",
+			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&peer_node[i].pk[0]),(uint32_t)*((uint32_t*)&peer_node[i].hash[0]),(uint32_t)*((uint32_t*)&peer_node[i].msha[0]),
 				peer_node[i].msid,peer_node[i].mtim,peer_node[i].status,peer_node[i].weight,peer_node[i].users);
 			SHA256_Update(&sha256,peer_node[i].pk,sizeof(ed25519_public_key));

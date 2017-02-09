@@ -126,23 +126,25 @@ public:
       if(msg->status!=MSGSTAT_DAT){
         fprintf(stderr,"ERROR, failed to read message %08X/%02x_%04x_%08x.txt\n",
           lastpath,MSGTYPE_TXS,opts_.svid,lastmsid);
-        msid_=lastmsid;
+        msid_=lastmsid-1;
         return;}
-      fprintf(stderr,"RECYCLED message %04X:%08X from %08X/\n",opts_.svid,lastmsid,lastpath);
-      if(!txs_insert(msg)){ // will save message in new path if paths differ
-        //FIXME, this sometimes happens !!!
-        std::cerr << "FATAL message insert error for own message, dying !!!\n";
-        exit(-1);}}
-    std::cerr<<"FINISH recycle (remove old files)\n";
-    if(srvs_.now!=lastpath){
-      message_ptr msg(new message());
-      msg->path=lastpath;
-      msg->hashtype(MSGTYPE_TXS);
-      msg->svid=opts_.svid;
-      for(;firstmsid<=msid_;firstmsid++){
-        msg->msid=firstmsid;
-        fprintf(stderr,"REMOVING message %04X:%08X from %08X/\n",msg->svid,msg->msid,lastpath);
-        msg->remove();}}
+      if(txs_insert(msg)){
+        fprintf(stderr,"RECYCLED message %04X:%08X from %08X/ inserted\n",opts_.svid,lastmsid,lastpath);
+	if(srvs_.now!=lastpath){
+          fprintf(stderr,"MOVE message %04X:%08X from %08X/ to %08X/\n",opts_.svid,lastmsid,lastpath,srvs_.now);
+          msg->move(srvs_.now);}}
+      else{
+        fprintf(stderr,"RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);}}
+    //std::cerr<<"FINISH recycle (remove old files)\n";
+    //if(srvs_.now!=lastpath){
+    //  message_ptr msg(new message());
+    //  msg->path=lastpath;
+    //  msg->hashtype(MSGTYPE_TXS);
+    //  msg->svid=opts_.svid;
+    //  for(;firstmsid<=msid_;firstmsid++){
+    //    msg->msid=firstmsid;
+    //    fprintf(stderr,"REMOVING message %04X:%08X from %08X/\n",msg->svid,msg->msid,lastpath);
+    //    msg->remove();}}
   }
 
   void mklogdir(uint16_t svid)
@@ -1057,7 +1059,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int txs_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_TXS);
     txs_.lock(); // maybe no lock needed
-    fprintf(stderr,"HASH insert:%016lX (TXS)\n",msg->hash.num);
+    //fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d]\n",msg->hash.num,msg->len);
     std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.find(msg->hash.num);
     if(it!=txs_msgs_.end()){
       message_ptr osg=it->second;
@@ -1066,14 +1068,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
         if(do_sync && memcmp(osg->sigh,msg->sigh,SHA256_DIGEST_LENGTH)){
           txs_.unlock();
-          std::cerr << "ERROR, getting message with wrong signature hash\n";
+          fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] WRONG SIGNATURE HASH!\n",msg->hash.num,msg->len);
           return(0);}
         osg->update(msg);
         osg->path=srvs_.now;
         txs_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, change path
-          std::cerr << "ERROR, message save failed, abort server\n";
+          fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",msg->hash.num,msg->len);
           exit(-1);}
         // process double spend
         //if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
@@ -1088,44 +1090,50 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           if((++it)!=txs_msgs_.end()){
             nxt=it->second;}
           if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+            fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",msg->hash.num,msg->len);
             create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
             return(1);}
           if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+            fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",msg->hash.num,msg->len);
             create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
             return(1);}
           if(osg->now>=srvs_.now+BLOCKSEC){
+            fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] delay to %08X/ ???\n",msg->hash.num,msg->len,osg->now);
             wait_.lock();
             wait_msgs_.push_back(osg);
             wait_.unlock();
             return(1);}}//FIXME, process wait messages later
         // process ordinary messages
+        fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] queued\n",msg->hash.num,msg->len);
         check_.lock();
         check_msgs_.push_back(osg);
         check_.unlock();
         return(1);}
       else{ // update info about peer inventory
         txs_.unlock();
+        fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] ignored\n",msg->hash.num,msg->len);
         osg->know_insert(msg->peer);
         return(0);}} // RETURN, message known info
     else{
       if(msg->len==message::header_length){
         txs_msgs_[msg->hash.num]=msg;
         txs_.unlock();
+        fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] set as missing\n",msg->hash.num,msg->len);
         missing_msgs_insert(msg);
         return(1);}
       if(msg->svid==opts_.svid){ // own message
         txs_msgs_[msg->hash.num]=msg;
         msg->path=srvs_.now;
         txs_.unlock();
+        fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
         msg->save();
         check_.lock();
         check_msgs_.push_back(msg); // running though validator
         check_.unlock();
 	assert(msg->peer==msg->svid);
-        std::cerr << "DEBUG, storing own message\n";
         return(1);}
       txs_.unlock();
-      std::cerr << "ERROR, getting unexpected message\n";
+      fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] UNEXPECTED!\n",msg->hash.num,msg->len);
       return(-1);}
   }
 
@@ -1183,6 +1191,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(no){
       fprintf(stderr,"\n\nBLOCK differs, disconnect!\n\n\n\n");
       disconnect(msg->svid);}
+  }
+
+  void missing_sent_remove(uint16_t svid)
+  { missing_.lock();
+    for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
+      mi->second->sent.erase(svid);}
+    missing_.unlock();
   }
 
   void validator(void)
@@ -2086,7 +2101,12 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           minmsid=1;}
 	else{
           minmsid=last_srvs_.nodes[nsvid].msid+1;}
-        maxmsid=srvs_.nodes[nsvid].msid;
+        // maxmsid=srvs_.nodes[nsvid].msid; ERROR, must use last_block_svid_msgs
+	auto lbsm=last_block_svid_msgs.find(nsvid);
+        if(lbsm==last_block_svid_msgs.end()){
+          maxmsid=0;}
+        else{
+          maxmsid=lbsm->second->msid;}
         fprintf(stderr,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);
         fprintf(fp,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);}
       //if(nmsid==0xffffffff && mi->second->msid<0xffffffff)  // remove messages from dbl_spend server
@@ -2325,8 +2345,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     hash_s cand;
     while(1){
       uint32_t now=time(NULL);
-      //std::cerr << "CLOCK: " << ((long)(srvs_.now+BLOCKSEC)-(long)now) << "\n";
-      fprintf(stderr,"CLOCK: %02lX\n",((long)(srvs_.now+BLOCKSEC)-(long)now));
+      fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d)\n",
+        ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),(int)wait_msgs_.size());
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;
@@ -2432,7 +2452,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void disconnect(uint16_t svid);
   int duplicate(peer_ptr participant);
   void deliver(message_ptr msg);
-  void deliver(message_ptr msg,uint16_t svid);
+  int deliver(message_ptr msg,uint16_t svid);
   void update(message_ptr msg);
   void svid_msid_rollback(message_ptr msg);
   void start_accept();

@@ -139,23 +139,23 @@ public:
     hash.num=dohash(mysvid); //after hash_signature
   }
 
-  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk) :
+  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk) : //recycled message
 	len(header_length),
 	msid(mmsid),
 	path(mpath),
 	svid(msvid),
-	peer(msvid),
-	status(0)
+	peer(msvid)
   { data=NULL;
     hash.dat[1]=type;
     if(!load()){
       return;}
-    got=mpath; //TODO could be replaced with file creation time
+    memcpy(&now,data+4+64+6,4);
+    got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
     assert(mmsid<=max_msid);
     assert(len<=max_length);
     assert(data!=NULL);
-    if(!check_signature(svpk,msvid)){
-      status=MSGSTAT_DAT;}
+    if(check_signature(svpk,msvid)){
+      status=0;}
   }
 
   ~message()
@@ -623,7 +623,7 @@ public:
       auto s=sent.find(*k);
       if(s==sent.end()){
         got=mynow;
-        sent.insert(*k); //will be also inserted by peer::handle_write after message submitted
+        //sent.insert(*k); //will be also inserted by peer::handle_write after message submitted + deliver(,)
         mtx_.unlock();
         std::cerr<<"REQUEST for "<<svid<<":"<<msid<<" from:"<<*k<<"\n";
         return(*k);}}

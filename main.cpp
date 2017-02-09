@@ -127,6 +127,7 @@ void server::join(peer_ptr p)
 void server::leave(peer_ptr p)
 {	peer_.lock();
 	if(peers_.find(p)!=peers_.end()){
+		missing_sent_remove(p->svid);
 		peers_.erase(p);}
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
 	peer_.unlock();
@@ -135,6 +136,7 @@ void server::disconnect(uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
+			missing_sent_remove(svid);
 			peers_.erase(*pi);
 			break;}}
 	peer_.unlock();
@@ -149,13 +151,17 @@ int server::duplicate(peer_ptr p)
 	peer_.unlock();
 	return 0;
 }
-void server::deliver(message_ptr msg,uint16_t svid)
+int server::deliver(message_ptr msg,uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
+			msg->sent.insert(svid);
 			(*pi)->deliver(msg);
-			break;}}
+			peer_.unlock();
+			return(1);}}
 	peer_.unlock();
+	msg->sent.erase(svid);
+	return(0);
 }
 void server::get_more_headers(uint32_t now,uint8_t* nowhash) //use random order
 {	peer_.lock();
