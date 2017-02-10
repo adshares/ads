@@ -62,14 +62,20 @@ public:
   }
 
   void update(message_ptr msg)
-  { if(do_sync){
+  { 
+    msg->print("; TRY UPDATE");
+    if(do_sync){
+      //fprintf(stderr,"%04XHASH %016lX [%016lX] (in sync mode) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
+      msg->print("; NO SYNC");
       return;}
     assert(msg->len>4+64);
     if(msg->peer == svid){
+      //fprintf(stderr,"%04XHASH %016lX [%016lX] (noecho) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO ECHO");
       return;}
     msg->mtx_.lock();
     if(msg->know.find(svid) != msg->know.end()){
+      //fprintf(stderr,"%04XHASH %016lX [%016lX] (known) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO UPDATE");
       msg->mtx_.unlock();
       return;}
@@ -105,13 +111,14 @@ public:
         std::cerr << "FATAL ERROR: bad message type\n";
         exit(-1);}
     mtx_.lock();
-      put_msg->svid=msg->svid;
-      put_msg->msid=msg->msid;
-      put_msg->hash.num=put_msg->dohash(put_msg->data);
-      fprintf(stderr,"HASH %016lX [%016lX] (update:%04X) %04X:%08X\n",put_msg->hash.num,*((uint64_t*)put_msg->data),svid,msg->svid,msg->msid); // could be bad allignment
+    put_msg->svid=msg->svid;
+    put_msg->msid=msg->msid;
+    put_msg->hash.num=put_msg->dohash(put_msg->data);
+    fprintf(stderr,"%04XHASH %016lX [%016lX] (update) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
     if(BLOCK_MODE_SERVER){
       wait_msgs_.push_back(put_msg);
       mtx_.unlock();
+      fprintf(stderr,"%04XHASH %016lX [%016lX] (in block mode) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       return;}
     bool no_write_in_progress = write_msgs_.empty();
     write_msgs_.push_back(put_msg);
@@ -293,7 +300,7 @@ public:
                 }
               else{
                 //std::cerr << "PROVIDING MESSAGE\n";
-                fprintf(stderr,"PROVIDING MESSAGE %04X:%08X\n",read_msg_->svid,read_msg_->msid);
+                fprintf(stderr,"PROVIDING MESSAGE %04X:%08X (len:%d)\n",read_msg_->svid,read_msg_->msid,msg->len);
                 //msg->sent_insert(svid); // handle_write does this
                 deliver(msg);}} // must force deliver without checks
             else{ // no real message available
@@ -1382,27 +1389,24 @@ public:
     candidate_ptr c_ptr=server_.known_candidate(cand,svid);
     char hash[2*SHA256_DIGEST_LENGTH];
     ed25519_key2text(hash,cand.hash,SHA256_DIGEST_LENGTH);
-    fprintf(stderr,"CAND %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    fprintf(stderr,"CAND %04X %.*s (len:%d)\n",read_msg_->svid,2*SHA256_DIGEST_LENGTH,hash,read_msg_->len);
     if(c_ptr==NULL){
       std::cerr << "PARSE --NEW-- vote for --NEW-- candidate\n";
-      // check message hash
-      if(read_msg_->len<message::data_offset+sizeof(hash_t)+2){
-        //std::cerr << "PARSE vote short len " << read_msg_->len << " FATAL\n";
-        fprintf(stderr,"PARSE vote short len %d, FATAL\n",read_msg_->len);
-        return(0);}
       uint16_t changed;
-      memcpy(&changed,read_msg_->data+message::data_offset+sizeof(hash_t),2);
+      if(2!=boost::asio::read(socket_,boost::asio::buffer(&changed,2))){ // hands:-(
+        fprintf(stderr,"PARSE vote short message read FATAL\n");
+        return(0);}
       if(!changed){
         std::cerr << "PARSE vote empty change list FATAL\n";
         return(0);}
-      if(read_msg_->len!=message::data_offset+sizeof(hash_t)+2+(changed*(2+4+sizeof(hash_t)))){
-        //std::cerr << "PARSE vote bad len " << read_msg_->len << " FATAL\n";
-        fprintf(stderr,"PARSE vote bad len %d, FATAL\n",read_msg_->len);
+      uint32_t len=changed*(2+4+sizeof(hash_t));
+      uint8_t changes[len],*d=changes;
+      if(len!=boost::asio::read(socket_,boost::asio::buffer(changes,len))){ // hands:-(
+        fprintf(stderr,"PARSE vote bad message length read FATAL (len:%d)\n",len);
         return(0);}
       std::map<uint16_t,msidhash_t> new_svid_msha(svid_msha);
       std::map<uint16_t,msidhash_t> new_svid_miss(svid_miss);
       std::map<uint16_t,msidhash_t> new_svid_have(svid_have);
-      uint8_t* d=read_msg_->data+message::data_offset+sizeof(hash_t)+2;
       for(int i=0;i<changed;i++,d+=2+4+sizeof(hash_t)){
         uint16_t psvid;
         msidhash_t msha;
@@ -1465,8 +1469,10 @@ std::cerr << "TEST THIS !!!!!!!!!!!!\n";
     else{
       std::cerr << "PARSE vote for known candidate\n";}
     //modify tail from message
-    uint16_t changed=c_ptr->svid_miss.size()+c_ptr->svid_have.size();
+    uint16_t changed=c_ptr->svid_miss.size()+c_ptr->svid_have.size(); //FIXME, this can be more than 0xFFFF !!!!
     if(changed){
+      fprintf(stderr,"CHANGE CAND LENGTH!\n");
+//FIXME, does not enter this place !!!
       read_msg_->len=message::data_offset+sizeof(hash_t)+2+(changed*(2+4+sizeof(hash_t)));
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
       memcpy(read_msg_->data+message::data_offset+sizeof(hash_t),&changed,2);

@@ -718,12 +718,16 @@ public:
         (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
       uint64_t x=(num2!=NULL?num2->score:0);
       //std::cerr << "BLOCK elected: " << num1->score << " second:" << x << " max:" << votes_max << " counted:" << votes_counted << "\n";
-      fprintf(stderr,"BLOCK ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
-        num1->score,x,votes_max,votes_counted);
+      if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
+        fprintf(stderr,"CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
+          num1->score,x,votes_max,votes_counted);}
+      else{
+        fprintf(stderr,"CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
+          num1->score,x,votes_max,votes_counted);}
       do_block=2;
       winner=num1;
       if(winner->failed_peer){
-        std::cerr << "BAD BLOCK elected :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
+        std::cerr << "BAD CANDIDATE elected :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
         exit(-1);}}
     if(do_block==2 && winner->accept()){
       std::cerr << "CANDIDATE winner accepted\n";
@@ -945,7 +949,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int cnd_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_CND);
     cnd_.lock();
-    fprintf(stderr,"HASH insert:%016lX (CND)\n",msg->hash.num);
+    fprintf(stderr,"HASH insert:%016lX (CND) [len:%d]\n",msg->hash.num,msg->len);
     std::map<uint64_t,message_ptr>::iterator it=cnd_msgs_.find(msg->hash.num);
     if(it!=cnd_msgs_.end()){
       message_ptr osg=it->second;
@@ -1162,6 +1166,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     fprintf(stderr,"CANDIDATE score:%016lX (added:%016lX)\n",it->second->score,electors[msg->svid]);
     electors[msg->svid]=0;
     cand_.unlock();
+    update(msg); // update others
   }
 
   void blk_validate(message_ptr msg)
@@ -1589,7 +1594,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       //  std::cerr<<"ERROR: bad transaction time ("<<usera->time<<">"<<utxs.ttime<<")\n";
       //  return(false);}
       //process transactions
-      if(usera->time+2*LOCK_TIME<lpath && usera->user && usera->node){//check account lock
+      if(usera->time+2*LOCK_TIME<lpath && usera->user && usera->node && (usera->user!=utxs.auser || usera->node!=utxs.abank)){//check account lock
         if(*p!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
           std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
           return(false);}}
@@ -1997,7 +2002,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint16_t svid=it->first;
       uint32_t msid=it->second.msid;
       if(!msid){
-        fprintf(stderr,"WARNING msid==0 for svid:%04X\n",(uint32_t)svid);
+        fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
         continue;}
       uint8_t* sigh=it->second.sigh;
       union {uint64_t num; uint8_t dat[8];} h;
@@ -2019,7 +2024,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint16_t svid=it->first;
       uint32_t msid=it->second.msid;
       if(!msid){
-        fprintf(stderr,"WARNING msid==0 for svid:%04X\n",(uint32_t)svid);
+        fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
         continue;}
       uint8_t* sigh=it->second.sigh;
       union {uint64_t num; uint8_t dat[8];} h;
@@ -2291,7 +2296,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
     std::cerr << "SENDING candidate\n";
-    update(msg);
+    update(msg); // update peers even if we are not an elector
   }
 
   void save_candidate(const hash_s& h,candidate_ptr c)
@@ -2345,8 +2350,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     hash_s cand;
     while(1){
       uint32_t now=time(NULL);
-      fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d)\n",
-        ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),(int)wait_msgs_.size());
+      if(missing_msgs_.size()){
+        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X) (miss:%d:%016lX)\n",
+          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),(int)wait_msgs_.size(),
+          (int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),(int)missing_msgs_.size(),
+          missing_msgs_.begin()->first);}
+      else{
+        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X)\n",
+          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash));}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;

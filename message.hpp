@@ -414,15 +414,15 @@ public:
   void print_text(const char* suffix) const
   { char hash[16];
     ed25519_key2text((char*)hash,sigh,8);
-    fprintf(stderr,"%04X[%04X:%02X]now:%08X[l:%d] %.16s",peer,svid,msid&0xff,now,len-4-64-10,hash);
+    fprintf(stderr,"%04X[%04X:%02X]now:%08X[l:%d] %.16s %s",peer,svid,msid&0xff,now,len-4-64-10,hash,suffix);
     if(len>4+64+10){
+      //if(data[4+64+10]==TXSTYPE_PUT){
+      //  std::cout<<"SEND";}
       if(data[4+64+10]==TXSTYPE_BRO){
         uint32_t mlen;
         memcpy(&mlen,data+4+64+10+1,3);
-        std::cout.write((char*)data+4+64+10+4,mlen);}
-      if(data[4+64+10]==TXSTYPE_PUT){
-        std::cout<<"SEND";}} //TODO, print more data
-    std::cout << " " << suffix << "\n";
+        std::cerr.write((char*)data+4+64+10+4,mlen);}} //TODO, print more data
+    //std::cout << " " << suffix << "\n";
   }
 
   void print(const char* suffix) const
@@ -567,7 +567,7 @@ public:
     return;
   }
 
-  void update(boost::shared_ptr<message>& msg)
+  void update(boost::shared_ptr<message>& msg) // should be called swap or copy
   { uint32_t l=msg->len;
     uint8_t *d=msg->data;
     mtx_.lock();

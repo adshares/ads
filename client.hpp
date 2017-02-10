@@ -152,7 +152,7 @@ public:
     //include additional 2FA later
 
     //commit trasaction
-    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node){//check account lock
+    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=utxs.auser || usera.node!=utxs.abank)){//check account lock
       if(*txstype!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
         std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
         offi_.unlock_user(utxs.auser);
