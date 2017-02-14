@@ -648,7 +648,17 @@ public:
   { if(opts_.init){
       msid_=0;
       return(0);}
-    std::ifstream myfile("msid.txt");
+    FILE* fp=fopen("msid.txt","r");
+    if(fp==NULL){
+      return(0);}
+    uint32_t path;
+    uint32_t svid;
+    fscanf(fp,"%X %X %X",&msid_,&path,&svid);
+    fclose(fp);
+    if(svid!=(uint32_t)opts_.svid){
+      throw("FATAL ERROR: failed to read correct svid from msid.txt\n");}
+    return(path);
+    /*std::ifstream myfile("msid.txt");
     if(!myfile.is_open()){
       msid_=0;
       return(0);}
@@ -658,16 +668,21 @@ public:
     getline (myfile,line2);
     myfile.close();
     msid_=atoi(line1.c_str());
-    return(atoi(line2.c_str()));
+    return(atoi(line2.c_str()));*/
   }
 
   //FIXME, move this to servers.hpp
   void writemsid()
-  { std::ofstream myfile("msid.txt");
+  { FILE* fp=fopen("msid.txt","w");
+    if(fp==NULL){
+      throw("FATAL ERROR: failed to write to msid.txt\n");}
+    fprintf(fp,"%08X %08X %04X\n",msid_,last_srvs_.now,opts_.svid);
+    fclose(fp);
+    /*std::ofstream myfile("msid.txt");
     if(!myfile.is_open()){
       throw("FATAL ERROR: failed to write to msid.txt \n");}
     myfile << std::to_string(msid_) << "\n" << std::to_string(last_srvs_.now) << "\n";
-    myfile.close();
+    myfile.close();*/
   }
 
   //move this to message
@@ -1216,12 +1231,19 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         uint32_t now=time(NULL);
 	message_queue tmp_msgs_;
 	missing_.lock();
-	for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
+	for(auto mj=missing_msgs_.begin();mj!=missing_msgs_.end();){
           //FIXME, request _BLK messages if BLOCK ready 
+          auto mi=mj++;
           if(mi->second->hash.dat[1]==MSGTYPE_BLK){ //FIXME, consider checking mi->first
+            if(mi->second->msid<last_srvs_.now-BLOCKSEC){
+              missing_msgs_.erase(mi);
+              continue;}
             if(now>mi->second->got+MAX_MSGWAIT && mi->second->msid<=last_srvs_.now){
               tmp_msgs_.push_back(mi->second);}}
           else{
+            if(mi->second->msid<srvs_.nodes[mi->second->svid].msid){
+              missing_msgs_.erase(mi);
+              continue;}
             if(now>mi->second->got+MAX_MSGWAIT && srvs_.nodes[mi->second->svid].msid==mi->second->msid-1){
               tmp_msgs_.push_back(mi->second);}}}
 	missing_.unlock();
@@ -2268,6 +2290,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     else{
       bzero(hs.msha,SHA256_DIGEST_LENGTH);
       hs.msid=0;}
+    hs.do_sync=do_sync;
     //ed25519_printkey(skey,32);
     //ed25519_printkey(pkey,32);
     message_ptr msg(new message(MSGTYPE_INI,(uint8_t*)&hs,(int)sizeof(handshake_t),opts_.svid,msid_,skey,pkey));

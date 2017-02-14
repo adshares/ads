@@ -10,6 +10,7 @@ typedef struct handshake_s { //maybe this should be just header_t + peer_msid
 	//uint32_t path; // last block
 	//uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of last block
 	header_t head; // last header
+	int do_sync; // 0: in sync; 1: not in sync
 	uint32_t msid; // peer msid
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
 } handshake_t;

@@ -6,7 +6,7 @@ class peer : public boost::enable_shared_from_this<peer>
 public:
   peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts) :
       svid(0),
-      do_sync(1),
+      do_sync(1), //remove, use peer_hs.do_sync
       socket_(io_service),
       server_(srv),
       incoming_(in),
@@ -936,11 +936,13 @@ public:
         fprintf(stderr,"HASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
         fprintf(stderr,"HASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);}}
-    if(!server_.do_sync){ //we are in sync
+    //if(!server_.do_sync){ //we are in sync
+    if(!sync_hs.do_sync){ //we are in sync
       if(peer_hs.head.now>sync_hs.head.now){
         std::cerr << "ERROR not ready to connect with this server\n";
         return(0);}
-      if(peer_hs.head.now<sync_hs.head.now){
+      //if(peer_hs.head.now<sync_hs.head.now){
+      if(peer_hs.do_sync){
         std::cerr << "Authenticated, provide sync data\n";
         //write_sync(); // peer will disconnect if peer does not want the data
 	int vok=sync_hs.head.vok;
@@ -951,13 +953,14 @@ public:
         std::cerr<<"SENDING last block signatures ok:"<<vok<<"+no:"<<vno<<" ("<<size<<" bytes)\n";
         send_sync(put_msg);
         return(1);}
-      std::cerr << "Authenticated, peer in sync\n";
-      update_sync();
-      do_sync=0;
+      else{
+        std::cerr << "Authenticated, peer in sync\n";
+        update_sync();
+        do_sync=0;}
       return(1);}
     // try syncing from this server
     //if(peer_hs.head.now!=srvs_.now-BLOCKSEC)
-    if(peer_hs.head.now!=blocknow-BLOCKSEC){
+    if(peer_hs.head.now!=blocknow-BLOCKSEC || peer_hs.do_sync){
       std::cerr << "PEER not in sync\n";
       return(0);}
     if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
@@ -1493,7 +1496,7 @@ std::cerr << "TEST THIS !!!!!!!!!!!!\n";
   }
 
   uint32_t svid;
-  int do_sync; // needed by server::get_more_headers
+  int do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
 private:
   boost::asio::ip::tcp::socket socket_;
   server& server_;
