@@ -286,6 +286,10 @@ public:
   { return(srv_.last_srvs_.find_key(pkey,skey));
   }
 
+  uint32_t path()
+  { return(srv_.last_srvs_.now);
+  }
+
   bool run;
   uint16_t svid;
   uint32_t users; //number of users of the bank

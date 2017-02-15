@@ -55,6 +55,7 @@
 #define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
 #define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
+#define MAX_BLG_SIZE 0xFFFFFFF0 /* blog size larger than this will not be submitted to clients */
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9080"

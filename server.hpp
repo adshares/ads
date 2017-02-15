@@ -1470,6 +1470,27 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(true);
   }
 
+  void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash) // may need bankid and hash to verify signature
+  { static uint32_t lpath=0;
+    static int fd=-1;
+    static boost::mutex log_;
+    log_.lock();
+    if(path!=lpath || fd<0){
+      if(fd>=0){
+        close(fd);}
+      lpath=path;
+      char filename[64];
+      sprintf(filename,"%08X/bro.log",path);
+      fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644); //TODO maybe O_TRUNC not needed
+      if(fd<0){
+        log_.unlock();
+        fprintf(stderr,"ERROR, failed to open BROADCAST LOG %s\n",filename);
+        return;}}
+    write(fd,p,len);
+    write(fd,hash,32);
+    log_.unlock();
+  }
+
   bool process_message(message_ptr msg)
   { char* p=(char*)msg->data+4+64+10;
     char filename[64];
@@ -1533,6 +1554,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         utxs.print_head();
         return(false);}
       if(*p==TXSTYPE_USR){ // check lock first
+        // signature checked later only for local users
         if(utxs.bbank!=msg->svid){
           std::cerr<<"ERROR: bad target bank\n";
           return(false);}
@@ -1632,6 +1654,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //luser=usera->luser;
         //lnode=usera->lnode;
       else if(*p==TXSTYPE_BRO){
+        log_broadcast(lpath,p,utxs.size,usera->hash);
         utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_PUT){

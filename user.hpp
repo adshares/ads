@@ -12,7 +12,8 @@
 #define TXSTYPE_BKY 8	/* change bank key */
 #define TXSTYPE_INF 9	/* strating from this message only messages between wallet and client.hpp */
 #define TXSTYPE_LOG 10	/* return user status and log */
-#define TXSTYPE_MAX 11
+#define TXSTYPE_BLG 11	/* return broadcast log */
+#define TXSTYPE_MAX 12
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
@@ -26,7 +27,8 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4+32,		//8:BKY, old key appended to undo message
 	1+2+4+2+4+4,		//9:INF
 	1+2+4+2+4+4,		//10:LOG
-	1+2+4+4+4+32};		//11:MAX fixed buffer size
+	1+2+4+  4,		//11:BLG
+	1+2+4+4+4+32};		//12:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
@@ -116,6 +118,14 @@ public:
 	 		size=txslen[TXSTYPE_CON];
 			data=(uint8_t*)std::malloc(size);
 			data[0]=TXSTYPE_CON;
+			memcpy(data+1  ,&abank,2);
+			memcpy(data+1+2,&auser,4);
+			memcpy(data+1+6,&ttime,4);
+			return;}
+	 	if(ttype==TXSTYPE_BLG){
+	 		size=txslen[TXSTYPE_BLG]+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=TXSTYPE_BLG;
 			memcpy(data+1  ,&abank,2);
 			memcpy(data+1+2,&auser,4);
 			memcpy(data+1+6,&ttime,4);
@@ -220,6 +230,9 @@ public:
 			memcpy(&ttime,txs+1+6,4);
 		        size=txslen[TXSTYPE_CON]; // no signature !
 			return(true);}
+		if(ttype==TXSTYPE_BLG){
+			memcpy(&ttime,txs+1+6,4);
+			return(true);}
 		if(ttype==TXSTYPE_INF || ttype==TXSTYPE_LOG){
 			memcpy(&bbank,txs+1+6,2);
 			memcpy(&buser,txs+1+8,4);
@@ -251,6 +264,9 @@ public:
 		if(ttype==TXSTYPE_LOG){
 			ed25519_sign(data,txslen[TXSTYPE_LOG],sk,pk,data+txslen[TXSTYPE_LOG]);
 			return;}
+		if(ttype==TXSTYPE_BLG){
+			ed25519_sign(data,txslen[TXSTYPE_BLG],sk,pk,data+txslen[TXSTYPE_BLG]);
+			return;}
 		if(ttype==TXSTYPE_BRO){
 			ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
 			return;}
@@ -262,7 +278,7 @@ public:
 	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
 		//assert(!memcmp(pk2,data+1+2+4+4+4,32));
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,data+1+2+4+4+4,data+txslen[ttype]+64);
-	}
+	} // FIXME, sign only the new key with the second signature !!!
 
 	//void sign3(uint8_t* hash,uint8_t* sk,uint8_t* pk3) // additional signature, no need to supply pk (is in data)
 	//{	assert(ttype==TXSTYPE_BKY);
@@ -276,6 +292,8 @@ public:
 			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
 		if(ttype==TXSTYPE_LOG){
 			return(ed25519_sign_open(buf,txslen[TXSTYPE_LOG],pk,buf+txslen[TXSTYPE_LOG]));}
+		if(ttype==TXSTYPE_BLG){
+			return(ed25519_sign_open(buf,txslen[TXSTYPE_BLG],pk,buf+txslen[TXSTYPE_BLG]));}
 		if(ttype==TXSTYPE_BRO){
 			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));}
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
@@ -284,7 +302,7 @@ public:
 	int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
 	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
-	}
+	} // FIXME, sign only the new key with the second signature !!!
 
 	//int wrong_sig3(uint8_t* buf,uint8_t* hash) // additional signature with client
 	//{	assert(ttype==TXSTYPE_BKY);

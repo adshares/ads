@@ -100,6 +100,10 @@ usertxs_ptr run(settings& sts,std::string& line)
     //txs->sign2(sts.ha,sts.sn,sts.pn); // server shoudl sign this !!!
     //txs->sign3(sts.ha,sts.so,sts.po); // now needed, messages signed by the server wthi old key anyway 
     return(txs);}
+  else if(sscanf(line.c_str(),"BLG:%X",&now)){ // get last broadcast log from block before now
+    usertxs_ptr txs(new usertxs(TXSTYPE_BLG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
+    txs->sign(sts.ha,sts.sk,sts.pk);
+    return(txs);}
   else{
     return(NULL);}
 }
@@ -125,48 +129,80 @@ void print_log(log_t* log,int len)
       log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}
 }
 
+void save_blg(char* blg,int len,uint32_t path) // blg is 4 bytes longer than len (includes path in 4 bytes)
+{ char filename[64];
+  sprintf(filename,"bro.%08X",path);
+  int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+  if(len){
+    write(fd,(char*)blg,len);}
+  close(fd);
+}
+
 void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
     txs->print_head();
     txs->print();
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
-    int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-    if(len!=sizeof(user_t)){
-      std::cerr<<"ERROR reading confirmation\n";}
+    if(txs->ttype==TXSTYPE_BLG){
+      uint32_t head[2];
+      if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
+        std::cerr<<"ERROR reading broadcast log length\n";
+        socket.close();
+        return;}
+      uint32_t path=head[0];
+      int len=(int)head[1];
+      char* blg=NULL;
+      if(len){
+        blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
+        if(blg==NULL){
+          fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+          socket.close();
+          return;}
+        if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
+          std::cerr<<"ERROR reading broadcast log\n";
+          free(blg);
+          socket.close();
+          return;}}
+      save_blg(blg,len,path);
+      free(blg);}
     else{
-      user_t myuser;
-      memcpy(&myuser,buf,sizeof(user_t));
-      print_user(myuser);
-      if(txs->ttype!=TXSTYPE_INF || ((int)txs->buser==sts.user && (int)txs->bbank==sts.bank)){
-        if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
-          std::cerr<<"ERROR transaction failed (bad msid)\n";}
-	if(memcmp(sts.pk,myuser.pkey,32)){
-          std::cerr<<"PKEY differs\n";}
-        sts.msid=myuser.msid;
-        memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
-    if(txs->ttype==TXSTYPE_INF){
-      len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+      int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
       if(len!=sizeof(user_t)){
-        std::cerr<<"ERROR reading info\n";}
+        std::cerr<<"ERROR reading confirmation\n";}
       else{
         user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
-        print_user(myuser);}}
-    if(txs->ttype==TXSTYPE_LOG){
-      int len;
-      if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
-        std::cerr<<"ERROR reading log\n";
-        socket.close();
-        return;}
-      log_t* log=(log_t*)std::malloc(len+sizeof(log_t));
-      if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
-        std::cerr<<"ERROR reading log\n";
-        free(log);
-        socket.close();
-        return;}
-      print_log(log,len);
-      free(log);}}
+        print_user(myuser);
+        if(txs->ttype!=TXSTYPE_INF || ((int)txs->buser==sts.user && (int)txs->bbank==sts.bank)){
+          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
+            std::cerr<<"ERROR transaction failed (bad msid)\n";}
+          if(memcmp(sts.pk,myuser.pkey,32)){
+            std::cerr<<"PKEY differs\n";}
+          sts.msid=myuser.msid;
+          memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+      if(txs->ttype==TXSTYPE_INF){
+        len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+        if(len!=sizeof(user_t)){
+          std::cerr<<"ERROR reading info\n";}
+        else{
+          user_t myuser;
+          memcpy(&myuser,buf,sizeof(user_t));
+          print_user(myuser);}}
+      if(txs->ttype==TXSTYPE_LOG){
+        int len;
+        if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
+          std::cerr<<"ERROR reading log length\n";
+          socket.close();
+          return;}
+        log_t* log=(log_t*)std::malloc(len+sizeof(log_t));
+        if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
+          std::cerr<<"ERROR reading log\n";
+          free(log);
+          socket.close();
+          return;}
+        print_log(log,len);
+        free(log);}}}
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   socket.close();

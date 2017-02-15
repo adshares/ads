@@ -81,7 +81,7 @@ public:
       std::cerr<<"ERROR: bad second signature\n";
       offi_.unlock_user(utxs.auser);
       return;}
-    if(diff>2){
+    if(diff>2 && *txstype!=TXSTYPE_BLG){
       std::cerr<<"ERROR: time in the future ("<<diff<<">2s)\n";
       offi_.unlock_user(utxs.auser);
       return;}
@@ -122,24 +122,72 @@ public:
       offi_.unlock_user(utxs.auser);
       //offi_.purge_log(...);
       return;}
+    if(utxs.abank!=offi_.svid && *txstype!=TXSTYPE_USR){
+      offi_.unlock_user(utxs.auser);
+      std::cerr<<"ERROR: bad bank\n";
+      return;}
     if(*txstype==TXSTYPE_LOG){
-      if(utxs.abank!=offi_.svid){
-        std::cerr<<"ERROR: bad bank for LOG\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
+      //if(utxs.abank!=offi_.svid){
+      //  std::cerr<<"ERROR: bad bank for LOG\n";
+      //  offi_.unlock_user(utxs.auser);
+      //  return;}
       std::cerr<<"SENDING user log ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));
       std::string slog;
       if(!offi_.get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
-        std::cerr<<"ERROR: get log failed\n";
         offi_.unlock_user(utxs.auser);
+        std::cerr<<"ERROR: get log failed\n";
         return;}
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}
-    if(utxs.abank!=offi_.svid && *txstype!=TXSTYPE_USR){
-      std::cerr<<"ERROR: bad bank\n";
+    if(*txstype==TXSTYPE_BLG){
+      uint32_t head[2];
+      uint32_t &path=head[0];
+      uint32_t &size=head[1];
+      if(!utxs.ttime){
+        path=offi_.path();}
+      else{
+        path=utxs.ttime-utxs.ttime%BLOCKSEC;}
+      char filename[64];
+      sprintf(filename,"%08X/bro.log",path);
+      int fd=open(filename,O_RDONLY); //TODO maybe O_TRUNC not needed
+      if(fd<0){
+        size=0;
+        boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
+        offi_.unlock_user(utxs.auser);
+        fprintf(stderr,"SENDING broadcast log %08X [empty]\n",path);
+        return;}
+      struct stat sb;
+      fstat(fd,&sb);
+      if(sb.st_size>MAX_BLG_SIZE){
+        sb.st_size=MAX_BLG_SIZE;}
+      if(sb.st_size>0xFFFFFF){ // change to MESSAGE_TOO_LONG or similar
+        size=0xFFFFFF;}
+      else{
+        size=sb.st_size;}
+      fprintf(stderr,"SENDING broadcast log %08X [len:%d]\n",path,size);
+      if(!size){
+        boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
+        offi_.unlock_user(utxs.auser);
+        close(fd);
+        return;}
+      char buf[2*sizeof(uint32_t)+size];
+      memcpy(buf,head,2*sizeof(uint32_t));
+      for(uint32_t pos=0;pos<sb.st_size;){
+        len=read(fd,buf+2*sizeof(uint32_t),size);
+        if(len<=0){
+          offi_.unlock_user(utxs.auser);
+          close(fd);
+          fprintf(stderr,"ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
+          return;}
+        if(!pos){
+          boost::asio::write(socket_,boost::asio::buffer(buf,2*sizeof(uint32_t)+len));}
+        else{
+          boost::asio::write(socket_,boost::asio::buffer(buf+2*sizeof(uint32_t),len));}
+        pos+=len;}
       offi_.unlock_user(utxs.auser);
+      close(fd);
       return;}
     if(usera.msid!=utxs.amsid){
       std::cerr<<"ERROR: bad msid ("<<usera.msid<<"<>"<<utxs.amsid<<")\n";
