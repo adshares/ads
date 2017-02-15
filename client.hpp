@@ -162,8 +162,8 @@ public:
       fstat(fd,&sb);
       if(sb.st_size>MAX_BLG_SIZE){
         sb.st_size=MAX_BLG_SIZE;}
-      if(sb.st_size>0xFFFFFF){ // change to MESSAGE_TOO_LONG or similar
-        size=0xFFFFFF;}
+      if(sb.st_size>MESSAGE_CHUNK){ // change to MESSAGE_TOO_LONG or similar
+        size=MESSAGE_CHUNK;}
       else{
         size=sb.st_size;}
       fprintf(stderr,"SENDING broadcast log %08X [len:%d]\n",path,size);

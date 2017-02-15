@@ -266,7 +266,7 @@ public:
       memcpy(&len,data+1,3); // this is number of users (max 0x10000)
       memcpy(&msid,data+4,2); // this is the chunk id
       memcpy(&svid,data+6,2); // this is the bank id
-      if(len>MESSAGE_USRCHUNK){
+      if(len>MESSAGE_CHUNK){
         uint64_t h=*((uint64_t*)data);
         fprintf(stderr,"USR HEADER:%016lX\n",h);
         std::cerr<<"ERROR in user message length\n";
@@ -478,7 +478,7 @@ public:
       data=NULL;
       return(0);}
     myfile.close();
-    //TODO, check if we need more test
+    //TODO, check if we need more tests/data (for example sigh, below)
     //hash_signature(data+4)
     //status=MSGSTAT_VAL;
     return(1);

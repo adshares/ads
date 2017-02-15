@@ -672,7 +672,7 @@ public:
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     for(uint32_t user=0;user<users;msid++){
-      uint32_t end=user+MESSAGE_USRCHUNK;
+      uint32_t end=user+MESSAGE_CHUNK;
       if(end>users){
         end=users;}
       int len=end-user;

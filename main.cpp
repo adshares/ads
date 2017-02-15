@@ -33,21 +33,17 @@ int main(int argc, char* argv[])
   opt.get(argc,argv);
   try{
     //peers
-    boost::asio::ip::tcp::endpoint peer_endpoint(boost::asio::ip::tcp::v4(),opt.port);
-    boost::asio::io_service peer_io_service;
-    boost::asio::io_service::work peer_work(peer_io_service); //to start io_service before the server
-    boost::thread st(iorun,boost::ref(peer_io_service));
-    server s(peer_io_service,peer_endpoint,opt);
-    //if(opt.offi){ //office
-      boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
-      boost::asio::io_service offi_io_service;
-      boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
-      boost::thread ot(iorun,boost::ref(offi_io_service));
-      office o(offi_io_service,offi_endpoint,opt,s);
-      s.ofip=&o;
-    //}
-    //for (std::string p : opt.peer) {
-    //  s.connect(p); }
+    boost::asio::ip::tcp::endpoint srvr_endpoint(boost::asio::ip::tcp::v4(),opt.port);
+    boost::asio::io_service srvr_io_service;
+    boost::asio::io_service::work srvr_work(srvr_io_service); //to start io_service before the server
+    boost::thread st(iorun,boost::ref(srvr_io_service));
+    server s(srvr_io_service,srvr_endpoint,opt);
+    boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
+    boost::asio::io_service offi_io_service;
+    boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
+    boost::thread ot(iorun,boost::ref(offi_io_service));
+    office o(offi_io_service,offi_endpoint,opt,s);
+    s.ofip=&o;
     std::string line;
     while (std::getline(std::cin,line)){
       if(line[0]=='.' && line[1]=='\0'){
@@ -56,11 +52,9 @@ int main(int argc, char* argv[])
       uint32_t now=time(NULL);
       usertxs txs(TXSTYPE_CON,0,0,now);
       o.message.append((char*)txs.data,txs.size);}
-      //s.make_broadcast(line);
-      //o.message.append(line);}
-    std::cerr << "out\n";
+    std::cerr << "Shutting down\n";
     offi_io_service.stop();
-    peer_io_service.stop();
+    srvr_io_service.stop();
     ot.join();
     st.join();}
   catch (std::exception& e){
