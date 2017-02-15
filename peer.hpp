@@ -1000,7 +1000,7 @@ public:
       std::cerr << "ERROR reading head\n";
       server_.leave(shared_from_this());
       return;}
-    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid)){
+    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
       //std::cerr << "BAD signature from "<<read_msg_->svid<<"\n";
       fprintf(stderr,"BAD signature from %04X\n",read_msg_->svid);
       ed25519_printkey(srvs_.nodes[read_msg_->svid].pk,32);
@@ -1061,7 +1061,7 @@ public:
       std::cerr << "ERROR reading head\n";
       server_.leave(shared_from_this());
       return;}
-    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid)){
+    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
       std::cerr << "BLOCK signature error\n";
       server_.leave(shared_from_this());
       return;}

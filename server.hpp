@@ -111,6 +111,7 @@ public:
 
   void recyclemsid(uint32_t lastpath)
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
+    hash_t msha;
     if(firstmsid>msid_){
       std::cerr<<"WARNING increase msid\n";
       msid_=firstmsid;
@@ -119,10 +120,11 @@ public:
       std::cerr<<"NO recycle needed\n";
       return;}
     std::cerr<<"START recycle\n";
+    memcpy(msha,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
     firstmsid++;
     for(uint32_t lastmsid=firstmsid;lastmsid<=msid_;lastmsid++){
 //FIXME, must sign this message again if message too old !!!
-      message_ptr msg(new message(MSGTYPE_TXS,lastpath,opts_.svid,lastmsid,pkey)); //load from file
+      message_ptr msg(new message(MSGTYPE_TXS,lastpath,opts_.svid,lastmsid,pkey,msha)); //load from file
       if(msg->status!=MSGSTAT_DAT){
         fprintf(stderr,"ERROR, failed to read message %08X/%02x_%04x_%08x.txt\n",
           lastpath,MSGTYPE_TXS,opts_.svid,lastmsid);
@@ -2316,7 +2318,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     hs.do_sync=do_sync;
     //ed25519_printkey(skey,32);
     //ed25519_printkey(pkey,32);
-    message_ptr msg(new message(MSGTYPE_INI,(uint8_t*)&hs,(int)sizeof(handshake_t),opts_.svid,msid_,skey,pkey));
+    hash_t empty;
+    message_ptr msg(new message(MSGTYPE_INI,(uint8_t*)&hs,(int)sizeof(handshake_t),opts_.svid,msid_,skey,pkey,empty));
     return(msg);
   }
 
@@ -2326,7 +2329,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     int msid=++msid_; // can be atomic
     mtx_.unlock();
     writemsid(); //FIXME we should save the message before updating the message counter
-    message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey));
+    message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
@@ -2336,7 +2339,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void write_candidate(const hash_s& last_message)
   { do_vote=0;
-    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,skey,pkey)); //FIXME, consider msid=0 ???
+    hash_t empty;
+    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,skey,pkey,empty)); //FIXME, consider msid=0 ???
 //FIXME, is hash ok ?
     if(!cnd_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
@@ -2372,7 +2376,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void write_header()
   { header_t head;
     last_srvs_.header(head);
-    message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),opts_.svid,head.now,skey,pkey));
+    hash_t empty;
+    message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),opts_.svid,head.now,skey,pkey,empty));
     if(!blk_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}

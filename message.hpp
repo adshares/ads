@@ -106,7 +106,7 @@ public:
     hash.num=0;
   }
 
-  message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,ed25519_public_key mypk) : // create from terminal/rpc
+  message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,ed25519_public_key mypk,hash_t msha) : // create from terminal/rpc
 	len(data_offset+text_len),
 	msid(mymsid),
 	path(0),
@@ -134,13 +134,15 @@ public:
       fprintf(stderr,"BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
     else if(text_type==MSGTYPE_CND){
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);}
-    else{
+    else if(text_type==MSGTYPE_INI){
       ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);}
+    else{
+      ed25519_sign2(msha,32,data+4+64,10+text_len,mysk,mypk,data+4);}
     hash_signature(data+4);
     hash.num=dohash(mysvid); //after hash_signature
   }
 
-  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk) : //recycled message
+  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
 	len(header_length),
 	msid(mmsid),
 	path(mpath),
@@ -155,8 +157,11 @@ public:
     assert(mmsid<=max_msid);
     assert(len<=max_length);
     assert(data!=NULL);
-    if(check_signature(svpk,msvid)){
+    hash_signature(data+4);
+    if(check_signature(svpk,msvid,msha)){
       status=0;}
+    else{
+      memcpy(msha,sigh,sizeof(hash_t));}
   }
 
   ~message()
@@ -359,7 +364,7 @@ public:
       memcpy( &now,data+4+4+64+6,4);}
   }
 
-  int check_signature(const uint8_t* svpk,uint16_t mysvid)
+  int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
   {
     //FIXME, should include previous hash in signed message
     if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
@@ -374,11 +379,13 @@ public:
         return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,svpk,data+4));}
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
         return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));}
-      return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
+      if(data[0]==MSGTYPE_INI){
+        return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
+      return(ed25519_sign_open2(msha,32,data+4+64,len-4-64,svpk,data+4));}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
 //FIXME, check time, if any of the 2 messages is too old ignore dbl spend and maybe react
 //FIXME, compare only same type of message, detect type based on length
-//FIXME, should provide previous hash
+//FIXME, should provide previous hash (msha!!!), signature check will not work without this !!!
       uint32_t len1,len2,msid2,now2;
       uint16_t svid2;
       uint8_t *data1,*data2; 
@@ -408,6 +415,7 @@ public:
       hash.num=dohash();
       status=MSGSTAT_DAT; // have data
       hash_signature(NULL);
+      //FIXME use ed25519_sign_open2_batch
       return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
     return(1); //return error
   }
