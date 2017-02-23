@@ -459,7 +459,7 @@ public:
     char filename[64];
       //std::cerr << "ERROR: loading message while data not empty\n";
       //return(0);}
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     std::ifstream myfile(filename,std::ifstream::binary);
     if(!myfile){
       //std::cerr << "ERROR: opening message failed\n";
@@ -495,7 +495,7 @@ public:
   //FIXME, check again the time of saving, consider free'ing data after save
   int save() //TODO, consider locking
   { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     std::ofstream myfile(filename,std::ifstream::binary);
     if(!myfile){
       std::cerr << "ERROR: failed to open " << filename << "\n";
@@ -513,7 +513,7 @@ public:
 
   void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users) // assume no errors :-) FIXME
   { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
     assert(fd);
     for(auto it=undo.begin();it!=undo.end();it++){
@@ -525,7 +525,7 @@ public:
 
   uint32_t load_undo(std::map<uint32_t,user_t>& undo)
   { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
@@ -546,14 +546,14 @@ public:
   { char oldname[64];
     char newname[64];
     int r=-1;
-    sprintf(oldname,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
-    sprintf(newname,"%08X/%02x_%04x_%08x.und",nextpath,(uint32_t)hashtype(),svid,msid);
+    sprintf(oldname,"blk/%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(newname,"blk/%08X/%02x_%04x_%08x.und",nextpath,(uint32_t)hashtype(),svid,msid);
     rename(oldname,newname); //does not exist before validation
     //if(rename(oldname,newname)){
     //  fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
     //  exit(-1);} //FIXME, do not exit later
-    sprintf(oldname,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
-    sprintf(newname,"%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid);
+    sprintf(oldname,"blk/%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(newname,"blk/%08X/%02x_%04x_%08x.txt",nextpath,(uint32_t)hashtype(),svid,msid);
     if((r=rename(oldname,newname))){
       fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
       exit(-1);} //FIXME, do not exit later
@@ -563,7 +563,7 @@ public:
 
   void remove_undo() //TODO, consider locking
   { char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.und",path,(uint32_t)hashtype(),svid,msid);
     unlink(filename);
     return;
   }
@@ -571,7 +571,7 @@ public:
   void remove() //TODO, consider locking
   { remove_undo();
     char filename[64];
-    sprintf(filename,"%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
+    sprintf(filename,"blk/%08X/%02x_%04x_%08x.txt",path,(uint32_t)hashtype(),svid,msid);
     unlink(filename);
     return;
   }

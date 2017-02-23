@@ -1,0 +1,31 @@
+#!/bin/cat
+
+# SERVERS
+
+# start from scratch and initialize dat1
+cd dat1
+./main --init true
+
+# add dat2 to network
+cd ../dat2
+./main -m 1 -f 1
+
+# add dat3 to network
+cd ../dat3
+./main -m 1 -f 1
+# stop dat3 by pressing '.' + enter
+
+# restart dat3 from last state
+./main -m 1
+# stop dat3 by pressing '.' + enter
+
+# start dat3 from current network state
+rm msid.txt ; ./main -m 1 -f 1
+# stop dat3 by pressing '.' + enter
+
+
+# USERS
+
+# get status of user 1_0
+cd ../u1_0
+./user -e ME::

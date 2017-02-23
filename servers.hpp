@@ -289,7 +289,7 @@ public:
 
 	void save_undo(uint16_t svid,std::map<uint32_t,user_t>& undo,uint32_t users)
 	{	char filename[64];
-		sprintf(filename,"%08X/und/%04X.dat",now,svid);
+		sprintf(filename,"blk/%08X/und/%04X.dat",now,svid);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){
 			std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
@@ -325,7 +325,7 @@ public:
 	 	if(path==0){
 			get();
 			return;}
-		sprintf(filename,"%08X/servers.txt",path);
+		sprintf(filename,"blk/%08X/servers.txt",path);
 		std::ifstream ifs(filename);
 		if(ifs.is_open()){
 			boost::archive::text_iarchive ia(ifs);
@@ -336,7 +336,7 @@ public:
 	void put() //uint32_t path) //FIXME, not used
 	{	char filename[64]="servers.txt";
 	 	if(now>0){
-			sprintf(filename,"%08X/servers.txt",now);}
+			sprintf(filename,"blk/%08X/servers.txt",now);}
 		std::ofstream ofs(filename);
 		if(ofs.is_open()){
 			boost::archive::text_oarchive oa(ofs);
@@ -360,7 +360,7 @@ public:
 	void txs_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
 	{	hashtxs(map);
 	 	char filename[64];
-		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
+		sprintf(filename,"blk/%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "blk/%08X/txs_%.64s.dat"
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){ //trow or something :-)
 			return;}
@@ -373,7 +373,7 @@ public:
 	}
 	int txs_get(char* data)
 	{	char filename[64];
-		sprintf(filename,"%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "%08X/txs_%.64s.dat"
+		sprintf(filename,"blk/%08X/txslist.dat",now); //FIXME, save in a file named based on txshash "blk/%08X/txs_%.64s.dat"
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){
 			return(0);}
@@ -423,12 +423,12 @@ public:
 		fprintf(stderr,"NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		hashnow();
 		char filename[64];
-		sprintf(filename,"%08X/servers.txt",now);
+		sprintf(filename,"blk/%08X/servers.txt",now);
 		std::ofstream sfs(filename);
 		boost::archive::text_oarchive sa(sfs);
 		sa << (*this);
 		header_put();
-		/*sprintf(filename,"%08X/header.txt",now);
+		/*sprintf(filename,"blk/%08X/header.txt",now);
 		std::ofstream hfs(filename);
 		boost::archive::text_oarchive ha(hfs);
 		ha << now;
@@ -491,7 +491,7 @@ public:
 	}
 	int header_get()
 	{	char filename[64];
-		sprintf(filename,"%08X/header.txt",now);
+		sprintf(filename,"blk/%08X/header.txt",now);
 		std::ifstream ifs(filename);
 		uint32_t check=0;
 		if(ifs.is_open()){
@@ -515,7 +515,7 @@ public:
 	}
 	void header_put()
 	{	char filename[64];
-		sprintf(filename,"%08X/header.txt",now);
+		sprintf(filename,"blk/%08X/header.txt",now);
 		std::ofstream ofs(filename);
 		if(ofs.is_open()){
 			boost::archive::text_oarchive oa(ofs);
@@ -557,7 +557,7 @@ public:
 	}
 	void save_signature(uint16_t svid,uint8_t* sig,bool ok)
 	{	char filename[64];
-		sprintf(filename,"%08X/signatures.txt",now); //FIXME, save in a file named based on nowhash "%08X/sig_%.64s.txt"
+		sprintf(filename,"blk/%08X/signatures.txt",now); //FIXME, save in a file named based on nowhash "blk/%08X/sig_%.64s.txt"
 		char hash[4*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
 		//mtx_.lock();
@@ -569,12 +569,12 @@ public:
 		if(ok){
 			std::cerr << "BLOCK ok\n";
 			vok++;
-			sprintf(filename,"%08X/signatures.ok",now);}
+			sprintf(filename,"blk/%08X/signatures.ok",now);}
 		else{
 //FIXME, no point to save no signatures without corresponding block
 			std::cerr << "BLOCK differs\n";
 			vno++;
-			sprintf(filename,"%08X/signatures.no",now);}
+			sprintf(filename,"blk/%08X/signatures.no",now);}
 		svsi_t da;
 		memcpy(da,&svid,2);
 		memcpy(da+2,sig,2*SHA256_DIGEST_LENGTH);
@@ -585,14 +585,14 @@ public:
 	void get_signatures(uint32_t path,uint8_t* data,int nok,int nno) // does not use any local data
 	{	int fd;
 		char filename[64];
-		sprintf(filename,"%08X/signatures.ok",path);
+		sprintf(filename,"blk/%08X/signatures.ok",path);
 		fd=open(filename,O_RDONLY);
 		if(fd>=0){
 			read(fd,data,sizeof(svsi_t)*nok);
 			//vok=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
 			//vok/=sizeof(svsi_t);
 			close(fd);}
-		sprintf(filename,"%08X/signatures.no",path);
+		sprintf(filename,"blk/%08X/signatures.no",path);
 		fd=open(filename,O_RDONLY);
 		if(fd>=0){
 			read(fd,data+sizeof(svsi_t)*nok,sizeof(svsi_t)*nno);
@@ -600,15 +600,15 @@ public:
 			//vno/=sizeof(svsi_t);
 			close(fd);}
 	}
-	void put_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash "%08X/sig_%.64s.dat"
+	void put_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash "blk/%08X/sig_%.64s.dat"
 	{	int fd;
 		char filename[64];
-		sprintf(filename,"%08X/signatures.ok",head.now);
+		sprintf(filename,"blk/%08X/signatures.ok",head.now);
 		fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd>=0){
 			write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
 			close(fd);}
-		sprintf(filename,"%08X/signatures.no",head.now);
+		sprintf(filename,"blk/%08X/signatures.no",head.now);
 		fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd>=0){
 			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
@@ -749,13 +749,13 @@ public:
 
 	void blockdir() //not only dir ... should be called blockstart
 	{	char pathname[16];
-		sprintf(pathname,"%08X",now);
+		sprintf(pathname,"blk/%08X",now);
 		mkdir(pathname,0755);
-		sprintf(pathname,"%08X/und",now);
+		sprintf(pathname,"blk/%08X/und",now);
 		mkdir(pathname,0755);
 		for(auto n=nodes.begin();n!=nodes.end();n++){
 			n->changed.resize(1+n->users/64);}
-		sprintf(pathname,"%08X",now+BLOCKSEC); // to make space for moved files
+		sprintf(pathname,"blk/%08X",now+BLOCKSEC); // to make space for moved files
 		mkdir(pathname,0755);
 	}
 

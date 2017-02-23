@@ -150,7 +150,7 @@ public:
       else{
         path=utxs.ttime-utxs.ttime%BLOCKSEC;}
       char filename[64];
-      sprintf(filename,"%08X/bro.log",path);
+      sprintf(filename,"blk/%08X/bro.log",path);
       int fd=open(filename,O_RDONLY); //TODO maybe O_TRUNC not needed
       if(fd<0){
         size=0;

@@ -659,7 +659,7 @@ public:
       server_.leave(shared_from_this());
       return;}
     for(uint32_t block=path+BLOCKSEC;block<=srvs_.now;block++){
-      sprintf(filename,"%08X/und/%04X.dat",block,bank);
+      sprintf(filename,"blk/%08X/und/%04X.dat",block,bank);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
         continue;}
