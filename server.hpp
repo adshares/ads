@@ -1,8 +1,6 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "main.hpp"
- 
 class office;
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;
@@ -10,11 +8,14 @@ typedef boost::shared_ptr<peer> peer_ptr;
 class server
 {
 public:
-  server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
+  //server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
+  server(options& opts) :
     do_sync(1),
     do_fast(1),
-    io_service_(io_service),
-    acceptor_(io_service, endpoint),
+    endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
+    io_service_(),
+    work_(io_service_),
+    acceptor_(io_service_,endpoint_),
     opts_(opts),
     do_validate(0),
     votes_max(0.0),
@@ -72,6 +73,7 @@ public:
         do_sync=1;}}
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
+    ioth_ = new boost::thread(boost::bind(&server::iorun, this));
     for(std::string addr : opts_.peer){
       //std::cerr<<"CONNECT :"<<addr<<"\n";
       connect(addr);
@@ -102,10 +104,27 @@ public:
     //start_office();
   }
   ~server()
-  { //threadpool.interrupt_all();
-    do_validate=0;
+  { //do_validate=0;
+    //threadpool.join_all();
+    //clock_thread->interrupt();
+    //clock_thread->join();
+  }
+  void iorun()
+  { while(1){
+      try{
+        std::cerr << "Server.Run starting\n";
+        io_service_.run();
+        std::cerr << "Server.Run finished\n";
+        return;} //Now we know the server is down.
+      catch (std::exception& e){
+        std::cerr << "Server.Run error: " << e.what() << "\n";}}
+  }
+  void stop()
+  { do_validate=0;
+    io_service_.stop();
+    //ioth_->interrupt();
+    ioth_->join();
     threadpool.join_all();
-
     clock_thread->interrupt();
     clock_thread->join();
   }
@@ -2547,8 +2566,11 @@ private:
   boost::mutex ulock_[0x100];
   enum { max_connections = 4 };
   enum { max_recent_msgs = 1024 }; // this is the block chain :->
-  boost::asio::io_service& io_service_;
+  boost::asio::ip::tcp::endpoint endpoint_;
+  boost::asio::io_service io_service_;
+  boost::asio::io_service::work work_;
   boost::asio::ip::tcp::acceptor acceptor_;
+  boost::thread* ioth_;
   servers srvs_;
   options& opts_;
   boost::thread_group threadpool;

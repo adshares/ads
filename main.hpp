@@ -63,6 +63,7 @@
 //#define PATHSHIFT 8
 #define PATHSHIFT 5
 #define MAXCLIENTS 128
+#define CLIENT_POOL 4
 
 #define SERVER_DBL 0x1
 #define SERVER_VIP 0x2

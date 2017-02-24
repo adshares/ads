@@ -1,48 +1,22 @@
 #include "main.hpp"
 
-void iorun(boost::asio::io_service& io_service)
-{ /*//while(1){
-    //if(io_service.stopped()){
-    //  std::cerr << "Service.Run exit\n"; //Now we know the server is down.
-    //  return;}
-    std::cerr << "Service.Run starting\n";
-    try{
-      io_service.run();
-      std::cerr << "Service.Run finished\n";} //Now we know the server is down.
-    catch (std::exception& e){
-      std::cerr << "Service.Run: " << e.what() << "\n";}
-  //  sleep(1);}// just in case there is something wrong with 'run'*/
-  while(1){
-    //if(io_service.stopped()){
-    //  std::cerr << "Service.Run exit\n"; //Now we know the server is down.
-    //  return;}
-    try{
-      std::cerr << "Service.Run starting\n";
-      io_service.run();
-      std::cerr << "Service.Run finished\n";} //Now we know the server is down.
-    catch (std::exception& e){
-      std::cerr << "Service.Run error: " << e.what() << "\n";
-      //sleep(1);// just in case there is something wrong with 'run'
-      continue;}
-    return;}
-}
-
 int main(int argc, char* argv[])
 {
   options opt;
   opt.get(argc,argv);
   try{
-    //peers
-    boost::asio::ip::tcp::endpoint srvr_endpoint(boost::asio::ip::tcp::v4(),opt.port);
-    boost::asio::io_service srvr_io_service;
-    boost::asio::io_service::work srvr_work(srvr_io_service); //to start io_service before the server
-    boost::thread st(iorun,boost::ref(srvr_io_service));
-    server s(srvr_io_service,srvr_endpoint,opt);
-    boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
-    boost::asio::io_service offi_io_service;
-    boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
-    boost::thread ot(iorun,boost::ref(offi_io_service));
-    office o(offi_io_service,offi_endpoint,opt,s);
+    //boost::asio::ip::tcp::endpoint srvr_endpoint(boost::asio::ip::tcp::v4(),opt.port);
+    //boost::asio::io_service srvr_io_service;
+    //boost::asio::io_service::work srvr_work(srvr_io_service); //to start io_service before the server
+    //boost::thread st(iorun,boost::ref(srvr_io_service));
+    //server s(srvr_io_service,srvr_endpoint,opt);
+    server s(opt);
+    //boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
+    //boost::asio::io_service offi_io_service;
+    //boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
+    //boost::thread ot(iorun,boost::ref(offi_io_service));
+    //office o(offi_io_service,offi_endpoint,opt,s);
+    office o(opt,s);
     s.ofip=&o;
     std::string line;
     while (std::getline(std::cin,line)){
@@ -53,10 +27,13 @@ int main(int argc, char* argv[])
       usertxs txs(TXSTYPE_CON,0,0,now);
       o.message.append((char*)txs.data,txs.size);}
     std::cerr << "Shutting down\n";
-    offi_io_service.stop();
-    srvr_io_service.stop();
-    ot.join();
-    st.join();}
+    //offi_io_service.stop();
+    //srvr_io_service.stop();
+    o.stop();
+    s.stop();
+    //ot.join();
+    //st.join();
+    }
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   return 0;
@@ -65,10 +42,10 @@ int main(int argc, char* argv[])
 // office <-> client
 void office::start_accept()
 { if(!run){ return;}
-  //FIXME, use io_service_pool_
-  //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/server.cpp
-  client_ptr c(new client(io_service_,*this));
-  std::cerr<<"OFFICE online\n";
+  client_ptr c(new client(*io_services_[next_io_service_++],*this));
+  std::cerr<<"OFFICE online ["<<next_io_service_<<"]\n";
+  if(next_io_service_>=CLIENT_POOL){
+    next_io_service_=0;}
   //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
   //  //crerate client timeout inside the client
   //  std::cerr<<"OFFICE offline\n";

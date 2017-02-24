@@ -1,8 +1,6 @@
 #ifndef OFFICE_HPP
 #define OFFICE_HPP
 
-#include "main.hpp"
-
 class client;
 typedef boost::shared_ptr<client> client_ptr;
 
@@ -12,13 +10,17 @@ typedef boost::shared_ptr<client> client_ptr;
 class office
 {
 public:
-  office(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts,server& srv) :
-    io_service_(io_service),
-    acceptor_(io_service, endpoint),
+  //office(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts,server& srv) :
+  office(options& opts,server& srv) :
+    endpoint_(boost::asio::ip::tcp::v4(),opts.offi),
+    io_service_(),
+    work_(io_service_),
+    acceptor_(io_service_,endpoint_),
     srv_(srv),
     opts_(opts),
     fd(0),
-    message_sent(0)
+    message_sent(0),
+    next_io_service_(0)
   { svid=opts_.svid,
     users=srv_.last_srvs_.nodes[svid].users; //FIXME !!! this maybe incorrect !!!
     memcpy(pkey,srv_.pkey,32);
@@ -33,8 +35,12 @@ public:
       std::cerr<<"ERROR, failed to open office register\n";}
     msid=srv_.msid_;
 
-
+    // init io_service_pool
+    for(int i=0;i<CLIENT_POOL;i++){
+      io_services_[i]=boost::make_shared<boost::asio::io_service>();
+      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);}
     run=true;
+    ioth_ = new boost::thread(boost::bind(&office::iorun, this));
     start_accept();
     clock_thread = new boost::thread(boost::bind(&office::clock, this));
   }
@@ -43,9 +49,22 @@ public:
   { if(fd){
       close(fd);}
   }
-
+  void iorun()
+  { while(1){
+      try{
+        std::cerr << "Office.Run starting\n";
+        io_service_.run();
+        std::cerr << "Office.Run finished\n";
+        return;} //Now we know the server is down.
+      catch (std::exception& e){
+        std::cerr << "Office.Run error: " << e.what() << "\n";}}
+  }
   void stop() // send and empty txs queue
   { run=false;
+    io_service_.stop();
+    ioth_->join();
+    for(int i=0;i<CLIENT_POOL;i++){
+      io_services_[i]->stop();}
     clock_thread->interrupt();
     clock_thread->join();
     //submit message
@@ -299,8 +318,11 @@ public:
   boost::mutex message_;
   hash_t pkey; // local copy for managing updates
 private:
-  boost::asio::io_service& io_service_;
+  boost::asio::ip::tcp::endpoint endpoint_;
+  boost::asio::io_service io_service_;
+  boost::asio::io_service::work work_;
   boost::asio::ip::tcp::acceptor acceptor_;
+  boost::thread* ioth_;
   server& srv_;
   options& opts_;
   std::set<client_ptr> clients_;
@@ -313,6 +335,13 @@ private:
   boost::thread* clock_thread;
   std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates
   boost::mutex account_;
+
+  //io_service_pool
+  typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
+  typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
+  io_service_ptr io_services_[CLIENT_POOL];
+  work_ptr io_works_[CLIENT_POOL];
+  int next_io_service_;
 };
 
 #endif // OFFICE_HPP
