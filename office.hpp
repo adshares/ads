@@ -38,7 +38,8 @@ public:
     // init io_service_pool
     for(int i=0;i<CLIENT_POOL;i++){
       io_services_[i]=boost::make_shared<boost::asio::io_service>();
-      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);}
+      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);
+      threadpool.create_thread(boost::bind(&office::iorun_client,this,i));}
     run=true;
     ioth_ = new boost::thread(boost::bind(&office::iorun, this));
     start_accept();
@@ -48,6 +49,17 @@ public:
   ~office()
   { if(fd){
       close(fd);}
+    std::cerr<<"Office down\n";
+  }
+  void iorun_client(int i)
+  { while(1){
+      try{
+        std::cerr << "Client["<<i<<"].Run starting\n";
+        io_services_[i]->run();
+        std::cerr << "Client["<<i<<"].Run finished\n";
+        return;} //Now we know the server is down.
+      catch (std::exception& e){
+        std::cerr << "Client["<<i<<"].Run error: " << e.what() << "\n";}}
   }
   void iorun()
   { while(1){
@@ -65,6 +77,8 @@ public:
     ioth_->join();
     for(int i=0;i<CLIENT_POOL;i++){
       io_services_[i]->stop();}
+    threadpool.interrupt_all();
+    threadpool.join_all();
     clock_thread->interrupt();
     clock_thread->join();
     //submit message
@@ -109,8 +123,8 @@ public:
   { u.msid=0;
     if(cuser>=users){
       return(false);}
+    file_.lock();
     if(cbank==svid && !global){
-      file_.lock();
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));}
     if(!u.msid){
@@ -167,18 +181,6 @@ public:
             nuser,nu.weight,TIME_FEE(now,nu.lpath));
           //FIXME !!!  wrong time !!! must use time from txs
           srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
-          //memset(&nu,0,sizeof(user_t));
-          //memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-          //memcpy(nu.hash,&nuser,4); // always start with a unique hash
-          //memcpy(nu.hash+4,&svid,2); // always start with a unique hash
-          //nu.msid=1;
-          //nu.time=now;
-          //nu.node=svid;
-          //nu.user=nuser; // record user_id
-          //nu.lpath=now;
-          //nu.rpath=now-START_AGE;
-          //nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-          //memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&nu,sizeof(user_t));
           file_.unlock();
@@ -281,7 +283,7 @@ public:
 
   void start_accept(); // main.cpp
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
-  //void leave(client_ptr c); // main.cpp
+  void leave(client_ptr c); // main.cpp
 
   //uint8_t* pkey()
   //{ return(opts_.pk);
@@ -342,6 +344,7 @@ private:
   io_service_ptr io_services_[CLIENT_POOL];
   work_ptr io_works_[CLIENT_POOL];
   int next_io_service_;
+  boost::thread_group threadpool;
 };
 
 #endif // OFFICE_HPP

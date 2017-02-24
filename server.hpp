@@ -108,6 +108,7 @@ public:
     //threadpool.join_all();
     //clock_thread->interrupt();
     //clock_thread->join();
+    std::cerr<<"Server down\n";
   }
   void iorun()
   { while(1){
@@ -127,6 +128,7 @@ public:
     threadpool.join_all();
     clock_thread->interrupt();
     clock_thread->join();
+    std::cerr<<"Shutting down completed\n";
   }
 
   void recyclemsid(uint32_t lastpath)

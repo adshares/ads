@@ -5,17 +5,7 @@ int main(int argc, char* argv[])
   options opt;
   opt.get(argc,argv);
   try{
-    //boost::asio::ip::tcp::endpoint srvr_endpoint(boost::asio::ip::tcp::v4(),opt.port);
-    //boost::asio::io_service srvr_io_service;
-    //boost::asio::io_service::work srvr_work(srvr_io_service); //to start io_service before the server
-    //boost::thread st(iorun,boost::ref(srvr_io_service));
-    //server s(srvr_io_service,srvr_endpoint,opt);
     server s(opt);
-    //boost::asio::ip::tcp::endpoint offi_endpoint(boost::asio::ip::tcp::v4(),opt.offi);
-    //boost::asio::io_service offi_io_service;
-    //boost::asio::io_service::work offi_work(offi_io_service); //to start io_service before the server
-    //boost::thread ot(iorun,boost::ref(offi_io_service));
-    //office o(offi_io_service,offi_endpoint,opt,s);
     office o(opt,s);
     s.ofip=&o;
     std::string line;
@@ -27,13 +17,8 @@ int main(int argc, char* argv[])
       usertxs txs(TXSTYPE_CON,0,0,now);
       o.message.append((char*)txs.data,txs.size);}
     std::cerr << "Shutting down\n";
-    //offi_io_service.stop();
-    //srvr_io_service.stop();
     o.stop();
-    s.stop();
-    //ot.join();
-    //st.join();
-    }
+    s.stop(); }
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   return 0;
@@ -56,32 +41,28 @@ void office::handle_accept(client_ptr c,const boost::system::error_code& error)
 { //uint32_t now=time(NULL);
   if(!run){ return;}
   std::cerr<<"OFFICE new ticket (total open:"<<clients_.size()<<")\n";
-  start_accept(); //FIXME, change this to a non blocking office
   if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
-    std::cerr<<"OFFICE busy, dropping connection\n";
-    return;}
-  if (!error){
-    //c->up=now; //should be in c->start()
+    std::cerr<<"OFFICE busy, dropping connection\n";}
+  else if (!error){
     client_.lock();
     clients_.insert(c);
     client_.unlock();
     try{
       c->start();}
     catch (std::exception& e){
-      std::cerr << "Client exception: " << e.what() << "\n";}
-    client_.lock();
-    clients_.erase(c);
-    client_.unlock();}
+      std::cerr << "Client exception: " << e.what() << "\n";
+      leave(c);}}
+  start_accept(); //FIXME, change this to a non blocking office
   //std::cerr<<"OFFICE rest\n";
   //boost::this_thread::sleep(boost::posix_time::seconds(1));//do this to test if function is blocking
   //std::cerr<<"OFFICE done\n";
   //start_accept(); //FIXME, change this to a non blocking office
 }
-//void office::leave(client_ptr c)
-//{ client_.lock();
-//  clients_.erase(c);
-//  client_.unlock();
-//}
+void office::leave(client_ptr c)
+{ client_.lock();
+  clients_.erase(c);
+  client_.unlock();
+}
 
 //// server <-> office
 //void server::start_office()
