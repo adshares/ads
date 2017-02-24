@@ -1,7 +1,7 @@
 .PHONY: clean
 .PHONY: restart
 .PHONY: all
-CCP=g++ -Wall -fmax-errors=5 -fPIC
+CCP=g++ -Wall -fmax-errors=5 -fPIC -std=c++11
 restart: main user
 all: main user
 ed25519/ed25519.o: ed25519/ed25519.c

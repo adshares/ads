@@ -5,6 +5,7 @@
 # start from scratch and initialize dat1
 cd dat1
 ./main --init true
+# wait for the first block to finish
 
 # add dat2 to network
 cd ../dat2

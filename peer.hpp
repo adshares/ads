@@ -4,10 +4,13 @@
 class peer : public boost::enable_shared_from_this<peer>
 {
 public:
-  peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts) :
+  //peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts) :
+  peer(server& srv,bool in,servers& srvs,options& opts) :
       svid(0),
       do_sync(1), //remove, use peer_hs.do_sync
-      socket_(io_service),
+      peer_io_service_(),
+      work_(peer_io_service_),
+      socket_(peer_io_service_),
       server_(srv),
       incoming_(in),
       srvs_(srvs),
@@ -19,13 +22,32 @@ public:
       bytes_out(0),
       bytes_in(0),
       BLOCK_MODE_SERVER(0),
-      BLOCK_MODE_PEER(0)
-  {  read_msg_ = boost::make_shared<message>();
+      BLOCK_MODE_PEER(0),
+      myself(NULL)
+  { read_msg_ = boost::make_shared<message>();
+    std::cerr << "Client create\n";
+    iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
 
   ~peer()
-  { if(port){
-      std::cerr << "Client left   " << addr << ":" << port << "\n";} //LESZEK
+  { std::cerr << "Client destruct " << addr << ":" << port << "\n";
+  }
+
+  void iorun()
+  { try{
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      myself=shared_from_this(); //FIXME, this dies if peer_ptr not created yet :-(
+      std::cerr << "Peer.Service.Run starting\n";
+      peer_io_service_.run();
+      std::cerr << "Peer.Service.Run finished\n";} //Now we know the server is down.
+    catch (std::exception& e){
+      std::cerr << "Peer.Service.Run error: " << e.what() << "\n";}
+    if(myself!=NULL){
+      myself.reset();}
+  }
+
+  void stop()
+  { peer_io_service_.stop();
   }
 
   boost::asio::ip::tcp::socket& socket()
@@ -40,9 +62,7 @@ public:
   }
 
   void start()
-  {
-//FIXME, we should run our own io_service !!! ... need to check later if this is the case
-    addr = socket_.remote_endpoint().address().to_string();
+  { addr = socket_.remote_endpoint().address().to_string();
     //ipv4 = socket_.remote_endpoint().address().to_v4().to_ulong();
     port = socket_.remote_endpoint().port();
     server_.join(shared_from_this());
@@ -1498,7 +1518,10 @@ std::cerr << "TEST THIS !!!!!!!!!!!!\n";
   uint32_t svid;
   int do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
 private:
+  boost::asio::io_service peer_io_service_;	//TH
+  boost::asio::io_service::work work_;		//TH
   boost::asio::ip::tcp::socket socket_;
+  boost::thread *iothp_;			//TH
   server& server_;
   bool incoming_;
   servers& srvs_; //FIXME ==server_.srvs_
@@ -1544,6 +1567,7 @@ private:
   std::map<uint16_t,msidhash_t> svid_have; // missed by peer
   uint8_t BLOCK_MODE_SERVER;
   uint8_t BLOCK_MODE_PEER;
+  peer_ptr myself; // to block destructor
 };
 
 #endif // PEER_HPP

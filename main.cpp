@@ -21,7 +21,7 @@ void iorun(boost::asio::io_service& io_service)
       io_service.run();
       std::cerr << "Service.Run finished\n";} //Now we know the server is down.
     catch (std::exception& e){
-      std::cerr << "Service.Run: " << e.what() << "\n";
+      std::cerr << "Service.Run error: " << e.what() << "\n";
       //sleep(1);// just in case there is something wrong with 'run'
       continue;}
     return;}
@@ -122,6 +122,7 @@ void server::leave(peer_ptr p)
 {	peer_.lock();
 	if(peers_.find(p)!=peers_.end()){
 		missing_sent_remove(p->svid);
+		p->stop();
 		peers_.erase(p);}
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
 	peer_.unlock();
@@ -131,6 +132,7 @@ void server::disconnect(uint16_t svid)
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
 			missing_sent_remove(svid);
+			(*pi)->stop();
 			peers_.erase(*pi);
 			break;}}
 	peer_.unlock();
@@ -200,8 +202,8 @@ void server::svid_msid_rollback(message_ptr msg)
 	peer_.unlock();
 }
 void server::start_accept()
-{	peer_ptr new_peer(new peer(io_service_,*this,true,srvs_,opts_));
-	//FIXME !!! create separate io_service per peer
+{	peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
+ 	//peer_ptr new_peer(new peer(io_service_,*this,true,srvs_,opts_));
         //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/io_service_pool.cpp
 	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::handle_accept,this,new_peer,boost::asio::placeholders::error));
 }
@@ -220,7 +222,8 @@ void server::connect(std::string peer_address)
 		boost::asio::ip::tcp::resolver resolver(io_service_);
 		boost::asio::ip::tcp::resolver::query query(peer_address.c_str(),port);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
-		peer_ptr new_peer(new peer(io_service_,*this,false,srvs_,opts_));
+		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
+		//peer_ptr new_peer(new peer(io_service_,*this,false,srvs_,opts_));
 		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}

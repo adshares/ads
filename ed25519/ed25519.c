@@ -27,7 +27,7 @@
 #include "openssl/sha.h"
 
 void ed25519_printkey(uint8_t* key,int len)
-{	char *text=(char*)std::malloc(2*len+1);
+{	char *text=(char*)malloc(2*len+1);
 	text[2*len]='\0';
 	ed25519_key2text(text,key,len);
 	fprintf(stderr,"KEY:%s\n",text);
