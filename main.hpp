@@ -63,7 +63,7 @@
 //#define PATHSHIFT 8
 #define PATHSHIFT 5
 #define MAXCLIENTS 128
-#define CLIENT_POOL 4
+#define CLIENT_POOL 2	/* do not offer more threads that are used for network message validation */
 
 #define SERVER_DBL 0x1
 #define SERVER_VIP 0x2
@@ -102,6 +102,7 @@
 #define TXS_BRO_FEE(x) (0x1000+1*(x)) /* minimum 1hour fee + len_fee */
 #define TXS_PUT_FEE(x) (0x1000+0.0001*(x)) /* minimum 1hour fee */
 #define TXS_BNK_FEE    (0x10000000) /* */
+#define TXS_MPT_FEE(x,y) (0x1000+0.0001*(x)+0x100*(y)) /* minimum 1hour fee */
 #define TXS_GET_FEE    (0x100000) /* */
 #define TXS_KEY_FEE    (0x1000) /* minimum 1hour fee */
 #define TXS_BKY_FEE    (0x1000000) /* */

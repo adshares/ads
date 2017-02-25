@@ -193,18 +193,6 @@ public:
     // no old account found, creating new account
     //FIXME !!!  wrong time !!! must use time from txs
     srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
-    //memset(&nu,0,sizeof(user_t));
-    //memset(&nu.hash,0xff,SHA256_DIGEST_LENGTH);
-    //memcpy(nu.hash,&nuser,4); // always start with a unique hash
-    //memcpy(nu.hash+4,&svid,2); // always start with a unique hash
-    //nu.msid=1;
-    //nu.time=now;
-    //nu.node=svid;
-    //nu.user=nuser; // record user_id
-    //nu.lpath=now;
-    //nu.rpath=now-START_AGE;
-    //nu.weight=(abank==svid?MIN_MASS:0); // deposit funds imediately if local transaction
-    //memcpy(nu.pkey,pk,SHA256_DIGEST_LENGTH);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     if(users>=MAX_USERS){
@@ -229,13 +217,20 @@ public:
     file_.unlock();
   }
 
+  void add_deposit(uint32_t buser,int64_t tmass)
+  { file_.lock();
+    deposit[buser]+=tmass;
+    file_.unlock();
+    //FIXME, save in local transaction history
+    //save in loc/XX/XX/XX/XX.dat
+  }
+
   void add_deposit(usertxs& utxs)
   { file_.lock();
     deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
     //FIXME, save in local transaction history
     //save in loc/XX/XX/XX/XX.dat
-
     //FIXME, process contracts if needed
   }
 

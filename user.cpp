@@ -41,6 +41,29 @@ int cmpkey2(std::string& line,uint8_t* key)
   return(memcmp(msgtxt,key,32));
 }
 
+// expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
+// the list must terminate with ';'
+bool parse_mpt(std::string& text,uint32_t& to_bank,std::string& line)
+{ int pos=3;
+  int add=0;
+  int end=line.length();
+  for(;pos<end;pos+=add){
+    char to_acct[2+4+8];
+    uint32_t tbank;
+    uint32_t tuser;
+     int64_t tmass;
+    if(line[pos]==';'){
+      return(true);}
+    if(3!=sscanf(line.c_str()+pos,":%X,%X,%lX%n",&tbank,&tuser,&tmass,&add) || !add){
+      return(false);}
+    memcpy(to_acct+0,&tbank,2);
+    memcpy(to_acct+2,&tuser,4);
+    memcpy(to_acct+6,&tmass,8);
+    text.append(to_acct,2+4+8);
+    to_bank++;}
+  return(false);
+}
+
 usertxs_ptr run(settings& sts,std::string& line)
 { uint32_t to_bank=0; //actually uint16_t
   uint32_t to_user=0;
@@ -51,11 +74,11 @@ usertxs_ptr run(settings& sts,std::string& line)
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line.c_str(),"INF:%u:%u",&to_bank,&to_user)){ // get info about a different user
+  else if(sscanf(line.c_str(),"INF:%X:%X",&to_bank,&to_user)){ // get info about a different user
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line.c_str(),"LOG:%u",&now)){ // get info about me and my log since 'now'
+  else if(sscanf(line.c_str(),"LOG:%X",&now)){ // get info about me and my log since 'now'
     usertxs_ptr txs(new usertxs(TXSTYPE_LOG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
@@ -63,11 +86,18 @@ usertxs_ptr run(settings& sts,std::string& line)
     usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,line.length()-4,to_user,to_mass,to_info,line.c_str()+4));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line.c_str(),"PUT:%u:%u:%ld:%ld",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
+  else if(!strncmp(line.c_str(),"MPT:",4)){ // send funds to multiple to-accounts
+    std::string text;
+    if(!parse_mpt(text,to_bank,line) || !to_bank){
+      return(NULL);}
+    usertxs_ptr txs(new usertxs(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,text.c_str()));
+    txs->sign(sts.ha,sts.sk,sts.pk);
+    return(txs);}
+  else if(sscanf(line.c_str(),"PUT:%X:%X:%lX:%lX",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
     usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line.c_str(),"USR:%u",&to_bank)){ // create new user @ to_bank
+  else if(sscanf(line.c_str(),"USR:%X",&to_bank)){ // create new user @ to_bank
     usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
@@ -75,7 +105,7 @@ usertxs_ptr run(settings& sts,std::string& line)
     usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line.c_str(),"GET:%u:%u",&to_bank,&to_user)){ // retreive funds
+  else if(sscanf(line.c_str(),"GET:%X:%X",&to_bank,&to_user)){ // retreive funds
     usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}

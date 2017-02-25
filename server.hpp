@@ -1408,6 +1408,28 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blog.mpos=mpos; //can be overwritten with info
         blog.weight=utxs.tmass;
         log[key]=blog;}
+      if(*p==TXSTYPE_MPT){
+        char* tbuf=utxs.toaddresses((char*)p);
+        for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
+          uint16_t tbank;
+          memcpy(&tbank,tbuf+0,2);
+          if(tbank==opts_.svid){
+            uint32_t tuser;
+             int64_t tmass;
+            memcpy(&tuser,tbuf+2,4);
+            memcpy(&tmass,tbuf+6,8);
+            uint64_t key=((uint64_t)tuser)<<32;
+            key|=mpos;
+            log_t blog;
+            blog.time=now;
+            blog.type=*p|0x8000|0x4000; //incoming|removed
+            blog.node=utxs.abank;
+            blog.user=utxs.auser;
+            blog.umid=utxs.amsid;
+            blog.nmid=msg->msid; //can be overwritten with info
+            blog.mpos=mpos; //can be overwritten with info
+            blog.weight=tmass;
+            log[key]=blog;}}}
       p+=utxs.size;}
     put_log(opts_.svid,log); //TODO, add loging options for multiple banks
     return(true);
@@ -1426,12 +1448,30 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       assert(*p<TXSTYPE_INF);
       if(*p==TXSTYPE_PUT){
         utxs.parse(p);
-        if(utxs.abank!=utxs.bbank){
+        if(utxs.bbank!=utxs.abank){
           fprintf(stderr,"WARNING undoing put\n");
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=utxs.buser; //assume big endian
           to.small[1]=utxs.bbank; //assume big endian
-          txs_deposit[to.big]+=utxs.tmass;}
+          txs_deposit[to.big]+=utxs.tmass;} // will be substructed at the end of undo
+	p+=utxs.size;
+	continue;}
+      if(*p==TXSTYPE_MPT){
+        utxs.parse(p);
+        char* tbuf=utxs.toaddresses(p);
+        for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
+          uint16_t tbank;
+          uint32_t tuser;
+           int64_t tmass;
+          memcpy(&tbank,tbuf+0,2);
+          memcpy(&tuser,tbuf+2,4);
+          memcpy(&tmass,tbuf+6,8);
+          if(tbank!=utxs.abank){
+            fprintf(stderr,"WARNING undoing mpt\n");
+            union {uint64_t big;uint32_t small[2];} to;
+            to.small[0]=tuser; //assume big endian
+            to.small[1]=tbank; //assume big endian
+            txs_deposit[to.big]+=tmass;}} // will be substructed at the end of undo
 	p+=utxs.size;
 	continue;}
       if(*p==TXSTYPE_GET){
@@ -1546,6 +1586,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     hash_t new_bky;
     bool set_bky=false;
     fprintf(stderr,"PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
+    int mpt_size=0;
+    std::vector<uint32_t> mpt_user; // for MPT to local bank
+    std::vector< int64_t> mpt_mass; // for MPT to local bank
     while(p<(char*)msg->data+msg->len){
       //char txstype=*p;
       uint32_t luser=0;
@@ -1690,7 +1733,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
           fprintf(stderr,"ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
           return(false);}
-        if(utxs.abank==utxs.bbank){
+        if(utxs.bbank==utxs.abank){
           local_deposit[utxs.buser]+=utxs.tmass;}
         else{
           union {uint64_t big;uint32_t small[2];} to;
@@ -1699,6 +1742,39 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           txs_deposit[to.big]+=utxs.tmass;}
         deduct=utxs.tmass;
         fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera->lpath);}
+      else if(*p==TXSTYPE_MPT){
+        char* tbuf=utxs.toaddresses(p);
+        utxs.tmass=0;
+        mpt_size=0;
+        mpt_user.reserve(utxs.bbank);
+        mpt_mass.reserve(utxs.bbank);
+        for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
+          uint16_t tbank;
+          uint32_t tuser;
+           int64_t tmass;
+          memcpy(&tbank,tbuf+0,2);
+          memcpy(&tuser,tbuf+2,4);
+          memcpy(&tmass,tbuf+6,8);
+          if(tmass<=0){ //only positive non-zero values allowed
+            std::cerr<<"ERROR: only positive non-zero transactions allowed in MPT\n";
+            return(false);}
+          if(!srvs_.check_user(tbank,tuser)){
+            fprintf(stderr,"ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+            return(false);}
+          if(tbank==utxs.abank){
+            local_deposit[tuser]+=tmass;}
+          else{
+            union {uint64_t big;uint32_t small[2];} to;
+            to.small[0]=tuser; //assume big endian
+            to.small[1]=tbank; //assume big endian
+            txs_deposit[to.big]+=tmass;}
+          if(tbank==opts_.svid){
+            mpt_user[mpt_size]=tuser;
+            mpt_mass[mpt_size]=tmass;
+            mpt_size++;}
+          utxs.tmass+=tmass;}
+        deduct=utxs.tmass;
+        fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_USR){ // this is local bank
         assert(utxs.abank==msg->svid);
         deduct=MIN_MASS;
@@ -1774,6 +1850,20 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blog.mpos=mpos; //can be overwritten with info
         blog.weight=utxs.tmass;
         log[key]=blog;}
+      if(*p==TXSTYPE_MPT && mpt_size>0){
+        for(int i=0;i<mpt_size;i++){
+          uint64_t key=(uint64_t)mpt_user[i]<<32;
+          key|=mpos;
+          log_t blog;
+          blog.time=now;
+          blog.type=*p|0x8000; //incoming
+          blog.node=utxs.abank;
+          blog.user=utxs.auser;
+          blog.umid=utxs.amsid;
+          blog.nmid=msg->msid; //can be overwritten with info
+          blog.mpos=mpos; //can be overwritten with info
+          blog.weight=mpt_mass[i];
+          log[key]=blog;}}
       usera->msid++;
       usera->time=utxs.ttime;
       usera->node=lnode;
@@ -1783,7 +1873,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint8_t hash[32];
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
-      SHA256_Update(&sha256,p,txslen[(int)*p]+64);
+      //SHA256_Update(&sha256,p,txslen[(int)*p]+64);
+      SHA256_Update(&sha256,utxs.get_sig(p),64);
       SHA256_Final(hash,&sha256);
       //make newhash=hash(oldhash+newmessagehash);
       SHA256_Init(&sha256);

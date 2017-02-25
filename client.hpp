@@ -69,6 +69,12 @@ public:
       boost::asio::async_read(socket_,boost::asio::buffer(buf+len,utxs.bbank),
         boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
       return;}
+    if(*buf==TXSTYPE_MPT){
+      buf=(char*)std::realloc(buf,len+utxs.bbank*(6+8));
+      //std::cerr << "Client more " << addr << ":" << port << "\n";
+      boost::asio::async_read(socket_,boost::asio::buffer(buf+len,utxs.bbank*(6+8)),
+        boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
+      return;}
     offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     parse();
     offi_.unlock_user(utxs.auser);
@@ -97,6 +103,9 @@ public:
     int64_t fee=0;
     user_t usera;
     int32_t diff=utxs.ttime-started;
+    //TODO, should not allow same user multiple times in mpt otheriwse the log becomes unclear
+    std::vector<uint32_t> mpt_user; // for MPT to local bank
+    std::vector< int64_t> mpt_mass; // for MPT to local bank
 
 //FIXME, read the rest ... add additional signatures
     //consider adding a max txs limit per user
@@ -237,6 +246,33 @@ public:
       deposit=utxs.tmass;
       deduct=utxs.tmass;
       fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera.lpath);}
+    else if(*buf==TXSTYPE_MPT){
+      char* tbuf=utxs.toaddresses(buf);
+      //utxs.print_toaddresses(buf,utxs.bbank);
+      utxs.tmass=0;
+      mpt_user.reserve(utxs.bbank);
+      mpt_mass.reserve(utxs.bbank);
+      for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
+        uint16_t tbank;
+        uint32_t tuser;
+         int64_t tmass;
+        memcpy(&tbank,tbuf+0,2);
+        memcpy(&tuser,tbuf+2,4);
+        memcpy(&tmass,tbuf+6,8);
+        if(tmass<=0){ //only positive non-zero values allowed
+          std::cerr<<"ERROR: only positive non-zero transactions allowed in MPT\n";
+          return;}
+        if(!offi_.check_user(tbank,tuser)){
+          // does not check if account closed [consider adding this slow check]
+          std::cerr<<"ERROR: bad target user ("<<tbank<<":"<<tuser<<")\n";
+          return;}
+        if(tbank==utxs.abank){
+          mpt_user.push_back(tuser);
+          mpt_mass.push_back(tmass);}
+        utxs.tmass+=tmass;}
+      deposit=utxs.tmass;
+      deduct=utxs.tmass;
+      fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
     else if(*buf==TXSTYPE_USR){
       if(utxs.bbank!=offi_.svid){
         std::cerr<<"ERROR: bad target bank ("<<utxs.bbank<<")\n";
@@ -308,13 +344,11 @@ public:
     usera.node=lnode;
     usera.user=luser;
     usera.lpath=lpath;
-    //convert message to hash
+    //convert message to hash (use signature as input)
     uint8_t hash[32];
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
-    //SHA256_Update(&sha256,buf,txslen[(int)*buf]+64+extralen);
-    //SHA256_Update(&sha256,buf,utxs.size); // we add here the respose from the office for _USR and _BKY !!! remove this !!! FIXME
-    SHA256_Update(&sha256,buf,txslen[(int)*buf]+64);
+    SHA256_Update(&sha256,utxs.get_sig(buf),64);
     SHA256_Final(hash,&sha256);
     //make newhash=hash(oldhash+newmessagehash);
     SHA256_Init(&sha256);
@@ -322,7 +356,11 @@ public:
     SHA256_Update(&sha256,hash,32);
     SHA256_Final(usera.hash,&sha256);
     offi_.set_user(utxs.auser,usera,deduct+fee);
-    if(deposit>=0 && utxs.abank==utxs.bbank){
+    if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
+      int end=mpt_user.size();
+      for(int i=0;i<end;i++){
+        offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}
+    if(*buf==TXSTYPE_PUT && deposit>=0 && utxs.abank==utxs.bbank){
       offi_.add_deposit(utxs);}
     std::cerr<<"SENDING user info ("<<utxs.abank<<":"<<utxs.auser<<")\n";
     boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
