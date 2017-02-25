@@ -540,6 +540,7 @@ public:
         close(fd);
         return(i);}
       undo[i]=u;}
+    return 0;
   }
 
   int move(uint32_t nextpath) //TODO, consider locking

@@ -666,6 +666,7 @@ public:
         return(1);}
       peer_.unlock();
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      return 0;
   }
 
   uint32_t readmsid()
