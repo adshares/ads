@@ -2,6 +2,7 @@
 #define ED25519_H
 
 #include <stdlib.h>
+#include <stdint.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -29,14 +30,15 @@ void ed25519_sign2(const unsigned char *m, size_t mlen, const unsigned char *m2,
 void ed25519_printkey(uint8_t* key,int len);
 void ed25519_text2key(uint8_t* key,const char* text,int len);
 void ed25519_key2text(char* text,const uint8_t* key,int len);
+
+#if defined(__cplusplus)
+}
+//LESZEK
 typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[2]
 typedef struct {hash_t hash;} hash_s;
 typedef struct hash_cmp {
   bool operator()(const hash_s& i,const hash_s& j) const {int k=memcmp(i.hash,j.hash,sizeof(hash_t)); return(k<0);}
 } hash_cmp_t;
-
-#if defined(__cplusplus)
-}
 #endif
 
 #endif // ED25519_H

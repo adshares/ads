@@ -19,9 +19,9 @@ public:
 		user(0),
 		msid(0),
 		sk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		pk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		sn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		pn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+		pk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+		//sn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//pn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 	{}
 	uint8_t ha[SHA256_DIGEST_LENGTH];
 	int port;		// connecting port
@@ -31,14 +31,14 @@ public:
 	int msid;		// my last message id
 	ed25519_secret_key sk;
 	ed25519_public_key pk;	// calculated
-	ed25519_secret_key sn;
-	ed25519_public_key pn;	// calculated
-	ed25519_secret_key so;
-	ed25519_public_key po;	// calculated
+//	ed25519_secret_key sn;
+//	ed25519_public_key pn;	// calculated
+//	ed25519_secret_key so;
+//	ed25519_public_key po;	// calculated
 	std::string skey;
 	std::string pkey;
-	std::string snew;
-	std::string sold;
+//	std::string snew;
+//	std::string sold;
 	std::string exec;
 	std::string hash;	// my last message hash
 
@@ -60,8 +60,8 @@ public:
 				("hash,j", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
 				("skey,s", boost::program_options::value<std::string>(&skey),					"secret key [64chars in hext format / 32bytes]")
 				("pkey,k", boost::program_options::value<std::string>(&pkey),					"public key [64chars in hext format / 32bytes]")
-				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [32bytes]")
-				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [32bytes]")
+//				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [32bytes]")
+//				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [32bytes]")
 				("exec,e", boost::program_options::value<std::string>(&exec),					"command to execute")
 				;
 			boost::program_options::options_description cmdline_options;
@@ -113,7 +113,7 @@ public:
 			else{
 				std::cout << "INFO: suply public key to proceed\n";
 				exit(0);}
-			if (vm.count("snew")){
+			/*if (vm.count("snew")){
 				if(snew.length()!=64){
 					std::cout << "ENTER passphrase\n";
 					std::string line;
@@ -131,8 +131,8 @@ public:
 				ed25519_publickey(sn,pn);
 				ed25519_key2text(pktext,pn,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "New public key: " << std::string(pktext) << std::endl;}
-			if (vm.count("sold")){
+				std::cout << "New public key: " << std::string(pktext) << std::endl;}*/
+			/*if (vm.count("sold")){
 				if(sold.length()!=64){
 					std::cout << "ENTER passphrase\n";
 					std::string line;
@@ -150,7 +150,7 @@ public:
 				ed25519_publickey(so,po);
 				ed25519_key2text(pktext,po,32);
 				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "old public key: " << std::string(pktext) << std::endl;}
+				std::cout << "old public key: " << std::string(pktext) << std::endl;}*/
 			if(vm.count("port")){
 				std::cout << "Bank port: " << vm["port"].as<int>() << std::endl;}
 			else{

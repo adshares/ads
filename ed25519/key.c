@@ -15,6 +15,7 @@ void printkey(FILE* fp,const uint8_t* key,int len)
 int main(int argc, char** argv)
 {	ed25519_public_key pk;
 	ed25519_secret_key sk;
+	ed25519_signature  sg;
 	SHA256_CTX sha256;
 
 	assert(sizeof(sk)==SHA256_DIGEST_LENGTH);
@@ -25,10 +26,13 @@ int main(int argc, char** argv)
 	SHA256_Update(&sha256,argv[1],strlen(argv[1]));
 	SHA256_Final(sk,&sha256);
 	ed25519_publickey(sk,pk);
-	fprintf(stdout,"SK:");
+	fprintf(stdout,"SK: ");
 	printkey(stdout,sk,32);
-	fprintf(stdout,"PK:");
+	fprintf(stdout,"PK: ");
 	printkey(stdout,pk,32);
+	ed25519_sign((const unsigned char*)NULL,0,sk,pk,sg);
+	fprintf(stdout,"SG: ");
+	printkey(stdout,sg,64);
 	return 0;
 }
 

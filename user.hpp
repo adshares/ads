@@ -298,12 +298,16 @@ public:
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
 	}
 
-	//void sign2(uint8_t* hash,uint8_t* sk,uint8_t* pk2)
-	void sign2(uint8_t* hash,uint8_t* sk) // additional signature, no need to supply pk (is in data)
-	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
-		//assert(!memcmp(pk2,data+1+2+4+4+4,32));
-		ed25519_sign2(hash,32,data,txslen[ttype],sk,data+1+2+4+4+4,data+txslen[ttype]+64);
-	} // FIXME, sign A FIXED STRING with the second signature !!!
+	//void sign2(uint8_t* hash,uint8_t* sk) // additional signature, no need to supply pk (is in data)
+	//{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
+	//	ed25519_sign2(hash,32,data,txslen[ttype],sk,data+1+2+4+4+4,data+txslen[ttype]+64);
+	//} // FIXME, sign A FIXED STRING with the second signature !!!
+
+	int sign2(uint8_t* sig) // additional signature to validate public key
+	{	assert(ttype==TXSTYPE_KEY);
+		memcpy(data+txslen[ttype]+64,sig,64);
+		return(wrong_sig2(data));
+	}
 
 	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
 	{	if(ttype==TXSTYPE_CON){
@@ -321,15 +325,15 @@ public:
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
 	}
 
-	int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
-	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
-		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
-	} // FIXME, sign only the new key with the second signature !!!
+	//int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
+	//{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
+	//	return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
+	//} // FIXME, sign only the new key with the second signature !!!
 
-	//int wrong_sig3(uint8_t* buf,uint8_t* hash) // additional signature with client
-	//{	assert(ttype==TXSTYPE_BKY);
-	//	return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4+32,buf+txslen[ttype]+64+64));
-	//}
+	int wrong_sig2(uint8_t* buf) // additional signature to validate public key
+	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
+		return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
+	}
 
 	void print_head()
 	{	fprintf(stdout,"MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",

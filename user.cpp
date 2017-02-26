@@ -33,13 +33,13 @@
 #include "user.hpp"
 #include "settings.hpp"
 
-int cmpkey2(std::string& line,uint8_t* key)
+/*int cmpkey2(std::string& line,uint8_t* key)
 { if(line.length()<4+64){
     return(-1);}
   uint8_t msgtxt[64];
   ed25519_text2key((uint8_t*)msgtxt,line.c_str()+4,32); // do not send last hash
   return(memcmp(msgtxt,key,32));
-}
+}*/
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
 // the list must terminate with ';'
@@ -111,14 +111,20 @@ usertxs_ptr run(settings& sts,std::string& line)
     return(txs);}
   else if(!strncmp(line.c_str(),"KEY:",4)){ // change user key
     //if(!check_key2(line)){
-    if(cmpkey2(line,sts.pn)){
+    //if(cmpkey2(line,sts.pn)){
+    //  return(NULL);}
+    if(line.length()<4+2*32+1*2*64){
+      fprintf(stderr,"ERROR, bad KEY format; should be:\nKEY:new_public_key:empty_string_signature\n");
       return(NULL);}
     hash_t key;
+    ed25519_signature sig;
     ed25519_text2key(key,line.c_str()+4,32); // do not send last hash
+    ed25519_text2key(sig,line.c_str()+4+2*32+1,64); // do not send last hash
     usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key));
     txs->sign(sts.ha,sts.sk,sts.pk);
-    txs->sign2(sts.ha,sts.sn);
-    //txs->sign2(sts.ha,sts.sn,sts.pn);
+    if(txs->sign2(sig)){
+      fprintf(stderr,"ERROR, bad new KEY empty string signature\n");
+      return(NULL);}
     return(txs);}
   else if(!strncmp(line.c_str(),"BKY:",4)){ // change bank key
     //if(cmpkey2(line,sts.pn)){
@@ -208,7 +214,10 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
             std::cerr<<"ERROR transaction failed (bad msid)\n";}
           if(memcmp(sts.pk,myuser.pkey,32)){
-            std::cerr<<"PKEY differs\n";}
+            if(txs->ttype==TXSTYPE_KEY){
+              std::cerr<<"PKEY changed\n";}
+            else{
+              std::cerr<<"PKEY differs\n";}}
           sts.msid=myuser.msid;
           memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
       if(txs->ttype==TXSTYPE_INF){

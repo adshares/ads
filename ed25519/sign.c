@@ -32,13 +32,13 @@ int main(int argc, char** argv)
 		fprintf(stderr,"USAGE: %s sk pk message\n",argv[0]);
 		return(-1);}
 	readkey(sk,argv[1],32);
-	fprintf(stdout,"SK:");
+	fprintf(stdout,"SK: ");
 	printkey(stdout,sk,32);
 	readkey(pk,argv[2],32);
-	fprintf(stdout,"PK:");
+	fprintf(stdout,"PK: ");
 	printkey(stdout,pk,32);
-	ed25519_sign(argv[3],strlen(argv[3]),sk,pk,sg);
-	fprintf(stdout,"SG:");
+	ed25519_sign((const unsigned char*)argv[3],strlen(argv[3]),sk,pk,sg);
+	fprintf(stdout,"SG: ");
 	printkey(stdout,sg,64);
 	return(0);
 }

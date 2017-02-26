@@ -1,6 +1,0 @@
-
-gcc test.c ed25519.c -DED25519_TEST -m64 -lssl -lcrypto
-gcc key.c ed25519.c -m64 -lssl -lcrypto -o key
-gcc sign.c ed25519.c -m64 -lssl -lcrypto -o sign
-gcc check.c ed25519.c -m64 -lssl -lcrypto -o check
-

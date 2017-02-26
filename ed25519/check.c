@@ -31,10 +31,10 @@ int main(int argc, char** argv)
 		fprintf(stderr,"USAGE: %s sig pk message\n",argv[0]);
 		return(-1);}
 	readkey(sg,argv[1],64);
-	fprintf(stdout,"SG:");
+	fprintf(stdout,"SG: ");
 	printkey(stdout,sg,64);
 	readkey(pk,argv[2],32);
-	fprintf(stdout,"PK:");
+	fprintf(stdout,"PK: ");
 	printkey(stdout,pk,32);
 	if(ed25519_sign_open((const unsigned char*)argv[3],strlen(argv[3]),pk,sg)==0){
 		fprintf(stdout,"OK!\n");}

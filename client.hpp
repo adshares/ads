@@ -115,7 +115,7 @@ public:
     if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
       std::cerr<<"ERROR: bad signature\n";
       return;}
-    if(*buf==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf,(uint8_t*)usera.hash)){
+    if(*buf==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf)){
       std::cerr<<"ERROR: bad second signature\n";
       return;}
     if(diff>2 && *buf!=TXSTYPE_BLG){
