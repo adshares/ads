@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <dirent.h>
 #include <fcntl.h>
 #include <forward_list>
 #include <fstream>
@@ -36,7 +37,10 @@
 #include <unistd.h>
 #include <vector>
 
-#define BLOCKSEC 0x30
+//#define PHASESEC 0x100000 /* phase period in seconds, =delay for cleaning old files, must be multiple of BLOCKSEC */
+//#define BLOCKSEC 0x40 /* block period in seconds */
+#define PHASESEC 0x40 /* phase period in seconds, =delay for cleaning old files, must be multiple of BLOCKSEC */
+#define BLOCKSEC 0x20 /* block period in seconds */
 #define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define VOTES_MAX 127

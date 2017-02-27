@@ -22,8 +22,8 @@ public:
     do_vote(0),
     do_block(0)
     //ofip(NULL)
-  { mkdir("usr",0755); // create dir for bank accounts
-    //mkdir("und",0755); // create dir for undo accounts, not needed
+  { assert(!(PHASESEC%BLOCKSEC)); // initial test needed for servers.clean_old()
+    mkdir("usr",0755); // create dir for bank accounts
     mkdir("blk",0755); // create dir for blocks
     mklogdir(opts_.svid);
     mklogfile(opts_.svid,0);
@@ -342,7 +342,7 @@ public:
       int fd=open(filename,O_RDWR);
       if(fd<0){
         return(0);}
-      sprintf(filename,"blk/%08X/und/%04X.dat",path,bank);
+      sprintf(filename,"blk/%03X/%05X/und/%04X.dat",path>>20,path&0xFFFFF,bank);
       int ud=open(filename,O_RDONLY);
       uint32_t users=last_srvs_.nodes[bank].users;
        int64_t weight=0;
@@ -440,8 +440,7 @@ public:
   }
 
   void load_chain()
-  { //char pathname[16];
-    uint32_t now=time(NULL);
+  { uint32_t now=time(NULL);
     now-=now%BLOCKSEC;
     do_validate=1;
     threadpool.create_thread(boost::bind(&server::validator, this));
@@ -1545,7 +1544,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         close(fd);}
       lpath=path;
       char filename[64];
-      sprintf(filename,"blk/%08X/bro.log",path);
+      sprintf(filename,"blk/%03X/%05X/bro.log",path>>20,path&0xFFFFF);
       fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644); //TODO maybe O_TRUNC not needed
       if(fd<0){
         log_.unlock();
@@ -1562,24 +1561,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     sprintf(filename,"usr/%04X.dat",msg->svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
     if(fd<0){
-      //std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
       fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",msg->svid);
       exit(-1);}
-    //sprintf(filename,"blk/%08X/und/%04X.dat",srvs_.now,msg->svid);
-    //int ud=open(filename,O_WRONLY|O_CREAT,0644);
-    //if(ud<0){
-    //  std::cerr<<"ERROR, failed to open bank undo "<<msg->svid<<", fatal\n";
-    //  exit(-1);}
     std::map<uint64_t,log_t> log;
     std::map<uint32_t,user_t> changes;
     std::map<uint32_t,user_t> undo;
     std::map<uint32_t,int64_t> local_deposit;
     std::map<uint64_t,int64_t> txs_deposit;
-    //std::map<uint64_t,std::vector<hash_s>> txs_bky; //change bank key
-    //std::map<uint64_t,hash_s> txs_bky; //change bank key
     std::map<uint64_t,std::vector<uint32_t>> txs_bnk; //create new bank
     std::map<uint64_t,std::vector<get_t>> txs_get; //set lock / withdraw
-    //std::map<uint64_t,std::vector<uint32_t>> txs_put; //cancel lock
     uint32_t users=srvs_.nodes[msg->svid].users;
     uint32_t ousers=users;
     uint32_t lpath=srvs_.now;
@@ -1943,15 +1933,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     sprintf(filename,"usr/%04X.dat",svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
-      //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
       fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
       exit(-1);}
     return(fd);
-    //sprintf(filename,"blk/%08X/und/%04X.dat",srvs_.now,svid);
-    //ud=open(filename,O_WRONLY|O_CREAT,0644);
-    //if(ud<0){
-    //  std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
-    //  exit(-1);}
   }
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
@@ -2096,7 +2080,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
           fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
           exit(-1);}
-        sprintf(filename,"blk/%08X/und/%04X.dat",srvs_.now,svid);
+        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",srvs_.now>>20,srvs_.now&0xFFFFF,svid);
         ud=open(filename,O_WRONLY|O_CREAT,0644);
         if(ud<0){
           //std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
@@ -2207,7 +2191,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
     // save list of final message hashes
     char filename[64];
-    sprintf(filename,"blk/%08X/delta.txt",srvs_.now); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"blk/%03X/%05X/delta.txt",srvs_.now>>20,srvs_.now&0xFFFFF); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     FILE *fp=fopen(filename,"w");
     char* hash=(char*)malloc(2*sizeof(hash_t));
     for(auto it=last_block_svid_msgs.begin();it!=last_block_svid_msgs.end();it++){
@@ -2241,7 +2225,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::stack<message_ptr> invalidate_msgs;
     message_queue commit_msgs; //std::forward_list<message_ptr> commit_msgs;
     std::map<uint64_t,message_ptr> last_block_all_msgs; // last block all validated message from server, should change this to now_svid_msgs
-    sprintf(filename,"blk/%08X/block.txt",srvs_.now); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    sprintf(filename,"blk/%03X/%05X/block.txt",srvs_.now>>20,srvs_.now&0xFFFFF); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     fp=fopen(filename,"w");
     uint32_t txcount=0;
     uint16_t nsvid=0; // current svid processed
@@ -2403,6 +2387,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blk_msgs_.erase(mi);
         continue;}}
     std::cerr << "NEW BLOCK created\n";
+    srvs_.clean_old(opts_.svid);
   }
 
   void update_candidates(message_ptr msg)
@@ -2564,9 +2549,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         finish_block();
         //writelastpath();
         writemsid();
-        //char pathname[16];
-        //sprintf(pathname,"blk/%08X",srvs_.now+BLOCKSEC); // size depends on the time_ shift !!!
-        //mkdir(pathname,0755);
         svid_.lock();
         svid_msgs_.clear();
         svid_.unlock();
