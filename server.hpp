@@ -77,7 +77,8 @@ public:
     for(std::string addr : opts_.peer){
       //std::cerr<<"CONNECT :"<<addr<<"\n";
       connect(addr);
-      boost::this_thread::sleep(boost::posix_time::seconds(2));} //wait some time before connecting to more peers
+      boost::this_thread::sleep(boost::posix_time::seconds(1));} //wait some time before connecting to more peers
+    peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){
       if(opts_.fast){ //FIXME, do slow sync after fast sync
@@ -123,9 +124,10 @@ public:
   void stop()
   { do_validate=0;
     io_service_.stop();
-    //ioth_->interrupt();
     ioth_->join();
     threadpool.join_all();
+    peers_thread->interrupt();
+    peers_thread->join();
     clock_thread->interrupt();
     clock_thread->join();
     std::cerr<<"Shutting down completed\n";
@@ -1597,6 +1599,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       utxs.print_head();
       if(*p==TXSTYPE_CON){
         //std::cerr<<"INFO: parsed CON transaction\n";
+        srvs_.nodes[msg->svid].port=utxs.abank;
+        srvs_.nodes[msg->svid].ipv4=utxs.auser;
         p+=utxs.size;
         continue;}
       if(*p>=TXSTYPE_INF){
@@ -2428,6 +2432,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     int msid=++msid_; // can be atomic
     mtx_.unlock();
     writemsid(); //FIXME we should save the message before updating the message counter
+    // add location info. FIXME, set location to 0 before exit
+    usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+    line.append((char*)txs.data,txs.size);
     message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
@@ -2487,6 +2494,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 //FIXME, save only if I am important
   }
 
+  void peers() // connect new peers
+  { while(1){
+      boost::this_thread::sleep(boost::posix_time::seconds(1)); //will be interrupted to return
+      if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2){
+        continue;}
+      int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+      if(!svid || svid==opts_.svid || !srvs_.nodes[svid].ipv4 || !srvs_.nodes[svid].port){
+        fprintf(stderr,"IGNORE CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+        continue;}
+      if(connected(svid)){
+        fprintf(stderr,"ALREADY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+        continue;}
+      fprintf(stderr,"TRY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+      connect(svid);}
+  }
 
   void clock()
   { 
@@ -2565,7 +2587,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   { static uint32_t do_hallo=0;
     if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
       std::cerr << "SILENCE, sending void message due to silence\n";
-      usertxs txs(TXSTYPE_CON,0,0,now);
+      usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
       message.append((char*)txs.data,txs.size);
       do_hallo=srvs_.now;
       return(true);}
@@ -2609,6 +2631,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void join(peer_ptr participant);
   void leave(peer_ptr participant);
   void disconnect(uint16_t svid);
+  bool connected(uint16_t svid);
   int duplicate(peer_ptr participant);
   void deliver(message_ptr msg);
   int deliver(message_ptr msg,uint16_t svid);
@@ -2617,6 +2640,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void start_accept();
   void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
   void connect(std::string peer_address);
+  void connect(uint16_t svid);
   void fillknown(message_ptr msg);
   void get_more_headers(uint32_t now,uint8_t* nowhash);
 
@@ -2651,6 +2675,7 @@ private:
   options& opts_;
   boost::thread_group threadpool;
   boost::thread* clock_thread;
+  boost::thread* peers_thread;
   //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
   //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt
   int do_validate; // keep validation threads running

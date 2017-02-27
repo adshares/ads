@@ -13,7 +13,8 @@ class options
 public:
 	options() :
 		init(false),
-		fast(false)
+		fast(false),
+		ipv4(0)
 	{}
 	bool init;
 	bool fast;
@@ -22,6 +23,7 @@ public:
 	int port;
 	int svid;
 	std::string addr;
+	uint32_t ipv4;
 	//std::string skey;
 	//ed25519_secret_key sk;
 	//ed25519_public_key pk; // calculated
@@ -74,7 +76,12 @@ public:
 			if(vm.count("port")){
 				std::cout << "Service port: " << vm["port"].as<int>() << std::endl;}
 			if (vm.count("addr")){
-				std::cout << "Service addr: " << vm["addr"].as<std::string>() << std::endl;}
+				std::cout << "Service addr: " << vm["addr"].as<std::string>() << std::endl;
+				struct in_addr adds;
+				if(inet_aton(addr.c_str(),&adds)){
+					ipv4=adds.s_addr;}
+				else{
+					std::cout << "Service addr: ERROR parsing my ip" << std::endl;}}
 			if (vm.count("svid")){
 				std::cout << "Service svid: " << vm["svid"].as<int>() << std::endl;}
 			else{

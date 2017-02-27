@@ -95,6 +95,15 @@ void server::disconnect(uint16_t svid)
 			break;}}
 	peer_.unlock();
 }
+bool server::connected(uint16_t svid)
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid==svid){
+			peer_.unlock();
+			return(true);}}
+	peer_.unlock();
+	return(false);
+}
 int server::duplicate(peer_ptr p)
 {	peer_.lock();
 	for(const peer_ptr r : peers_){
@@ -181,7 +190,22 @@ void server::connect(std::string peer_address)
 		boost::asio::ip::tcp::resolver::query query(peer_address.c_str(),port);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
-		//peer_ptr new_peer(new peer(io_service_,*this,false,srvs_,opts_));
+		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
+	catch (std::exception& e){
+		std::cerr << "Connection: " << e.what() << "\n";}
+}
+void server::connect(uint16_t svid)
+{	try{
+		//char ipv4t[32];
+		//sprintf(ipv4t,"%s",inet_ntoa(srvs_.nodes[svid].ipv4));
+		struct in_addr addr;
+		addr.s_addr=srvs_.nodes[svid].ipv4;
+		char portt[32];
+		sprintf(portt,"%u",srvs_.nodes[svid].port);
+		boost::asio::ip::tcp::resolver resolver(io_service_);
+		boost::asio::ip::tcp::resolver::query query(inet_ntoa(addr),portt);
+		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
 		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}

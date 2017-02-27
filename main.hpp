@@ -3,6 +3,7 @@
 
 //#define _GNU_SOURCE
 #include <algorithm>
+#include <arpa/inet.h>
 #include <atomic>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -29,13 +30,16 @@
 #include <iostream>
 #include <iterator>
 #include <list>
+#include <netinet/in.h>
 #include <openssl/sha.h>
 #include <set>
 #include <stack>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+
 
 //#define PHASESEC 0x100000 /* phase period in seconds, =delay for cleaning old files, must be multiple of BLOCKSEC */
 //#define BLOCKSEC 0x40 /* block period in seconds */
@@ -60,6 +64,8 @@
 #define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0xFFFFFFF0 /* blog size larger than this will not be submitted to clients */
+#define MIN_PEERS 8 /* keep at least 8 peers connected */
+#define MAX_PEERS 32 /* keep not more than 16 peers connected */
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9080"

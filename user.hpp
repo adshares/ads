@@ -18,7 +18,7 @@
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
-	1+2+4+  4,		//1:CON
+	1+2+4,			//1:CON (port,ipv4)
 	1+2+4+4+4+2,		//2:BRO 'bbank' is message length
 	1+2+4+4+4+2+4+8+8,	//3:PUT, extra parameter = official message (8 byte)
 	1+2+4+4+4+2,		//4:MPT 'bbank' is number of to_accounts
@@ -123,7 +123,7 @@ public:
 			data[0]=TXSTYPE_CON;
 			memcpy(data+1  ,&abank,2);
 			memcpy(data+1+2,&auser,4);
-			memcpy(data+1+6,&ttime,4);
+			//memcpy(data+1+6,&ttime,4);
 			return;}
 	 	if(ttype==TXSTYPE_BLG){
 	 		size=txslen[TXSTYPE_BLG]+64;
@@ -169,7 +169,7 @@ public:
 			data[0]=ttype;
 			memcpy(data+1  ,&abank,2);
 			memcpy(data+1+2,&auser,4);
-			memcpy(data+1+6,&ttime,4);
+			//memcpy(data+1+6,&ttime,4);
 			return;}
 		else if(ttype==TXSTYPE_BRO){
 			size=len+bbank+64;}
@@ -239,7 +239,7 @@ public:
 		memcpy(&abank,txs+1+0 ,2);
 		memcpy(&auser,txs+1+2 ,4);
 		if(ttype==TXSTYPE_CON){
-			memcpy(&ttime,txs+1+6,4);
+			//memcpy(&ttime,txs+1+6,4);
 			size=txslen[TXSTYPE_CON]; // no signature !
 			return(true);}
 		if(ttype==TXSTYPE_BLG){
