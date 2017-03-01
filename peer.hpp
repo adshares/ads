@@ -689,8 +689,9 @@ public:
       ld=ud.back();}
     int msid=0;
      int64_t weight=0;
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
+    //SHA256_CTX sha256;
+    //SHA256_Init(&sha256);
+    uint64_t csum[4]={0,0,0,0};
     for(uint32_t user=0;user<users;msid++){
       uint32_t end=user+MESSAGE_CHUNK;
       if(end>users){
@@ -726,19 +727,20 @@ public:
         fprintf(stderr,"USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
           user,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
         weight+=u->weight;
-        SHA256_Update(&sha256,u,sizeof(user_t));}
+        //SHA256_Update(&sha256,u,sizeof(user_t));
+        server_.last_srvs_.xor4(csum,u->csum);}
       fprintf(stderr,"SENDING bank %04X block %08X msid %08X max user %08X sum %016lX\n",bank,path,msid,user,s.nodes[bank].weight);
       send_sync(put_msg); // send even if we have errors
       if(user==users){
-        uint8_t hash[32];
-        SHA256_Final(hash,&sha256);
+        //uint8_t hash[32];
+        //SHA256_Final(hash,&sha256);
 //FIXME, should compare with previous hash !!!
         if(s.nodes[bank].weight!=weight){
           //unlink(filename); //TODO, enable this later
           fprintf(stderr,"ERROR sending bank %04X bad sum %016lX<>%016lX\n",bank,s.nodes[bank].weight,weight);
           server_.leave(shared_from_this());
           return;}
-        if(memcmp(s.nodes[bank].hash,hash,32)){
+        if(memcmp(s.nodes[bank].hash,csum,32)){
           //unlink(filename); //TODO, enable this later
           fprintf(stderr,"ERROR sending bank %04X (bad hash)\n",bank);
           server_.leave(shared_from_this());
@@ -749,7 +751,8 @@ public:
   { static uint16_t last_bank=0;
     static uint16_t last_msid=0;
     static  int64_t weight=0;
-    static SHA256_CTX sha256;
+    //static SHA256_CTX sha256;
+    static uint64_t csum[4]={0,0,0,0};
     int fd;
     if(error){
       std::cerr << "ERROR reading message\n";
@@ -797,7 +800,8 @@ public:
       last_bank=bank;
       last_msid=0;
       weight=0;
-      SHA256_Init(&sha256);
+      bzero(csum,4*sizeof(uint64_t));
+      //SHA256_Init(&sha256);
       fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);}
     else{
       if(last_bank!=bank||last_msid!=read_msg_->msid-1){
@@ -812,6 +816,7 @@ public:
       //std::cerr << "ERROR creating bank "<<bank<<" file\n";
       fprintf(stderr,"ERROR creating bank %04X file\n",bank);
       exit(-1);}
+    //if sending user_t without csum, must split this into individual writes
     if((int)(read_msg_->len*sizeof(user_t))!=write(fd,read_msg_->data+8,read_msg_->len*sizeof(user_t))){
       close(fd);
       unlink(filename);
@@ -820,18 +825,22 @@ public:
       exit(-1);}
     close(fd);
     user_t* u=(user_t*)(read_msg_->data+8);
-    for(uint32_t i=0;i<read_msg_->len;i++,u++){
+    uint32_t uid=0x10000*read_msg_->msid;
+    for(uint32_t i=0;i<read_msg_->len;i++,u++,uid++){
       weight+=u->weight;
-      SHA256_Update(&sha256,u,sizeof(user_t));}
+      //SHA256_Update(&sha256,u,sizeof(user_t));
+      server_.last_srvs_.user_csum(*u,bank,uid); //overwrite u.csum (TODO consider not sending over network!!!)
+      server_.last_srvs_.xor4(csum,u->csum);}
     if(read_msg_->len+0x10000*read_msg_->msid<server_.last_srvs_.nodes[bank].users){
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    uint8_t hash[32];
-    SHA256_Final(hash,&sha256);
-    if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32)){
+    //uint8_t hash[32];
+    //SHA256_Final(hash,&sha256);
+    //if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32))
+    if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))){
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
       fprintf(stderr,"ERROR reading bank %04X (bad hash)\n",bank);

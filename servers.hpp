@@ -23,7 +23,7 @@ typedef struct headlink_s { // header links sent when syncing
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef struct node_s {
 	ed25519_public_key pk; // public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts
+	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts (XOR of checksums)
 	//uint8_t xash[SHA256_DIGEST_LENGTH]; // hash of additional data
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
@@ -44,7 +44,7 @@ class node
 public:
 	node() :
 		pk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		hash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		hash{0,0,0,0},
 		msha{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		msid(0),
 		mtim(0),
@@ -57,7 +57,8 @@ public:
 	{	//bzero(host,64);
 	}
 	ed25519_public_key pk; // public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts
+	uint8_t ohash[SHA256_DIGEST_LENGTH]; // hash of accounts
+	uint64_t hash[4]; // hash of accounts, could be atomic to prevent locking
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
 	uint32_t mtim; // time of last message
@@ -78,7 +79,8 @@ private:
 	template<class Archive> void serialize(Archive & ar, const unsigned int version)
 	{	
 		ar & pk;
-	 	ar & hash;
+	 	if(version<3){	ar & ohash; memcpy(hash,ohash,32);}
+		else{		ar & hash;}
 		//if(version>0) ar & msha;
 		ar & msha;
 	 	ar & msid;
@@ -98,7 +100,7 @@ private:
 	 	if(version>1) ar & ipv4;
 	}
 };
-BOOST_CLASS_VERSION(node, 2)
+BOOST_CLASS_VERSION(node, 3)
 class servers // also a block
 {
 public:
@@ -134,25 +136,25 @@ public:
                 now=newnow;
 		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
-			bzero(it->hash,SHA256_DIGEST_LENGTH);
 			memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 			memcpy(it->msha,&num,2); // always start with a unique hash
 			it->msid=0;
-			it->mtim=now;
+			it->mtim=now; // blockchain start time in nodes[0]
 			it->status=0;
 			if(num){
 				if(num<=VIP_MAX){
 					it->status|=SERVER_VIP;}
 				it->users=1;
-				//it->weight=stw-num;
-				//add_user(num,0,it->weight,it->pk);
 				// create the first user
 				user_t u;
-				init_user(u,num,0,stw-num,it->pk,now);
+				init_user(u,num,0,stw-num,it->pk,now,num,0);
 				put_user(u,num,0);
-				update_nodehash(num);
-				sum+=it->weight;}
+				//update_nodehash(num);
+				memcpy(it->hash,u.csum,SHA256_DIGEST_LENGTH);
+				it->weight=u.weight;
+				sum+=u.weight;}
 			else{
+				bzero(it->hash,SHA256_DIGEST_LENGTH);
 				bzero(it->pk,SHA256_DIGEST_LENGTH);
 				it->users=0;
 				it->weight=0;}}
@@ -162,7 +164,23 @@ public:
 		return(num<VIP_MAX?num:VIP_MAX);
 	}
 
-	uint16_t add_node(user_t& ou,uint32_t uid)
+	void xor4(uint64_t* to,uint64_t* from)
+	{	to[0]^=from[0];
+	 	to[1]^=from[1];
+	 	to[2]^=from[2];
+	 	to[3]^=from[3];
+	}
+
+	void user_csum(user_t& u,uint16_t peer,uint32_t uid)
+	{	SHA256_CTX sha256;
+		SHA256_Init(&sha256);
+		SHA256_Update(&sha256,&u,sizeof(user_t)-4*sizeof(uint64_t));
+		SHA256_Update(&sha256,&peer,sizeof(uint16_t));
+		SHA256_Update(&sha256,&uid,sizeof(uint32_t));
+		SHA256_Final((uint8_t*)u.csum,&sha256);
+	}
+
+	uint16_t add_node(user_t& ou,uint16_t unode,uint32_t user)
 	{	uint16_t peer=nodes.size();
 		node nn;
 		nn.mtim=now;
@@ -172,40 +190,40 @@ public:
 		memcpy(nn.msha,&peer,2); // always start with a unique hash
 	 	nodes.push_back(nn);
 		user_t nu;
-		init_user(nu,peer,0,0,ou.pkey,now);
-		nu.node=peer;
-		nu.user=uid;
+		init_user(nu,peer,0,0,ou.pkey,now,unode,user);
 		put_user(nu,peer,0);
 		//update_nodehash(peer);
+		memcpy(nn.hash,ou.csum,SHA256_DIGEST_LENGTH); //???
 		return(peer);
 	}
 
-	void put_node(user_t& ou,uint16_t peer,uint32_t uid)
+	void put_node(user_t& ou,uint16_t peer,uint16_t node,uint32_t user) //executed in block mode, no lock needed
 	{	std::map<uint32_t,user_t> undo;
 	 	user_t nu;
 		get_user(nu,peer,0);
 		undo[0]=nu;
+		xor4(nodes[peer].hash,nu.csum);
 		save_undo(peer,undo,0);
-		init_user(nu,peer,0,nu.weight,ou.pkey,now);
-		nu.node=peer;
-		nu.user=uid;
+		init_user(nu,peer,0,nu.weight,ou.pkey,now,node,user); // weight does not change
 		put_user(nu,peer,0);
+		xor4(nodes[peer].hash,nu.csum);
 		nodes[peer].mtim=now;
 	}
 
-	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when)
+	void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t node,uint16_t user)
 	{	memset(&u,0,sizeof(user_t));
 		memset(u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		memcpy(u.hash,&uid,4); // always start with a unique hash
 		memcpy(u.hash+4,&peer,2); // always start with a unique hash
 		u.msid=1; // always >0 to help identify holes in delta files
                 u.time=when;
-		u.node=peer;
-		u.user=uid;
+		u.node=node;
+		u.user=user;
                 u.lpath=when;
                 u.rpath=when-START_AGE;
 		u.weight=weight;
 		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
+		user_csum(u,peer,uid);
         }
 
 	void put_user(user_t& u,uint16_t peer,uint32_t uid)
@@ -261,17 +279,16 @@ public:
 		return(false);
 	}
 
-	void update_nodehash(uint16_t peer)
+	bool check_nodehash(uint16_t peer)
 	{	assert(peer);
                 char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
 			exit(-1);}
-		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
+		uint64_t csum[4]={0,0,0,0};
 		uint32_t end=nodes[peer].users;
-		uint64_t weight=0;
+		 int64_t weight=0;
 		for(uint32_t i=0;i<end;i++){
 			user_t u;
 			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
@@ -280,11 +297,14 @@ public:
 //FIXME, remove
         fprintf(stderr,"USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
           peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
-			weight+=u.weight;
-			SHA256_Update(&sha256,&u,sizeof(user_t));}
-		SHA256_Final(nodes[peer].hash,&sha256);
-		nodes[peer].weight=weight;
+			xor4(csum,u.csum);
+			weight+=u.weight;}
 		close(fd);
+		if(nodes[peer].weight!=weight){
+			return(false);}
+		if(memcmp(nodes[peer].hash,csum,4*sizeof(uint64_t))){
+			return(false);}
+		return(true);
 	}
 
 	void save_undo(uint16_t svid,std::map<uint32_t,user_t>& undo,uint32_t users)
@@ -345,8 +365,6 @@ public:
 			std::cerr<<"ERROR, failed to write servers to dir:"<<now<<"\n";}
 
 	}
-	//void finish(uint32_t path,uint32_t txcount,uint8_t* txsh)
-	//void finish(uint8_t* txsh)
 	void hashtxs(std::map<uint64_t,message_ptr>& map)
 	{	SHA256_CTX sha256;
 		SHA256_Init(&sha256);
@@ -356,7 +374,6 @@ public:
 		txs=i;
 		SHA256_Final(txshash, &sha256);
 	}
-
 	void txs_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
 	{	hashtxs(map);
 	 	char filename[64];

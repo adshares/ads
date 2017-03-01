@@ -35,17 +35,18 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 #define USER_CLOSED 0x0001;
 
 #pragma pack(1)
-typedef struct user_s { // 8+32+32+4+4+8+4+2+2=96 bytes
+typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
 	uint32_t msid; // id of last transaction, id==1 is the creation.
-	uint32_t time; // original time of transaction (used as lock initiaiton)
+	uint32_t time; // original time of transaction (used as lock initiation)
 	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
 	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
 	uint16_t stat; // includes status and account type
 	uint16_t node; // target node, ==bank_id at creation
 	uint32_t user; // target user, ==user_id at creation
 	uint32_t lpath; // block time of local transaction
-	uint32_t rpath; // block time of incomming transaction
-	 int64_t weight; // balance
+	uint32_t rpath; // block time of incomming transaction, quite useless, could be number of incomming txses
+	 int64_t weight; // balance, MUST BE LAST !!! (commit_deposit requires correct position)
+	uint64_t csum[4]; //sha256 hash of user account, MUST BE LAST, TODO: in office, user for 2FA
 } user_t;
 typedef struct log_s {
 	uint32_t time;

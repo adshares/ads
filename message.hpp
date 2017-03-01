@@ -511,11 +511,17 @@ public:
     return(1);
   }
 
-  void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users) // assume no errors :-) FIXME
+  void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,uint8_t* msha,uint32_t& mtim) // assume no errors :-) FIXME
   { char filename[64];
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
-    assert(fd);
+    if(fd<0){
+      fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
+      exit(-1);}
+    write(fd,csum,4*sizeof(uint64_t));
+    write(fd,&weight,sizeof(int64_t));
+    write(fd,msha,SHA256_DIGEST_LENGTH);
+    write(fd,&mtim,sizeof(int32_t));
     for(auto it=undo.begin();it!=undo.end();it++){
       write(fd,&it->first,sizeof(uint32_t));
       write(fd,&it->second,sizeof(user_t));}
@@ -523,13 +529,17 @@ public:
     close(fd);
   }
 
-  uint32_t load_undo(std::map<uint32_t,user_t>& undo)
+  uint32_t load_undo(std::map<uint32_t,user_t>& undo,uint64_t* csum,int64_t& weight,uint8_t* msha,uint32_t& mtim)
   { char filename[64];
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
       exit(-1);}
+    read(fd,csum,4*sizeof(uint64_t));
+    read(fd,&weight,sizeof(int64_t));
+    read(fd,msha,SHA256_DIGEST_LENGTH);
+    read(fd,&mtim,sizeof(int32_t));
     for(;;){
       uint32_t i;
       user_t u;

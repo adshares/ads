@@ -142,7 +142,7 @@ public:
     return(true);
   }
 
-  uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when) // will create new account or overwrite old one
+  uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
   { static uint32_t nuser=0;
     static uint32_t lastnow=0;
     uint32_t now=srv_.last_srvs_.now;
@@ -180,7 +180,7 @@ public:
           fprintf(stderr,"WARNING, overwriting account %08X [weight:%016lX fee:%08X]\n",
             nuser,nu.weight,TIME_FEE(now,nu.lpath));
           //FIXME !!!  wrong time !!! must use time from txs
-          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
+          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when,abank,auser);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&nu,sizeof(user_t));
           file_.unlock();
@@ -192,7 +192,7 @@ public:
       return(0);}
     // no old account found, creating new account
     //FIXME !!!  wrong time !!! must use time from txs
-    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when);
+    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when,abank,auser);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     if(users>=MAX_USERS){

@@ -285,7 +285,7 @@ public:
       if(utxs.abank!=offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
         std::cerr<<"ERROR: failed to open account (pkey known)\n";
         return;}
-      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime);
+      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime,utxs.auser);
       if(!nuser){
         std::cerr<<"ERROR: failed to open account\n";
         return;}
