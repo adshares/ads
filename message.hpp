@@ -140,7 +140,7 @@ public:
       ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
       hash_signature();}
     else{
-      if(!hash_tree()){
+      if(!hash_tree(sigh)){
         fprintf(stderr,"ERROR hash_tree error, FATAL\n");
         exit(-1);}
       ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);}
@@ -149,7 +149,7 @@ public:
     hash.num=dohash(mysvid);
   }
 
-  bool hash_tree()
+  bool hash_tree(uint8_t* newsigh)
   { assert(data[0]==MSGTYPE_MSG);
     hash_t hash;
     hashtree tree;
@@ -170,7 +170,7 @@ public:
       SHA256_Update(&sha256,p,l);
       SHA256_Final(hash,&sha256);
       tree.update(hash);}
-    tree.finish(sigh);
+    tree.finish(newsigh);
     if(p!=end){
       return(false);}
     return(true);
@@ -335,12 +335,12 @@ public:
       svid=peer_svid;
       len=header_length;
       return 1;}
-    if(data[0]==MSGTYPE_MSG){
+    if(data[0]==MSGTYPE_MSL){
       std::cerr << "TXSLIST request header received\n";
       svid=peer_svid;
       len=header_length;
       return 1;}
-    if(data[0]==MSGTYPE_MSG){
+    if(data[0]==MSGTYPE_MSP){
       std::cerr << "TXSLIST data header received\n";
       svid=peer_svid;
       memcpy(&len,data+1,3);
@@ -355,15 +355,18 @@ public:
     return 0;
   }
 
-  //int sigh_check(uint8_t* sig) //
   int sigh_check() // check signature of loaded message
   { uint64_t h[4];
-    uint64_t g[8];
-    memcpy(g,data+4,8*sizeof(uint64_t));
-    h[0]=g[0]^g[4];
-    h[1]=g[1]^g[5];
-    h[2]=g[2]^g[6];
-    h[3]=g[3]^g[7];
+    if(hash.dat[1]==MSGTYPE_MSG){
+      if(!hash_tree((uint8_t*)h)){
+        return(-1);}}
+    else{
+      uint64_t g[8];
+      memcpy(g,data+4,8*sizeof(uint64_t));
+      h[0]=g[0]^g[4];
+      h[1]=g[1]^g[5];
+      h[2]=g[2]^g[6];
+      h[3]=g[3]^g[7];}
     return(memcmp(sigh,h,SHA256_DIGEST_LENGTH));
   }
   void null_signature()
@@ -403,7 +406,7 @@ public:
       //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
       status=MSGSTAT_DAT; // have data
       if(data[0]==MSGTYPE_MSG){
-        if(!hash_tree()){
+        if(!hash_tree(sigh)){
           fprintf(stderr,"ERROR, hash_tree error\n");
           return(-1);}
         hash.num=dohash(mysvid);

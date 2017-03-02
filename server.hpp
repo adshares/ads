@@ -487,8 +487,8 @@ public:
             fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
             uint16_t svid=put_msg->request();
             if(svid){
-              //std::cerr << "REQUESTING TXL from "<<svid<<"\n";
-              fprintf(stderr,"REQUESTING TXL from %04X\n",svid);
+              //std::cerr << "REQUESTING MSL from "<<svid<<"\n";
+              fprintf(stderr,"REQUESTING MSL from %04X\n",svid);
               deliver(put_msg,svid);}}
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
         srvs_.msg=block->msg; //check
@@ -517,7 +517,7 @@ public:
         blk_.lock();
         blk_msgs_[jt->first]=jt->second; //overload the use of blk_msgs_ , during sync store here the list of messages to be validated (meybe we should use a different container for ths later)
         blk_.unlock();
-	if(jt->second->hash.dat[0]==MSGTYPE_DBL){
+	if(jt->second->hash.dat[1]==MSGTYPE_DBL){
           dbl_.lock();
           dbl_msgs_[jt->first]=jt->second;
           dbl_.unlock();}
@@ -526,22 +526,19 @@ public:
           txs_msgs_[jt->first]=jt->second;
           txs_.unlock();}
 	if(jt->second->load()){
-          //if(!jt->second->sigh_check(jt->second->data+4)){
           if(!jt->second->sigh_check()){
             jt->second->read_head(); //to get 'now'
-            //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database ("<<jt->second->path<<")\n";
             fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
               jt->second->svid,jt->second->msid,jt->second->path);
             check_.lock();
             check_msgs_.push_back(jt->second); // send to validator
             check_.unlock();
-            missing_msgs_erase(jt->second);}
-          else{
-            //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
-            fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X failed\n",
-              jt->second->svid,jt->second->msid,jt->second->path);
-            jt->second->len=message::header_length;}
-          continue;} // assume no lock needed
+            missing_msgs_erase(jt->second);
+            continue;}
+          //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
+          fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X failed\n",
+            jt->second->svid,jt->second->msid,jt->second->path);
+          jt->second->len=message::header_length;}
 	fillknown(jt->second);
 	uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
         if(svid){
