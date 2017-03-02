@@ -467,10 +467,12 @@ public:
 		SHA256_Update(&sha256,&msg,sizeof(uint32_t));
 		SHA256_Update(&sha256,&nod,sizeof(uint32_t));
 		//SHA256_Update(&sha256,oldhash,SHA256_DIGEST_LENGTH);
-		SHA256_Update(&sha256,msghash,SHA256_DIGEST_LENGTH);
-		SHA256_Update(&sha256,nodhash,SHA256_DIGEST_LENGTH);
+		//SHA256_Update(&sha256,msghash,SHA256_DIGEST_LENGTH);
+		//SHA256_Update(&sha256,nodhash,SHA256_DIGEST_LENGTH);
 		SHA256_Final(nowhash, &sha256);
 		hashtree tree(NULL); //FIXME, waste of space
+		tree.addhash(nowhash,nodhash);
+		tree.addhash(nowhash,msghash);
 		tree.addhash(nowhash,oldhash);
 	}
 	void loadlink(headlink_t& link,uint32_t path,char* oldh)
