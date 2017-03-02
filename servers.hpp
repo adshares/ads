@@ -358,13 +358,31 @@ public:
 
 	}
 	void hashmsg(std::map<uint64_t,message_ptr>& map)
-	{	SHA256_CTX sha256;
-		SHA256_Init(&sha256);
+	{	//SHA256_CTX sha256;
+		//SHA256_Init(&sha256);
+		hashtree tree;
 		int i=0;
 		for(auto it=map.begin();it!=map.end();++it,i++){
-			SHA256_Update(&sha256,it->second->sigh,SHA256_DIGEST_LENGTH);}
+			//SHA256_Update(&sha256,it->second->sigh,SHA256_DIGEST_LENGTH);}
+			tree.update(it->second->sigh);}
 		msg=i;
-		SHA256_Final(msghash, &sha256);
+		//SHA256_Final(msghash, &sha256);
+		tree.finish(msghash);
+	}
+	bool msg_check(std::map<uint64_t,message_ptr>& map)
+	{	hash_t hash;
+		hashtree tree;
+		uint32_t i=0;
+		for(auto it=map.begin();it!=map.end();++it,i++){
+			tree.update(it->second->sigh);}
+		if(msg!=i){
+			fprintf(stderr,"ERROR, bad message numer\n");
+			return(false);}
+		tree.finish(hash);
+		if(memcmp(hash,msghash,SHA256_DIGEST_LENGTH)){
+			fprintf(stderr,"ERROR, bad message hash\n");
+			return(false);}
+		return(true);
 	}
 	void msg_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
 	{	hashmsg(map);
@@ -448,10 +466,12 @@ public:
 		SHA256_Update(&sha256,&now,sizeof(uint32_t));
 		SHA256_Update(&sha256,&msg,sizeof(uint32_t));
 		SHA256_Update(&sha256,&nod,sizeof(uint32_t));
-		SHA256_Update(&sha256,oldhash,SHA256_DIGEST_LENGTH);
+		//SHA256_Update(&sha256,oldhash,SHA256_DIGEST_LENGTH);
 		SHA256_Update(&sha256,msghash,SHA256_DIGEST_LENGTH);
 		SHA256_Update(&sha256,nodhash,SHA256_DIGEST_LENGTH);
 		SHA256_Final(nowhash, &sha256);
+		hashtree tree(NULL); //FIXME, waste of space
+		tree.addhash(nowhash,oldhash);
 	}
 	void loadlink(headlink_t& link,uint32_t path,char* oldh)
 	{	now=path;

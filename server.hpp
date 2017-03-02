@@ -96,13 +96,7 @@ public:
     recyclemsid(lastpath+BLOCKSEC);
     writemsid(); // synced to new position
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
-    start_accept(); // should consider sending a 'hallo world' message
-    //if(!opts_.offi){
-    //  return;}
-    //while(ofip==NULL){
-    //  std::cerr<<"WAITING for office\n";
-    //  boost::this_thread::sleep(boost::posix_time::seconds(2));}
-    //start_office();
+    start_accept();
   }
   ~server()
   { //do_validate=0;
@@ -2531,7 +2525,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
   void peers() // connect new peers
-  { while(1){
+  { 
+//FIXME, run this
+    return;
+
+    while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(1)); //will be interrupted to return
       if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2){
         continue;}

@@ -11,6 +11,8 @@ public:
 		bzero(hash_,MAXTREE*SHA256_DIGEST_LENGTH*sizeof(uint8_t));
 	}
 
+	hashtree(void*) {} // no initialization
+
 	~hashtree() {}
 
 	void addhash(uint8_t* hash,uint8_t* add) //hash(a,b)==hash(b,a)

@@ -630,6 +630,7 @@ public:
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
+//FIXME, validate list has correct hash !!! (calculate hash again)
     if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){
       std::cerr << "ERROR got wrong msglist msghash\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
@@ -639,6 +640,13 @@ public:
       return;}
     std::map<uint64_t,message_ptr> map;
     header.msg_map((char*)(read_msg_->data+8),map,opts_.svid);
+    if(!header.msg_check(map)){
+      std::cerr << "ERROR got wrong msglist msghash\n"; // consider updating server
+      read_msg_ = boost::make_shared<message>();
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data,message::header_length),
+        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+      return;}
     server_.put_msglist(header.now,map);
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
