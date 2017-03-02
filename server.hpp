@@ -148,10 +148,10 @@ public:
     firstmsid++;
     for(uint32_t lastmsid=firstmsid;lastmsid<=msid_;lastmsid++){
 //FIXME, must sign this message again if message too old !!!
-      message_ptr msg(new message(MSGTYPE_TXS,lastpath,opts_.svid,lastmsid,pkey,msha)); //load from file
+      message_ptr msg(new message(MSGTYPE_MSG,lastpath,opts_.svid,lastmsid,pkey,msha)); //load from file
       if(msg->status!=MSGSTAT_DAT){
         fprintf(stderr,"ERROR, failed to read message %08X/%02x_%04x_%08x.txt\n",
-          lastpath,MSGTYPE_TXS,opts_.svid,lastmsid);
+          lastpath,MSGTYPE_MSG,opts_.svid,lastmsid);
         msid_=lastmsid-1;
         return;}
       if(txs_insert(msg)){
@@ -165,7 +165,7 @@ public:
     //if(srvs_.now!=lastpath){
     //  message_ptr msg(new message());
     //  msg->path=lastpath;
-    //  msg->hashtype(MSGTYPE_TXS);
+    //  msg->hashtype(MSGTYPE_MSG);
     //  msg->svid=opts_.svid;
     //  for(;firstmsid<=msid_;firstmsid++){
     //    msg->msid=firstmsid;
@@ -477,17 +477,17 @@ public:
       //srvs_.blockdir();
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
-      if(!block->load_txslist(missing_msgs_,opts_.svid)){
+      if(!block->load_msglist(missing_msgs_,opts_.svid)){
         //request list of transactions from peers
         peer_.lock(); // consider changing this to missing_lock
-        get_txslist=srvs_.now;
+        get_msglist=srvs_.now;
         peer_.unlock();
         //prepare txslist request message
         message_ptr put_msg(new message());
-        put_msg->data[0]=MSGTYPE_TXL;
+        put_msg->data[0]=MSGTYPE_MSL;
         memcpy(put_msg->data+1,&block->now,4);
         put_msg->got=0; // do first request emidiately
-        while(get_txslist){ // consider using future/promise
+        while(get_msglist){ // consider using future/promise
           uint32_t now=time(NULL);
           if(put_msg->got<now-MAX_MSGWAIT){
             fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
@@ -497,8 +497,8 @@ public:
               fprintf(stderr,"REQUESTING TXL from %04X\n",svid);
               deliver(put_msg,svid);}}
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
-        srvs_.txs=block->txs; //check
-        srvs_.txs_put(missing_msgs_);}
+        srvs_.msg=block->msg; //check
+        srvs_.msg_put(missing_msgs_);}
       //inform peers about current sync block
       message_ptr put_msg(new message());
       put_msg->data[0]=MSGTYPE_PAT;
@@ -532,7 +532,8 @@ public:
           txs_msgs_[jt->first]=jt->second;
           txs_.unlock();}
 	if(jt->second->load()){
-          if(!jt->second->sigh_check(jt->second->data+4)){
+          //if(!jt->second->sigh_check(jt->second->data+4)){
+          if(!jt->second->sigh_check()){
             jt->second->read_head(); //to get 'now'
             //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database ("<<jt->second->path<<")\n";
             fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
@@ -605,13 +606,13 @@ public:
     deliver(put_msg);
   }
 
-  void put_txslist(uint32_t now,std::map<uint64_t,message_ptr>& map)
+  void put_msglist(uint32_t now,std::map<uint64_t,message_ptr>& map)
   { missing_.lock(); // consider changing this to missing_lock
-    if(get_txslist!=now){
+    if(get_msglist!=now){
       missing_.unlock();
       return;}
     missing_msgs_.swap(map);
-    get_txslist=0;
+    get_msglist=0;
     missing_.unlock();
     return;
   }
@@ -902,7 +903,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void create_double_spend_proof(message_ptr msg1,message_ptr msg2)
   { try{
-      assert(!do_sync); // should never happen, should never get same msid from same server in a txs_list
+      assert(!do_sync); // should never happen, should never get same msid from same server in a msg_list
       uint32_t len=4+msg1->len+msg2->len;
       assert(msg1->svid==msg2->svid);
       assert(msg1->msid==msg2->msid);
@@ -925,7 +926,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_msg->now=time(NULL);
       dbl_msg->peer=opts_.svid;
       dbl_msg->hash.num=dbl_msg->dohash();
-      dbl_msg->hash_signature(NULL); //FIXME, set this to last hash from last block
+      dbl_msg->null_signature(); //FIXME, set this to last hash from last block
       dbl_.lock();
       dbl_msgs_[dbl_msg->hash.num]=dbl_msg;
       dbl_.unlock();
@@ -935,7 +936,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
   int message_insert(message_ptr msg)
-  { if(msg->hash.dat[1]==MSGTYPE_TXS){
+  { if(msg->hash.dat[1]==MSGTYPE_MSG){
       return(txs_insert(msg));}
     if(msg->hash.dat[1]==MSGTYPE_CND){
       return(cnd_insert(msg));}
@@ -1105,7 +1106,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
   int txs_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
-  { assert(msg->hash.dat[1]==MSGTYPE_TXS);
+  { assert(msg->hash.dat[1]==MSGTYPE_MSG);
     txs_.lock(); // maybe no lock needed
     //fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d]\n",msg->hash.num,msg->len);
     std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.find(msg->hash.num);
@@ -1597,7 +1598,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     uint64_t csum[4]={0,0,0,0};
      int64_t weight=0; //FIXME fix weight calculation later !!! (include correct fee handling)
     while(p<(char*)msg->data+msg->len){
-      //char txstype=*p;
       uint32_t luser=0;
       uint16_t lnode=0;
       int64_t deduct=0;
@@ -1899,6 +1899,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       local_deposit[utxs.auser]=0;//to find changes[utxs.auser]
       p+=utxs.size;}
     //all transactions accepted
+    //FIXME load remote deposits into local deposits
+    //deposit_.lock();
+    //for(auto it=deposit.find_lowerbound();it!=deposit.end();it++){
+    //  ... deposit[it->first]+=it->second;}
+    //deposit_.unlock();
     //commit local changes
     user_t u;
     int offset=(char*)&u.weight-(char*)&u;
@@ -2360,9 +2365,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //message_shash(last_block_all_message.hash,last_block_all_msgs); // consider sending this hash to other peers
     //ed25519_key2text(hash,last_block_all_message.hash,sizeof(hash_t));
     //message_shash(srvs_.txshash,last_block_all_msgs); // consider sending this hash to other peers
-    srvs_.txs=last_block_all_msgs.size();
-    srvs_.txs_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
-    ed25519_key2text(hash,srvs_.txshash,sizeof(hash_t));
+    srvs_.msg=last_block_all_msgs.size();
+    srvs_.msg_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
+    ed25519_key2text(hash,srvs_.msghash,sizeof(hash_t));
     fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fclose(fp);
     for(;!remove_msgs.empty();remove_msgs.pop()){
@@ -2466,7 +2471,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     // add location info. FIXME, set location to 0 before exit
     usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
     line.append((char*)txs.data,txs.size);
-    message_ptr msg(new message(MSGTYPE_TXS,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
+    message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
@@ -2689,7 +2694,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   int vip_max;
   boost::mutex peer_; //FIXME, make this private
   std::list<servers> headers; //FIXME, make this private
-  uint32_t get_txslist; //block id of the requested txslist of messages
+  uint32_t get_msglist; //block id of the requested msglist of messages
   office* ofip;
   uint8_t *pkey; //used by office/client to create BKY transaction
 private:

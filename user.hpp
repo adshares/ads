@@ -212,7 +212,10 @@ public:
 	}
 
 	uint32_t get_size(char* txs) // returns network size
-	{	if(*txs==TXSTYPE_CON){
+	{	if(*txs>=TXSTYPE_MAX){
+                        fprintf(stderr,"ERROR, parsing message type\n");
+                        return(0xFFFFFFFF);}
+		if(*txs==TXSTYPE_CON){
 			return(txslen[TXSTYPE_CON]);} // no signature
 	 	if(*txs==TXSTYPE_BKY){
 			return(txslen[TXSTYPE_BKY]+64+32);} // additional 4 bytes on network !!!

@@ -3,21 +3,11 @@
 
 //FIXME, concider separating header and nodes into header.hpp and node.hpp
 #pragma pack(1)
-/*typedef struct header_s {
-	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
-	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
-	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
-	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
-	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
-	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
-	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
-	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
-	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
-} header_t;*/
 typedef struct headlink_s { // header links sent when syncing
-	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
-	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
 } headlink_t;
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
@@ -106,23 +96,25 @@ class servers // also a block
 public:
 	uint32_t now; // start time of the block
 	//uint32_t old; // time of last block
-	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, FIXME, should be uint16_t
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
-	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
 	uint16_t vok;
 	uint16_t vno;
-	std::vector<node> nodes;
+	std::vector<node> nodes; //FIXME, this vector can fail to allocate RAM, do tests with more than 32k nodes!
 	//std::vector<void*> users; // place holder for user accounts
 	servers():
 		now(0),
 		//old(0), //FIXME, remove, oldhash will be '000...000' if old!=now-BLOCKSEC
-		txs(0),
+		msg(0),
 		nod(0),
 		oldhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-		txshash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		msghash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		//txshash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nodhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nowhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		vok(0),
@@ -365,67 +357,66 @@ public:
 			std::cerr<<"ERROR, failed to write servers to dir:"<<now<<"\n";}
 
 	}
-	void hashtxs(std::map<uint64_t,message_ptr>& map)
+	void hashmsg(std::map<uint64_t,message_ptr>& map)
 	{	SHA256_CTX sha256;
 		SHA256_Init(&sha256);
 		int i=0;
 		for(auto it=map.begin();it!=map.end();++it,i++){
 			SHA256_Update(&sha256,it->second->sigh,SHA256_DIGEST_LENGTH);}
-		txs=i;
-		SHA256_Final(txshash, &sha256);
+		msg=i;
+		SHA256_Final(msghash, &sha256);
 	}
-	void txs_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
-	{	hashtxs(map);
+	void msg_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
+	{	hashmsg(map);
 	 	char filename[64];
-		sprintf(filename,"blk/%03X/%05X/txslist.dat",now>>20,now&0xFFFFF);
+		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){ //trow or something :-)
 			return;}
-		write(fd,txshash,SHA256_DIGEST_LENGTH);
+		write(fd,msghash,SHA256_DIGEST_LENGTH);
 		for(auto it=map.begin();it!=map.end();it++){
 			write(fd,&it->second->svid,2); // we must later distinguish between double spend and normal messages ... maybe using msid==0xffffffff;
 			write(fd,&it->second->msid,4);
 			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH);} // maybe we have to set sigh=last_msg_sigh for double spend messages
 		close(fd);
 	}
-	int txs_get(char* data)
+	int msg_get(char* data)
 	{	char filename[64];
-		sprintf(filename,"blk/%03X/%05X/txslist.dat",now>>20,now&0xFFFFF);
+		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){
 			return(0);}
-		int len=read(fd,data,SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
+		int len=read(fd,data,SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
 		close(fd);
 		return(len);
 	}
-	void txs_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	void msg_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
 	{	char* d=data+SHA256_DIGEST_LENGTH;
-		for(uint16_t i=0;i<txs;i++,d+=2+4+SHA256_DIGEST_LENGTH){
+		for(uint16_t i=0;i<msg;i++,d+=2+4+SHA256_DIGEST_LENGTH){
 			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now)); // uint32_t alignment ???
 			map[msg->hash.num]=msg;}
 	}
-	int load_txslist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
-	{	char* data=(char*)malloc(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH));
-		if(txs_get(data)!=(int)(SHA256_DIGEST_LENGTH+txs*(2+4+SHA256_DIGEST_LENGTH))){
+	int load_msglist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	{	char* data=(char*)malloc(SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
+		if(msg_get(data)!=(int)(SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH))){
 			free(data);
 			return(0);}
-		if(memcmp(data,txshash,SHA256_DIGEST_LENGTH)){
+		if(memcmp(data,msghash,SHA256_DIGEST_LENGTH)){
 			free(data);
 			return(0);}
-		txs_map(data,map,mysvid);
+		msg_map(data,map,mysvid);
 		free(data);
 		return(1);
 	}
+
 	void finish()
-	{	//now=path;
-		//txstotal=txcount;
-		//memcpy(txshash,txsh,sizeof(txshash));
-		nod=nodes.size();
+	{	nod=nodes.size();
 		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
+		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
 			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
+			SHA256_Init(&sha256);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
 			SHA256_Update(&sha256,it->hash,SHA256_DIGEST_LENGTH);
 			SHA256_Update(&sha256,it->msha,SHA256_DIGEST_LENGTH);
@@ -433,8 +424,11 @@ public:
 			SHA256_Update(&sha256,&it->mtim,sizeof(uint32_t));
 			SHA256_Update(&sha256,&it->status,sizeof(uint32_t));
 			SHA256_Update(&sha256,&it->weight,sizeof(uint32_t));
-			SHA256_Update(&sha256,&it->users,sizeof(uint32_t));}
-		SHA256_Final(nodhash, &sha256);
+			SHA256_Update(&sha256,&it->users,sizeof(uint32_t));
+			hash_t hash;
+			SHA256_Final(hash, &sha256);
+			tree.update(hash);}
+		tree.finish(nodhash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
@@ -452,43 +446,43 @@ public:
 	{	SHA256_CTX sha256;
 	 	SHA256_Init(&sha256);
 		SHA256_Update(&sha256,&now,sizeof(uint32_t));
-		SHA256_Update(&sha256,&txs,sizeof(uint32_t));
+		SHA256_Update(&sha256,&msg,sizeof(uint32_t));
 		SHA256_Update(&sha256,&nod,sizeof(uint32_t));
 		SHA256_Update(&sha256,oldhash,SHA256_DIGEST_LENGTH);
-		SHA256_Update(&sha256,txshash,SHA256_DIGEST_LENGTH);
+		SHA256_Update(&sha256,msghash,SHA256_DIGEST_LENGTH);
 		SHA256_Update(&sha256,nodhash,SHA256_DIGEST_LENGTH);
 		SHA256_Final(nowhash, &sha256);
 	}
 	void loadlink(headlink_t& link,uint32_t path,char* oldh)
 	{	now=path;
-		txs=link.txs;
+		msg=link.msg;
 		nod=link.nod;
 		memcpy(oldhash,oldh,SHA256_DIGEST_LENGTH);
-		memcpy(txshash,link.txshash,SHA256_DIGEST_LENGTH);
+		memcpy(msghash,link.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,link.nodhash,SHA256_DIGEST_LENGTH);
 		hashnow();
 	}
 	void filllink(headlink_t& link)//write to link
-	{	link.txs=txs;
+	{	link.msg=msg;
 		link.nod=nod;
-		memcpy(link.txshash,txshash,SHA256_DIGEST_LENGTH);
+		memcpy(link.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(link.nodhash,nodhash,SHA256_DIGEST_LENGTH);
 	}
 	void loadhead(header_t& head)
 	{	now=head.now;
-		txs=head.txs;
+		msg=head.msg;
 		nod=head.nod;
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
-		memcpy(txshash,head.txshash,SHA256_DIGEST_LENGTH);
+		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
 		hashnow();
 	}
 	void header(header_t& head)//change this to fill head
 	{	head.now=now;
-		head.txs=txs;
+		head.msg=msg;
 		head.nod=nod;
 		memcpy(head.oldhash,oldhash,SHA256_DIGEST_LENGTH);
-		memcpy(head.txshash,txshash,SHA256_DIGEST_LENGTH);
+		memcpy(head.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(head.nodhash,nodhash,SHA256_DIGEST_LENGTH);
 		memcpy(head.nowhash,nowhash,SHA256_DIGEST_LENGTH);
 		head.vok=vok;
@@ -502,10 +496,10 @@ public:
 		if(ifs.is_open()){
 			boost::archive::text_iarchive ia(ifs);
 			ia >> check;
-			ia >> txs;
+			ia >> msg;
 			ia >> nod;
 			ia >> oldhash;
-			ia >> txshash;
+			ia >> msghash;
 			ia >> nodhash;
 			ia >> nowhash;
 			ia >> vok;
@@ -525,10 +519,10 @@ public:
 		if(ofs.is_open()){
 			boost::archive::text_oarchive oa(ofs);
 			oa << now;
-			oa << txs;
+			oa << msg;
 			oa << nod;
 			oa << oldhash;
-			oa << txshash;
+			oa << msghash;
 			oa << nodhash;
 			oa << nowhash;
 			oa << vok;
@@ -538,10 +532,10 @@ public:
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X txs:%08X nod:%08X vok:%04X vno:%04X\n",now,txs,nod,vok,vno);
+	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X vok:%04X vno:%04X\n",now,msg,nod,vok,vno);
 		ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-		ed25519_key2text(hash,txshash,SHA256_DIGEST_LENGTH);
+		ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
@@ -550,10 +544,10 @@ public:
 	}
 	void header_print(header_t& head)
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X txs:%08X nod:%08X vok:%04X vno:%04X\n",head.now,head.txs,head.nod,head.vok,head.vno);
+	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.vok,head.vno);
 		ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-		ed25519_key2text(hash,head.txshash,SHA256_DIGEST_LENGTH);
+		ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nodhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
@@ -678,6 +672,7 @@ public:
 	}
 
 	//FIXME, run this check on local nodes; do not load as parameter
+	//FIXME, create a single nodhash calculation function
 	int check_nodes(node_t* peer_node,uint16_t peer_srvn,uint8_t* peer_nodehash)
 	{	int i=0;
 		for(auto no=nodes.begin();no!=nodes.end()&&i<peer_srvn;no++,i++){
@@ -685,11 +680,12 @@ public:
 				std::cerr<<"WARNING key mismatch for peer "<<i<<"\n";}}
 		uint8_t tmphash[SHA256_DIGEST_LENGTH]; // hash of nodes
 		SHA256_CTX sha256;
-		SHA256_Init(&sha256);
+		hashtree tree;
 		for(i=0;i<peer_srvn;i++){ // consider changing this to hashtree/hashcalendar
 			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&peer_node[i].pk[0]),(uint32_t)*((uint32_t*)&peer_node[i].hash[0]),(uint32_t)*((uint32_t*)&peer_node[i].msha[0]),
 				peer_node[i].msid,peer_node[i].mtim,peer_node[i].status,peer_node[i].weight,peer_node[i].users);
+			SHA256_Init(&sha256);
 			SHA256_Update(&sha256,peer_node[i].pk,sizeof(ed25519_public_key));
 			SHA256_Update(&sha256,peer_node[i].hash,SHA256_DIGEST_LENGTH);
 			SHA256_Update(&sha256,peer_node[i].msha,SHA256_DIGEST_LENGTH);
@@ -697,8 +693,11 @@ public:
 			SHA256_Update(&sha256,&peer_node[i].mtim,sizeof(uint32_t));
 			SHA256_Update(&sha256,&peer_node[i].status,sizeof(uint32_t));
 			SHA256_Update(&sha256,&peer_node[i].weight,sizeof(uint32_t));
-			SHA256_Update(&sha256,&peer_node[i].users,sizeof(uint32_t));}
-		SHA256_Final(tmphash, &sha256);
+			SHA256_Update(&sha256,&peer_node[i].users,sizeof(uint32_t));
+			hash_t hash;
+			SHA256_Final(hash, &sha256);
+			tree.update(hash);}
+		tree.finish(tmphash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,tmphash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
@@ -707,10 +706,10 @@ public:
 
 	void overwrite(header_t& head,node_t* peer_node)
 	{ 	now=head.now;
-		txs=head.txs;
+		msg=head.msg;
 		nod=head.nod;
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
-		memcpy(txshash,head.txshash,SHA256_DIGEST_LENGTH);
+		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
 		memcpy(nowhash,head.nowhash,SHA256_DIGEST_LENGTH);
 		vok=head.vok;
@@ -813,14 +812,10 @@ private:
 	template<class Archive> void serialize(Archive & ar, const unsigned int version)
 	{	//uint32_t old; // remove later
 		ar & now;
-		//if(version>0) ar & old;
-		//if(version>0) ar & txs;
-		//if(version==1) ar & old;
-		//if(version==1) ar & txs;
-		if(version>2) ar & txs;
+		if(version>2) ar & msg;
 		if(version>2) ar & nod;
 		if(version>0) ar & oldhash;
-		if(version>1) ar & txshash;
+		if(version>1) ar & msghash;
 		if(version>1) ar & nodhash;
 		if(version>0) ar & nowhash;
 		if(version>2) ar & vok;

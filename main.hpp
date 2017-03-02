@@ -87,7 +87,7 @@
 #define MSGTYPE_DBL 0	/* double spend proof, maybe we should start with 1 */
 #define MSGTYPE_DBP 1
 #define MSGTYPE_DBG 2
-#define MSGTYPE_TXS 3	/* transaction */
+#define MSGTYPE_MSG 3	/* transaction */
 #define MSGTYPE_PUT 4
 #define MSGTYPE_GET 5
 #define MSGTYPE_INI 6	/* connect */
@@ -102,8 +102,8 @@
 #define MSGTYPE_BLG 15	/* new block get */
 #define MSGTYPE_SER 16  /* servers request */
 #define MSGTYPE_HEA 17  /* headers request */
-#define MSGTYPE_TXL 18  /* txslist request */
-#define MSGTYPE_TXP 19  /* txslist data */
+#define MSGTYPE_MSL 18  /* msglist request */
+#define MSGTYPE_MSP 19  /* msglist data */
 #define MSGTYPE_PAT 20  /* current sync path */
 #define MSGTYPE_USR 21  /* bank file */
 #define MSGTYPE_USG 22  /* bank file request */
@@ -140,10 +140,11 @@
 #pragma pack(1)
 typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
-	uint32_t txs; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
-	uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of messages
+	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
 	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
@@ -154,6 +155,7 @@ typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32];} get_t;
 #pragma pack()
 
 #include "ed25519/ed25519.h"
+#include "hash.hpp"
 #include "user.hpp"
 #include "options.hpp"
 #include "message.hpp"

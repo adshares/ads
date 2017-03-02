@@ -103,7 +103,7 @@ public:
     msg->mtx_.unlock();
     message_ptr put_msg(new message()); // gone ??? !!!
     switch(msg->hashtype()){
-      case MSGTYPE_TXS:
+      case MSGTYPE_MSG:
         put_msg->data[0]=MSGTYPE_PUT;
         put_msg->data[1]=msg->hashval(svid); //msg->data[4+(svid%64)]; // convert to peer-specific hash
         memcpy(put_msg->data+2,&msg->msid,4);
@@ -334,8 +334,8 @@ public:
 	write_headers();}
       else if(read_msg_->data[0]==MSGTYPE_SER){ //servers request
 	write_servers();}
-      else if(read_msg_->data[0]==MSGTYPE_TXL){ //txs list request
-	write_txslist();}
+      else if(read_msg_->data[0]==MSGTYPE_MSL){ //msg list request
+	write_msglist();}
       else if(read_msg_->data[0]==MSGTYPE_USG){
 	write_bank();}
       else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
@@ -369,11 +369,11 @@ public:
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
 	return;}
-      if(read_msg_->data[0]==MSGTYPE_TXP){
-        std::cerr << "READ txslist header\n";
+      if(read_msg_->data[0]==MSGTYPE_MSP){
+        std::cerr << "READ msglist header\n";
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
-          boost::bind(&peer::handle_read_txslist,shared_from_this(),boost::asio::placeholders::error));
+          boost::bind(&peer::handle_read_msglist,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_USR){
         //FIXME, accept only if needed !!
@@ -396,7 +396,7 @@ public:
         boost::bind(&peer::handle_read_body,shared_from_this(),boost::asio::placeholders::error));}
   }
 
-  void update_sync(void) // send current inventory (all txs and dbl messages)
+  void update_sync(void) // send current inventory (all msg and dbl messages)
   { std::vector<uint64_t>txs;
     std::vector<uint64_t>dbl;
     server_.update_list(txs,dbl,svid);
@@ -587,59 +587,59 @@ public:
     return;
   }
 
-  void write_txslist()
+  void write_msglist()
   { servers header;
     memcpy(&header.now,read_msg_->data+1,4);
     if(!header.header_get()){
       //std::cerr<<"FAILED to read header "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
       fprintf(stderr,"FAILED to read header %08X for svid: %04X\n",header.now,svid); //TODO, send error
       return;}
-    int len=8+SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH);
+    int len=8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH);
     message_ptr put_msg(new message(len));
-    put_msg->data[0]=MSGTYPE_TXP;
+    put_msg->data[0]=MSGTYPE_MSP;
     memcpy(put_msg->data+1,&len,3); //bigendian
     memcpy(put_msg->data+4,&header.now,4);
-    if(header.txs_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH))){
-      //std::cerr<<"FAILED to read txslist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
-      fprintf(stderr,"FAILED to read txslist %08X for svid: %04X\n",header.now,svid); //TODO, send error
+    if(header.msg_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
+      //std::cerr<<"FAILED to read msglist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
+      fprintf(stderr,"FAILED to read msglist %08X for svid: %04X\n",header.now,svid); //TODO, send error
       return;}
-    //std::cerr<<"SENDING block txslist for block "<<header.now<<" to svid:"<<svid<<"\n";
-    fprintf(stderr,"SENDING block txslist %08X for svid: %04X\n",header.now,svid); //TODO, send error
+    //std::cerr<<"SENDING block msglist for block "<<header.now<<" to svid:"<<svid<<"\n";
+    fprintf(stderr,"SENDING block msglist %08X for svid: %04X\n",header.now,svid); //TODO, send error
     send_sync(put_msg);
   }
 
-  void handle_read_txslist(const boost::system::error_code& error)
+  void handle_read_msglist(const boost::system::error_code& error)
   { if(error){
-      std::cerr << "ERROR reading txslist\n";
+      std::cerr << "ERROR reading msglist\n";
       server_.leave(shared_from_this());
       return;}
     servers header;
     memcpy(&header.now,read_msg_->data+4,4);
-    if(server_.get_txslist!=header.now){
-      std::cerr << "ERROR got wrong txslist id\n"; // consider updating server
+    if(server_.get_msglist!=header.now){
+      std::cerr << "ERROR got wrong msglist id\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
     header.header_get();
-    if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.txs*(2+4+SHA256_DIGEST_LENGTH))){
-      std::cerr << "ERROR got wrong txslist length\n"; // consider updating server
+    if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
+      std::cerr << "ERROR got wrong msglist length\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    if(memcmp(read_msg_->data+8,header.txshash,SHA256_DIGEST_LENGTH)){
-      std::cerr << "ERROR got wrong txslist txshash\n"; // consider updating server
+    if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){
+      std::cerr << "ERROR got wrong msglist msghash\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
     std::map<uint64_t,message_ptr> map;
-    header.txs_map((char*)(read_msg_->data+8),map,opts_.svid);
-    server_.put_txslist(header.now,map);
+    header.msg_map((char*)(read_msg_->data+8),map,opts_.svid);
+    server_.put_msglist(header.now,map);
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -918,12 +918,12 @@ public:
   int authenticate() //FIXME, don't send last block because signatures are missing; send the one before last
   { uint32_t now=time(NULL);
     uint32_t blocknow=now-(now%BLOCKSEC);
-    memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
-    fprintf(stderr,"PEER HEADER:\n");
-    srvs_.header_print(peer_hs.head);
-    //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
     msid=read_msg_->msid;
     svid=read_msg_->svid;
+    fprintf(stderr,"PEER HEADER %04X:\n",svid);
+    memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
+    srvs_.header_print(peer_hs.head);
+    //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
     if(read_msg_->svid==opts_.svid){ std::cerr << "ERROR: connecting to myself\n";
       return(0);}
     if(server_.duplicate(shared_from_this())){ std::cerr << "ERROR: server already connected\n";

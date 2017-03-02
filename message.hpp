@@ -88,7 +88,7 @@ public:
       *data=MSGTYPE_DBG;}
     else{
       hash.dat[0]=hashval(mysvid);
-      hash.dat[1]=MSGTYPE_TXS;
+      hash.dat[1]=MSGTYPE_MSG;
       *data=MSGTYPE_GET;}
     data[1]=hash.dat[0];
   }
@@ -131,15 +131,49 @@ public:
       ed25519_sign(data+4+64+10,sizeof(header_t)-4,mysk,mypk,data+4); // consider signing also svid,msid,0
       char hash[4*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,data+4,2*SHA256_DIGEST_LENGTH);
+      hash_signature();
       fprintf(stderr,"BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
     else if(text_type==MSGTYPE_CND){
-      ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);}
+      ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
+      hash_signature();}
     else if(text_type==MSGTYPE_INI){
-      ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);}
+      ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
+      hash_signature();}
     else{
-      ed25519_sign2(msha,32,data+4+64,10+text_len,mysk,mypk,data+4);}
-    hash_signature(data+4);
-    hash.num=dohash(mysvid); //after hash_signature
+      if(!hash_tree()){
+        fprintf(stderr,"ERROR hash_tree error, FATAL\n");
+        exit(-1);}
+      ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);}
+      //ed25519_sign2(msha,32,data+4+64,10+text_len,mysk,mypk,data+4);
+      //hash_signature();}
+    hash.num=dohash(mysvid);
+  }
+
+  bool hash_tree()
+  { assert(data[0]==MSGTYPE_MSG);
+    hash_t hash;
+    hashtree tree;
+    usertxs utxs;
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256,data+4+64,10);
+    SHA256_Final(hash,&sha256);
+    tree.update(hash);
+    uint8_t* p=data+data_offset;
+    uint8_t* end=data+len;
+    uint32_t l;
+    for(;p<end;p+=l){
+      l=utxs.get_size((char*)p);
+      if(l==0xFFFFFFFF){
+        return(false);}
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,p,l);
+      SHA256_Final(hash,&sha256);
+      tree.update(hash);}
+    tree.finish(sigh);
+    if(p!=end){
+      return(false);}
+    return(true);
   }
 
   message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
@@ -157,7 +191,6 @@ public:
     assert(mmsid<=max_msid);
     assert(len<=max_length);
     assert(data!=NULL);
-    hash_signature(data+4);
     if(check_signature(svpk,msvid,msha)){
       status=0;}
     else{
@@ -207,7 +240,7 @@ public:
     h.dat[0]=d[1];
     h.dat[1]=*d;
     if(*d==MSGTYPE_PUT||*d==MSGTYPE_GET){
-      h.dat[1]=MSGTYPE_TXS;}
+      h.dat[1]=MSGTYPE_MSG;}
     if(*d==MSGTYPE_CNP||*d==MSGTYPE_CNG){
       h.dat[1]=MSGTYPE_CND;}
     if(*d==MSGTYPE_BLP||*d==MSGTYPE_BLG){
@@ -256,9 +289,9 @@ public:
       hash.num=dohash(data);
       len=header_length;
       return 1;} // short message
-    if(data[0]==MSGTYPE_TXS||data[0]==MSGTYPE_DBL||data[0]==MSGTYPE_CND||data[0]==MSGTYPE_BLK){
+    if(data[0]==MSGTYPE_MSG||data[0]==MSGTYPE_DBL||data[0]==MSGTYPE_CND||data[0]==MSGTYPE_BLK){
       memcpy(&len,data+1,3);
-      if((data[0]==MSGTYPE_TXS && len>max_length) || (data[0]==MSGTYPE_DBL && len>4+2*max_length) || len<=4+64+10){ // bad format
+      if((data[0]==MSGTYPE_MSG && len>max_length) || (data[0]==MSGTYPE_DBL && len>4+2*max_length) || len<=4+64+10){ // bad format
         std::cerr<<"ERROR in message format\n";
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
@@ -302,12 +335,12 @@ public:
       svid=peer_svid;
       len=header_length;
       return 1;}
-    if(data[0]==MSGTYPE_TXL){
+    if(data[0]==MSGTYPE_MSG){
       std::cerr << "TXSLIST request header received\n";
       svid=peer_svid;
       len=header_length;
       return 1;}
-    if(data[0]==MSGTYPE_TXP){
+    if(data[0]==MSGTYPE_MSG){
       std::cerr << "TXSLIST data header received\n";
       svid=peer_svid;
       memcpy(&len,data+1,3);
@@ -322,36 +355,35 @@ public:
     return 0;
   }
 
-  int sigh_check(uint8_t* sig)
+  //int sigh_check(uint8_t* sig) //
+  int sigh_check() // check signature of loaded message
   { uint64_t h[4];
     uint64_t g[8];
-    memcpy(g,sig,8*sizeof(uint64_t));
+    memcpy(g,data+4,8*sizeof(uint64_t));
     h[0]=g[0]^g[4];
     h[1]=g[1]^g[5];
     h[2]=g[2]^g[6];
     h[3]=g[3]^g[7];
     return(memcmp(sigh,h,SHA256_DIGEST_LENGTH));
   }
-  void hash_signature(uint8_t* sig)
-  { if(sig==NULL){
-      bzero(sigh,SHA256_DIGEST_LENGTH); 
-      return;}
-    //SHA256_CTX sha256;
-    //SHA256_Init(&sha256);
-    uint64_t h[4];
+  void null_signature()
+  { bzero(sigh,SHA256_DIGEST_LENGTH); 
+  }
+  //void hash_signature(uint8_t* sig) // FIXME, do a different signature for _MSG
+  void hash_signature() // FIXME, do a different signature for _MSG
+  { uint64_t h[4];
     uint64_t g[8];
-    memcpy(g,sig,8*sizeof(uint64_t));
+    //memcpy(g,sig,8*sizeof(uint64_t));
+    memcpy(g,data+4,8*sizeof(uint64_t));
     h[0]=g[0]^g[4];
     h[1]=g[1]^g[5];
     h[2]=g[2]^g[6];
     h[3]=g[3]^g[7];
-    //SHA256_Update(&sha256,h,4*sizeof(uint64_t));
-    //SHA256_Final(sigh,&sha256);
     memcpy(sigh,h,SHA256_DIGEST_LENGTH);
   }
 
   void read_head(void)
-  { if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
+  { if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
       memcpy(&svid,data+4+64+0,2);
       memcpy(&msid,data+4+64+2,4);
       memcpy( &now,data+4+64+6,4);}
@@ -367,11 +399,19 @@ public:
   int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
   {
     //FIXME, should include previous hash in signed message
-    if(data[0]==MSGTYPE_TXS || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
+    if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_BLK){
       //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
       status=MSGSTAT_DAT; // have data
-      hash_signature(data+4);
-      hash.num=dohash(mysvid);
+      if(data[0]==MSGTYPE_MSG){
+        if(!hash_tree()){
+          fprintf(stderr,"ERROR, hash_tree error\n");
+          return(-1);}
+        hash.num=dohash(mysvid);
+        return(ed25519_sign_open2(msha,32,sigh,32,svpk,data+4));}
+        //hash_signature(); //FIXME, make this hash_tree();
+        //return(ed25519_sign_open2(msha,32,data+4+64,len-4-64,svpk,data+4));}
+      hash_signature();
+      hash.num=dohash(mysvid); // remove from here !!!
       if(data[0]==MSGTYPE_BLK){ //this signature format is different because these signatures are stored later without the header
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
 	  std::cerr<<"ERROR, BLK message msid error\n";
@@ -381,7 +421,7 @@ public:
         return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));}
       if(data[0]==MSGTYPE_INI){
         return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
-      return(ed25519_sign_open2(msha,32,data+4+64,len-4-64,svpk,data+4));}
+      assert(0);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
 //FIXME, check time, if any of the 2 messages is too old ignore dbl spend and maybe react
 //FIXME, compare only same type of message, detect type based on length
@@ -414,7 +454,7 @@ public:
       int valid[2];
       hash.num=dohash();
       status=MSGSTAT_DAT; // have data
-      hash_signature(NULL);
+      null_signature();
       //FIXME use ed25519_sign_open2_batch
       return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
     return(1); //return error
@@ -443,10 +483,10 @@ public:
   void print_header()
   { char hash[2*SHA256_DIGEST_LENGTH];
     header_t* h=(header_t*)(data+4+64+10);
-    fprintf(stderr,"HEADER: now:%08x txs:%08x nod:%d\n",h->now,h->txs,h->nod);
+    fprintf(stderr,"HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
     ed25519_key2text(hash,h->oldhash,32);
     fprintf(stderr,"OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-    ed25519_key2text(hash,h->txshash,32);
+    ed25519_key2text(hash,h->msghash,32);
     fprintf(stderr,"TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->nodhash,32);
     fprintf(stderr,"NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
@@ -486,9 +526,6 @@ public:
       data=NULL;
       return(0);}
     myfile.close();
-    //TODO, check if we need more tests/data (for example sigh, below)
-    //hash_signature(data+4)
-    //status=MSGSTAT_VAL;
     return(1);
   }
 
