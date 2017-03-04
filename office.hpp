@@ -21,7 +21,8 @@ public:
     fd(0),
     message_sent(0),
     next_io_service_(0)
-  { svid=opts_.svid,
+  { srv_.ofip=this;
+    svid=opts_.svid,
     users=srv_.last_srvs_.nodes[svid].users; //FIXME !!! this maybe incorrect !!!
     memcpy(pkey,srv_.pkey,32);
     deposit.resize(users), // a buffer to enable easy resizing of the account vector
@@ -85,11 +86,20 @@ public:
   }
 
   void clock()
-  { while(run){
+  { uint32_t lnow=srv_.srvs_now();
+    while(run){
       uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)
       //TODO, clear hanging clients
       boost::this_thread::sleep(boost::posix_time::seconds(2));
+      if(lnow!=srv_.srvs_now()){ //process block updates, assume no lock needed
+        while(!rpath.empty()){
+          update_rpath(rpath.top(),lnow);
+          rpath.pop();}
+        while(!gup.empty()){
+          update_gup(gup.top());
+          gup.pop();}
+        lnow=srv_.srvs_now();}
       if(message.empty()){
         message_.lock();
         srv_.break_silence(now,message);
@@ -119,8 +129,40 @@ public:
     return(true);
   }
 
+  void update_gup(gup_t& cgup)
+  { user_t u;
+    assert(cgup.auser<users);
+    file_.lock();
+    lseek(fd,cgup.auser*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
+    u.node=cgup.node;
+    u.user=cgup.user;
+    u.time=cgup.time;
+    u.rpath=cgup.rpath;
+    u.weight+=deposit[cgup.auser]-cgup.delta;
+    deposit[cgup.auser]=0;
+    lseek(fd,-sizeof(user_t),SEEK_CUR);
+    write(fd,&u,sizeof(user_t));
+    file_.unlock();
+  }
+
+  void update_rpath(uint32_t cuser,uint32_t rpath)
+  { user_t u;
+    assert(cuser<users);
+    file_.lock();
+    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
+    u.rpath=rpath;
+    u.weight+=deposit[cuser];
+    deposit[cuser]=0;
+    lseek(fd,-sizeof(user_t),SEEK_CUR);
+    write(fd,&u,sizeof(user_t));
+    file_.unlock();
+  }
+
   bool get_user(user_t& u,uint16_t cbank,uint32_t cuser,bool global)
   { u.msid=0;
+    bool from_server=false;
     if(cuser>=users){
       return(false);}
     file_.lock();
@@ -128,14 +170,16 @@ public:
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));}
     if(!u.msid){
+      from_server=true;
       srv_.last_srvs_.get_user(u,cbank,cuser);} //watch out for deadlocks
     if(!u.msid){
       file_.unlock();
       return(false);}
-    if(cbank==svid && deposit[cuser]){
+    if(cbank==svid && !global && (deposit[cuser]||from_server)){
       u.weight+=deposit[cuser];
       deposit[cuser]=0;
       assert(u.weight>=0);
+fprintf(stderr,"\n\nGET USER WRITE\n\n");
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       write(fd,&u,sizeof(user_t));}
     file_.unlock();
@@ -212,26 +256,32 @@ public:
     u.weight+=deposit[user]-deduct;
     deposit[user]=0;
     assert(u.weight>=0);
+//fprintf(stderr,"\n\nSET USER WRITE\n\n");
     lseek(fd,user*sizeof(user_t),SEEK_SET);
     write(fd,&u,sizeof(user_t));
     file_.unlock();
+  }
+
+  void add_remote_deposit(uint32_t buser,int64_t tmass)
+  { file_.lock();
+    deposit[buser]+=tmass;
+    file_.unlock();
+    rpath.push(buser);
+//fprintf(stderr,"\n\nADDING REMOTE DEPOSIT\n\n");
   }
 
   void add_deposit(uint32_t buser,int64_t tmass)
   { file_.lock();
     deposit[buser]+=tmass;
     file_.unlock();
-    //FIXME, save in local transaction history
-    //save in loc/XX/XX/XX/XX.dat
+//fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
 
   void add_deposit(usertxs& utxs)
   { file_.lock();
     deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
-    //FIXME, save in local transaction history
-    //save in loc/XX/XX/XX/XX.dat
-    //FIXME, process contracts if needed
+//fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
 
   bool try_account(hash_s* key)
@@ -280,14 +330,6 @@ public:
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
   void leave(client_ptr c); // main.cpp
 
-  //uint8_t* pkey()
-  //{ return(opts_.pk);
-  //}
-
-  //void get_user(user_t& u,uint16_t peer,uint32_t uid)
-  //{ return(srv_.srvs_.get_user(u,peer,uid);
-  //}
-
   bool check_user(uint16_t peer,uint32_t uid)
   { if(peer!=svid){
       return(srv_.last_srvs_.check_user(peer,uid));} //use last_srvs_ for safety
@@ -306,15 +348,14 @@ public:
   { return(srv_.last_srvs_.now);
   }
 
-  bool run;
   uint16_t svid;
-  uint32_t users; //number of users of the bank
-  std::vector<int64_t> deposit; //resizing will require a stop of processing
-  boost::mutex users_[0x100];
-  std::string message;
-  boost::mutex message_;
   hash_t pkey; // local copy for managing updates
+  std::stack<gup_t> gup; // GET results
 private:
+  bool run;
+  uint32_t users; //number of users of the bank
+  std::string message;
+  std::vector<int64_t> deposit; //resizing will require a stop of processing
   boost::asio::ip::tcp::endpoint endpoint_;
   boost::asio::io_service io_service_;
   boost::asio::io_service::work work_;
@@ -323,15 +364,12 @@ private:
   server& srv_;
   options& opts_;
   std::set<client_ptr> clients_;
-  boost::mutex client_;
   int fd; // user file descriptor
-  boost::mutex file_;
   uint32_t msid;
    int64_t mfee; // let's see if we need this
   uint32_t message_sent;
   boost::thread* clock_thread;
   std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates
-  boost::mutex account_;
 
   //io_service_pool
   typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
@@ -340,6 +378,13 @@ private:
   work_ptr io_works_[CLIENT_POOL];
   int next_io_service_;
   boost::thread_group threadpool;
+  std::stack<uint32_t> rpath; // users with remote deposits
+
+  boost::mutex client_;
+  boost::mutex file_;
+  boost::mutex account_;
+  boost::mutex message_;
+  boost::mutex users_[0x100];
 };
 
 #endif // OFFICE_HPP

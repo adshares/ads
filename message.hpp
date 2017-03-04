@@ -162,6 +162,7 @@ public:
     uint8_t* p=data+data_offset;
     uint8_t* end=data+len;
     uint32_t l;
+    assert(p<end);
     for(;p<end;p+=l){
       l=utxs.get_size((char*)p);
       if(l==0xFFFFFFFF){
@@ -184,7 +185,7 @@ public:
 	peer(msvid)
   { data=NULL;
     hash.dat[1]=type;
-    if(!load()){
+    if(!load()){ //sets len
       return;}
     memcpy(&now,data+4+64+6,4);
     got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed

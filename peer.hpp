@@ -199,8 +199,16 @@ public:
   }
 
   void send_sync(message_ptr put_msg)
-  { //FIXME, make this a blocking write
-    assert(do_sync);
+  {
+/*
+WAITING for headers 58B95160, maybe need more peers
+REQUEST more headers from peer 0001
+SENDING block header request for 58B95160
+main: peer.hpp:203: void peer::send_sync(message_ptr): Assertion `do_sync' failed.
+Aborted
+*/
+    //assert(do_sync); //FIXME, failed !!!
+//FIXME, brakes after handle_read_headers() if there are more headers to load
     put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
     mtx_.lock(); //most likely no lock needed
     boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
@@ -1022,6 +1030,7 @@ public:
       handle_read_servers();
       server_.last_srvs_.header(sync_hs.head);} // set new starting point for headers synchronisation
     handle_read_headers();
+    //FIXME, brakes assert in send_sync() !!!
     do_sync=0; // set peer in sync, we are not in sync (server_.do_sync==1)
     return(1);
   }

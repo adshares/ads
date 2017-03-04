@@ -12,6 +12,7 @@ public:
   server(options& opts) :
     do_sync(1),
     do_fast(1),
+    ofip(NULL),
     endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
     io_service_(),
     work_(io_service_),
@@ -21,7 +22,6 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0)
-    //ofip(NULL)
   { assert(!(PHASESEC%BLOCKSEC)); // initial test needed for servers.clean_old()
     mkdir("usr",0755); // create dir for bank accounts
     mkdir("blk",0755); // create dir for blocks
@@ -1464,7 +1464,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           memcpy(&tuser,tbuf+2,4);
           memcpy(&tmass,tbuf+6,8);
           if(tbank!=utxs.abank){
-            fprintf(stderr,"WARNING undoing mpt\n");
+            fprintf(stderr,"WARNING undoing mpt to: %04X:%08X<=%016lX\n",tbank,tuser,tmass);
             union {uint64_t big;uint32_t small[2];} to;
             to.small[0]=tuser; //assume big endian
             to.small[1]=tbank; //assume big endian
@@ -1891,6 +1891,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       p+=utxs.size;}
     //all transactions accepted
     //FIXME load remote deposits into local deposits
+    //can not do this :-( because local bank can not accept this income yet :-(
     //deposit_.lock();
     //for(auto it=deposit.find_lowerbound();it!=deposit.end();it++){
     //  ... deposit[it->first]+=it->second;}
@@ -1968,7 +1969,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
-  { //create new banks
+  { uint32_t now=time(NULL); //for the log
+    int mpos=0; //for the log
+    std::map<uint64_t,log_t> log;
+    //create new banks
     if(!blk_bnk.empty()){
       std::set<uint64_t> new_bnk; // list of available banks for takeover
       uint16_t peer=0;
@@ -1979,13 +1983,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           new_bnk.insert(bnk);}}
       for(auto it=blk_bnk.begin();it!=blk_bnk.end();it++){
         uint16_t abank=ppi_abank(it->first);
-	if(abank==opts_.svid){
-//FIXME !!!
-//FIXME, report to local office if this is the local bank
-//FIXME !!!
-        }
         int fd=open_bank(abank);
-        update.insert(abank);
+        //update.insert(abank); no update here
         for(auto tx=it->second.begin();tx!=it->second.end();tx++){
           user_t u;
           lseek(fd,(*tx)*sizeof(user_t),SEEK_SET);
@@ -2003,15 +2002,30 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             fprintf(stderr,"BANK, add new bank %04X\n",peer);}
           else{
             close(fd);
+            fprintf(stderr,"BANK, can not create more banks\n");
             goto BLK_END;}
           update.insert(peer);
-          u.node=peer;
-          u.user=0;
-          srvs_.xor4(srvs_.nodes[abank].hash,u.csum); // weights do not change
-          srvs_.user_csum(u,abank,*tx);
-          srvs_.xor4(srvs_.nodes[abank].hash,u.csum);
-          lseek(fd,-sizeof(user_t),SEEK_CUR);
-          write(fd,&u,sizeof(user_t));}
+          if(abank==opts_.svid){
+            uint64_t key=(uint64_t)(*tx)<<32;
+            key|=mpos;
+            log_t alog;
+            alog.time=now;
+            alog.type=TXSTYPE_BNK|0x8000; //incoming
+            alog.node=peer;
+            alog.user=0;
+            alog.umid=0;
+            alog.nmid=0;
+            alog.mpos=mpos++;
+            alog.weight=0;
+            log[key]=alog;}
+          //u.node=peer;	//FIXME, report this to office
+          //u.user=0;	//FIXME, report this to office
+          //srvs_.xor4(srvs_.nodes[abank].hash,u.csum); // weights do not change
+          //srvs_.user_csum(u,abank,*tx);
+          //srvs_.xor4(srvs_.nodes[abank].hash,u.csum);
+          //lseek(fd,-sizeof(user_t),SEEK_CUR);
+          //write(fd,&u,sizeof(user_t));
+          }
         close(fd);}
       BLK_END:blk_bnk.clear();}
 
@@ -2019,26 +2033,17 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     uint16_t svid=0;
     int fd=0;
     std::map<uint32_t,user_t> undo;
+    //std::stack<gup_t> lgupstack;
     for(auto it=blk_get.begin();it!=blk_get.end();it++){
       uint16_t abank=ppi_abank(it->first);
       uint16_t bbank=ppi_bbank(it->first);
       update.insert(abank);
       update.insert(bbank);
       if(bbank!=svid){
-	if(svid==opts_.svid){
-//FIXME !!!
-//FIXME, report to local office if this is the local bank
-//FIXME !!!
-        }
         srvs_.save_undo(svid,undo,0);
         undo.clear();
         svid=bbank;
         fd=open_bank(svid);}
-      if(bbank==opts_.svid){
-//FIXME !!!
-//FIXME, report to local office if this is the local bank
-//FIXME !!!
-      }
       union {uint64_t big;uint32_t small[2];} to;
       to.small[1]=abank; //assume big endian
       for(auto tx=it->second.begin();tx!=it->second.end();tx++){
@@ -2047,17 +2052,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         read(fd,&u,sizeof(user_t));
         int64_t oweight=u.weight;
         if(!memcmp(u.pkey,tx->pkey,32)){ //FIXME, add transaction fees processing
-          if(u.weight<=0){
+          if(u.weight<=0 || u.time+2*LOCK_TIME>srvs_.now){
             continue;}
+          undo.emplace(tx->buser,u);
           if(u.node!=abank||u.user!=tx->auser){
-            undo.emplace(tx->buser,u);
+            oweight=0;
             u.node=abank;
             u.user=tx->auser;
             u.time=srvs_.now;}
-          else if(u.time+2*LOCK_TIME>srvs_.now){
-            continue;}
           else{ // withdraw all funds
-            undo.emplace(tx->buser,u);
             int64_t weight=u.weight;
             int64_t bfee=TIME_FEE(srvs_.now,u.rpath);
             weight-=bfee;
@@ -2070,45 +2073,86 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             bank_fee[bbank]+=bfee; //FIXME, start using this
             bank_fee[abank]+=afee; //FIXME, start using this
             u.weight=0;
-            u.rpath=srvs_.now;}} 
+            //FIXME, add dividend
+            u.rpath=srvs_.now;} 
+          if(abank==opts_.svid){
+            uint64_t key=(uint64_t)tx->auser<<32;
+            key|=mpos;
+            log_t alog;
+            alog.time=now;
+            alog.type=TXSTYPE_GET|0x8000; //incoming
+            alog.node=bbank;
+            alog.user=tx->buser;
+            alog.umid=0;
+            alog.nmid=0;
+            alog.mpos=mpos++;
+            alog.weight=oweight;
+            log[key]=alog;}
+          if(bbank==opts_.svid){
+            uint64_t key=(uint64_t)tx->buser<<32;
+            key|=mpos;
+            log_t blog;
+            blog.time=now;
+            blog.type=TXSTYPE_GET; //outgoing
+            blog.node=abank;
+            blog.user=tx->auser;
+            blog.umid=0;
+            blog.nmid=0;
+            blog.mpos=mpos++;
+            blog.weight=oweight;
+            log[key]=blog;}
+          if(oweight){
+            srvs_.nodes[bbank].weight-=oweight;}
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
           srvs_.user_csum(u,bbank,tx->buser);
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
-          srvs_.nodes[bbank].weight-=oweight;
           lseek(fd,-sizeof(user_t),SEEK_CUR);
-          write(fd,&u,sizeof(user_t));}}
+          write(fd,&u,sizeof(user_t));
+          if(bbank==opts_.svid && !do_sync && ofip!=NULL){
+            gup_t g;
+            g.auser=tx->buser;
+            g.node=u.node;
+            g.user=u.user;
+            g.time=u.time;
+            g.rpath=u.rpath;
+            g.delta=oweight;
+            ofip_gup_push(g);}}}}
     if(svid){
-      if(svid==opts_.svid){
-//FIXME !!!
-//FIXME, report to local office if this is the local bank
-//FIXME !!!
-      }
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
+    //if(!lgupstack.empty()){ //save info for the office, this is an overkill, these transactions are rare
+    //  gupstack_.lock();
+    //  while(!lgupstack.empty()){
+    //    gupstack.push(lgupstack.top());
+    //    lgupstack.pop();}
+    //  gupstack_.unlock();}
+    put_log(opts_.svid,log); //TODO, add loging options for multiple banks
   }
 
   void commit_deposit(std::set<uint16_t>& update) //assume single thread
-  { uint16_t lastsvid=0;
-    int ud=0,fd=0;
+  { //no log needed, this was logged while processing messages
+    //uint32_t now=time(NULL); //for the log
+    //int mpos=0; //for the log
+    //std::map<uint64_t,log_t> log;
+    uint16_t lastsvid=0;
+    int /*ud=0,*/fd=-1;
     user_t u;
     int offset=(char*)&u.weight-(char*)&u;
     std::map<uint32_t,user_t> undo;
     for(auto it=deposit.begin();it!=deposit.end();it++){
-      if(it->second==0){
+      if(it->second==0){ //MUST keep this to prevent rpath change, it may indicate undone transaction !
         continue;}
       union {uint64_t big;uint32_t small[2];} to;
       to.big=it->first;
       uint32_t user=to.small[0];
       uint16_t svid=to.small[1];
       if(svid!=lastsvid){
+        if(fd>=0){
+          close(fd);}
         srvs_.save_undo(lastsvid,undo,0);
         undo.clear();
         //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
         char filename[64];
-        if(fd){
-          close(fd);}
-        if(ud){
-          close(ud);}
         lastsvid=svid;
 	update.insert(svid);
         fprintf(stderr,"DEPOSIT to usr/%04X.dat\n",svid);
@@ -2118,32 +2162,28 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
           fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
           exit(-1);}
-        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",srvs_.now>>20,srvs_.now&0xFFFFF,svid);
-        ud=open(filename,O_WRONLY|O_CREAT,0644);
-        if(ud<0){
-          //std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
-          fprintf(stderr,"ERROR, failed to open bank undo %04X, fatal\n",svid);
-          exit(-1);}}
-//FIXME
-//FIXME, report to local bank !!!
-//FIXME
+//FIXME, add users scheduled for dividend payments
+        }
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
+      //if(it->second==0 && u.rpath>divrpath){ //FIXME, add this !!!
+      //  continue;}
       undo.emplace(user,u);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
+      //FIXME, add dividend if needed
       u.weight+=it->second;
+      u.rpath=srvs_.now;
+      if(svid==opts_.svid && !do_sync && ofip!=NULL){
+        ofip_add_remote_deposit(user,it->second);}
       srvs_.user_csum(u,svid,user);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
       srvs_.nodes[svid].weight+=it->second;
       lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
       write(fd,&u.weight,sizeof(user_t)-offset);}
     if(lastsvid){
+      close(fd);
       srvs_.save_undo(lastsvid,undo,0);
       undo.clear();}
-    if(ud){
-      close(ud);}
-    if(fd){
-      close(fd);}
     deposit.clear(); //remove deposits after commiting
   }
 
@@ -2645,11 +2685,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   { return(check_msgs_.size());
   }
 
-  //void officep(office& o)
-  //{ ofip=&o;
-  //}
-  //void start_office();
-
   void lock_user(uint32_t cuser)
   { ulock_[cuser & 0xff].lock();
   }
@@ -2658,6 +2693,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   { ulock_[cuser & 0xff].unlock();
   }
 
+  uint32_t srvs_now()
+  { return(srvs_.now);
+  }
 
   void join(peer_ptr participant);
   void leave(peer_ptr participant);
@@ -2674,6 +2712,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void connect(uint16_t svid);
   void fillknown(message_ptr msg);
   void get_more_headers(uint32_t now,uint8_t* nowhash);
+  void ofip_gup_push(gup_t& g);
+  void ofip_add_remote_deposit(uint32_t user,int64_t weight);
 
   //FIXME, move this to servers.hpp
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
@@ -2720,8 +2760,9 @@ private:
   std::map<uint64_t,message_ptr> missing_msgs_; //TODO, start using this, these are messages we still wait for
   std::map<uint64_t,message_ptr> txs_msgs_; //_TXS messages (transactions)
   std::map<uint64_t,message_ptr> cnd_msgs_; //_CND messages (block candidates)
-  std::map<uint64_t,message_ptr> blk_msgs_; //_BLK messages (blocks) or messages in a block ehcn syncing
+  std::map<uint64_t,message_ptr> blk_msgs_; //_BLK messages (blocks) or messages in a block when syncing
   std::map<uint64_t,message_ptr> dbl_msgs_; //_DBL messages (double spend)
+  //std::stack<gup_t> gupstack; //GET results on local users for the office
   boost::mutex cand_;
   boost::mutex wait_;
   boost::mutex check_;
@@ -2731,6 +2772,7 @@ private:
   boost::mutex cnd_;
   boost::mutex blk_;
   boost::mutex dbl_;
+  //boost::mutex gupstack_;
   // voting
   std::map<uint16_t,uint64_t> electors;
   uint64_t votes_max;

@@ -151,7 +151,8 @@ typedef struct header_s {
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
 } header_t;
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
-typedef struct {uint32_t auser; uint32_t buser;uint8_t pkey[32];} get_t;
+typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
+typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;uint32_t rpath;int64_t delta;} gup_t;
 #pragma pack()
 
 #include "ed25519/ed25519.h"

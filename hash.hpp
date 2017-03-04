@@ -17,13 +17,14 @@ public:
 
 	void addhash(uint8_t* hash,uint8_t* add) //hash(a,b)==hash(b,a)
 	{	SHA256_Init(&sha256);
-		for(i=0;i<SHA256_DIGEST_LENGTH;i++){
+		for(int i=0;i<SHA256_DIGEST_LENGTH;i++){
 			if(hash[i]<add[i]){
 				break;}
 			if(hash[i]>add[i]){
 				SHA256_Update(&sha256,add,SHA256_DIGEST_LENGTH);
 				SHA256_Update(&sha256,hash,SHA256_DIGEST_LENGTH);
-				SHA256_Final(hash,&sha256);}}
+				SHA256_Final(hash,&sha256);
+				return;}}
 		SHA256_Update(&sha256,hash,SHA256_DIGEST_LENGTH);
 		SHA256_Update(&sha256,add,SHA256_DIGEST_LENGTH);
 		SHA256_Final(hash,&sha256);
@@ -31,14 +32,20 @@ public:
 	}
 	
 	void update(uint8_t* hash)
-	{	if(!hash_loaded[0]){
+	{	
+//char text[2*SHA256_DIGEST_LENGTH];
+//ed25519_key2text(text,hash,SHA256_DIGEST_LENGTH);
+//fprintf(stderr,"UPDATE HASH %.*s\n",2*SHA256_DIGEST_LENGTH,text);
+		if(!hash_loaded[0]){
+//fprintf(stderr,"       STORE as 0\n");
 			memcpy(hash_[0],hash,SHA256_DIGEST_LENGTH);
 			hash_loaded[0]=1;
 			return;}
 		addhash(hash_[0],hash);
 		hash_loaded[0]=0;
-		for(i=1;i<MAXTREE;i++){
+		for(int i=1;i<MAXTREE;i++){
 			if(!hash_loaded[i]){
+//fprintf(stderr,"       STORE as %d\n",i);
 				memcpy(hash_[i],hash_[i-1],SHA256_DIGEST_LENGTH);
 				hash_loaded[i]=1;
 				return;}
@@ -47,17 +54,19 @@ public:
 	}
 
 	void finish(uint8_t* hash)
-	{	for(i=0;i<MAXTREE;i++){
+	{	int i;
+		for(i=0;i<MAXTREE;i++){
 			if(hash_loaded[i]){
+//fprintf(stderr,"       START as %d\n",i);
 				memcpy(hash,hash_[i],SHA256_DIGEST_LENGTH);
 				break;}}
-		for(;i<MAXTREE;i++){
+		for(i++;i<MAXTREE;i++){
 			if(hash_loaded[i]){
+//fprintf(stderr,"       ADD      %d\n",i);
 				addhash(hash,hash_[i]);}}
 	}
 
 private:
-	int i;
         uint8_t hash_loaded[MAXTREE];
         uint8_t hash_[MAXTREE][SHA256_DIGEST_LENGTH];
 	SHA256_CTX sha256;

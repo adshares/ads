@@ -15,7 +15,8 @@ int main(int argc, char* argv[])
       //FIXME, send a broadcast
       uint32_t now=time(NULL);
       usertxs txs(TXSTYPE_CON,0,0,now);
-      o.message.append((char*)txs.data,txs.size);}
+      //o.message.append((char*)txs.data,txs.size);
+      o.add_msg(txs.data,txs.size,0);}
     std::cerr << "Shutting down\n";
     o.stop();
     s.stop(); }
@@ -209,4 +210,10 @@ void server::connect(uint16_t svid)
 		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}
+}
+void server::ofip_gup_push(gup_t& g)
+{	ofip->gup.push(g);
+}
+void server::ofip_add_remote_deposit(uint32_t user,int64_t weight)
+{	ofip->add_remote_deposit(user,weight);
 }
