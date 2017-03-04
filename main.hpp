@@ -41,10 +41,9 @@
 #include <vector>
 
 
-//#define PHASESEC 0x100000 /* phase period in seconds, =delay for cleaning old files, must be multiple of BLOCKSEC */
 //#define BLOCKSEC 0x40 /* block period in seconds */
-#define PHASESEC 0x40 /* phase period in seconds, =delay for cleaning old files, must be multiple of BLOCKSEC */
 #define BLOCKSEC 0x20 /* block period in seconds */
+#define BLOCKDIV 0x4 /* number of blocks for dividend update */
 #define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define VOTES_MAX 127
@@ -56,8 +55,8 @@
 #define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-#define TOTALMASS 0x8fffffffffffffff /*total weight of moon in MoonBlocks (8TonsOfMoon) or in seconds*/
-#define MAX_USERS 0x80000000
+#define TOTALMASS 0x4fffffffffffffff /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
+#define MAX_USERS 0x40000000
 //#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define LOCK_TIME (0x2*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
@@ -117,6 +116,7 @@
 #define TXS_KEY_FEE    (0x1000) /* minimum 1hour fee */
 #define TXS_BKY_FEE    (0x1000000) /* */
 #define TXS_STP_FEE    (0x1000) /* minimum 1hour fee */
+#define TXS_USR_FEE    (0x10000) /* minimum 1hour fee */
 
 #define START_AGE      (0x100*BLOCKSEC) /* 100 blocks fee */
 
@@ -142,6 +142,7 @@ typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
 	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
+	uint32_t div; // dividend
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of messages
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions

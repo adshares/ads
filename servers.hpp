@@ -6,6 +6,7 @@
 typedef struct headlink_s { // header links sent when syncing
 	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
+	uint32_t div; // dividend
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
@@ -98,6 +99,7 @@ public:
 	//uint32_t old; // time of last block
 	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, FIXME, should be uint16_t
+        uint32_t div; // dividend
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
@@ -112,6 +114,7 @@ public:
 		//old(0), //FIXME, remove, oldhash will be '000...000' if old!=now-BLOCKSEC
 		msg(0),
 		nod(0),
+		div(0),
 		oldhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		msghash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		//txshash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -123,8 +126,8 @@ public:
 
 	int init(uint32_t newnow)
 	{	uint16_t num=0;
-		 int64_t stw=TOTALMASS/(nodes.size()-1);
-		 int64_t sum=0;
+		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
+		uint64_t sum=0;
                 now=newnow;
 		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
@@ -150,7 +153,8 @@ public:
 				bzero(it->pk,SHA256_DIGEST_LENGTH);
 				it->users=0;
 				it->weight=0;}}
-		nodes.begin()->weight=TOTALMASS-sum;
+		fprintf(stderr,"INIT: weight diff: %016lX\n",TOTALMASS-sum);
+		//nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
 		finish();
 		return(num<VIP_MAX?num:VIP_MAX);
@@ -358,15 +362,11 @@ public:
 
 	}
 	void hashmsg(std::map<uint64_t,message_ptr>& map)
-	{	//SHA256_CTX sha256;
-		//SHA256_Init(&sha256);
-		hashtree tree;
+	{	hashtree tree;
 		int i=0;
 		for(auto it=map.begin();it!=map.end();++it,i++){
-			//SHA256_Update(&sha256,it->second->sigh,SHA256_DIGEST_LENGTH);}
 			tree.update(it->second->sigh);}
 		msg=i;
-		//SHA256_Final(msghash, &sha256);
 		tree.finish(msghash);
 	}
 	bool msg_check(std::map<uint64_t,message_ptr>& map)
@@ -466,9 +466,7 @@ public:
 		SHA256_Update(&sha256,&now,sizeof(uint32_t));
 		SHA256_Update(&sha256,&msg,sizeof(uint32_t));
 		SHA256_Update(&sha256,&nod,sizeof(uint32_t));
-		//SHA256_Update(&sha256,oldhash,SHA256_DIGEST_LENGTH);
-		//SHA256_Update(&sha256,msghash,SHA256_DIGEST_LENGTH);
-		//SHA256_Update(&sha256,nodhash,SHA256_DIGEST_LENGTH);
+		SHA256_Update(&sha256,&div,sizeof(uint32_t));
 		SHA256_Final(nowhash, &sha256);
 		hashtree tree(NULL); //FIXME, waste of space
 		tree.addhash(nowhash,nodhash);
@@ -479,6 +477,7 @@ public:
 	{	now=path;
 		msg=link.msg;
 		nod=link.nod;
+		div=link.div;
 		memcpy(oldhash,oldh,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,link.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,link.nodhash,SHA256_DIGEST_LENGTH);
@@ -487,6 +486,7 @@ public:
 	void filllink(headlink_t& link)//write to link
 	{	link.msg=msg;
 		link.nod=nod;
+		link.div=div;
 		memcpy(link.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(link.nodhash,nodhash,SHA256_DIGEST_LENGTH);
 	}
@@ -494,6 +494,7 @@ public:
 	{	now=head.now;
 		msg=head.msg;
 		nod=head.nod;
+		div=head.div;
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
@@ -503,6 +504,7 @@ public:
 	{	head.now=now;
 		head.msg=msg;
 		head.nod=nod;
+		head.div=div;
 		memcpy(head.oldhash,oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(head.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(head.nodhash,nodhash,SHA256_DIGEST_LENGTH);
@@ -520,6 +522,7 @@ public:
 			ia >> check;
 			ia >> msg;
 			ia >> nod;
+			ia >> div;
 			ia >> oldhash;
 			ia >> msghash;
 			ia >> nodhash;
@@ -543,6 +546,7 @@ public:
 			oa << now;
 			oa << msg;
 			oa << nod;
+			oa << div;
 			oa << oldhash;
 			oa << msghash;
 			oa << nodhash;
@@ -554,7 +558,7 @@ public:
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X vok:%04X vno:%04X\n",now,msg,nod,vok,vno);
+	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
 		ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
@@ -566,7 +570,7 @@ public:
 	}
 	void header_print(header_t& head)
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.vok,head.vno);
+	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
 		ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
 		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
@@ -730,6 +734,7 @@ public:
 	{ 	now=head.now;
 		msg=head.msg;
 		nod=head.nod;
+		div=head.div;
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
@@ -749,11 +754,6 @@ public:
 			nodes[i].users=peer_node[i].users;
 			nodes[i].port=peer_node[i].port;
 			nodes[i].ipv4=peer_node[i].ipv4;}
-			//nodes[i].addr; // keep as before
-			//nodes[i].host[64]; // keep as before
-			//nodes[i].port; // keep as before
-			//nodes[i].in.clear(); // incomming connections
-			//nodes[i].out.clear(); // outgoing connections
 	}
 
 	int update_vip()
@@ -771,6 +771,24 @@ public:
 			nodes[svid_rank[i]].status |= SERVER_VIP;}
 		assert(i>0);
 		return(i<VIP_MAX?i:VIP_MAX);
+	}
+
+	uint32_t nextblock() //returns period_start
+	{	now+=BLOCKSEC;
+		int num=(now/BLOCKSEC)%BLOCKDIV;
+		if(!num){
+			uint64_t sum=0;
+			for(uint16_t n=1;n<nodes.size();n++){
+				sum+=nodes[n].weight;}
+			if(sum<TOTALMASS){
+				if(sum<TOTALMASS/2){
+					fprintf(stderr,"WARNING, very small account sum %016lX\n",sum);}
+				div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>32));}
+			else{
+				div=0;}
+			fprintf(stderr,"NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);}
+		blockdir();
+		return(now-num*BLOCKSEC);
 	}
 
 	void blockdir() //not only dir ... should be called blockstart
@@ -792,9 +810,8 @@ public:
 	{	char pat[8];
 		fprintf(stderr,"CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
-		assert(!(PHASESEC%BLOCKSEC));
 		for(int i=1;i<5;i++){
-			uint32_t path=now-i*PHASESEC;
+			uint32_t path=now-i*BLOCKDIV*BLOCKSEC; // remove from last div periods
 			int fd,dd;
 			struct dirent* dat;
 		 	char pathname[64];
@@ -836,6 +853,7 @@ private:
 		ar & now;
 		if(version>2) ar & msg;
 		if(version>2) ar & nod;
+		if(version>3) ar & div;
 		if(version>0) ar & oldhash;
 		if(version>1) ar & msghash;
 		if(version>1) ar & nodhash;
@@ -845,6 +863,6 @@ private:
 		ar & nodes;
 	}
 };
-BOOST_CLASS_VERSION(servers, 3)
+BOOST_CLASS_VERSION(servers, 4)
 
 #endif // SERVERS_HPP

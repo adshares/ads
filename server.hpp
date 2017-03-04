@@ -22,8 +22,7 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0)
-  { assert(!(PHASESEC%BLOCKSEC)); // initial test needed for servers.clean_old()
-    mkdir("usr",0755); // create dir for bank accounts
+  { mkdir("usr",0755); // create dir for bank accounts
     mkdir("blk",0755); // create dir for blocks
     mklogdir(opts_.svid);
     mklogfile(opts_.svid,0);
@@ -51,8 +50,7 @@ public:
     srvs_=last_srvs_;
     pkey=srvs_.nodes[opts_.svid].pk;
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-    srvs_.now+=BLOCKSEC;
-    srvs_.blockdir();
+    period_start=srvs_.nextblock();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
     bank_fee.resize(srvs_.nodes.size());
 
@@ -250,6 +248,7 @@ public:
     purge_log(fd,luser);
     close(fd);
     //unlock_user(luser);
+    log.clear();
   }
 
   bool fix_log(uint16_t svid,uint32_t user)
@@ -468,7 +467,6 @@ public:
         //std::cerr<<"ERROR, got strange block numbers "<<srvs_.now<<"<>"<<block->now<<"\n";
         fprintf(stderr,"ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
         exit(-1);} //FIXME, prevent this
-      //srvs_.blockdir();
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
       if(!block->load_msglist(missing_msgs_,opts_.svid)){
@@ -556,6 +554,7 @@ public:
       blk_.unlock();
       std::cerr << "COMMIT deposits\n";
       commit_block(update); // process bkn and get transactions
+      commit_dividends(update);
       commit_deposit(update);
       std::cerr << "UPDATE accounts\n";
       for(auto it=update.begin();it!=update.end();it++){
@@ -571,8 +570,7 @@ public:
         exit(-1);}
       last_srvs_=srvs_; // consider not making copies of nodes
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-      srvs_.now+=BLOCKSEC;
-      srvs_.blockdir();
+      period_start=srvs_.nextblock();
       now=time(NULL);
       now-=now%BLOCKSEC;
       peer_.lock();
@@ -648,9 +646,8 @@ public:
 	std::cerr<<"SYNC copy\n";
         srvs_=last_srvs_; //FIXME, create a copy function
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-        srvs_.now+=BLOCKSEC;
-	std::cerr<<"SYNC blockdir\n";
-        srvs_.blockdir();
+	std::cerr<<"SYNC nextblock\n";
+        period_start=srvs_.nextblock();
 	std::cerr<<"SYNC update vip\n";
         vip_max=srvs_.update_vip(); //based on final weights
         do_fast=0;
@@ -1525,7 +1522,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       srvs_.nodes[msg->svid].users=users;}
     char filename[64];
     sprintf(filename,"usr/%04X.dat",msg->svid);
-    int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
+    int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
       //std::cerr<<"ERROR, failed to open bank register "<<msg->svid<<", fatal\n";
       fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",msg->svid);
@@ -1594,8 +1591,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       int64_t deduct=0;
       int64_t fee=0;
       /************* START PROCESSING **************/
-      //user_t uempty; //needed for nothig :-(
-      //user_t& usera=uempty;
       user_t* usera=NULL;
       usertxs utxs;
       if(!utxs.parse(p)){
@@ -1868,6 +1863,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           blog.mpos=mpos; //can be overwritten with info
           blog.weight=mpt_mass[i];
           log[key]=blog;}}
+      int64_t div=dividend(*usera,msg->svid,utxs.auser,log,now);
+      if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
+        weight+=div;}
       usera->msid++;
       usera->time=utxs.ttime;
       usera->node=lnode;
@@ -1898,7 +1896,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     //deposit_.unlock();
     //commit local changes
     user_t u;
-    int offset=(char*)&u.weight-(char*)&u;
+    //int offset=(char*)&u.weight-(char*)&u;
+    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
     //FIXME, lock here in case there is a bank read during sync, or accept errors when sending bank
     for(auto it=local_deposit.begin();it!=local_deposit.end();it++){
       auto jt=changes.find(it->first);
@@ -1908,12 +1907,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	weight+=it->second;
 	srvs_.user_csum(jt->second,msg->svid,it->first);
         srvs_.xor4(csum,jt->second.csum);
-        //assert(it->first<=srvs_.nodes[msg->svid].users);
-        //if(it->first>=srvs_.nodes[msg->svid].users){ //create new user
-        //  user_t u;
-        //  memset(&u,0,sizeof(user_t));
-        //  put_user(jt->second,msg->svid,it->first);} //will update node users
-        //else{
         lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
         write(fd,&jt->second,sizeof(user_t));}//}
       else{
@@ -1921,12 +1914,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         read(fd,&u,sizeof(user_t));
         undo[it->first]=u;
         srvs_.xor4(csum,u.csum);
+        int64_t div=dividend(u,msg->svid,it->first,log,now);
+        if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
+          weight+=div;}
         u.weight+=it->second;
 	weight+=it->second;
 	srvs_.user_csum(u,msg->svid,it->first);
         srvs_.xor4(csum,u.csum);
-        lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
-        write(fd,&u.weight,sizeof(uint64_t));}}
+        lseek(fd,-offset,SEEK_CUR);
+        write(fd,&u.rpath,offset);}}
     //close(ud);
     close(fd);
     //save undo files
@@ -1970,7 +1966,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
   { uint32_t now=time(NULL); //for the log
-    int mpos=0; //for the log
+    int mpos=1; //for the log, starts with 1 because 0 is reserved for dividend log
     std::map<uint64_t,log_t> log;
     //create new banks
     if(!blk_bnk.empty()){
@@ -2017,15 +2013,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             alog.nmid=0;
             alog.mpos=mpos++;
             alog.weight=0;
-            log[key]=alog;}
-          //u.node=peer;	//FIXME, report this to office
-          //u.user=0;	//FIXME, report this to office
-          //srvs_.xor4(srvs_.nodes[abank].hash,u.csum); // weights do not change
-          //srvs_.user_csum(u,abank,*tx);
-          //srvs_.xor4(srvs_.nodes[abank].hash,u.csum);
-          //lseek(fd,-sizeof(user_t),SEEK_CUR);
-          //write(fd,&u,sizeof(user_t));
-          }
+            log[key]=alog;}}
         close(fd);}
       BLK_END:blk_bnk.clear();}
 
@@ -2050,30 +2038,26 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         user_t u;
         lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
         read(fd,&u,sizeof(user_t));
-        int64_t oweight=u.weight;
         if(!memcmp(u.pkey,tx->pkey,32)){ //FIXME, add transaction fees processing
-          if(u.weight<=0 || u.time+2*LOCK_TIME>srvs_.now){
+          if(u.weight<=TXS_USR_FEE || u.time+2*LOCK_TIME>srvs_.now){
             continue;}
           undo.emplace(tx->buser,u);
+          int64_t delta=u.weight;
+          int64_t tweight=0;
+          int64_t div=dividend(u,bbank,tx->buser,log,now);
+          if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
+            srvs_.nodes[bbank].weight+=div;}
           if(u.node!=abank||u.user!=tx->auser){
-            oweight=0;
+            delta=0;
             u.node=abank;
             u.user=tx->auser;
             u.time=srvs_.now;}
           else{ // withdraw all funds
-            int64_t weight=u.weight;
-            int64_t bfee=TIME_FEE(srvs_.now,u.rpath);
-            weight-=bfee;
-            int64_t afee=TXS_PUT_FEE(weight);
-            weight-=afee;
-            if(weight<=0){
-              continue;}
+            tweight=u.weight;
             to.small[0]=tx->auser; //assume big endian
-            deposit[to.big]+=weight;
-            bank_fee[bbank]+=bfee; //FIXME, start using this
-            bank_fee[abank]+=afee; //FIXME, start using this
+            deposit[to.big]+=u.weight-TXS_PUT_FEE(u.weight);
+            srvs_.nodes[bbank].weight-=u.weight;
             u.weight=0;
-            //FIXME, add dividend
             u.rpath=srvs_.now;} 
           if(abank==opts_.svid){
             uint64_t key=(uint64_t)tx->auser<<32;
@@ -2086,7 +2070,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             alog.umid=0;
             alog.nmid=0;
             alog.mpos=mpos++;
-            alog.weight=oweight;
+            alog.weight=tweight;
             log[key]=alog;}
           if(bbank==opts_.svid){
             uint64_t key=(uint64_t)tx->buser<<32;
@@ -2099,10 +2083,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             blog.umid=0;
             blog.nmid=0;
             blog.mpos=mpos++;
-            blog.weight=oweight;
+            blog.weight=tweight;
             log[key]=blog;}
-          if(oweight){
-            srvs_.nodes[bbank].weight-=oweight;}
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
           srvs_.user_csum(u,bbank,tx->buser);
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
@@ -2115,29 +2097,114 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             g.user=u.user;
             g.time=u.time;
             g.rpath=u.rpath;
-            g.delta=oweight;
+            g.delta=delta;
             ofip_gup_push(g);}}}}
     if(svid){
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
-    //if(!lgupstack.empty()){ //save info for the office, this is an overkill, these transactions are rare
-    //  gupstack_.lock();
-    //  while(!lgupstack.empty()){
-    //    gupstack.push(lgupstack.top());
-    //    lgupstack.pop();}
-    //  gupstack_.unlock();}
     put_log(opts_.svid,log); //TODO, add loging options for multiple banks
   }
 
-  void commit_deposit(std::set<uint16_t>& update) //assume single thread
-  { //no log needed, this was logged while processing messages
-    //uint32_t now=time(NULL); //for the log
-    //int mpos=0; //for the log
-    //std::map<uint64_t,log_t> log;
+  int64_t dividend(user_t& u,uint16_t svid,uint32_t user,std::map<uint64_t,log_t>& log,uint32_t now)
+  { if(u.rpath<period_start && u.lpath<period_start){
+      u.rpath=srvs_.now;
+      int64_t div=(u.weight>>32)*srvs_.div-TXS_USR_FEE;
+      if(div<-u.weight){
+        div=-u.weight;}
+      u.weight+=div;
+      //add to log
+      if(svid==opts_.svid){
+        uint64_t key=(uint64_t)user<<32;
+        log_t alog;
+        alog.time=now;
+        alog.type=TXSTYPE_CON; //used as dividend type
+        alog.node=svid;
+        alog.user=user;
+        alog.umid=srvs_.now;
+        alog.nmid=period_start;
+        alog.mpos=0;
+        alog.weight=div;
+        log[key]=alog;}
+fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",svid,user,div);
+      return(div);}
+    return(0x8FFFFFFFFFFFFFFF);
+  }
+
+  void commit_dividends(std::set<uint16_t>& update) //assume single thread, TODO change later
+  { if((srvs_.now/BLOCKSEC)%BLOCKDIV<BLOCKDIV/2){
+      return;}
+    uint32_t now=time(NULL); //for the log
+    std::map<uint64_t,log_t> log;
+    char filename[64];
+    user_t u,ou;
+    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
+    assert((char*)&u.rpath<(char*)&u.weight);
+    assert((char*)&u.rpath<(char*)&u.csum);
+    const int shift=srvs_.now/BLOCKSEC;
+    const int segment=32;
+    const int period=BLOCKDIV/2;
+    int bend=srvs_.nodes.size();
+    std::map<uint32_t,user_t> undo;
+    for(int svid=1;svid<bend;svid++){
+      uint32_t user=segment*((shift+svid)%period);
+      uint32_t uend=srvs_.nodes[svid].users;
+      if(user>=uend){
+        continue;}
+      fprintf(stderr,"DIVIDEND to usr/%04X.dat\n",svid);
+      sprintf(filename,"usr/%04X.dat",svid);
+      int fd=open(filename,O_RDWR,0644);
+      if(fd<0){
+        fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
+        exit(-1);}
+      for(;;user+=segment*(period-1)){
+        lseek(fd,user*sizeof(user_t),SEEK_SET);
+        for(int i=0;i<segment;i++,user++){
+          if(user>=uend){
+            goto NEXTBANK;}
+          read(fd,&u,sizeof(user_t));
+          if(!u.msid){
+            fprintf(stderr,"ERROR, failed to read user %04X:%08X, fatal\n",svid,user);
+            exit(-1);}
+          memcpy(&ou,&u,sizeof(user_t)); //to keep data for undo
+          int64_t div=dividend(u,svid,user,log,now); //returns 0x8FFFFFFFFFFFFFFF if no dividend calculated
+          if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
+            undo.emplace(user,ou); // no emplace needed, insert is ok
+            srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
+            union {uint64_t big;uint32_t small[2];} to;
+            to.small[0]=user;
+            to.small[1]=svid;
+            auto it=deposit.find(to.big);
+            if(it!=deposit.end()){
+fprintf(stderr,"DIV: include deposit to %04X:%08X (%016lX)\n",svid,user,it->second);
+              u.weight+=it->second;
+              div+=it->second;
+              it->second=0;}
+            if(svid==opts_.svid && !do_sync && ofip!=NULL){
+              ofip_add_remote_deposit(user,div);}
+            srvs_.user_csum(u,svid,user);
+            srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
+            srvs_.nodes[svid].weight+=div;
+            lseek(fd,-offset,SEEK_CUR);
+            write(fd,&u.rpath,offset);}}}
+      NEXTBANK:
+      update.insert(svid);
+      close(fd);
+      srvs_.save_undo(svid,undo,0);
+      undo.clear();
+      if(svid==opts_.svid){
+        put_log(opts_.svid,log);}}
+  }
+
+  void commit_deposit(std::set<uint16_t>& update) //assume single thread, TODO change later !!!
+  { uint32_t now=time(NULL); //for the log
+    std::map<uint64_t,log_t> log;
+    char filename[64];
     uint16_t lastsvid=0;
     int /*ud=0,*/fd=-1;
     user_t u;
-    int offset=(char*)&u.weight-(char*)&u;
+    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
+    assert((char*)&u.rpath<(char*)&u.weight);
+    assert((char*)&u.rpath<(char*)&u.csum);
     std::map<uint32_t,user_t> undo;
     for(auto it=deposit.begin();it!=deposit.end();it++){
       if(it->second==0){ //MUST keep this to prevent rpath change, it may indicate undone transaction !
@@ -2146,13 +2213,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       to.big=it->first;
       uint32_t user=to.small[0];
       uint16_t svid=to.small[1];
+      assert(svid);
       if(svid!=lastsvid){
         if(fd>=0){
           close(fd);}
         srvs_.save_undo(lastsvid,undo,0);
         undo.clear();
+        if(lastsvid==opts_.svid){
+          put_log(opts_.svid,log);}
         //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
-        char filename[64];
         lastsvid=svid;
 	update.insert(svid);
         fprintf(stderr,"DEPOSIT to usr/%04X.dat\n",svid);
@@ -2161,34 +2230,35 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(fd<0){
           //std::cerr<<"ERROR, failed to open bank register "<<svid<<", fatal\n";
           fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
-          exit(-1);}
-//FIXME, add users scheduled for dividend payments
-        }
+          exit(-1);}}
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
-      //if(it->second==0 && u.rpath>divrpath){ //FIXME, add this !!!
-      //  continue;}
       undo.emplace(user,u);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
-      //FIXME, add dividend if needed
+      int64_t div=dividend(u,svid,user,log,now);
+      if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
+        div=0;}
       u.weight+=it->second;
       u.rpath=srvs_.now;
       if(svid==opts_.svid && !do_sync && ofip!=NULL){
-        ofip_add_remote_deposit(user,it->second);}
+        ofip_add_remote_deposit(user,it->second+div);}
       srvs_.user_csum(u,svid,user);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
-      srvs_.nodes[svid].weight+=it->second;
-      lseek(fd,-sizeof(user_t)+offset,SEEK_CUR);
-      write(fd,&u.weight,sizeof(user_t)-offset);}
+      srvs_.nodes[svid].weight+=it->second+div;
+      lseek(fd,-offset,SEEK_CUR);
+      write(fd,&u.rpath,offset);}
     if(lastsvid){
       close(fd);
       srvs_.save_undo(lastsvid,undo,0);
-      undo.clear();}
+      undo.clear();
+      if(lastsvid==opts_.svid){
+        put_log(opts_.svid,log);}}
     deposit.clear(); //remove deposits after commiting
   }
 
   bool accept_message(uint32_t lastmsid)
-  { return(lastmsid<=msid_ && msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
+  { //FIXME, add check for vulnerable time
+    return(lastmsid<=msid_ && msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
   }
 
   void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,uint16_t peer_svid)
@@ -2303,8 +2373,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     fp=fopen(filename,"w");
     uint32_t txcount=0;
     uint16_t nsvid=0; // current svid processed
-    //uint32_t nmsid=0; // current msid to be processed
-    //uint32_t emsid=0; // not needed !
     uint32_t minmsid=0; // first msid to be processed
     uint32_t maxmsid=0; // last msid to be proceesed
     bool remove=false;
@@ -2312,7 +2380,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     for(auto mj=txs_msgs_.begin();mj!=txs_msgs_.end();){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       auto mi=mj++;
       if(mi->second->path>0 && mi->second->path<srvs_.now){
-        //std::cerr << "ERASE message " << mi->second->svid << ":" << mi->second->msid << "\n";
         fprintf(stderr,"ERASE message %04X:%08X\n",mi->second->svid,mi->second->msid);
 	mi->second->remove_undo();
         txs_msgs_.erase(mi); // forget old messages
@@ -2320,12 +2387,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       if(nsvid!=mi->second->svid){
         remove=0;
         nsvid=mi->second->svid;
-        //emsid=mi->second->msid;
         if(last_srvs_.nodes.size()<nsvid){
           minmsid=1;}
 	else{
           minmsid=last_srvs_.nodes[nsvid].msid+1;}
-        // maxmsid=srvs_.nodes[nsvid].msid; ERROR, must use last_block_svid_msgs
 	auto lbsm=last_block_svid_msgs.find(nsvid);
         if(lbsm==last_block_svid_msgs.end()){
           maxmsid=0;}
@@ -2333,25 +2398,23 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           maxmsid=lbsm->second->msid;}
         fprintf(stderr,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);
         fprintf(fp,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);}
-      //if(nmsid==0xffffffff && mi->second->msid<0xffffffff)  // remove messages from dbl_spend server
       if(maxmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
-        //std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later ! (DBL-spend server)\n";
         fprintf(stderr,"REMOVE message %04X:%08X later! (DBL-spend server)\n",nsvid,mi->second->msid);
         remove_msgs.push(mi->second);
         continue;}
-      //if(mi->second->msid>nmsid)
       if(mi->second->msid>maxmsid){
         if(mi->second->now<last_srvs_.now){ // remove messages if failed to be included in 2 blocks
-          //if(srvs_.nodes[mi->second->svid].msid>nmsid){
-	  //  srvs_.nodes[mi->second->svid].msid=nmsid;} // reset status 
-          //if(srvs_.nodes[mi->second->svid].msid>maxmsid){
-	  //  srvs_.nodes[mi->second->svid].msid=maxmsid;} // reset status 
           if(!remove){
             svid_msid_rollback(mi->second);}
           remove=true;}
         if(remove){
-          //std::cerr << "REMOVE message " << nsvid << ":" << mi->second->msid << " later !\n";
-          fprintf(stderr,"REMOVE message %04X:%08X later!\n",nsvid,mi->second->msid);
+          fprintf(stderr,"\n\nREMOVE message %04X:%08X (msg.now:%08X vs. last.now:%08X) :-(\n\n\n",nsvid,mi->second->msid,mi->second->now,last_srvs_.now);
+          if(mi->second->svid==opts_.svid){
+//FIXME, sign message with new time
+exit(-1);
+
+
+          }
           remove_msgs.push(mi->second);}
         else{
           if(mi->second->status&MSGSTAT_VAL){
@@ -2363,17 +2426,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(mi->second->len==message::header_length){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
           fprintf(stderr,"IGNOR: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
-//???, what about emsid ???
           continue;}
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
 	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
           fprintf(stderr,"PATH?: %04X:%08X %.16s %016lX (%016lX) path=%08X srvs_.now=%08X\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first,mi->second->path,srvs_.now);}
-        //if(nmsid!=0xffffffff && mi->second->msid!=emsid)
         if(maxmsid!=0xffffffff && mi->second->msid!=minmsid){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
           fprintf(stderr,"?????: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
-          //std::cerr << "ERROR, failed to read correct transaction order in block " << nsvid << ":" << mi->second->msid << "<>" << emsid << " (" << nmsid << ")\n";
           fprintf(stderr,"ERROR, failed to read correct transaction order in block %04x:%08X<>%08X (max:%08X)\n",
             nsvid,mi->second->msid,minmsid,maxmsid);
           for(auto mx=txs_msgs_.begin();mx!=txs_msgs_.end();mx++){
@@ -2383,19 +2443,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr << "ERROR, invalid transaction in block\n";
           exit(-1);}
         txcount++;
-        //emsid++;
         minmsid++;
         commit_msgs.push_back(mi->second);
         last_block_all_msgs[txcount]=mi->second;
         ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-        //fprintf(stderr,"BLOCK: %d %d %.*s\n",nsvid,mi->second->msid,2*sizeof(hash_t),hash);
         fprintf(stderr,"BLOCK: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
         fprintf(fp,"%d %d %.*s\n",nsvid,mi->second->msid,(int)(2*sizeof(hash_t)),hash);}}
     txs_.unlock();
-    //hash_s last_block_all_message;
-    //message_shash(last_block_all_message.hash,last_block_all_msgs); // consider sending this hash to other peers
-    //ed25519_key2text(hash,last_block_all_message.hash,sizeof(hash_t));
-    //message_shash(srvs_.txshash,last_block_all_msgs); // consider sending this hash to other peers
     srvs_.msg=last_block_all_msgs.size();
     srvs_.msg_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
     ed25519_key2text(hash,srvs_.msghash,sizeof(hash_t));
@@ -2408,43 +2462,36 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         mi->status &= ~MSGSTAT_VAL;}
 //FIXME, make sure this message is not in other queue !!!
 //FIXME, remove from all places or mark as removed :-/
-      //std::cerr << "REMOVING message " << mi->svid << ":" << mi->msid << "\n";
       fprintf(stderr,"REMOVING message %04X:%08X\n",mi->svid,mi->msid);
-      //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
 //FIXME, update peers.svid_msid_new !!!
-      remove_message(mi); //FIXME add this , must log message removal
+      remove_message(mi);
       mi->remove();}
     check_.lock();
     for(;!invalidate_msgs.empty();invalidate_msgs.pop()){
       auto mi=invalidate_msgs.top();
-      //std::cerr << "INVALIDATING message " << mi->svid << ":" << mi->msid << "\n";
       ed25519_key2text(hash,mi->sigh,sizeof(hash_t));
       fprintf(stderr,"INVALIDATING %04X:%08X %.16s %016lX %08X/\n",mi->svid,mi->msid,hash,mi->hash.num,mi->path);
       undo_message(mi);
       mi->status &= ~MSGSTAT_VAL;
-      //srvs_.nodes[mi->svid].msid=mi->msid-1; // assuming message exists
       check_msgs_.push_front(mi);}
     check_.unlock();
     std::set<uint16_t> update;
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       update.insert((*mi)->svid);
-      //std::cerr << "COMMITING message " << (*mi)->svid << ":" << (*mi)->msid << "\n";
       fprintf(stderr,"COMMITING message %04X:%08X\n",(*mi)->svid,(*mi)->msid);}
     commit_block(update); // process bkn and get transactions
+    commit_dividends(update);
     commit_deposit(update);
     std::cerr << "CHECK accounts\n"; //FIXME, remove later !!!
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
-      //srvs_.update_nodehash(*it);
       if(!srvs_.check_nodehash(*it)){
         fprintf(stderr,"FATAL ERROR, failed to check the hash of bank %04X\n",*it);
         exit(-1);}}
     srvs_.finish(); //FIXME, add locking
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-    srvs_.now+=BLOCKSEC;
-    srvs_.blockdir();
-    //TODO, add nodes if needed
+    period_start=srvs_.nextblock();
     vip_max=srvs_.update_vip();
     free(hash);
     for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
@@ -2788,6 +2835,7 @@ private:
   std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
   //std::map<uint64_t,std::vector<uint32_t>> blk_put; //cancel lock
   std::vector<int64_t> bank_fee;
+  uint32_t period_start; //start time of this period
 };
 
 #endif // SERVER_HPP

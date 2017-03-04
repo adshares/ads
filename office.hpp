@@ -179,7 +179,7 @@ public:
       u.weight+=deposit[cuser];
       deposit[cuser]=0;
       assert(u.weight>=0);
-fprintf(stderr,"\n\nGET USER WRITE\n\n");
+//fprintf(stderr,"\n\nGET USER WRITE\n\n");
       lseek(fd,cuser*sizeof(user_t),SEEK_SET);
       write(fd,&u,sizeof(user_t));}
     file_.unlock();

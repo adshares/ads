@@ -45,8 +45,8 @@ typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
 	uint32_t user; // target user, ==user_id at creation
 	uint32_t lpath; // block time of local transaction
 	uint32_t rpath; // block time of incomming transaction, quite useless, could be number of incomming txses
-	 int64_t weight; // balance, MUST BE LAST !!! (commit_deposit requires correct position)
-	uint64_t csum[4]; //sha256 hash of user account, MUST BE LAST, TODO: in office, user for 2FA
+	 int64_t weight; // balance, MUST BE AFTER rpath !
+	uint64_t csum[4]; //sha256 hash of user account, MUST BE AFTER rpath !
 } user_t;
 typedef struct log_s {
 	uint32_t time;
