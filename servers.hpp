@@ -783,10 +783,13 @@ public:
 			if(sum<TOTALMASS){
 				if(sum<TOTALMASS/2){
 					fprintf(stderr,"WARNING, very small account sum %016lX\n",sum);}
-				div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>32));}
+				//div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>32));
+				div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>16));}
 			else{
 				div=0;}
-			fprintf(stderr,"NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);}
+			//fprintf(stderr,"NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
+			fprintf(stderr,"NEW DIVIDEND %08X (%.8f) (diff:%016lX)\n",
+                          div,(float)(div)/0xFFFF,TOTALMASS-sum);}
 		blockdir();
 		return(now-num*BLOCKSEC);
 	}
@@ -798,6 +801,8 @@ public:
 		sprintf(pathname,"blk/%03X/%05X",now>>20,now&0xFFFFF);
 		mkdir(pathname,0755);
 		sprintf(pathname,"blk/%03X/%05X/und",now>>20,now&0xFFFFF);
+		mkdir(pathname,0755);
+		sprintf(pathname,"blk/%03X/%05X/log",now>>20,now&0xFFFFF);
 		mkdir(pathname,0755);
 		for(auto n=nodes.begin();n!=nodes.end();n++){
 			n->changed.resize(1+n->users/64);}

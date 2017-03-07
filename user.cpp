@@ -228,20 +228,31 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           user_t myuser;
           memcpy(&myuser,buf,sizeof(user_t));
           print_user(myuser);}}
-      if(txs->ttype==TXSTYPE_LOG){
+      else if(txs->ttype==TXSTYPE_LOG){
         int len;
         if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
           std::cerr<<"ERROR reading log length\n";
           socket.close();
           return;}
-        log_t* log=(log_t*)std::malloc(len+sizeof(log_t));
-        if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
-          std::cerr<<"ERROR reading log\n";
-          free(log);
+        if(!len){
+          fprintf(stderr,"No new log entries\n");}
+        else{
+          log_t* log=(log_t*)std::malloc(len);
+          if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
+            std::cerr<<"ERROR reading log\n";
+            free(log);
+            socket.close();
+            return;}
+          print_log(log,len);
+          free(log);}}
+      else{
+        struct {uint32_t msid;uint32_t mpos;} m;
+        if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
+          std::cerr<<"ERROR reading transaction confirmation\n";
           socket.close();
           return;}
-        print_log(log,len);
-        free(log);}}}
+        else{
+          fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   socket.close();

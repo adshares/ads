@@ -55,7 +55,7 @@
 #define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-#define TOTALMASS 0x4fffffffffffffff /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
+#define TOTALMASS 0x4000000000000000 /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
 #define MAX_USERS 0x40000000
 //#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define LOCK_TIME (0x2*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
@@ -153,7 +153,8 @@ typedef struct header_s {
 } header_t;
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
-typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;uint32_t rpath;int64_t delta;} gup_t;
+typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
+typedef struct {uint32_t auser;int64_t weight;} dep_t;
 #pragma pack()
 
 #include "ed25519/ed25519.h"

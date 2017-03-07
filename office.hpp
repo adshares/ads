@@ -21,11 +21,7 @@ public:
     fd(0),
     message_sent(0),
     next_io_service_(0)
-  { srv_.ofip=this;
-    svid=opts_.svid,
-    users=srv_.last_srvs_.nodes[svid].users; //FIXME !!! this maybe incorrect !!!
-    memcpy(pkey,srv_.pkey,32);
-    deposit.resize(users), // a buffer to enable easy resizing of the account vector
+  { svid=opts_.svid;
     std::cerr<<"OFFICE ("<<svid<<") open\n";
     // prapare local register [this could be in RAM later or be on a RAM disk]
     mkdir("ofi",0755);
@@ -34,17 +30,6 @@ public:
     fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
     if(fd<0){
       std::cerr<<"ERROR, failed to open office register\n";}
-    msid=srv_.msid_;
-
-    // init io_service_pool
-    for(int i=0;i<CLIENT_POOL;i++){
-      io_services_[i]=boost::make_shared<boost::asio::io_service>();
-      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);
-      threadpool.create_thread(boost::bind(&office::iorun_client,this,i));}
-    run=true;
-    ioth_ = new boost::thread(boost::bind(&office::iorun, this));
-    start_accept();
-    clock_thread = new boost::thread(boost::bind(&office::clock, this));
   }
 
   ~office()
@@ -85,21 +70,167 @@ public:
     //submit message
   }
 
+  void start(uint32_t myusers)
+  { memcpy(pkey,srv_.pkey,32);
+    users=myusers; //FIXME !!! this maybe incorrect !!!
+    //msid=srv_.msid_;
+    deposit.resize(users); //a buffer to enable easy resizing of the account vector
+    //copy bank file
+    char filename[64];
+    sprintf(filename,"usr/%04X.dat",svid);
+    int gd=open(filename,O_RDONLY);
+    if(gd<0){
+      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      exit(-1);}
+    for(uint32_t user=0;user<users;user++){
+      user_t u;
+      int len=read(gd,&u,sizeof(user_t));
+      if(len!=sizeof(user_t)){
+        fprintf(stderr,"ERROR, failed to read %s after %d (%08X) users, fatal\n",filename,user,user);
+        exit(-1);}
+      deposit[user]=srv_.dividend(u); //use deposit to remember data for log entries
+      write(fd,&u,sizeof(user_t));}
+    close(gd);
+
+    //init io_service_pool
+    run=true; //not used yet
+    div_ready=0;
+    block_ready=0;
+    for(int i=0;i<CLIENT_POOL;i++){
+      io_services_[i]=boost::make_shared<boost::asio::io_service>();
+      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);
+      threadpool.create_thread(boost::bind(&office::iorun_client,this,i));}
+    ioth_ = new boost::thread(boost::bind(&office::iorun, this));
+    clock_thread = new boost::thread(boost::bind(&office::clock, this));
+  }
+
+  void update_div(uint32_t now,uint32_t newdiv)
+  { char filename[64];
+    sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
+    int dd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+    if(dd<0){
+      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      exit(-1);}
+    sprintf(filename,"usr/%04X.dat",svid);
+    int gd=open(filename,O_RDONLY);
+    if(gd<0){
+      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      exit(-1);}
+    for(uint32_t user=0;user<users;user++){
+      user_t u;
+      int len=read(gd,&u,sizeof(user_t));
+      if(len!=sizeof(user_t)){
+        fprintf(stderr,"ERROR, failed to read global user %08X, fatal\n",user);
+        exit(-1);}
+      int64_t div=(u.weight>>16)*newdiv-TXS_USR_FEE;
+      if(div<-u.weight){
+        div=-u.weight;}
+      write(dd,&div,sizeof(uint64_t));}
+    close(gd);
+    close(dd);
+  }
+
+  void process_div(uint32_t now)
+  { int dd=-1;
+    char filename[64];
+    log_t alog;
+    if(now){ //if now==0: firs dididend update load from deposit[]
+      sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
+      dd=open(filename,O_RDONLY);
+      if(dd<0){
+        fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+        exit(-1);}
+      alog.type=TXSTYPE_CON;}
+    else{
+      alog.type=TXSTYPE_STP;}
+    for(uint32_t user=0;user<users;user++){
+      int64_t div;
+      if(now){
+        if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
+          break;}
+        add_deposit(user,div);}
+      else{ // no lock needed
+        if(deposit[user]==(int64_t)0x8FFFFFFFFFFFFFFF){
+          deposit[user]=0;}
+        div=deposit[user];
+        deposit[user]=0;}
+      alog.time=now;
+      alog.node=svid;
+      alog.user=user;
+      alog.umid=now;
+      alog.nmid=0;
+      alog.mpos=0;
+      alog.weight=div;
+      srv_.put_log(svid,user,alog);} //assume, no lock needed
+    if(now){
+      close(dd);
+      unlink(filename);}
+  }
+
+  void update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv)
+  { for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
+      uint64_t svms=(uint64_t)((*mi)->svid)<<32|(*mi)->msid;
+      mque.push_back(svms);}
+    if(period_start==now){
+      update_div(now,newdiv);
+      div_ready=now;}
+    block_ready=now;
+  }
+
+  void process_log(uint32_t now)
+  { uint32_t lpos=0;
+    const uint32_t maxl=0xffff;
+    std::map<uint64_t,log_t> log;
+    for(auto mi=mque.begin();mi!=mque.end();mi++){
+      uint64_t svms=(*mi);
+      uint32_t svid=svms>>32;
+      uint32_t msid=svms&0xFFFFFFFF;
+      char filename[64];
+      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        std::cerr<<"ERROR, failed to open log file "<<filename<<"\n";
+        continue;}
+      while(1){
+        uint32_t user;
+        log_t ulog;
+        if(read(fd,&user,sizeof(uint32_t))<=0){
+          break;}
+        if(read(fd,&ulog,sizeof(log_t))<=0){
+          break;}
+        uint64_t lkey=(uint64_t)(user)<<32|lpos++;
+        log[lkey]=ulog;
+        if(lpos>=maxl){
+          srv_.put_log(svid,log);
+          log.clear();
+          lpos=0;}}
+      close(fd);}
+    if(lpos){
+      srv_.put_log(svid,log);}
+    mque.clear();
+  }
+
   void clock()
-  { uint32_t lnow=srv_.srvs_now();
+  { process_div(0);
+    start_accept();
     while(run){
       uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)
       //TODO, clear hanging clients
       boost::this_thread::sleep(boost::posix_time::seconds(2));
-      if(lnow!=srv_.srvs_now()){ //process block updates, assume no lock needed
-        while(!rpath.empty()){
-          update_rpath(rpath.top(),lnow);
-          rpath.pop();}
-        while(!gup.empty()){
-          update_gup(gup.top());
-          gup.pop();}
-        lnow=srv_.srvs_now();}
+      if(block_ready){
+        fprintf(stderr,"OFFICE, process last block %08X\n",block_ready-BLOCKSEC);
+        if(div_ready){
+          fprintf(stderr,"OFFICE, process dividends @ %08X\n",div_ready);
+          process_div(div_ready);} // process DIVIDENDs
+        process_log(block_ready-BLOCKSEC); // process logs
+        process_gup(block_ready-BLOCKSEC); // process GET transactions
+        process_dep(block_ready-BLOCKSEC); // process PUT remote deposits
+        if(block_ready!=srv_.srvs_now()){
+          fprintf(stderr,"ERROR, failed to finish local update on time, fatal\n");
+          exit(-1);}
+        block_ready=0;
+        div_ready=0;}
       if(message.empty()){
         message_.lock();
         srv_.break_silence(now,message);
@@ -108,12 +239,13 @@ public:
       if(message.length()<MESSAGE_LEN_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
         continue;}
-      if(!srv_.accept_message(msid)){
-	std::cerr<<"WARNING, server not ready for a new message ("<<msid<<")\n";
+      //if(!srv_.accept_message(msid)){
+      if(!srv_.accept_message()){
+	std::cerr<<"WARNING, server not ready for a new message ("<<srv_.msid_<<")\n";
         continue;}
       message_.lock();
-      std::cerr<<"SENDING new message (old msid:"<<msid<<")\n";
-      msid=srv_.write_message(message);
+      std::cerr<<"SENDING new message (old msid:"<<srv_.msid_<<")\n";
+      srv_.write_message(message);
       message.clear();
       message_.unlock();
       message_sent=now;}
@@ -129,58 +261,68 @@ public:
     return(true);
   }
 
-  void update_gup(gup_t& cgup)
+  void process_gup(uint32_t now)
   { user_t u;
-    assert(cgup.auser<users);
-    file_.lock();
-    lseek(fd,cgup.auser*sizeof(user_t),SEEK_SET);
-    read(fd,&u,sizeof(user_t));
-    u.node=cgup.node;
-    u.user=cgup.user;
-    u.time=cgup.time;
-    u.rpath=cgup.rpath;
-    u.weight+=deposit[cgup.auser]-cgup.delta;
-    deposit[cgup.auser]=0;
-    lseek(fd,-sizeof(user_t),SEEK_CUR);
-    write(fd,&u,sizeof(user_t));
-    file_.unlock();
+    while(!gup.empty()){
+      gup_t& cgup=gup.top();
+      assert(cgup.auser<users);
+      file_.lock();
+      lseek(fd,cgup.auser*sizeof(user_t),SEEK_SET);
+      read(fd,&u,sizeof(user_t));
+      u.node=cgup.node;
+      u.user=cgup.user;
+      u.time=cgup.time;
+      u.rpath=now;
+      u.weight+=deposit[cgup.auser]-cgup.delta;
+      deposit[cgup.auser]=0;
+      lseek(fd,-sizeof(user_t),SEEK_CUR);
+      write(fd,&u,sizeof(user_t));
+      file_.unlock();
+      gup.pop();}
   }
 
-  void update_rpath(uint32_t cuser,uint32_t rpath)
+  void process_dep(uint32_t now)
   { user_t u;
-    assert(cuser<users);
-    file_.lock();
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-    read(fd,&u,sizeof(user_t));
-    u.rpath=rpath;
-    u.weight+=deposit[cuser];
-    deposit[cuser]=0;
-    lseek(fd,-sizeof(user_t),SEEK_CUR);
-    write(fd,&u,sizeof(user_t));
-    file_.unlock();
+    while(!rdep.empty()){
+      dep_t& dep=rdep.top();
+      assert(dep.auser<users);
+      file_.lock();
+      lseek(fd,dep.auser*sizeof(user_t),SEEK_SET);
+      read(fd,&u,sizeof(user_t));
+      u.rpath=now;
+      u.weight+=deposit[dep.auser]+dep.weight;
+      deposit[dep.auser]=0;
+      lseek(fd,-sizeof(user_t),SEEK_CUR);
+      write(fd,&u,sizeof(user_t));
+      file_.unlock();
+      rdep.pop();}
   }
 
-  bool get_user(user_t& u,uint16_t cbank,uint32_t cuser,bool global)
+  bool get_user_global(user_t& u,uint16_t cbank,uint32_t cuser)
   { u.msid=0;
-    bool from_server=false;
+    srv_.last_srvs_.get_user(u,cbank,cuser);
+    if(!u.msid){
+      return(false);}
+    return(true);
+  }
+
+  bool get_user(user_t& u,uint16_t cbank,uint32_t cuser)
+  { u.msid=0;
+    if(cbank!=svid){
+      return(get_user_global(u,cbank,cuser));}
     if(cuser>=users){
       return(false);}
     file_.lock();
-    if(cbank==svid && !global){
-      lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-      read(fd,&u,sizeof(user_t));}
-    if(!u.msid){
-      from_server=true;
-      srv_.last_srvs_.get_user(u,cbank,cuser);} //watch out for deadlocks
+    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
     if(!u.msid){
       file_.unlock();
       return(false);}
-    if(cbank==svid && !global && (deposit[cuser]||from_server)){
+    if(deposit[cuser]){
       u.weight+=deposit[cuser];
       deposit[cuser]=0;
       assert(u.weight>=0);
-//fprintf(stderr,"\n\nGET USER WRITE\n\n");
-      lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+      lseek(fd,-sizeof(user_t),SEEK_CUR);
       write(fd,&u,sizeof(user_t));}
     file_.unlock();
     return(true);
@@ -263,10 +405,8 @@ public:
   }
 
   void add_remote_deposit(uint32_t buser,int64_t tmass)
-  { file_.lock();
-    deposit[buser]+=tmass;
-    file_.unlock();
-    rpath.push(buser);
+  { dep_t dep={buser,tmass};
+    rdep.push(dep);
 //fprintf(stderr,"\n\nADDING REMOTE DEPOSIT\n\n");
   }
 
@@ -290,7 +430,7 @@ public:
       for(auto it=accounts_.begin();it!=accounts_.end();){
         auto jt=it++;
         user_t u;
-        get_user(u,svid,jt->second,false); //watch out for deadlocks
+        get_user(u,svid,jt->second); //watch out for deadlocks
         if(u.weight>=MIN_MASS){
           accounts_.erase(jt);}}
       if(accounts_.size()>MAX_ACCOUNT){
@@ -309,9 +449,11 @@ public:
     account_.unlock();
   }
 
-  void add_msg(uint8_t* msg,int len, int64_t fee)
+  void add_msg(uint8_t* msg,int len, int64_t fee,uint32_t& msid,uint32_t& mpos)
   { if(!run){ return;}
     message_.lock();
+    msid=srv_.msid_+1;
+    mpos=message.length()+message::data_offset;
     message.append((char*)msg,len);
     message_.unlock();
     mfee+=BANK_PROFIT(fee); //do we need this?
@@ -348,11 +490,25 @@ public:
   { return(srv_.last_srvs_.now);
   }
 
+  void put_log(uint16_t svid,uint32_t user,log_t& log)
+  { srv_.put_log(svid,user,log);
+  }
+
+  void put_log(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log)
+  { srv_.put_log(now,svid,msid,log);
+  }
+
+  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log)
+  { srv_.put_log(svid,log);
+  }
+
   uint16_t svid;
   hash_t pkey; // local copy for managing updates
   std::stack<gup_t> gup; // GET results
 private:
   bool run;
+  uint32_t div_ready;
+  uint32_t block_ready;
   uint32_t users; //number of users of the bank
   std::string message;
   std::vector<int64_t> deposit; //resizing will require a stop of processing
@@ -365,7 +521,7 @@ private:
   options& opts_;
   std::set<client_ptr> clients_;
   int fd; // user file descriptor
-  uint32_t msid;
+  //uint32_t msid;
    int64_t mfee; // let's see if we need this
   uint32_t message_sent;
   boost::thread* clock_thread;
@@ -378,7 +534,8 @@ private:
   work_ptr io_works_[CLIENT_POOL];
   int next_io_service_;
   boost::thread_group threadpool;
-  std::stack<uint32_t> rpath; // users with remote deposits
+  std::stack<dep_t> rdep; // users with remote deposits
+  std::deque<uint64_t> mque; // list of message to process log
 
   boost::mutex client_;
   boost::mutex file_;
