@@ -19,6 +19,7 @@ address=ADDRESS
 type=TX_TYPE
 dir=in|out
 since=TIMESTAMP
+since_tx=TXID
 
 log
 address=00010000f424208c
