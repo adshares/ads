@@ -303,6 +303,7 @@ public:
     srv_.last_srvs_.get_user(u,cbank,cuser);
     if(!u.msid){
       return(false);}
+    srv_.dividend(u); //add missing dividend
     return(true);
   }
 

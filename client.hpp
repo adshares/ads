@@ -275,9 +275,14 @@ public:
       mpt_bank.reserve(utxs.bbank);
       mpt_user.reserve(utxs.bbank);
       mpt_mass.reserve(utxs.bbank);
+      std::set<uint64_t> out;
+      union {uint64_t big;uint32_t small[2];} to;
+      to.small[1]=0;
       for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
-        uint16_t tbank;
-        uint32_t tuser;
+        uint32_t& tuser=to.small[0];
+        uint32_t& tbank=to.small[1];
+        //uint16_t tbank;
+        //uint32_t tuser;
          int64_t tmass;
         memcpy(&tbank,tbuf+0,2);
         memcpy(&tuser,tbuf+2,4);
@@ -286,12 +291,17 @@ public:
           std::cerr<<"ERROR: only positive non-zero transactions allowed in MPT\n";
           offi_.unlock_user(utxs.auser);
           return;}
-        if(!offi_.check_user(tbank,tuser)){
+        if(out.find(to.big)!=out.end()){
+          fprintf(stderr,"ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+          offi_.unlock_user(utxs.auser);
+          return;}
+        if(!offi_.check_user((uint16_t)tbank,tuser)){
           // does not check if account closed [consider adding this slow check]
           std::cerr<<"ERROR: bad target user ("<<tbank<<":"<<tuser<<")\n";
           offi_.unlock_user(utxs.auser);
           return;}
-        mpt_bank.push_back(tbank);
+        out.insert(to.big);
+        mpt_bank.push_back((uint16_t)tbank);
         mpt_user.push_back(tuser);
         mpt_mass.push_back(tmass);
         utxs.tmass+=tmass;}

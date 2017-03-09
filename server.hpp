@@ -1760,9 +1760,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         mpt_size=0;
         mpt_user.reserve(utxs.bbank);
         mpt_mass.reserve(utxs.bbank);
+        std::set<uint64_t> out;
+        union {uint64_t big;uint32_t small[2];} to;
+        to.small[1]=0;
         for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
-          uint16_t tbank;
-          uint32_t tuser;
+          uint32_t& tuser=to.small[0];
+          uint32_t& tbank=to.small[1];
+          //uint16_t tbank;
+          //uint32_t tuser;
            int64_t tmass;
           memcpy(&tbank,tbuf+0,2);
           memcpy(&tuser,tbuf+2,4);
@@ -1770,17 +1775,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           if(tmass<=0){ //only positive non-zero values allowed
             std::cerr<<"ERROR: only positive non-zero transactions allowed in MPT\n";
             return(false);}
-          if(!srvs_.check_user(tbank,tuser)){
+          if(out.find(to.big)!=out.end()){
+            fprintf(stderr,"ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+            return(false);}
+          if(!srvs_.check_user((uint16_t)tbank,tuser)){
             fprintf(stderr,"ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
             return(false);}
-          if(tbank==utxs.abank){
+          out.insert(to.big);
+          if((uint16_t)tbank==utxs.abank){
             local_deposit[tuser]+=tmass;}
           else{
-            union {uint64_t big;uint32_t small[2];} to;
-            to.small[0]=tuser; //assume big endian
-            to.small[1]=tbank; //assume big endian
+            //union {uint64_t big;uint32_t small[2];} to;
+            //to.small[0]=tuser; //assume big endian
+            //to.small[1]=tbank; //assume big endian
             txs_deposit[to.big]+=tmass;}
-          if(tbank==opts_.svid){
+          if((uint16_t)tbank==opts_.svid){
             mpt_user[mpt_size]=tuser;
             mpt_mass[mpt_size]=tmass;
             mpt_size++;}

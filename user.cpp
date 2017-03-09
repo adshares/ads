@@ -47,15 +47,22 @@ bool parse_mpt(std::string& text,uint32_t& to_bank,std::string& line)
 { int pos=3;
   int add=0;
   int end=line.length();
+  std::set<uint64_t> out;
+  union {uint64_t big;uint32_t small[2];} to;
+  //to.small[1]=0;
   for(;pos<end;pos+=add){
     char to_acct[2+4+8];
-    uint32_t tbank;
-    uint32_t tuser;
+    uint32_t& tuser=to.small[0];
+    uint32_t& tbank=to.small[1];
      int64_t tmass;
     if(line[pos]==';'){
       return(true);}
     if(3!=sscanf(line.c_str()+pos,":%X,%X,%lX%n",&tbank,&tuser,&tmass,&add) || !add){
       return(false);}
+    if(out.find(to.big)!=out.end()){
+      fprintf(stderr,"ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+      return(false);}
+    out.insert(to.big);
     memcpy(to_acct+0,&tbank,2);
     memcpy(to_acct+2,&tuser,4);
     memcpy(to_acct+6,&tmass,8);

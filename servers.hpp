@@ -788,8 +788,8 @@ public:
 			else{
 				div=0;}
 			//fprintf(stderr,"NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
-			fprintf(stderr,"NEW DIVIDEND %08X (%.8f) (diff:%016lX)\n",
-                          div,(float)(div)/0xFFFF,TOTALMASS-sum);}
+			fprintf(stderr,"NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
+                          div,(float)(div)/0xFFFF,TOTALMASS-sum,(double)(TOTALMASS-sum)/(double)sum);}
 		blockdir();
 		return(now-num*BLOCKSEC);
 	}
