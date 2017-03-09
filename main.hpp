@@ -155,6 +155,12 @@ typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
 typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
 typedef struct {uint32_t auser;int64_t weight;} dep_t;
+typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
+typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
+typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
+typedef struct uin_cmp {
+  bool operator()(const uin_t& i,const uin_t& j) const {int k=memcmp(&i,&j,sizeof(uin_t));return(k<0);}} uin_c;
+
 #pragma pack()
 
 #include "ed25519/ed25519.h"

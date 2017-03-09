@@ -329,6 +329,20 @@ public:
     return(true);
   }
 
+  void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) //create account on remote request
+  { if(try_account((hash_s*)pkey)){
+      std::cerr<<"ERROR: failed to open account (pkey known)\n";
+      return;}
+    uint32_t ltime=time(NULL);
+    uint32_t luser=add_user(bbank,pkey,ltime,buser);
+    if(luser){
+      uint32_t msid;
+      uint32_t mpos;
+      usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,0,(const char*)pkey));
+      add_msg(txs->data,txs->size,0,msid,mpos); //FIXME, fee ???
+      add_account((hash_s*)pkey,luser);} //blacklist
+  }
+
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
   { static uint32_t nuser=0;
     static uint32_t lastnow=0;
@@ -361,11 +375,12 @@ public:
 //FIXME !!!
 //FIXME, network conflict ... somebody can wire funds to this account while the account is beeing overwritten
 //FIXME !!! (maybe create a slow 'account close' transaction)
-        if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
+        //if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
+        if(nu.weight<=0){ // commit changing this account
 //FIXME, do not change accounts that are open for too short
           //std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
-          fprintf(stderr,"WARNING, overwriting account %08X [weight:%016lX fee:%08X]\n",
-            nuser,nu.weight,TIME_FEE(now,nu.lpath));
+          fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",
+            nuser,nu.weight);
           //FIXME !!!  wrong time !!! must use time from txs
           srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when,abank,auser);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
@@ -432,7 +447,8 @@ public:
         auto jt=it++;
         user_t u;
         get_user(u,svid,jt->second); //watch out for deadlocks
-        if(u.weight>=MIN_MASS){
+        //if(u.weight>=MIN_MASS){
+        if(u.weight>0){
           accounts_.erase(jt);}}
       if(accounts_.size()>MAX_ACCOUNT){
         account_.unlock();

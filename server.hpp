@@ -1507,6 +1507,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       p+=utxs.get_size(p);}
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     blk_.lock();
+    blk_usr.erase(ppi);
+    blk_uok.erase(ppi);
     blk_bnk.erase(ppi);
     for(auto it=txs_get.begin();it!=txs_get.end();it++){
       blk_get.erase(*it);}
@@ -1585,6 +1587,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::map<uint64_t,int64_t> txs_deposit;
     std::map<uint64_t,std::vector<uint32_t>> txs_bnk; //create new bank
     std::map<uint64_t,std::vector<get_t>> txs_get; //set lock / withdraw
+    std::map<uint64_t,std::vector<usr_t>> txs_usr; //remote account request
+    std::map<uint64_t,std::vector<uok_t>> txs_uok; //remote account accept
     uint32_t users=srvs_.nodes[msg->svid].users;
     uint32_t ousers=users;
     uint32_t lpath=srvs_.now;
@@ -1598,6 +1602,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     std::vector< int64_t> mpt_mass; // for MPT to local bank
     uint64_t csum[4]={0,0,0,0};
      int64_t weight=0; //FIXME fix weight calculation later !!! (include correct fee handling)
+    uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     while(p<(char*)msg->data+msg->len){
       uint32_t luser=0;
       uint16_t lnode=0;
@@ -1624,22 +1629,20 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	fprintf(stderr,"ERROR: time in the future block time:%08X block:%08X limit %08X\n",
 	  utxs.ttime,lpath,lpath+BLOCKSEC+5);
         return(false);}
-      if(utxs.abank!=msg->svid && *p!=TXSTYPE_USR){
+      //if(utxs.abank!=msg->svid && *p!=TXSTYPE_USR){
+      if(utxs.abank!=msg->svid){
         std::cerr<<"ERROR: bad bank\n";
         utxs.print_head();
         return(false);}
-      if(*p==TXSTYPE_USR){ // check lock first
-        // signature checked later only for local users
-        if(utxs.bbank!=msg->svid){
-          std::cerr<<"ERROR: bad target bank\n";
-          return(false);}
-        //TXSTYPE_USER then the account was checked by the bank 
-        //bank has created new account with (user,pkey) supplied
-        //this transaction must be also reversible
-	luser=utxs.nuser(p);
-        char* npkey=utxs.npkey(p);
+      if((*p==TXSTYPE_USR && utxs.abank==utxs.bbank) || *p==TXSTYPE_UOK){ // check lock first
+        char* lpkey;
+        if(*p==TXSTYPE_USR){
+	  luser=utxs.nuser(p);
+          lpkey=utxs.npkey(p);}
+        else{ //UOK
+	  luser=utxs.auser;
+          lpkey=utxs.upkey(p);}
         if(luser>users){
-          //std::cerr<<"ERROR: bad target user id "<<luser<<"\n";
           fprintf(stderr,"ERROR: bad target user id %08X\n",luser);
           return(false);}
 	if(luser<users){ //1. check if overwriting was legal
@@ -1651,42 +1654,31 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             changes[luser]=u;
             undo[luser]=u;
             usera=&changes[luser];}
-          else{
-            // there should be no previous transaction on this user !!!
+          else{ // there should be no previous transaction on this user !!!
             usera=&lu->second;}
-          if(usera->weight-TIME_FEE(lpath,usera->lpath)>=0){
-            //std::cerr<<"ERROR: illegal overwriting of account "<<utxs.bbank<<":"<<luser<<"\n";
-            fprintf(stderr,"WARNING, overwriting account %04X:%08X [weight:%016lX fee:%08X]\n",
-              utxs.bbank,luser,usera->weight,TIME_FEE(lpath,usera->lpath));
-            //fprintf(stderr,"ERROR: illegal overwriting of account %04X:%08X\n",utxs.bbank,luser);
+          dividend(*usera);
+          //if(usera->weight-TIME_FEE(lpath,usera->lpath)>=0){
+          if(usera->weight>0){
+            fprintf(stderr,"ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
+              utxs.bbank,luser,usera->weight);
             return(false);}}
         else{ //TODO, consider locking
           user_t u;
           bzero(&u,sizeof(user_t));
           users++;
           changes[luser]=u;
-          //undo[luser]=u;
           usera=&changes[luser];}
 	srvs_.xor4(csum,usera->csum);
-        srvs_.init_user(*usera,msg->svid,luser,(utxs.abank==utxs.bbank?MIN_MASS:0),(uint8_t*)npkey,utxs.ttime,utxs.abank,utxs.auser);
+        srvs_.init_user(*usera,msg->svid,luser,(*p==TXSTYPE_USR?MIN_MASS:0),(uint8_t*)lpkey,utxs.ttime,utxs.abank,utxs.auser);
 	srvs_.xor4(csum,usera->csum);
         srvs_.put_user(*usera,msg->svid,luser);
-        if(utxs.abank!=utxs.bbank){
-          /* save log , only opts_.svid logging supported */
-          /*if(utxs.abank==opts_.svid){
-            uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
-            uint64_t key=(uint64_t)utxs.auser<<32;
-            key|=lpos++;
-            log_t alog;
-            alog.time=now;
-            alog.type=*p; //outgoing
-            alog.node=utxs.bbank;
-            alog.user=utxs.buser;
-            alog.umid=utxs.amsid;
-            alog.nmid=msg->msid; //can be overwritten with info
-            alog.mpos=mpos; //can be overwritten with info
-            alog.weight=utxs.tmass;
-            log[key]=alog;}*/
+        if(*p==TXSTYPE_UOK){ // no additional checks needed
+          uok_t uok;
+          uok.auser=utxs.auser;
+          uok.bbank=utxs.bbank;
+          uok.buser=utxs.buser;
+          memcpy(uok.pkey,lpkey,32);
+          txs_uok[ppi].push_back(uok);
           p+=utxs.size;
           continue;}}
       if(utxs.auser>=users){
@@ -1797,11 +1789,18 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         deduct=utxs.tmass;
         fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_USR){ // this is local bank
-        assert(utxs.abank==msg->svid);
+        if(utxs.abank!=utxs.bbank){
+          usr_t usr;
+          usr.auser=utxs.auser;
+          usr.bbank=utxs.bbank;
+          memcpy(usr.pkey,usera->pkey,32);
+          txs_usr[ppi].push_back(usr);
+          if(utxs.bbank==opts_.svid){ //respond to account creation request
+            ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);}}
         deduct=MIN_MASS;
-        fee=TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_USR_FEE;}
+        //fee=TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_BNK){ // we will get a confirmation from the network
-        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.abank);
         txs_bnk[ppi].push_back(utxs.auser);
         fee=TXS_BNK_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_GET){
@@ -1809,12 +1808,12 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
           fprintf(stderr,"ERROR: bad bank %04X, use PUT\n",utxs.bbank);
           return(false);}
-        uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
+        uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
         get_t get;
         get.auser=utxs.auser;
         get.buser=utxs.buser;
         memcpy(get.pkey,usera->pkey,32);
-        txs_get[ppi].push_back(get);
+        txs_get[ppb].push_back(get);
         fee=TXS_GET_FEE*TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_KEY){
         memcpy(usera->pkey,utxs.key(p),32);
@@ -2000,9 +1999,73 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
   }
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
-  { //uint32_t now=time(NULL); //for the log
-    //int mpos=1; //for the log, starts with 1 because 0 is reserved for dividend log
-    //std::map<uint64_t,log_t> log;
+  {
+    //match remote account transactions
+    std::map<uin_t,uint32_t,uin_cmp> uin; //waiting remote account requests
+    for(auto it=blk_usr.begin();it!=blk_usr.end();it++){
+      uint16_t abank=ppi_abank(it->first);
+      for(auto tx=it->second.begin();tx!=it->second.end();tx++){
+        uin_t nuin={tx->bbank,abank,tx->auser,
+          tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
+          tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
+          tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
+          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
+        uin[nuin]++;}}
+    for(auto it=blk_uok.begin();it!=blk_uok.end();it++){ //send funds from matched transactions to new account
+      uint16_t abank=ppi_abank(it->first);
+      for(auto tx=it->second.begin();tx!=it->second.end();tx++){
+        uin_t nuin={abank,tx->bbank,tx->buser,
+          tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
+          tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
+          tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
+          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
+        if(uin.find(nuin)!=uin.end() && uin[nuin]>0){
+          union {uint64_t big;uint32_t small[2];} to;
+          to.small[0]=tx->auser;
+          to.small[1]=abank;
+          deposit[to.big]+=MIN_MASS;
+          if(tx->bbank==opts_.svid){
+            log_t alog;
+            alog.time=time(NULL);
+            alog.type=TXSTYPE_UOK;
+            alog.node=abank;
+            alog.user=tx->auser;
+            alog.umid=0;
+            alog.nmid=0;
+            alog.mpos=srvs_.now;
+            alog.weight=MIN_MASS;
+            put_log(tx->bbank,tx->buser,alog);}
+          uin[nuin]--;}
+        else if(tx->bbank==opts_.svid){ // no matching _USR transaction found
+          log_t alog;
+          alog.time=time(NULL);
+          alog.type=TXSTYPE_UOK;
+          alog.node=abank;
+          alog.user=tx->auser;
+          alog.umid=0;
+          alog.nmid=0;
+          alog.mpos=srvs_.now;
+          alog.weight=0; // 0 == no matching _USR transaction found
+          put_log(tx->bbank,tx->buser,alog);}}}
+    for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
+      uint32_t n=it->second;
+      for(;n>0;n--){
+        union {uint64_t big;uint32_t small[2];} to;
+        to.small[0]=it->first.auser;
+        to.small[1]=it->first.abank;
+        deposit[to.big]+=MIN_MASS;
+        if(it->first.abank==opts_.svid){
+          log_t alog;
+          alog.time=time(NULL);
+          alog.type=TXSTYPE_UOK|0x8000; //incoming
+          alog.node=it->first.bbank;
+          alog.user=0;
+          alog.umid=0;
+          alog.nmid=0;
+          alog.mpos=srvs_.now;
+          alog.weight=MIN_MASS;
+          put_log(it->first.abank,it->first.auser,alog);}}}
+
     //create new banks
     if(!blk_bnk.empty()){
       std::set<uint64_t> new_bnk; // list of available banks for takeover
@@ -2810,6 +2873,7 @@ exit(-1);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);
   void ofip_start(uint32_t myusers);
   void ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv);
+  void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
 
   //FIXME, move this to servers.hpp
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
@@ -2881,6 +2945,8 @@ private:
   //std::map<uint64_t,hash_s> blk_bky; //change bank key
   std::map<uint64_t,std::vector<uint32_t>> blk_bnk; //create new bank
   std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
+  std::map<uint64_t,std::vector<usr_t>> blk_usr; //remote account request
+  std::map<uint64_t,std::vector<uok_t>> blk_uok; //remote account accept
   //std::map<uint64_t,std::vector<uint32_t>> blk_put; //cancel lock
   std::vector<int64_t> bank_fee;
   uint32_t period_start; //start time of this period

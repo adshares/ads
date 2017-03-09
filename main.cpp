@@ -80,6 +80,9 @@ void server::ofip_gup_push(gup_t& g)
 void server::ofip_add_remote_deposit(uint32_t user,int64_t weight)
 {	ofip->add_remote_deposit(user,weight);
 }
+void server::ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey)
+{	ofip->add_remote_user(abank,auser,pkey);
+}
 
 // server <-> peer
 void server::join(peer_ptr p)

@@ -163,7 +163,8 @@ public:
       boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
       offi_.unlock_user(utxs.auser);
       return;}
-    if(utxs.abank!=offi_.svid && *buf!=TXSTYPE_USR){
+    //if(utxs.abank!=offi_.svid && *buf!=TXSTYPE_USR){
+    if(utxs.abank!=offi_.svid){
       std::cerr<<"ERROR: bad bank\n";
       offi_.unlock_user(utxs.auser);
       return;}
@@ -309,34 +310,41 @@ public:
       deduct=utxs.tmass;
       fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
     else if(*buf==TXSTYPE_USR){
-      if(utxs.bbank!=offi_.svid){
-        std::cerr<<"ERROR: bad target bank ("<<utxs.bbank<<")\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
+      //if(utxs.bbank!=offi_.svid){
+      //  std::cerr<<"ERROR: bad target bank ("<<utxs.bbank<<")\n";
+      //  offi_.unlock_user(utxs.auser);
+      //  return;}
       deduct=MIN_MASS;
-      fee=TIME_FEE(lpath,usera.lpath);
+      fee=TXS_USR_FEE; //TIME_FEE(lpath,usera.lpath);
       if(deduct+fee+MIN_MASS>usera.weight){ //check in advance before creating new user
         std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      if(utxs.abank!=offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
-        std::cerr<<"ERROR: failed to open account (pkey known)\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
-      uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime,utxs.auser);
-      if(!nuser){
-        std::cerr<<"ERROR: failed to open account\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
-      //extralen=4+32;
-      //buf=std::realloc(buf,txslen[(int)*buf]+64+extralen);
-      //buf=(char*)std::realloc(buf,utxs.size);
-      memcpy(buf+txslen[(int)*buf]+64+0,&nuser,4);
-      memcpy(buf+txslen[(int)*buf]+64+4,usera.pkey,32);
-      if(utxs.abank==offi_.svid){
-        lnode=0;
-        luser=nuser;} // record new user id
+      if(utxs.bbank!=offi_.svid){
+        uint32_t now=time(NULL);
+        if(now%BLOCKSEC>BLOCKSEC/2){
+          fprintf(stderr,"ERROR: bad timing for remote account request, try after %d seconds\n",
+            BLOCKSEC-now%BLOCKSEC);
+          offi_.unlock_user(utxs.auser);
+          return;}
+        bzero(buf+txslen[(int)*buf]+64+0,4+32);} //FIXME, remove 32 bytes
       else{
+        uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime,utxs.auser);
+        if(!nuser){
+          std::cerr<<"ERROR: failed to open account\n";
+          offi_.unlock_user(utxs.auser);
+          return;}
+        memcpy(buf+txslen[(int)*buf]+64+0,&nuser,4);
+        memcpy(buf+txslen[(int)*buf]+64+4,usera.pkey,32); //FIXME, this data is not needed !!!
+        lnode=0;
+        luser=nuser;}}
+      /*if(utxs.abank!=offi_.svid){
+      //if(utxs.abank!=offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
+      //  std::cerr<<"ERROR: failed to open account (pkey known)\n";
+      //  offi_.unlock_user(utxs.auser);
+      //  return;}
+      // add_account ...
+
         //FIXME, check if original bank is in our whitelist
         offi_.add_msg((uint8_t*)buf,utxs.size,0,msid,mpos); //TODO, could return pointer to file
         offi_.add_account((hash_s*)usera.pkey,nuser); //blacklist
@@ -345,7 +353,7 @@ public:
 //FIXME, send also transaction info
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
         offi_.unlock_user(utxs.auser);
-        return;}}
+        return;}}*/
     else if(*buf==TXSTYPE_BNK){ // we will get a confirmation from the network
       deduct=BANK_MIN_MASS;
       fee=TXS_BNK_FEE*TIME_FEE(lpath,usera.lpath);} 

@@ -1,36 +1,42 @@
 #ifndef USER_HPP
 #define USER_HPP
 
+//bank only
 #define TXSTYPE_STP 0	/* die/stop processing bank */	/* restart requires a new BKY transaction */
 #define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
-#define TXSTYPE_BRO 2	/* broadcast */			/* send ads to network */
-#define TXSTYPE_PUT 3	/* send funds */	
-#define TXSTYPE_MPT 4	/* send funds to many accounts */	
-#define TXSTYPE_USR 5	/* create new user */		
-#define TXSTYPE_BNK 6	/* create new bank */
-#define TXSTYPE_GET 7	/* get funds */			/* retreive funds from remote/dead bank */
-#define TXSTYPE_KEY 8	/* change account key */
-#define TXSTYPE_BKY 9	/* change bank key */
-#define TXSTYPE_INF 10	/* strating from this message only messages between wallet and client.hpp */
-#define TXSTYPE_LOG 11	/* return user status and log */
-#define TXSTYPE_BLG 12	/* return broadcast log */
-#define TXSTYPE_MAX 13
+#define TXSTYPE_UOK 2	/* accept remote account request */
+//bank & user
+#define TXSTYPE_BRO 3	/* broadcast */			/* send ads to network */
+#define TXSTYPE_PUT 4	/* send funds */	
+#define TXSTYPE_MPT 5	/* send funds to many accounts */	
+#define TXSTYPE_USR 6	/* create new user */		
+#define TXSTYPE_BNK 7	/* create new bank */
+#define TXSTYPE_GET 8	/* get funds */			/* retreive funds from remote/dead bank */
+#define TXSTYPE_KEY 9	/* change account key */
+#define TXSTYPE_BKY 10	/* change bank key */
+//user only
+#define TXSTYPE_INF 11	/* strating from this message only messages between wallet and client.hpp */
+#define TXSTYPE_LOG 12	/* return user status and log */
+#define TXSTYPE_BLG 13	/* return broadcast log */
+//end
+#define TXSTYPE_MAX 14
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
 	1+2+4,			//1:CON (port,ipv4)
-	1+2+4+4+4+2,		//2:BRO 'bbank' is message length
-	1+2+4+4+4+2+4+8+8,	//3:PUT, extra parameter = official message (8 byte)
-	1+2+4+4+4+2,		//4:MPT 'bbank' is number of to_accounts
-	1+2+4+4+4+2,		//5:USR
-	1+2+4+4+4,		//6:BNK
-	1+2+4+4+4+2+4,		//7:GET,
-	1+2+4+4+4+32,		//8:KEY
-	1+2+4+4+4+32,		//9:BKY, old key appended to undo message
-	1+2+4+2+4+4,		//10:INF
-	1+2+4+2+4+4,		//11:LOG
-	1+2+4+  4,		//12:BLG
-	1+2+4+4+4+32};		//13:MAX fixed buffer size
+	1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
+	1+2+4+4+4+2,		//3:BRO 'bbank' is message length
+	1+2+4+4+4+2+4+8+8,	//4:PUT, extra parameter = official message (8 byte)
+	1+2+4+4+4+2,		//5:MPT 'bbank' is number of to_accounts
+	1+2+4+4+4+2,		//6:USR
+	1+2+4+4+4,		//7:BNK
+	1+2+4+4+4+2+4,		//8:GET,
+	1+2+4+4+4+32,		//9:KEY
+	1+2+4+4+4+32,		//10:BKY, old key appended to undo message
+	1+2+4+2+4+4,		//11:INF
+	1+2+4+2+4+4,		//12:LOG
+	1+2+4+  4,		//13:BLG
+	1+2+4+4+4+2+4+32};	//14:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
@@ -172,6 +178,8 @@ public:
 			memcpy(data+1+2,&auser,4);
 			//memcpy(data+1+6,&ttime,4);
 			return;}
+		else if(ttype==TXSTYPE_UOK){
+			size=len;}
 		else if(ttype==TXSTYPE_BRO){
 			size=len+bbank+64;}
 		else if(ttype==TXSTYPE_MPT){
@@ -206,6 +214,9 @@ public:
 			return;}
 		if(len>=1+2+4+4+4+2+4){
 			memcpy(data+1+16,&buser,4);}
+		if(ttype==TXSTYPE_UOK){
+			memcpy(data+1+20,text,32);
+			return;}
 		if(len>=1+2+4+4+4+2+4+8+8){
 			memcpy(data+1+20,&tmass,8);
 			memcpy(data+1+28,&tinfo,8);}
@@ -217,6 +228,8 @@ public:
                         return(0xFFFFFFFF);}
 		if(*txs==TXSTYPE_CON){
 			return(txslen[TXSTYPE_CON]);} // no signature
+		if(*txs==TXSTYPE_UOK){
+			return(txslen[TXSTYPE_UOK]);} // no signature
 	 	if(*txs==TXSTYPE_BKY){
 			return(txslen[TXSTYPE_BKY]+64+32);} // additional 4 bytes on network !!!
 	 	if(*txs==TXSTYPE_USR){
@@ -258,6 +271,9 @@ public:
 		memcpy(&ttime,txs+1+10,4);
 		memcpy(&bbank,txs+1+14,2);
 		memcpy(&buser,txs+1+16,4);
+                if(ttype==TXSTYPE_UOK){
+			size=txslen[TXSTYPE_UOK]; // no signature !
+			return(true);}
 		memcpy(&tmass,txs+1+20,8);
 		memcpy(&tinfo,txs+1+28,8);
 		if(ttype==TXSTYPE_BKY){
@@ -283,6 +299,8 @@ public:
 
 	void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk)
 	{	if(ttype==TXSTYPE_CON){
+			return;}
+	 	if(ttype==TXSTYPE_UOK){
 			return;}
 		if(ttype==TXSTYPE_INF){
 			ed25519_sign(data,txslen[TXSTYPE_INF],sk,pk,data+txslen[TXSTYPE_INF]);
@@ -315,6 +333,8 @@ public:
 
 	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
 	{	if(ttype==TXSTYPE_CON){
+			return(0);}
+	 	if(ttype==TXSTYPE_UOK){
 			return(0);}
 		if(ttype==TXSTYPE_INF){
 			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
@@ -358,6 +378,10 @@ public:
 
 	char* key(char* buf) //return new key in message
 	{	return(buf+1+2+4+4+4);
+	}
+
+	char* upkey(char* buf) //return new key in UOK message
+	{	return(buf+1+2+4+4+4+2);
 	}
 
 	void print_broadcast(char* buf)
