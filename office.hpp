@@ -330,7 +330,7 @@ public:
   }
 
   void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) //create account on remote request
-  { if(try_account((hash_s*)pkey)){
+  { if(!try_account((hash_s*)pkey)){
       std::cerr<<"ERROR: failed to open account (pkey known)\n";
       return;}
     uint32_t ltime=time(NULL);
@@ -340,7 +340,7 @@ public:
       uint32_t mpos;
       usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,0,(const char*)pkey));
       add_msg(txs->data,txs->size,0,msid,mpos); //FIXME, fee ???
-      add_account((hash_s*)pkey,luser);} //blacklist
+      add_key((hash_s*)pkey,luser);} //blacklist
   }
 
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
@@ -460,7 +460,7 @@ public:
     return(true);
   }
 
-  void add_account(hash_s* key,uint32_t user)
+  void add_key(hash_s* key,uint32_t user)
   { account_.lock();
     accounts_[*key]=user;
     account_.unlock();

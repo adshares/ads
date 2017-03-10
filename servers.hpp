@@ -297,8 +297,10 @@ public:
 			weight+=u.weight;}
 		close(fd);
 		if(nodes[peer].weight!=weight){
+			fprintf(stderr,"ERROR: check_node: bad weight sum\n");
 			return(false);}
 		if(memcmp(nodes[peer].hash,csum,4*sizeof(uint64_t))){
+			fprintf(stderr,"ERROR: check_node: bad hash\n");
 			return(false);}
 		return(true);
 	}

@@ -1672,7 +1672,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         srvs_.init_user(*usera,msg->svid,luser,(*p==TXSTYPE_USR?MIN_MASS:0),(uint8_t*)lpkey,utxs.ttime,utxs.abank,utxs.auser);
 	srvs_.xor4(csum,usera->csum);
         srvs_.put_user(*usera,msg->svid,luser);
-        if(*p==TXSTYPE_UOK){ // no additional checks needed
+        if(*p==TXSTYPE_USR){
+	  weight+=MIN_MASS;}
+        else{ //*p==TXSTYPE_UOK
           uok_t uok;
           uok.auser=utxs.auser;
           uok.bbank=utxs.bbank;
