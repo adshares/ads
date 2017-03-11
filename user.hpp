@@ -58,11 +58,11 @@ typedef struct log_s {
 	uint32_t time;
 	uint16_t type;
 	uint16_t node;
-	uint32_t user;
-	uint32_t umid; // user msid
 	uint32_t nmid; // peer msid, could overwrite this also with info
 	uint32_t mpos; // position in file or remote user in 'get', could overwrite this with info
-	 int64_t weight; // value
+	uint32_t user;
+	uint32_t umid; // user msid
+	 int64_t weight; // value, or info (use type to determine)
 } log_t;
 #pragma pack()
 

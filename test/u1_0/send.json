@@ -1,0 +1,3 @@
+{"run":"get_me"}
+,
+{"run":"send","account":"0002-00000000-XXXX","amount":10000,"message":123456}
