@@ -18,6 +18,10 @@ public:
 		bank(0),
 		user(0),
 		msid(0),
+		json(false),
+		mlin(true),
+		nice(true),
+		drun(false),
 		sk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		pk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 		//sn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -29,6 +33,10 @@ public:
 	int bank;		// my bank
 	int user;		// my account
 	int msid;		// my last message id
+	bool json;
+	bool mlin;
+	bool nice;
+	bool drun;
 	ed25519_secret_key sk;
 	ed25519_public_key pk;	// calculated
 //	ed25519_secret_key sn;
@@ -57,7 +65,11 @@ public:
 				("bank,b", boost::program_options::value<int>(&bank),						"bank id")
 				("user,u", boost::program_options::value<int>(&user),						"user id")
 				("msid,i", boost::program_options::value<int>(&msid),						"last message id")
-				("hash,j", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
+				("json,j", boost::program_options::value<bool>(&json)->default_value(false),			"expect json input and output")
+				("mlin,m", boost::program_options::value<bool>(&mlin)->default_value(true),			"allow json with multiple lines")
+				("nice,n", boost::program_options::value<bool>(&nice)->default_value(true),			"request pretty json")
+				("drun,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
+				("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
 				("skey,s", boost::program_options::value<std::string>(&skey),					"secret key [64chars in hext format / 32bytes]")
 				("pkey,k", boost::program_options::value<std::string>(&pkey),					"public key [64chars in hext format / 32bytes]")
 //				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [32bytes]")
@@ -175,6 +187,14 @@ public:
 				std::cout << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
 			else{
 				std::cout << "WARNING: last message id missing!" << std::endl;}
+			if (vm.count("json")){
+				std::cout << "InputJson: " << vm["json"].as<bool>() << std::endl;}
+			if (vm.count("mlin")){
+				std::cout << "MultiLine: " << vm["mlin"].as<bool>() << std::endl;}
+			if (vm.count("nice")){
+				std::cout << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
+			if (vm.count("drun")){
+				std::cout << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;}
 			if (vm.count("hash")){
 				if(hash.length()!=64){
 					std::cerr << "ERROR: hash wrong length (should be 64): " << vm["hash"].as<std::string>() << std::endl;

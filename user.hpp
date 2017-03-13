@@ -392,6 +392,10 @@ public:
 	{	return(buf+1+2+4+4+4+2);
 	}
 
+	char* broadcast_sigh(char* buf,uint16_t bbank) //not used
+	{	return(buf+1+2+4+4+4+2+bbank);
+	}
+
 	void print_toaddresses(char* buf,uint16_t bbank)
 	{	char* tbuf=toaddresses(buf);
 		for(int i=0;i<bbank;i++,tbuf+=6+8){

@@ -1,18 +1,18 @@
 get_account
 address=ADDRESS
 
-account
-address=00010000f424208c
-type=standard
-public_key=32877f2c49ab09a0555e3fe8ca29a711fd4ea98f2a9ed07bf924eeb2018046e0
-tx_count=1
-tx_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-tx_time=1488830807
-in_time=1488830807
-out_time=1488830807
-bank=1
-offset=62500
-balance=10000
+  account
+  address=00010000f424208c
+  type=standard
+  public_key=32877f2c49ab09a0555e3fe8ca29a711fd4ea98f2a9ed07bf924eeb2018046e0
+  tx_count=1
+  tx_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  tx_time=1488830807
+  in_time=1488830807
+  out_time=1488830807
+  bank=1
+  offset=62500
+  balance=10000
 
 get_log
 address=ADDRESS
@@ -21,40 +21,40 @@ dir=in|out
 since=TIMESTAMP
 since_tx=TXID
 
-log
-address=00010000f424208c
-log==tx_id,tx_no,type,dir,time,address,amount,confirmed
-cc3aa88fa3129b4bb5ea,1,send,out,1488830951,00010000f423506b,1,1
-cc3aa88fa3129b4bb5ea,1,send,out,1488830951,00010000f423506b,1,1
+  log
+  address=00010000f424208c
+  log==tx_id,tx_no,type,dir,time,address,amount,confirmed
+  cc3aa88fa3129b4bb5ea,1,send,out,1488830951,00010000f423506b,1,1
+  cc3aa88fa3129b4bb5ea,1,send,out,1488830951,00010000f423506b,1,1
 
 get_broadcast
 type=INTEGER
 since=TIMESTAMP
 
-broadcast_log
-log==time,address,type,data
-1488830998,00010000f424208c,12,a
-1488830998,00010000f424208c,12,a
+  broadcast_log
+  log==time,address,type,data
+  1488830998,00010000f424208c,12,a
+  1488830998,00010000f424208c,12,a
 
 send_broadcast
 type=integer
 data=string
 
-broadcast
-time=1488830998
-address=00010000f424
-type=12
-data=a
+  broadcast
+  time=1488830998
+  address=00010000f424
+  type=12
+  data=a
 
 send
 to=ADDRESS
 amount=DECIMAL
 
-tx
-tx=73656e643a303030313030303066343233353036623a31
-sig=57723e6ab5a4019223f36c7e74efe98b108a4017113cf644784a6100533f7e71
-no=1
-hash=ccc4d37c30aacf4a44719123e137c7022965342782c57627b094841244bee1d3
-time=1488830951
-id=0123456fffffffff
+  tx
+  tx=73656e643a303030313030303066343233353036623a31
+  sig=57723e6ab5a4019223f36c7e74efe98b108a4017113cf644784a6100533f7e71
+  no=1
+  hash=ccc4d37c30aacf4a44719123e137c7022965342782c57627b094841244bee1d3
+  time=1488830951
+  id=0123456fffffffff
 

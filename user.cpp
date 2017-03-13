@@ -9,7 +9,9 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/optional/optional.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include <boost/serialization/list.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
@@ -27,15 +29,14 @@
 #include <list>
 #include <openssl/sha.h>
 #include <set>
+#include <sstream>
 #include <stack>
 #include <vector>
 #include "ed25519/ed25519.h"
 #include "user.hpp"
 #include "settings.hpp"
 
-#include <sstream>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/optional/optional.hpp>
+//#define BLOCKSEC 0x20 /* block period in seconds, must equal BLOCKSEC in main.hpp */ 
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
 // the list must terminate with ';'
@@ -68,7 +69,7 @@ bool parse_mpt(std::string& text,uint32_t& to_bank,const char* line,int end)
 
 uint16_t crc16(const uint8_t* data_p, uint8_t length)
 { uint8_t x;
-  uint16_t crc = 0xFFFF;
+  uint16_t crc = 0x1D0F; //differet initial checksum !!!
 
   while(length--){
     x = crc >> 8 ^ *data_p++;
@@ -78,8 +79,15 @@ uint16_t crc16(const uint8_t* data_p, uint8_t length)
 }
 uint16_t crc_acnt(uint16_t to_bank,uint32_t to_user)
 { uint8_t data[6];
-  memcpy(data,&to_bank,2);
-  memcpy(data+2,&to_user,4);
+  uint8_t* bankp=(uint8_t*)&to_bank;
+  uint8_t* userp=(uint8_t*)&to_user;
+  //change endian
+  data[0]=bankp[1];
+  data[1]=bankp[0];
+  data[2]=userp[3];
+  data[3]=userp[2];
+  data[4]=userp[1];
+  data[5]=userp[0];
   return(crc16(data,6));
 }
 
@@ -153,7 +161,7 @@ bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,boost::optional<std::string>
   return(true);
 }
 
-bool parse_sign(uint8_t* to_sign,boost::optional<std::string>& json_sign)
+/*bool parse_sign(uint8_t* to_sign,boost::optional<std::string>& json_sign)
 { std::string str_sign=json_sign.get();
   if(str_sign.length()!=128){
     fprintf(stderr,"ERROR: parse_sign(%s) bad length (required 128)\n",str_sign.c_str());
@@ -169,20 +177,26 @@ bool parse_pkey(uint8_t* to_pkey,boost::optional<std::string>& json_pkey)
     return(false);}
   ed25519_text2key(to_pkey,str_pkey.c_str(),32);
   return(true);
+}*/
+
+bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len)
+{ std::string str_key=json_key.get();
+  if((int)str_key.length()!=2*len){
+    fprintf(stderr,"ERROR: parse_key(%s) bad string length (required %d)\n",str_key.c_str(),2*len);
+    return(false);}
+  ed25519_text2key(to_key,str_key.c_str(),len);
+  return(true);
 }
 
-usertxs_ptr run_json(settings& sts,char* line,bool& dryrun)
+usertxs_ptr run_json(settings& sts,char* line)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
    int64_t to_mass=0;
   uint64_t to_info=0;
-  uint32_t to_from=0xffffffff;
+  uint32_t to_from=0;
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
-//uint32_t to_msid=0; //FIXME, use !!!
-//uint32_t to_hash[32]; //FIXME, use !!!
   uint32_t now=time(NULL);
-  dryrun=false;
   usertxs_ptr txs=NULL;
   std::stringstream ss;
   boost::property_tree::ptree pt;
@@ -193,10 +207,13 @@ usertxs_ptr run_json(settings& sts,char* line,bool& dryrun)
   catch (std::exception& e){
     std::cerr << "RUN_JSON Exception: " << e.what() << "\n";}
   boost::optional<std::string> json_sign=pt.get_optional<std::string>("signature");
-  if(json_sign && !parse_sign(to_sign,json_sign)){
+  if(json_sign && !parse_key(to_sign,json_sign,64)){
     return(NULL);}
   boost::optional<std::string> json_pkey=pt.get_optional<std::string>("pkey");
-  if(json_pkey && !parse_pkey(to_pkey,json_pkey)){
+  if(json_pkey && !parse_key(to_pkey,json_pkey,32)){
+    return(NULL);}
+  boost::optional<std::string> json_hash=pt.get_optional<std::string>("hash");
+  if(json_hash && !parse_key(sts.ha,json_hash,32)){
     return(NULL);}
   boost::optional<std::string> json_bank=pt.get_optional<std::string>("bank");
   if(json_bank && !parse_bank(to_bank,json_bank)){
@@ -216,9 +233,9 @@ usertxs_ptr run_json(settings& sts,char* line,bool& dryrun)
   boost::optional<uint64_t> json_info=pt.get_optional<uint64_t>("message");
   if(json_info){
     to_info=json_info.get();}
-  boost::optional<bool> json_null=pt.get_optional<bool>("dryrun");
-  if(json_null){
-    dryrun=json_null.get();}
+  boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
+  if(json_msid){
+    sts.msid=json_msid.get();}
 
   std::string run=pt.get<std::string>("run");
   if(!run.compare("get_me")){
@@ -228,6 +245,9 @@ usertxs_ptr run_json(settings& sts,char* line,bool& dryrun)
   else if(!run.compare("get_log")){
     txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);}
   else if(!run.compare("get_broadcast")){
+    //if(!to_from){
+    //  to_from=time(NULL);
+    //  to_from+=-(to_from%BLOCKSEC)-BLOCKSEC;}
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
   else if(!run.compare("send_broadcast")){
     std::string text=pt.get<std::string>("text");
@@ -264,13 +284,12 @@ usertxs_ptr run_json(settings& sts,char* line,bool& dryrun)
 }
 
 //usertxs_ptr run(settings& sts,std::string& line)
-usertxs_ptr run(settings& sts,const char* line,int len,bool& dryrun)
+usertxs_ptr run(settings& sts,const char* line,int len)
 { uint32_t to_bank=0; //actually uint16_t
   uint32_t to_user=0;
    int64_t to_mass=0;
   uint64_t to_info=0;
   uint32_t now=time(NULL);
-  dryrun=false;
   if(!strncmp(line,"ME::",4)){ // get info about me
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
@@ -338,42 +357,138 @@ usertxs_ptr run(settings& sts,const char* line,int len,bool& dryrun)
     return(NULL);}
 }
 
-void print_user(user_t& u)
-{  char pkey[64];
-   char hash[64];
-   ed25519_key2text(pkey,u.pkey,32);
-   ed25519_key2text(hash,u.hash,32);
-   fprintf(stdout,
-     "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
-     u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);
+void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,uint32_t bank,uint32_t user)
+{ char pkey[65];
+  char hash[65];
+  ed25519_key2text(pkey,u.pkey,32);
+  ed25519_key2text(hash,u.hash,32);
+  pkey[64]='\0';
+  hash[64]='\0';
+  if(!json){
+    fprintf(stdout,
+      "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
+      u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);}
+  else{
+    uint16_t suffix=crc_acnt(bank,user);
+    char acnt[19];
+    sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
+    if(local){
+      pt.put("user.account",acnt);
+      pt.put("user.node",bank);
+      pt.put("user.id",user);
+      pt.put("user.msid",u.msid);
+      pt.put("user.time",u.time);
+      pt.put("user.status",u.stat);
+      pt.put("user.paired_node",u.node);
+      pt.put("user.paired_user",u.user);
+      pt.put("user.local_change",u.lpath);
+      pt.put("user.remote_change",u.rpath);
+      pt.put("user.balance",u.weight);
+      pt.put("user.public_key",pkey);
+      pt.put("user.hash",hash);}
+    else{
+      pt.put("network_user.account",acnt);
+      pt.put("network_user.node",bank);
+      pt.put("network_user.id",user);
+      pt.put("network_user.msid",u.msid);
+      pt.put("network_user.time",u.time);
+      pt.put("network_user.status",u.stat);
+      pt.put("network_user.paired_node",u.node);
+      pt.put("network_user.paired_user",u.user);
+      pt.put("network_user.local_change",u.lpath);
+      pt.put("network_user.remote_change",u.rpath);
+      pt.put("network_user.balance",u.weight);
+      pt.put("network_user.public_key",pkey);
+      pt.put("network_user.hash",hash);}}
 }
 
-void print_log(log_t* log,int len)
+void print_log(log_t* log,int len,boost::property_tree::ptree& pt,bool json)
 { int fd=open("usr.log",O_RDONLY|O_CREAT,0640);
   write(fd,(char*)log,len);
   close(fd);
   if(len%sizeof(log_t)){
     std::cerr<<"ERROR, bad log allignment, viewer not yet implemanted, hex-view usr.log to investigate\n";}
-  for(log_t* end=log+len/sizeof(log_t);log<end;log++){
-    fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX\n",
-      log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}
+  if(!json){
+    for(log_t* end=log+len/sizeof(log_t);log<end;log++){
+      fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX\n",
+        log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}}
+  else{
+    boost::property_tree::ptree logtree;
+    for(log_t* end=log+len/sizeof(log_t);log<end;log++){
+      boost::property_tree::ptree logentry;
+      logentry.put("time",log->time);
+      logentry.put("type",log->type);
+      logentry.put("node",log->node);
+      logentry.put("node_msid",log->nmid);
+      logentry.put("node_mpos",log->mpos);
+      logentry.put("user",log->user);
+      logentry.put("user_msid",log->umid);
+      logentry.put("amount",log->weight);
+      logtree.push_back(std::make_pair("",logentry));}
+    pt.add_child("log",logtree);}
 }
 
-void save_blg(char* blg,int len,uint32_t path) // blg is 4 bytes longer than len (includes path in 4 bytes)
+void save_blg(char* blg,int len,uint32_t path,boost::property_tree::ptree& pt,bool json) // blg is 4 bytes longer than len (includes path in 4 bytes)
 { char filename[64];
   sprintf(filename,"bro.%08X",path);
   int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
   if(len){
     write(fd,(char*)blg,len);}
   close(fd);
+  if(json){
+    boost::property_tree::ptree blogtree;
+    usertxs utxs;
+    for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32){
+      boost::property_tree::ptree blogentry;
+      if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
+        std::cerr<<"ERROR: failed to parse broadcast transaction\n";
+        return;}
+      blogentry.put("node",utxs.abank);
+      blogentry.put("user",utxs.auser);
+      blogentry.put("user_msid",utxs.amsid);
+      blogentry.put("time",utxs.ttime);
+      blogentry.put("length",utxs.bbank);
+      //transaction
+      char* txstring=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
+      txstring[2*txslen[TXSTYPE_BRO]]='\0';
+      ed25519_key2text(txstring,p,txslen[TXSTYPE_BRO]);
+      blogentry.put("txstring",txstring);
+      free(txstring);
+      //message
+      char* message=(char*)malloc(2*utxs.bbank+1);
+      message[2*utxs.bbank]='\0';
+      ed25519_key2text(message,(uint8_t*)utxs.broadcast((char*)p),utxs.bbank);
+      blogentry.put("broadcast",message);
+      free(message);
+      //signature
+      char sigh[129];
+      sigh[128]='\0';
+      ed25519_key2text(sigh,(uint8_t*)utxs.broadcast((char*)p)+utxs.bbank,64);
+      blogentry.put("signature",sigh);
+      //hash
+      char hash[65];
+      hash[64]='\0';
+      ed25519_key2text(hash,p+utxs.size,32);
+      blogentry.put("input_hash",hash);
+      blogtree.push_back(std::make_pair("",blogentry));}
+    pt.add_child("broadcast",blogtree);}
 }
 
-void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,bool json,bool dryrun) //len can be deduced from txstype
+void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
-    txs->print_head();
-    txs->print();
-    if(dryrun){
+    boost::property_tree::ptree pt;
+    if(!sts.json){
+      txs->print_head();
+      txs->print();}
+    else{
+      char* txstring=(char*)malloc(2*txs->size+1);
+      txstring[2*txs->size]='\0';
+      ed25519_key2text(txstring,txs->data,txs->size);
+      pt.put("txstring",txstring);
+      free(txstring);}
+    if(sts.drun){
+      boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
     if(txs->ttype==TXSTYPE_BLG){
@@ -384,6 +499,13 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
         return;}
       uint32_t path=head[0];
       int len=(int)head[1];
+      if(sts.json){
+        char blockhex[9];
+        blockhex[8]='\0';
+        sprintf(blockhex,"%08X",path);
+        pt.put("block_hex",blockhex);
+        pt.put("block",path);
+        pt.put("length",len);}
       char* blg=NULL;
       if(len){
         blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
@@ -395,8 +517,8 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
           std::cerr<<"ERROR reading broadcast log\n";
           free(blg);
           socket.close();
-          return;}}
-      save_blg(blg,len,path);
+          return;}
+        save_blg(blg,len,path,pt,sts.json);}
       free(blg);}
     else{
       int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
@@ -405,7 +527,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
       else{
         user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
-        print_user(myuser);
+        print_user(myuser,pt,sts.json,true,sts.bank,sts.user);
         if(txs->ttype!=TXSTYPE_INF || ((int)txs->buser==sts.user && (int)txs->bbank==sts.bank)){
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
             std::cerr<<"ERROR transaction failed (bad msid)\n";}
@@ -423,7 +545,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
         else{
           user_t myuser;
           memcpy(&myuser,buf,sizeof(user_t));
-          print_user(myuser);}}
+          print_user(myuser,pt,sts.json,false,sts.bank,sts.user);}}
       else if(txs->ttype==TXSTYPE_LOG){
         int len;
         if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
@@ -439,7 +561,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
             free(log);
             socket.close();
             return;}
-          print_log(log,len);
+          print_log(log,len,pt,sts.json);
           free(log);}}
       else{
         struct {uint32_t msid;uint32_t mpos;} m;
@@ -448,7 +570,14 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,boo
           socket.close();
           return;}
         else{
-          fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
+          sts.msid=m.msid;
+          if(sts.json){
+            pt.put("msid",m.msid);
+            pt.put("mpos",m.mpos);}
+          else{
+            fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
+    if(sts.json){
+      boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
   socket.close();
@@ -477,14 +606,12 @@ int main(int argc, char* argv[])
     throw boost::system::system_error(error);}
   std::cerr<<"CONNECTED\n";
   bool connected=true;
-  bool json=false;
-  bool dryrun=false;
   try{
     if(!sts.exec.empty()){
-      usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length(),dryrun);
+      usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length());
       if(txs==NULL){
         std::cerr << "ERROR\n";}
-      talk(socket,sts,txs,json,dryrun);
+      talk(socket,sts,txs);
       return(0);}
     //std::string line;
     char line[0x10000];line[0xffff]='\0';
@@ -494,20 +621,21 @@ int main(int argc, char* argv[])
       if(line[0]=='\n' || line[0]=='#'){
         continue;}
       int len=strlen(line);
-      if(!json && isalpha(line[0])){
-        json=false;
+      if(!sts.json && isalpha(line[0])){
+        sts.json=false;
         if(line[len-1]=='\n'){
           line[len-1]='\0';
           len--;}
-        txs=run(sts,line,len,dryrun);}
+        txs=run(sts,line,len);}
       else{
-        json=true;
-        while(len && 0xffff-len>1 && NULL!=fgets(line+len,0xffff-len,stdin)){
-          if(line[len]==',' && line[len+1]=='\n'){
-            line[len]=' ';
-            break;}
-          len+=strlen(line+len);}
-        txs=run_json(sts,line,dryrun);}
+        sts.json=true;
+        if(sts.mlin){
+          while(len && 0xffff-len>1 && NULL!=fgets(line+len,0xffff-len,stdin)){
+            //if(line[len]==',' && line[len+1]=='\n'){
+            //  line[len]=' ';
+            //  break;}
+            len+=strlen(line+len);}}
+        txs=run_json(sts,line);}
       if(txs==NULL){
         break;}
       //TODO, send to server
@@ -516,7 +644,7 @@ int main(int argc, char* argv[])
         if(error){
           std::cerr<<"ERROR connecting again\n";
           break;}}
-      talk(socket,sts,txs,json,dryrun);
+      talk(socket,sts,txs);
       socket.close();
       connected=false;}
     if(connected){
