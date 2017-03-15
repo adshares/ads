@@ -91,9 +91,10 @@ uint16_t crc_acnt(uint16_t to_bank,uint32_t to_user)
   return(crc16(data,6));
 }
 
-bool parse_bank(uint16_t& to_bank,boost::optional<std::string>& json_bank)
-{ std::string str_bank=json_bank.get();
-  char *endptr;
+//bool parse_bank(uint16_t& to_bank,boost::optional<std::string>& json_bank)
+//{ std::string str_bank=json_bank.get();
+bool parse_bank(uint16_t& to_bank,std::string str_bank)
+{ char *endptr;
   if(str_bank.length()!=4){
     fprintf(stderr,"ERROR: parse_user(%s) bad length (required 4)\n",str_bank.c_str());
     return(false);}
@@ -106,9 +107,10 @@ bool parse_bank(uint16_t& to_bank,boost::optional<std::string>& json_bank)
   return(true);
 }
 
-bool parse_user(uint32_t& to_user,boost::optional<std::string>& json_user)
-{ std::string str_user=json_user.get();
-  char *endptr;
+//bool parse_user(uint32_t& to_user,boost::optional<std::string>& json_user)
+//{ std::string str_user=json_user.get();
+bool parse_user(uint32_t& to_user,std::string str_user)
+{ char *endptr;
   if(str_user.length()!=8){
     fprintf(stderr,"ERROR: parse_user(%s) bad length (required 8)\n",str_user.c_str());
     return(false);}
@@ -121,10 +123,11 @@ bool parse_user(uint32_t& to_user,boost::optional<std::string>& json_user)
   return(true);
 }
 
-bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,boost::optional<std::string>& json_acnt)
+//bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,boost::optional<std::string>& json_acnt)
+//{ std::string str_acnt=json_acnt.get();
+bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
 { uint16_t to_csum=0;
   uint16_t to_crc16;
-  std::string str_acnt=json_acnt.get();
   char *endptr;
   if(str_acnt.length()!=18){
     fprintf(stderr,"ERROR: parse_acnt(%s) bad length (required 18)\n",str_acnt.c_str());
@@ -216,13 +219,13 @@ usertxs_ptr run_json(settings& sts,char* line)
   if(json_hash && !parse_key(sts.ha,json_hash,32)){
     return(NULL);}
   boost::optional<std::string> json_bank=pt.get_optional<std::string>("bank");
-  if(json_bank && !parse_bank(to_bank,json_bank)){
+  if(json_bank && !parse_bank(to_bank,json_bank.get())){
     return(NULL);}
   boost::optional<std::string> json_user=pt.get_optional<std::string>("user");
-  if(json_user && !parse_user(to_user,json_user)){
+  if(json_user && !parse_user(to_user,json_user.get())){
     return(NULL);}
   boost::optional<std::string> json_acnt=pt.get_optional<std::string>("account");
-  if(json_acnt && !parse_acnt(to_bank,to_user,json_acnt)){
+  if(json_acnt && !parse_acnt(to_bank,to_user,json_acnt.get())){
     return(NULL);}
   boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("since");
   if(json_from){
@@ -251,11 +254,25 @@ usertxs_ptr run_json(settings& sts,char* line)
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
   else if(!run.compare("send_broadcast")){
     std::string text=pt.get<std::string>("text");
+    //std::cout<<"TEXT:"<<text.get()<<"\n";
     txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());}
-  else if(!run.compare("send_to_many")){ //FIXME !!!
+  else if(!run.compare("send_to_many")){
     uint32_t to_num=0;
     std::string text;
-    if(!parse_mpt(text,to_num,NULL,0) || !to_num){
+    for(boost::property_tree::ptree::value_type &wire : pt.get_child("wires")){
+      uint16_t tbank;
+      uint32_t tuser;
+      //int64_t tmass = wire.second.data();
+       int64_t tmass = wire.second.get_value<int64_t>();
+      if(!parse_acnt(tbank,tuser,wire.first)){
+        return(NULL);}
+      char to_acct[2+4+8];
+      memcpy(to_acct+0,&tbank,2);
+      memcpy(to_acct+2,&tuser,4);
+      memcpy(to_acct+6,&tmass,8);
+      text.append(to_acct,2+4+8);
+      to_num++;}
+    if(!to_num){
       return(NULL);}
     txs=boost::make_shared<usertxs>(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_num,to_user,to_mass,to_info,text.c_str());}
   else if(!run.compare("send")){
