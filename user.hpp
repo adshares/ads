@@ -97,6 +97,18 @@ public:
 	{
 	}
 
+	usertxs(uint8_t* din,int len) :
+		ttype(*data),
+		bbank(0),
+		buser(0),
+		size(len)
+	{	//assert(malloc_usable_size(din)>=len && malloc_usable_size(din)<len+0x100); //test for malloc
+		data=(uint8_t*)std::malloc(size);
+		memcpy(data,din,size);
+		memcpy(&abank,data+1,2);
+		memcpy(&auser,data+3,4);
+	}
+
 	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint16_t nbbank,uint32_t nbuser,uint32_t nttime) :
 		ttype(nttype),
 		abank(nabank),
@@ -104,8 +116,7 @@ public:
 		amsid(0),
 		ttime(nttime),
 		bbank(nbbank),
-		buser(nbuser),
-		data(NULL)
+		buser(nbuser)
 	{	assert(ttype==TXSTYPE_INF);
 		size=txslen[TXSTYPE_INF]+64;
 		data=(uint8_t*)std::malloc(size);

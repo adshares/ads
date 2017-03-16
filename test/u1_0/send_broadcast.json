@@ -1,2 +1,3 @@
 {"run":"get_me"}
-{"run":"send_broadcast","text":"ala ma kota"}
+{"run":"send_broadcast","text":"00ff00ff00ff"}
+{"run":"send_broadcast","text_ascii":"ala ma kota"}

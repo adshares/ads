@@ -187,7 +187,7 @@ public:
       uint32_t &path=head[0];
       uint32_t &size=head[1];
       if(!utxs.ttime){
-        path=offi_.path();}
+        path=offi_.last_path();}
       else{
         path=utxs.ttime-utxs.ttime%BLOCKSEC;}
       char filename[64];

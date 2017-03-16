@@ -252,10 +252,39 @@ usertxs_ptr run_json(settings& sts,char* line)
     //  to_from=time(NULL);
     //  to_from+=-(to_from%BLOCKSEC)-BLOCKSEC;}
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
+  else if(!run.compare("send_again")){
+    boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
+    if(json_data){
+      std::string data_str=json_data.get();
+      int len=data_str.length()/2;
+      uint8_t *data=(uint8_t*)malloc(len+1);
+      data[len]='\0';
+      if(!parse_key(data,json_data,len)){
+        free(data);
+        return(NULL);}
+      txs=boost::make_shared<usertxs>(data,len);
+      free(data);
+      return(txs);}
+    return(NULL);}
   else if(!run.compare("send_broadcast")){
-    std::string text=pt.get<std::string>("text");
-    //std::cout<<"TEXT:"<<text.get()<<"\n";
-    txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());}
+    boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("text");
+    if(json_text_hex){
+      std::string text_hex=json_text_hex.get();
+      int len=text_hex.length()/2;
+      uint8_t *text=(uint8_t*)malloc(len+1);
+      text[len]='\0';
+      if(!parse_key(text,json_text_hex,len)){
+        free(text);
+        return(NULL);}
+      txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,len,to_user,to_mass,to_info,(const char*)text);
+      free(text);}
+    else{
+      boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("text_asci");
+      if(json_text_asci){
+         std::string text=json_text_asci.get();
+         txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());}
+      else{
+        return(NULL);}}}
   else if(!run.compare("send_to_many")){
     uint32_t to_num=0;
     std::string text;
@@ -447,7 +476,8 @@ void print_log(log_t* log,int len,boost::property_tree::ptree& pt,bool json)
 
 void save_blg(char* blg,int len,uint32_t path,boost::property_tree::ptree& pt,bool json) // blg is 4 bytes longer than len (includes path in 4 bytes)
 { char filename[64];
-  sprintf(filename,"bro.%08X",path);
+  mkdir("bro",0755);
+  sprintf(filename,"bro/%08X",path);
   int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
   if(len){
     write(fd,(char*)blg,len);}
@@ -466,11 +496,11 @@ void save_blg(char* blg,int len,uint32_t path,boost::property_tree::ptree& pt,bo
       blogentry.put("time",utxs.ttime);
       blogentry.put("length",utxs.bbank);
       //transaction
-      char* txstring=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
-      txstring[2*txslen[TXSTYPE_BRO]]='\0';
-      ed25519_key2text(txstring,p,txslen[TXSTYPE_BRO]);
-      blogentry.put("txstring",txstring);
-      free(txstring);
+      char* data=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
+      data[2*txslen[TXSTYPE_BRO]]='\0';
+      ed25519_key2text(data,p,txslen[TXSTYPE_BRO]);
+      blogentry.put("data",data);
+      free(data);
       //message
       char* message=(char*)malloc(2*utxs.bbank+1);
       message[2*utxs.bbank]='\0';
@@ -491,19 +521,41 @@ void save_blg(char* blg,int len,uint32_t path,boost::property_tree::ptree& pt,bo
     pt.add_child("broadcast",blogtree);}
 }
 
+void outlog(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
+{ char filename[64];
+  std::ofstream outfile;
+  mkdir("out",0755);
+  sprintf(filename,"out/%04X_%08X.json",bank,user);
+  outfile.open(filename,std::ios::out|std::ios::app);
+  boost::property_tree::write_json(outfile,logpt,false);
+  outfile.close();
+}
+
 void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
     boost::property_tree::ptree pt;
+    boost::property_tree::ptree logpt;
     if(!sts.json){
       txs->print_head();
       txs->print();}
-    else{
-      char* txstring=(char*)malloc(2*txs->size+1);
-      txstring[2*txs->size]='\0';
-      ed25519_key2text(txstring,txs->data,txs->size);
-      pt.put("txstring",txstring);
-      free(txstring);}
+    // msg_user_msid
+    logpt.put("msg_user_msid",sts.msid);
+    // msg_data
+    char* msg_data=(char*)malloc(2*txs->size+1);
+    msg_data[2*txs->size]='\0';
+    ed25519_key2text(msg_data,txs->data,txs->size);
+    pt.put("msg_data",msg_data);
+    logpt.put("msg_data",msg_data);
+    free(msg_data);
+    // msg_user_hashin
+    char msg_user_hashin[65];msg_user_hashin[64]='\0';
+    ed25519_key2text(msg_user_hashin,sts.ha,32);
+    logpt.put("msg_user_hashin",msg_user_hashin);
+    if(sts.msid==1){
+      char msg_user_public_key[65];msg_user_public_key[64]='\0';
+      ed25519_key2text(msg_user_public_key,sts.pk,32);
+      logpt.put("msg_user_public_key",msg_user_public_key);}
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
@@ -552,7 +604,14 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
             if(txs->ttype==TXSTYPE_KEY){
               std::cerr<<"PKEY changed\n";}
             else{
+              char msg_user_public_key[65];msg_user_public_key[64]='\0';
+              ed25519_key2text(msg_user_public_key,myuser.pkey,32);
+              logpt.put("msg_user_public_key_new",msg_user_public_key);
               std::cerr<<"PKEY differs\n";}}
+          //TODO, validate hashout, check if correct
+          char msg_user_hashout[65];msg_user_hashout[64]='\0';
+          ed25519_key2text(msg_user_hashout,myuser.hash,32);
+          logpt.put("msg_user_hashout",msg_user_hashout);
           sts.msid=myuser.msid;
           memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
       if(txs->ttype==TXSTYPE_INF){
@@ -588,9 +647,13 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           return;}
         else{
           sts.msid=m.msid;
+          // save outgoing message log
+          logpt.put("msg_node_msid",m.msid);
+          logpt.put("msg_node_mpos",m.mpos);
+          outlog(logpt,sts.bank,sts.user);
           if(sts.json){
-            pt.put("msid",m.msid);
-            pt.put("mpos",m.mpos);}
+            pt.put("msg_node_msid",m.msid);
+            pt.put("msg_node_mpos",m.mpos);}
           else{
             fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
     if(sts.json){
