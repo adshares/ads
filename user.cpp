@@ -36,7 +36,7 @@
 #include "user.hpp"
 #include "settings.hpp"
 
-//#define BLOCKSEC 0x20 /* block period in seconds, must equal BLOCKSEC in main.hpp */ 
+#define BLOCKSEC 0x20 /* block period in seconds, must equal BLOCKSEC in main.hpp */ 
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
 // the list must terminate with ';'
@@ -227,7 +227,7 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::optional<std::string> json_acnt=pt.get_optional<std::string>("account");
   if(json_acnt && !parse_acnt(to_bank,to_user,json_acnt.get())){
     return(NULL);}
-  boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("since");
+  boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
   if(json_from){
     to_from=json_from.get();}
   boost::optional< int64_t> json_mass=pt.get_optional< int64_t>("amount");
@@ -246,11 +246,19 @@ usertxs_ptr run_json(settings& sts,char* line)
   else if(!run.compare("get_user")){
     txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);}
   else if(!run.compare("get_log")){
+    sts.lastlog=to_from; //save requested log period
+    to_from=0;
+    char filename[64];
+    mkdir("log",0755);
+    sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
+    int fd=open(filename,O_RDONLY);
+    if(fd>=0 && lseek(fd,-sizeof(log_t),SEEK_END)>=0){
+      fprintf(stderr,"LOG: setting last time to %d (%08X)\n",to_from,to_from);
+      read(fd,&to_from,sizeof(uint32_t));
+      if(to_from>0){
+        to_from--;}} // accept 1s overlap
     txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);}
   else if(!run.compare("get_broadcast")){
-    //if(!to_from){
-    //  to_from=time(NULL);
-    //  to_from+=-(to_from%BLOCKSEC)-BLOCKSEC;}
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
   else if(!run.compare("send_again")){
     boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
@@ -344,7 +352,7 @@ usertxs_ptr run(settings& sts,const char* line,int len)
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line,"LOG:%X",&now)){ // get info about me and my log since 'now'
+  else if(sscanf(line,"LOG:%X",&now)){ // get info about me and my log from 'now'
     usertxs_ptr txs(new usertxs(TXSTYPE_LOG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
@@ -448,80 +456,102 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("network_user.hash",hash);}}
 }
 
-void print_log(log_t* log,int len,boost::property_tree::ptree& pt,bool json)
-{ int fd=open("usr.log",O_RDONLY|O_CREAT,0640);
-  write(fd,(char*)log,len);
-  close(fd);
-  if(len%sizeof(log_t)){
-    std::cerr<<"ERROR, bad log allignment, viewer not yet implemanted, hex-view usr.log to investigate\n";}
-  if(!json){
-    for(log_t* end=log+len/sizeof(log_t);log<end;log++){
+void print_log(boost::property_tree::ptree& pt,settings& sts)
+{ char filename[64];
+  sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
+  int fd=open(filename,O_RDONLY);
+  if(fd<0){
+    fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
+    return;}
+  if(sts.lastlog>1){ //guess a good starting position
+    off_t end=lseek(fd,0,SEEK_END);
+    if(end>0){
+      off_t start=end;
+      off_t tseek=0;
+      while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0){
+        uint32_t ltime=0;
+        tseek=read(fd,&ltime,sizeof(uint32_t));
+        if(ltime<sts.lastlog-1){ // tollerate 1s difference
+          break;}}}}
+  log_t ulog;
+  boost::property_tree::ptree logtree;
+  while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)){
+    if(ulog.time<sts.lastlog){
+      continue;}
+    if(!sts.json){
       fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX\n",
-        log->time,log->type,log->node,log->user,log->umid,log->nmid,log->mpos,log->weight);}}
-  else{
-    boost::property_tree::ptree logtree;
-    for(log_t* end=log+len/sizeof(log_t);log<end;log++){
+        ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight);}
+    else{
       boost::property_tree::ptree logentry;
-      logentry.put("time",log->time);
-      logentry.put("type",log->type);
-      logentry.put("node",log->node);
-      logentry.put("node_msid",log->nmid);
-      logentry.put("node_mpos",log->mpos);
-      logentry.put("user",log->user);
-      logentry.put("user_msid",log->umid);
-      logentry.put("amount",log->weight);
-      logtree.push_back(std::make_pair("",logentry));}
+      logentry.put("time",ulog.time);
+      logentry.put("type",ulog.type);
+      logentry.put("node",ulog.node);
+      logentry.put("node_msid",ulog.nmid);
+      logentry.put("node_mpos",ulog.mpos);
+      logentry.put("user",ulog.user);
+      logentry.put("user_msid",ulog.umid);
+      logentry.put("amount",ulog.weight);
+      logtree.push_back(std::make_pair("",logentry));}}
+  if(sts.json){
     pt.add_child("log",logtree);}
 }
 
-void save_blg(char* blg,int len,uint32_t path,boost::property_tree::ptree& pt,bool json) // blg is 4 bytes longer than len (includes path in 4 bytes)
-{ char filename[64];
-  mkdir("bro",0755);
-  sprintf(filename,"bro/%08X",path);
-  int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
-  if(len){
-    write(fd,(char*)blg,len);}
-  close(fd);
-  if(json){
-    boost::property_tree::ptree blogtree;
-    usertxs utxs;
-    for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32){
-      boost::property_tree::ptree blogentry;
-      if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
-        std::cerr<<"ERROR: failed to parse broadcast transaction\n";
-        return;}
-      blogentry.put("node",utxs.abank);
-      blogentry.put("user",utxs.auser);
-      blogentry.put("user_msid",utxs.amsid);
-      blogentry.put("time",utxs.ttime);
-      blogentry.put("length",utxs.bbank);
-      //transaction
-      char* data=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
-      data[2*txslen[TXSTYPE_BRO]]='\0';
-      ed25519_key2text(data,p,txslen[TXSTYPE_BRO]);
-      blogentry.put("data",data);
-      free(data);
-      //message
-      char* message=(char*)malloc(2*utxs.bbank+1);
-      message[2*utxs.bbank]='\0';
-      ed25519_key2text(message,(uint8_t*)utxs.broadcast((char*)p),utxs.bbank);
-      blogentry.put("broadcast",message);
-      free(message);
-      //signature
-      char sigh[129];
-      sigh[128]='\0';
-      ed25519_key2text(sigh,(uint8_t*)utxs.broadcast((char*)p)+utxs.bbank,64);
-      blogentry.put("signature",sigh);
-      //hash
-      char hash[65];
-      hash[64]='\0';
-      ed25519_key2text(hash,p+utxs.size,32);
-      blogentry.put("input_hash",hash);
-      blogtree.push_back(std::make_pair("",blogentry));}
-    pt.add_child("broadcast",blogtree);}
+void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
+{ struct stat sb;
+  fstat(fd,&sb);
+  uint32_t len=sb.st_size;
+  pt.put("length",len);
+  if(!len){
+    return;}
+  char *blg=(char*)malloc(len);
+  if(blg==NULL){
+    pt.put("ERROR","broadcast file too large");
+    return;}
+  if(read(fd,blg,len)!=len){
+    pt.put("ERROR","broadcast file read error");
+    free(blg);
+    return;}
+  boost::property_tree::ptree blogtree;
+  usertxs utxs;
+  for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32){
+    boost::property_tree::ptree blogentry;
+    if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
+      std::cerr<<"ERROR: failed to parse broadcast transaction\n";
+      pt.put("ERROR","failed to parse transaction");
+      break;}
+    blogentry.put("node",utxs.abank);
+    blogentry.put("user",utxs.auser);
+    blogentry.put("user_msid",utxs.amsid);
+    blogentry.put("time",utxs.ttime);
+    blogentry.put("length",utxs.bbank);
+    //transaction
+    char* data=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
+    data[2*txslen[TXSTYPE_BRO]]='\0';
+    ed25519_key2text(data,p,txslen[TXSTYPE_BRO]);
+    blogentry.put("data",data);
+    free(data);
+    //message
+    char* message=(char*)malloc(2*utxs.bbank+1);
+    message[2*utxs.bbank]='\0';
+    ed25519_key2text(message,(uint8_t*)utxs.broadcast((char*)p),utxs.bbank);
+    blogentry.put("broadcast",message);
+    free(message);
+    //signature
+    char sigh[129];
+    sigh[128]='\0';
+    ed25519_key2text(sigh,(uint8_t*)utxs.broadcast((char*)p)+utxs.bbank,64);
+    blogentry.put("signature",sigh);
+    //hash
+    char hash[65];
+    hash[64]='\0';
+    ed25519_key2text(hash,p+utxs.size,32);
+    blogentry.put("input_hash",hash);
+    blogtree.push_back(std::make_pair("",blogentry));}
+  pt.add_child("broadcast",blogtree);
+  free(blg);
 }
 
-void outlog(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
+void out_log(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
 { char filename[64];
   std::ofstream outfile;
   mkdir("out",0755);
@@ -529,6 +559,42 @@ void outlog(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
   outfile.open(filename,std::ios::out|std::ios::app);
   boost::property_tree::write_json(outfile,logpt,false);
   outfile.close();
+}
+
+void save_log(log_t* log,int len,uint32_t from,settings& sts)
+{ char filename[64];
+  mkdir("log",0755);
+  sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
+  int fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644);
+  if(fd<0){
+    fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
+    return;}
+  std::vector<log_t> logv;
+  off_t end=lseek(fd,0,SEEK_END);
+  uint32_t maxlasttime=from;
+  if(end>0){
+    off_t start=end;
+    off_t tseek=0;
+    while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0){
+      uint32_t ltime=0;
+      tseek=read(fd,&ltime,sizeof(uint32_t));
+      if(ltime<from){ // tollerate 1s difference
+        lseek(fd,sizeof(log_t)-sizeof(uint32_t),SEEK_CUR);
+        break;}}
+    log_t ulog;
+    while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)){
+      if(ulog.time>=from){
+        if(ulog.time>maxlasttime){
+          maxlasttime=ulog.time;}
+        logv.push_back(ulog);}}}
+  for(int l=0;l<len;l+=sizeof(log_t),log++){
+    if(log->time>=from && log->time<=maxlasttime){
+      for(auto ulog : logv){
+        if(!memcmp(&ulog,log,sizeof(log_t))){
+          goto NEXT;}}}
+    write(fd,log,sizeof(log_t));
+    NEXT:;}
+  close(fd);
 }
 
 void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
@@ -559,37 +625,54 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
-    boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
     if(txs->ttype==TXSTYPE_BLG){
-      uint32_t head[2];
-      if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
-        std::cerr<<"ERROR reading broadcast log length\n";
-        socket.close();
-        return;}
-      uint32_t path=head[0];
-      int len=(int)head[1];
-      if(sts.json){
-        char blockhex[9];
-        blockhex[8]='\0';
-        sprintf(blockhex,"%08X",path);
-        pt.put("block_hex",blockhex);
-        pt.put("block",path);
-        pt.put("length",len);}
-      char* blg=NULL;
-      if(len){
-        blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
-        if(blg==NULL){
-          fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+      uint32_t path=txs->ttime;
+      if(!path){
+        path=time(NULL)-BLOCKSEC/10;
+        path+=-(path%BLOCKSEC)-BLOCKSEC;}
+      char filename[64];
+      sprintf(filename,"bro/%08X.bin",path);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
+        uint32_t head[2];
+        if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
+          std::cerr<<"ERROR reading broadcast log length\n";
           socket.close();
           return;}
-        if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
-          std::cerr<<"ERROR reading broadcast log\n";
-          free(blg);
-          socket.close();
-          return;}
-        save_blg(blg,len,path,pt,sts.json);}
-      free(blg);}
+        path=head[0];
+        int len=(int)head[1];
+        mkdir("bro",0755);
+        int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+        char* blg=NULL;
+        if(len){
+          blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
+          if(blg==NULL){
+            fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+            socket.close();
+            return;}
+          if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
+            std::cerr<<"ERROR reading broadcast log\n";
+            free(blg);
+            socket.close();
+            return;}
+          write(fd,(char*)blg,len);
+          free(blg);}}
+      char blockhex[9];
+      blockhex[8]='\0';
+      sprintf(blockhex,"%08X",path);
+      pt.put("block_hex",blockhex);
+      pt.put("block",path);
+      if(fd>=0){
+        print_blg(fd,path,pt);
+        close(fd);}
+      else{
+        pt.put("ERROR","broadcast file missing");}}
+      //boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      //if(fd>0){
+      //  save_blg(blg,len,path,pt,sts.json);}}
     else{
+      boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
       int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
       if(len!=sizeof(user_t)){
         std::cerr<<"ERROR reading confirmation\n";}
@@ -637,8 +720,9 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
             free(log);
             socket.close();
             return;}
-          print_log(log,len,pt,sts.json);
-          free(log);}}
+          save_log(log,len,txs->ttime,sts);
+          free(log);}
+        print_log(pt,sts);}
       else{
         struct {uint32_t msid;uint32_t mpos;} m;
         if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
@@ -650,7 +734,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           // save outgoing message log
           logpt.put("msg_node_msid",m.msid);
           logpt.put("msg_node_mpos",m.mpos);
-          outlog(logpt,sts.bank,sts.user);
+          out_log(logpt,sts.bank,sts.user);
           if(sts.json){
             pt.put("msg_node_msid",m.msid);
             pt.put("msg_node_mpos",m.mpos);}

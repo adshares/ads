@@ -49,6 +49,7 @@ public:
 //	std::string sold;
 	std::string exec;
 	std::string hash;	// my last message hash
+	uint32_t lastlog;	// placeholder for last requested log entry
 
 	void get(int ac, char *av[])
 	{	 try{
