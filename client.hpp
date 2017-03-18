@@ -433,6 +433,7 @@ public:
         alog.nmid=msid; //can be overwritten with info
         alog.mpos=mpos; //can be overwritten with info
         alog.weight=mpt_mass[i];
+	bzero(alog.info,32);
 	log[key]=alog;}
       offi_.put_log(offi_.svid,log);} // could be processed 
     else{
@@ -445,6 +446,7 @@ public:
       alog.nmid=msid; //can be overwritten with info
       alog.mpos=mpos; //can be overwritten with info
       alog.weight=utxs.tmass;
+      memcpy(alog.info,utxs.tinfo,32);
       offi_.put_log(offi_.svid,utxs.auser,alog);}
     offi_.unlock_user(utxs.auser);
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
@@ -460,6 +462,7 @@ public:
           blog.nmid=msid; //can be overwritten with info
           blog.mpos=mpos; //can be overwritten with info
           blog.weight=mpt_mass[i];
+	  bzero(blog.info,32);
           offi_.lock_user(utxs.buser);
           offi_.put_log(offi_.svid,utxs.buser,blog);
           offi_.unlock_user(utxs.buser);
@@ -474,6 +477,7 @@ public:
       blog.nmid=msid; //can be overwritten with info
       blog.mpos=mpos; //can be overwritten with info
       blog.weight=utxs.tmass;
+      memcpy(blog.info,utxs.tinfo,32);
       offi_.lock_user(utxs.buser);
       offi_.put_log(offi_.svid,utxs.buser,blog);
       offi_.unlock_user(utxs.buser);

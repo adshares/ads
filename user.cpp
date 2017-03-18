@@ -195,8 +195,9 @@ usertxs_ptr run_json(settings& sts,char* line)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
    int64_t to_mass=0;
-  uint64_t to_info=0;
+  //uint64_t to_info=0;
   uint32_t to_from=0;
+  uint8_t  to_info[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
   uint32_t now=time(NULL);
@@ -214,6 +215,9 @@ usertxs_ptr run_json(settings& sts,char* line)
     return(NULL);}
   boost::optional<std::string> json_pkey=pt.get_optional<std::string>("pkey");
   if(json_pkey && !parse_key(to_pkey,json_pkey,32)){
+    return(NULL);}
+  boost::optional<std::string> json_info=pt.get_optional<std::string>("info");
+  if(json_info && !parse_key(to_info,json_info,32)){
     return(NULL);}
   boost::optional<std::string> json_hash=pt.get_optional<std::string>("hash");
   if(json_hash && !parse_key(sts.ha,json_hash,32)){
@@ -233,9 +237,9 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::optional< int64_t> json_mass=pt.get_optional< int64_t>("amount");
   if(json_mass){
     to_mass=json_mass.get();}
-  boost::optional<uint64_t> json_info=pt.get_optional<uint64_t>("message");
-  if(json_info){
-    to_info=json_info.get();}
+  //boost::optional<uint64_t> json_info=pt.get_optional<uint64_t>("message");
+  //if(json_info){
+  //  to_info=json_info.get();}
   boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
   if(json_msid){
     sts.msid=json_msid.get();}
@@ -342,7 +346,8 @@ usertxs_ptr run(settings& sts,const char* line,int len)
 { uint32_t to_bank=0; //actually uint16_t
   uint32_t to_user=0;
    int64_t to_mass=0;
-  uint64_t to_info=0;
+  uint64_t to_idat[4]={0,0,0,0};
+  uint8_t *to_info=(uint8_t*)to_idat;
   uint32_t now=time(NULL);
   if(!strncmp(line,"ME::",4)){ // get info about me
     usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now));
@@ -367,7 +372,7 @@ usertxs_ptr run(settings& sts,const char* line,int len)
     usertxs_ptr txs(new usertxs(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,text.c_str()));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
-  else if(sscanf(line,"PUT:%X:%X:%lX:%lX",&to_bank,&to_user,&to_mass,&to_info)){ // send funds
+  else if(sscanf(line,"PUT:%X:%X:%lX:%lX:%lX:%lX:%lX",&to_bank,&to_user,&to_mass,&to_idat[0],&to_idat[1],&to_idat[2],&to_idat[3])){ // send funds
     usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL));
     txs->sign(sts.ha,sts.sk,sts.pk);
     return(txs);}
@@ -478,9 +483,12 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
   while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)){
     if(ulog.time<sts.lastlog){
       continue;}
+    char info[65];
+    info[64]='\0';
+    ed25519_key2text(info,ulog.info,32);
     if(!sts.json){
-      fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX\n",
-        ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight);}
+      fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX i%64s\n",
+        ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight,info);}
     else{
       boost::property_tree::ptree logentry;
       logentry.put("time",ulog.time);
@@ -491,6 +499,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
       logentry.put("user",ulog.user);
       logentry.put("user_msid",ulog.umid);
       logentry.put("amount",ulog.weight);
+      logentry.put("info",info);
       logtree.push_back(std::make_pair("",logentry));}}
   if(sts.json){
     pt.add_child("log",logtree);}

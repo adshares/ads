@@ -1412,6 +1412,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         alog.nmid=msg->msid; //can be overwritten with info
         alog.mpos=mpos; //can be overwritten with info
         alog.weight=utxs.tmass;
+        alog.info !!!
         log[key]=alog;}
       if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
         uint64_t key=((uint64_t)utxs.buser)<<32;
@@ -1425,6 +1426,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         blog.nmid=msg->msid; //can be overwritten with info
         blog.mpos=mpos; //can be overwritten with info
         blog.weight=utxs.tmass;
+        blog.info !!!
         log[key]=blog;}
       if(*p==TXSTYPE_MPT){
         char* tbuf=utxs.toaddresses((char*)p);
@@ -1447,6 +1449,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             blog.nmid=msg->msid; //can be overwritten with info
             blog.mpos=mpos; //can be overwritten with info
             blog.weight=tmass;
+            blog.info !!!
             log[key]=blog;}}}
       p+=utxs.size;}
     put_log(opts_.svid,log); //TODO, add loging options for multiple banks
@@ -1866,6 +1869,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         alog.nmid=msg->msid; //can be overwritten with info
         alog.mpos=mpos; //can be overwritten with info
         alog.weight=utxs.tmass;
+        alog.info !
         log[key]=alog;}*/
       if(msg->svid!=opts_.svid){
         if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
@@ -1880,6 +1884,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
           blog.nmid=msg->msid; //can be overwritten with info
           blog.mpos=mpos; //can be overwritten with info
           blog.weight=utxs.tmass;
+          memcpy(blog.info,utxs.tinfo,32); // only significant for TXSTYPE_PUT
           log[key]=blog;}
         if(*p==TXSTYPE_MPT && mpt_size>0){ //only bbank==my in mpt_....[]
           for(int i=0;i<mpt_size;i++){
@@ -1894,6 +1899,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
             blog.nmid=msg->msid; //can be overwritten with info
             blog.mpos=mpos; //can be overwritten with info
             blog.weight=mpt_mass[i];
+            bzero(blog.info,32);
             log[key]=blog;}}}
       usera->msid++;
       usera->time=utxs.ttime;
@@ -2036,6 +2042,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             alog.nmid=0;
             alog.mpos=srvs_.now;
             alog.weight=MIN_MASS;
+            memcpy(alog.info,tx->pkey,32);
             put_log(tx->bbank,tx->buser,alog);}
           uin[nuin]--;}
         else if(tx->bbank==opts_.svid){ // no matching _USR transaction found
@@ -2048,6 +2055,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           alog.nmid=0;
           alog.mpos=srvs_.now;
           alog.weight=0; // 0 == no matching _USR transaction found
+          memcpy(alog.info,tx->pkey,32);
           put_log(tx->bbank,tx->buser,alog);}}}
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
@@ -2066,6 +2074,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           alog.nmid=0;
           alog.mpos=srvs_.now;
           alog.weight=MIN_MASS;
+          memcpy(alog.info,it->first.pkey,32);
           put_log(it->first.abank,it->first.auser,alog);}}}
 
     //create new banks
@@ -2113,6 +2122,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             alog.nmid=0;
             alog.mpos=0;
             alog.weight=0;
+            memcpy(alog.info,u.pkey,32);
             //log[key]=alog;
             put_log(abank,*tx,alog);}}
         close(fd);}
@@ -2179,6 +2189,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             alog.nmid=0; //FIXME, remember this ?
             alog.mpos=srvs_.now; //FIXME, remember this ?
             alog.weight=delta;
+            bzero(alog.info,32);
             put_log(abank,tx->auser,alog);}
           if(bbank==opts_.svid){
             log_t blog;
@@ -2190,6 +2201,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             blog.nmid=0; //FIXME, remember this ?
             blog.mpos=srvs_.now; //FIXME, remember this ?
             blog.weight=delta;
+            bzero(blog.info,32);
             put_log(bbank,tx->buser,blog);}
           if(bbank==opts_.svid && !do_sync && ofip!=NULL){
             gup_t g;

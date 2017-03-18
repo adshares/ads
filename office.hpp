@@ -161,6 +161,7 @@ public:
       alog.nmid=0;
       alog.mpos=0;
       alog.weight=div;
+      bzero(alog.info,32);
       srv_.put_log(svid,user,alog);} //assume, no lock needed
     if(now){
       close(dd);

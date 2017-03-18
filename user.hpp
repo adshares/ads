@@ -26,7 +26,7 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4,			//1:CON (port,ipv4)
 	1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
 	1+2+4+4+4+2,		//3:BRO 'bbank' is message length
-	1+2+4+4+4+2+4+8+8,	//4:PUT, extra parameter = official message (8 byte)
+	1+2+4+4+4+2+4+8+32,	//4:PUT, extra parameter = official message (32 byte)
 	1+2+4+4+4+2,		//5:MPT 'bbank' is number of to_accounts
 	1+2+4+4+4+2,		//6:USR
 	1+2+4+4+4,		//7:BNK
@@ -36,7 +36,7 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+2+4+4,		//11:INF
 	1+2+4+2+4+4,		//12:LOG
 	1+2+4+  4,		//13:BLG
-	1+2+4+4+4+2+4+32};	//14:MAX fixed buffer size
+	1+2+4+4+4+2+4+8+32};	//14:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
@@ -63,6 +63,7 @@ typedef struct log_s {
 	uint32_t user;
 	uint32_t umid; // user msid
 	 int64_t weight; // value, or info (use type to determine)
+	uint8_t info[32];
 } log_t;
 #pragma pack()
 
@@ -78,7 +79,7 @@ public:
 	uint16_t bbank; // also broadcast message len OR number of to_addresses in MPT transaction
 	uint32_t buser;
 	 int64_t tmass;
-	uint64_t tinfo;
+	uint8_t  tinfo[32];
 	uint8_t* data;
 	int size;	// differs on the network and in office :-( !!!
 			// get_size returns network size, fix names !!!
@@ -165,7 +166,7 @@ public:
 	}
 
 	//usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
-	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text) :
+	usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint8_t* ntinfo,const char* text) :
 		ttype(nttype),
 		abank(nabank),
 		auser(nauser),
@@ -174,9 +175,11 @@ public:
 		bbank(nbbank),
 		buser(nbuser),
 		tmass(ntmass),
-		tinfo(ntinfo),
+		//tinfo(ntinfo),
 		data(NULL)
-	{	if(ttype>=TXSTYPE_MAX){
+	{	if(ntinfo!=NULL){
+			memcpy(tinfo,ntinfo,32);}
+		if(ttype>=TXSTYPE_MAX){
 			fprintf(stderr,"ERROR, creating message\n");
 			size=0;
 			return;}
@@ -228,9 +231,9 @@ public:
 		if(ttype==TXSTYPE_UOK){
 			memcpy(data+1+20,text,32);
 			return;}
-		if(len>=1+2+4+4+4+2+4+8+8){
+		if(len>=1+2+4+4+4+2+4+8+32){
 			memcpy(data+1+20,&tmass,8);
-			memcpy(data+1+28,&tinfo,8);}
+			memcpy(data+1+28,tinfo,32);}
 	}
 
 	uint32_t get_size(char* txs) // returns network size
@@ -286,7 +289,10 @@ public:
 			size=txslen[TXSTYPE_UOK]; // no signature !
 			return(true);}
 		memcpy(&tmass,txs+1+20,8);
-		memcpy(&tinfo,txs+1+28,8);
+                if(ttype==TXSTYPE_PUT){
+			memcpy(tinfo,txs+1+28,32);}
+		else{
+			bzero(tinfo,32);}
 		if(ttype==TXSTYPE_BKY){
 			size+=32;}
 		else if(ttype==TXSTYPE_USR){
