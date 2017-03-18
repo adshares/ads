@@ -756,6 +756,8 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
   socket.close();
 }
 
+//TODO add timeout
+//http://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/example/timeouts/blocking_tcp_client.cpp
 int main(int argc, char* argv[])
 { settings sts;
   sts.get(argc,argv);
@@ -766,19 +768,7 @@ int main(int argc, char* argv[])
   boost::asio::ip::tcp::resolver::iterator end;
   boost::asio::ip::tcp::socket socket(io_service);
   boost::system::error_code error = boost::asio::error::host_not_found;
-  while (endpoint_iterator != end){
-    std::cerr<<"CONNECTING\n";
-    //TODO add timeout
-    //http://www.boost.org/doc/libs/1_52_0/doc/html/boost_asio/example/timeouts/blocking_tcp_client.cpp
-    socket.connect(*endpoint_iterator, error);
-    if(!error){
-      break;}
-    socket.close();
-    endpoint_iterator++;}
-  if(error){
-    throw boost::system::system_error(error);}
-  std::cerr<<"CONNECTED\n";
-  bool connected=true;
+  bool connected=false;
   try{
     if(!sts.exec.empty()){
       usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length());
@@ -811,16 +801,24 @@ int main(int argc, char* argv[])
         txs=run_json(sts,line);}
       if(txs==NULL){
         break;}
-      //TODO, send to server
       if(!connected){
+        while (endpoint_iterator != end){
+          std::cerr<<"CONNECTING\n";
+          socket.connect(*endpoint_iterator, error);
+          if(!error){
+            break;}
+          socket.close();
+          endpoint_iterator++;}
+        if(error){
+          throw boost::system::system_error(error);}
+        std::cerr<<"CONNECTED\n";
+        connected=true;}
+      else{
         socket.connect(*endpoint_iterator, error);
         if(error){
           std::cerr<<"ERROR connecting again\n";
           break;}}
       talk(socket,sts,txs);
-      socket.close();
-      connected=false;}
-    if(connected){
       socket.close();}}
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
