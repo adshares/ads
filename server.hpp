@@ -1554,7 +1554,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(true);
   }
 
-  void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash) // may need bankid and hash to verify signature
+  void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey) // may need bankid and hash to verify signature
   { static uint32_t lpath=0;
     static int fd=-1;
     static boost::mutex log_;
@@ -1572,6 +1572,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         return;}}
     write(fd,p,len);
     write(fd,hash,32);
+    write(fd,pkey,32);
     log_.unlock();
   }
 
@@ -1730,7 +1731,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //luser=usera->luser;
         //lnode=usera->lnode;
       else if(*p==TXSTYPE_BRO){
-        log_broadcast(lpath,p,utxs.size,usera->hash);
+        log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey);
         utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_PUT){

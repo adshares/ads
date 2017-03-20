@@ -22,24 +22,22 @@
 //end
 #define TXSTYPE_MAX 14
 
-const char* txsname[TXSTYPE_MAX+1] = {
-    "node_started",
-    "dividend",
-    "account_created",
-
-    "broadcast",
-    "send_one",
-    "send_many",
-    "create_account",
-    "create_node",
-    "retrieve_funds",
-    "change_account_key"
-    "change_node_key",
-
-    "TXSTYPE_INF"
-    "TXSTYPE_LOG"
-    "TXSTYPE_BLG"
-};
+const char* txsname[TXSTYPE_MAX+1]={
+	"node_started",		//0
+	"dividend",		//1
+	"account_created",	//2
+	"broadcast",		//3
+	"send_one",		//4
+	"send_many",		//5
+	"create_account",	//6
+	"create_node",		//7
+	"retrieve_funds",	//8
+	"change_account_key",	//9
+	"change_node_key",	//10
+	"get_info",		//11
+	"get_log",		//12
+	"get_broadcast",	//13
+	"none"};		//14
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet

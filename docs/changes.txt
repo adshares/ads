@@ -12,11 +12,11 @@ pole length -> wywalić
 logi:
 dodać pole address
 pole type tekstowe, moze byc oddzielne pole type_no
-dodać pole dir = "in"|"out"
-rodzielić amount na fee i amount
+dodać pole dir = "in"|"out"			<<== "tx_inout"
+rodzielić amount na fee i amount		<<== TODO
 dodać pole txid w hex
 
 w odpowiedzi na send_xxx:
 dodać txid
-dodać pole tx_fee
+dodać pole tx_fee				<<== TODO
 prefiksować przez tx_
