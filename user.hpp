@@ -310,8 +310,9 @@ public:
 	{	if(*buf==TXSTYPE_BRO){
 			return((uint8_t*)buf+txslen[TXSTYPE_BRO]+bbank);}
 	 	if(*buf==TXSTYPE_MPT){
-			return((uint8_t*)buf+txslen[TXSTYPE_BRO]+bbank*(6+8));}
-		return((uint8_t*)buf+txslen[TXSTYPE_BRO]);
+			return((uint8_t*)buf+txslen[TXSTYPE_MPT]+bbank*(6+8));}
+		return((uint8_t*)buf+txslen[(int)*buf]);
+		//return((uint8_t*)buf+txslen[TXSTYPE_BRO]);
 	}
 
 	void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk)

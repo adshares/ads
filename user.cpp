@@ -626,7 +626,23 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
     // msg_user_hashin
     char msg_user_hashin[65];msg_user_hashin[64]='\0';
     ed25519_key2text(msg_user_hashin,sts.ha,32);
+    pt.put("msg_user_hashin",msg_user_hashin);
     logpt.put("msg_user_hashin",msg_user_hashin);
+    // calculate msg_user_hashout
+    uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    if(txs->ttype<TXSTYPE_INF){
+      char msg_user_hashout[65];msg_user_hashout[64]='\0';
+      SHA256_CTX sha256;
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,txs->get_sig((char*)txs->data),64);
+      SHA256_Final(hashout,&sha256);
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,sts.ha,32);
+      SHA256_Update(&sha256,hashout,32);
+      SHA256_Final(hashout,&sha256);
+      ed25519_key2text(msg_user_hashout,hashout,32);
+      pt.put("msg_user_hashout",msg_user_hashout);
+    }
     if(sts.msid==1){
       char msg_user_public_key[65];msg_user_public_key[64]='\0';
       ed25519_key2text(msg_user_public_key,sts.pk,32);
@@ -700,10 +716,13 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
               ed25519_key2text(msg_user_public_key,myuser.pkey,32);
               logpt.put("msg_user_public_key_new",msg_user_public_key);
               std::cerr<<"PKEY differs\n";}}
-          //TODO, validate hashout, check if correct
-          char msg_user_hashout[65];msg_user_hashout[64]='\0';
-          ed25519_key2text(msg_user_hashout,myuser.hash,32);
-          logpt.put("msg_user_hashout",msg_user_hashout);
+          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
+            //TODO, validate hashout, check if correct
+            char msg_user_hashout[65];msg_user_hashout[64]='\0';
+            ed25519_key2text(msg_user_hashout,myuser.hash,32);
+            logpt.put("msg_user_hashout",msg_user_hashout);
+            if(memcmp(myuser.hash,hashout,32)){
+              pt.put("ERROR_HASH","mismatch");}}
           sts.msid=myuser.msid;
           memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
       if(txs->ttype==TXSTYPE_INF){
