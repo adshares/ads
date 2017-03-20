@@ -1,0 +1,22 @@
+user => account
+user.account -> user.address
+user.paired_user => user.paired_id
+??? dodać user.paired_address
+
+breadcast log:
+dodać pole address
+sprawdzanie sygnatury => dodać pole verified
+pole broadcast -> message
+pole length -> wywalić
+
+logi:
+dodać pole address
+pole type tekstowe, moze byc oddzielne pole type_no
+dodać pole dir = "in"|"out"
+rodzielić amount na fee i amount
+dodać pole txid w hex
+
+w odpowiedzi na send_xxx:
+dodać txid
+dodać pole tx_fee
+prefiksować przez tx_
