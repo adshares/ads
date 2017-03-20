@@ -4,6 +4,7 @@
 //bank only
 #define TXSTYPE_STP 0	/* die/stop processing bank */	/* restart requires a new BKY transaction */
 #define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
+#define TXSTYPE_DIV 1
 #define TXSTYPE_UOK 2	/* accept remote account request */
 //bank & user
 #define TXSTYPE_BRO 3	/* broadcast */			/* send ads to network */
@@ -20,6 +21,25 @@
 #define TXSTYPE_BLG 13	/* return broadcast log */
 //end
 #define TXSTYPE_MAX 14
+
+const char* txsname[TXSTYPE_MAX+1] = {
+    "node_started",
+    "dividend",
+    "account_created",
+
+    "broadcast",
+    "send_one",
+    "send_many",
+    "create_account",
+    "create_node",
+    "retrieve_funds",
+    "change_account_key"
+    "change_node_key",
+
+    "TXSTYPE_INF"
+    "TXSTYPE_LOG"
+    "TXSTYPE_BLG"
+};
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
