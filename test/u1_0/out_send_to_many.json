@@ -1,0 +1,66 @@
+Public key: F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968
+Bank port: 9081
+Bank addr: 127.0.0.1
+Bank   id: 1
+User   id: 0
+WARNING: last message id missing!
+InputJson: 0
+MultiLine: 0
+PrettyOut: 1
+Dry Run  : 0
+WARNING: last hash missing!
+{"run":"get_me"}
+{
+    "msg_data": "0B010000000000010000000000E1EACF5855241A78E79C38605DE0DAC132BED548D87B6A80B8BA565EF87B9A2577B8002B73079AB611BB0D7ABECC24ACB903708B450F8B0A3FC431E670506FEEA358850A",
+    "user": {
+        "account": "0001-00000000-9B6F",
+        "node": "1",
+        "id": "0",
+        "msid": "1",
+        "time": "1490021024",
+        "status": "0",
+        "paired_node": "1",
+        "paired_user": "0",
+        "local_change": "1490021024",
+        "remote_change": "1490012832",
+        "balance": "1141392289560778495",
+        "public_key": "F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968",
+        "hash": "000000000100FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+    },
+    "network_user": {
+        "account": "0001-00000000-9B6F",
+        "node": "1",
+        "id": "0",
+        "msid": "1",
+        "time": "1490021024",
+        "status": "0",
+        "paired_node": "1",
+        "paired_user": "0",
+        "local_change": "1490021024",
+        "remote_change": "1490012832",
+        "balance": "1141392289560778495",
+        "public_key": "F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968",
+        "hash": "000000000100FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+    }
+}
+{"run":"send_to_many","wires":{"0002-00000000-XXXX":20000,"0003-00000000-XXXX":30000}}
+{
+    "msg_data": "0501000000000001000000E1EACF580200020000000000204E000000000000030000000000307500000000000006B1FA20B7FD80B17B0F22C55BB65A2ED422F368ECC55BAFAA432014D8E10D87A88FFA9B8AA4F2E1276D4DEB8438CDCD219C53DE85755CA29DC1D9E29D81B505",
+    "user": {
+        "account": "0001-00000000-9B6F",
+        "node": "1",
+        "id": "0",
+        "msid": "2",
+        "time": "1490021089",
+        "status": "0",
+        "paired_node": "0",
+        "paired_user": "0",
+        "local_change": "1490021088",
+        "remote_change": "1490012832",
+        "balance": "1141392289560723850",
+        "public_key": "F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968",
+        "hash": "FF8A1FCDA9FD4D5CD1D07AEEF6256105EB275CADB9E410B3562E72B29445ED07"
+    },
+    "msg_node_msid": "2",
+    "msg_node_mpos": "78"
+}

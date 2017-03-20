@@ -1,0 +1,142 @@
+Public key: F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968
+Bank port: 9081
+Bank addr: 127.0.0.1
+Bank   id: 1
+User   id: 0
+WARNING: last message id missing!
+InputJson: 0
+MultiLine: 0
+PrettyOut: 1
+Dry Run  : 0
+WARNING: last hash missing!
+{"run":"get_log"}
+{
+    "msg_data": "0C010000000000010000000000886BCD586A8FE3FE73AC07BE17A27427A699744A268BEED538CAD1C772C53707603C8D1F156EA19A5BDF12EC9D424A60257224AC054B37C6BF484D197B67907D7DD11100",
+    "user": {
+        "account": "0001-00000000-9B6F",
+        "node": "1",
+        "id": "0",
+        "msid": "2",
+        "time": "1490021089",
+        "status": "0",
+        "paired_node": "0",
+        "paired_user": "0",
+        "local_change": "1490021088",
+        "remote_change": "1490012832",
+        "balance": "1152904440186263145",
+        "public_key": "F83AAABE8B1A7931647DBFFAB15C7376B29F8F5779128FF50A3D1ACB673B9968",
+        "hash": "FF8A1FCDA9FD4D5CD1D07AEEF6256105EB275CADB9E410B3562E72B29445ED07"
+    },
+    "log": [
+        {
+            "time": "0",
+            "type": "0",
+            "node": "1",
+            "node_msid": "0",
+            "node_mpos": "0",
+            "user": "0",
+            "user_msid": "0",
+            "amount": "0",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1489855616",
+            "type": "1",
+            "node": "1",
+            "node_msid": "0",
+            "node_mpos": "0",
+            "user": "0",
+            "user_msid": "1489855616",
+            "amount": "11512150625539295",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1489855664",
+            "type": "5",
+            "node": "2",
+            "node_msid": "4",
+            "node_mpos": "85",
+            "user": "0",
+            "user_msid": "1",
+            "amount": "20000",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1489855664",
+            "type": "5",
+            "node": "3",
+            "node_msid": "4",
+            "node_mpos": "85",
+            "user": "0",
+            "user_msid": "1",
+            "amount": "30000",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1489855690",
+            "type": "4",
+            "node": "2",
+            "node_msid": "5",
+            "node_mpos": "78",
+            "user": "0",
+            "user_msid": "2",
+            "amount": "10000",
+            "info": "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
+        },
+        {
+            "time": "1489857414",
+            "type": "4",
+            "node": "2",
+            "node_msid": "1",
+            "node_mpos": "78",
+            "user": "0",
+            "user_msid": "1",
+            "amount": "10000",
+            "info": "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
+        },
+        {
+            "time": "1489857417",
+            "type": "4",
+            "node": "2",
+            "node_msid": "2",
+            "node_mpos": "78",
+            "user": "0",
+            "user_msid": "2",
+            "amount": "10000",
+            "info": "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
+        },
+        {
+            "time": "1490021089",
+            "type": "5",
+            "node": "2",
+            "node_msid": "2",
+            "node_mpos": "78",
+            "user": "0",
+            "user_msid": "1",
+            "amount": "20000",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1490021089",
+            "type": "5",
+            "node": "3",
+            "node_msid": "2",
+            "node_mpos": "78",
+            "user": "0",
+            "user_msid": "1",
+            "amount": "30000",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+            "time": "1490021120",
+            "type": "1",
+            "node": "1",
+            "node_msid": "0",
+            "node_mpos": "0",
+            "user": "0",
+            "user_msid": "1490021120",
+            "amount": "11512150625539295",
+            "info": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+    ]
+}
