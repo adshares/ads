@@ -542,7 +542,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
     return;}
   boost::property_tree::ptree blogtree;
   usertxs utxs;
-  for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32){
+  for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32+4+4){
     boost::property_tree::ptree blogentry;
     if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
       std::cerr<<"ERROR: failed to parse broadcast transaction\n";
@@ -588,7 +588,17 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
     if(utxs.wrong_sig((uint8_t*)p,(uint8_t*)p+utxs.size,(uint8_t*)p+utxs.size+32)){
       blogentry.put("verify","failed");}
     else{
-      blogentry.put("verify","passes");}
+      blogentry.put("verify","passed");}
+    //tx_id
+    uint32_t nmid;
+    uint32_t mpos;
+    memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
+    memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t));
+    char tx_id[64];
+    sprintf(tx_id,"%04X-%08X-%08X",utxs.abank,nmid,mpos);
+    blogentry.put("tx_node_msid",nmid);
+    blogentry.put("tx_node_mpos",mpos);
+    blogentry.put("tx_id",tx_id);
     blogtree.push_back(std::make_pair("",blogentry));}
   pt.add_child("broadcast",blogtree);
   free(blg);

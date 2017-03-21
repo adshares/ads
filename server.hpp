@@ -1554,7 +1554,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     return(true);
   }
 
-  void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey) // may need bankid and hash to verify signature
+  void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos)
   { static uint32_t lpath=0;
     static int fd=-1;
     static boost::mutex log_;
@@ -1573,6 +1573,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     write(fd,p,len);
     write(fd,hash,32);
     write(fd,pkey,32);
+    write(fd,&msid,sizeof(uint32_t));
+    write(fd,&mpos,sizeof(uint32_t));
     log_.unlock();
   }
 
@@ -1612,6 +1614,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       uint16_t lnode=0;
       int64_t deduct=0;
       int64_t fee=0;
+      uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
       /************* START PROCESSING **************/
       user_t* usera=NULL;
       usertxs utxs;
@@ -1731,7 +1734,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //luser=usera->luser;
         //lnode=usera->lnode;
       else if(*p==TXSTYPE_BRO){
-        log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey);
+        log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
         utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
       else if(*p==TXSTYPE_PUT){
@@ -1857,7 +1860,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
           deduct,fee,(uint64_t)MIN_MASS,usera->weight);
         return(false);}
       /* save log , only opts_.svid logging supported */
-      uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
+      //uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
       /*if(msg->svid==opts_.svid){
         uint64_t key=(uint64_t)utxs.auser<<32;
         key|=lpos++;
