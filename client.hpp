@@ -262,7 +262,7 @@ public:
       luser=usera.user;
       lnode=usera.node;}
     else if(*buf==TXSTYPE_BRO){
-      fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
+      fee=TXS_BRO_FEE(utxs.bbank);}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_PUT){
       if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
         utxs.tmass=0;}
@@ -274,7 +274,7 @@ public:
         return;}
       deposit=utxs.tmass;
       deduct=utxs.tmass;
-      fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera.lpath);}
+      fee=TXS_PUT_FEE(utxs.tmass);}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_MPT){
       char* tbuf=utxs.toaddresses(buf);
       //utxs.print_toaddresses(buf,utxs.bbank);
@@ -314,7 +314,7 @@ public:
         utxs.tmass+=tmass;}
       deposit=utxs.tmass;
       deduct=utxs.tmass;
-      fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera.lpath);}
+      fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank);}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_USR){
       //if(utxs.bbank!=offi_.svid){
       //  std::cerr<<"ERROR: bad target bank ("<<utxs.bbank<<")\n";
@@ -362,27 +362,27 @@ public:
         return;}}*/
     else if(*buf==TXSTYPE_BNK){ // we will get a confirmation from the network
       deduct=BANK_MIN_MASS;
-      fee=TXS_BNK_FEE*TIME_FEE(lpath,usera.lpath);} 
+      fee=TXS_BNK_FEE;}//+TIME_FEE(lpath,usera.lpath); 
     else if(*buf==TXSTYPE_GET){ // we will get a confirmation from the network
       if(utxs.abank==utxs.bbank){
 	std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
         offi_.unlock_user(utxs.auser);
         return;}
 //FIXME, check second user and stop transaction if GET is pednig
-      fee=TXS_GET_FEE*TIME_FEE(lpath,usera.lpath);}
+      fee=TXS_GET_FEE;}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_KEY){
       memcpy(usera.pkey,utxs.key(buf),32);
-      fee=TXS_KEY_FEE*TIME_FEE(lpath,usera.lpath);} 
+      fee=TXS_KEY_FEE;}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_BKY){ // we will get a confirmation from the network
       if(utxs.auser){
 	std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
         offi_.unlock_user(utxs.auser);
         return;}
       //buf=(char*)std::realloc(buf,utxs.size);
-      fee=TXS_BKY_FEE*TIME_FEE(lpath,usera.lpath);} 
+      fee=TXS_BKY_FEE;}//+TIME_FEE(lpath,usera.lpath);
     else if(*buf==TXSTYPE_STP){ // we will get a confirmation from the network
       assert(0); //TODO, not implemented later
-      fee=TXS_STP_FEE*TIME_FEE(lpath,usera.lpath);} 
+      fee=TXS_STP_FEE;}//+TIME_FEE(lpath,usera.lpath);
     if(deduct+fee+MIN_MASS>usera.weight){
       std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
       offi_.unlock_user(utxs.auser);

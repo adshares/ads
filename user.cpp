@@ -511,14 +511,16 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
       logentry.put("account_msid",ulog.umid);
       logentry.put("address",acnt);
       logentry.put("amount",ulog.weight);
+      //FIXME calculate fee
+      logentry.put("tx_fee",0);
       logentry.put("info",info);
       char tx_id[64];
       if(ulog.type & 0x8000){
         logentry.put("tx_inout","in");
-        sprintf(tx_id,"%04X-%08X-%08X",ulog.node,ulog.nmid,ulog.mpos);}
+        sprintf(tx_id,"%04X%08X%08X",ulog.node,ulog.nmid,ulog.mpos);}
       else{
         logentry.put("tx_inout","out");
-        sprintf(tx_id,"%04X-%08X-%08X",sts.bank,ulog.nmid,ulog.mpos);}
+        sprintf(tx_id,"%04X%08X%08X",sts.bank,ulog.nmid,ulog.mpos);}
       logentry.put("tx_id",tx_id);
       logtree.push_back(std::make_pair("",logentry));}}
   if(sts.json){
@@ -595,10 +597,12 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
     memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
     memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t));
     char tx_id[64];
-    sprintf(tx_id,"%04X-%08X-%08X",utxs.abank,nmid,mpos);
+    sprintf(tx_id,"%04X%08X%08X",utxs.abank,nmid,mpos);
     blogentry.put("tx_node_msid",nmid);
     blogentry.put("tx_node_mpos",mpos);
     blogentry.put("tx_id",tx_id);
+    //FIXME calculate fee
+    blogentry.put("tx_fee",0);
     blogtree.push_back(std::make_pair("",blogentry));}
   pt.add_child("broadcast",blogtree);
   free(blg);
@@ -686,6 +690,8 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
       SHA256_Final(hashout,&sha256);
       ed25519_key2text(tx_user_hashout,hashout,32);
       pt.put("tx_user_hashout",tx_user_hashout);
+      //FIXME calculate fee
+      pt.put("tx_fee",0);
     }
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
@@ -809,7 +815,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           out_log(logpt,sts.bank,sts.user);
           if(sts.json){
             char tx_id[64];
-            sprintf(tx_id,"%04X-%08X-%08X",sts.bank,m.msid,m.mpos);
+            sprintf(tx_id,"%04X%08X%08X",sts.bank,m.msid,m.mpos);
             pt.put("tx_node_msid",m.msid);
             pt.put("tx_node_mpos",m.mpos);
             pt.put("tx_id",tx_id);}

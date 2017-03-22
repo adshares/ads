@@ -118,9 +118,6 @@
 #define TXS_STP_FEE    (0x1000) /* minimum 1hour fee */
 #define TXS_USR_FEE    (0x10000) /* minimum 1hour fee */
 
-#define START_AGE      (0x100*BLOCKSEC) /* 100 blocks fee */
-
-#define TIME_FEE(x,y) (0x10*((x)-(y))/BLOCKSEC) /* seconds */
 #define MIN_MASS (0x800000) /* minimum 97days fee */
 
 #define BANK_MAX (0xffff)
@@ -128,8 +125,10 @@
 #define BANK_USER_FEE(x) ((x)>>6) /* 1s per 64 accounts (bank makes 8s on these accounts) */
 #define BANK_TIME_FEE(x) (0x40*(x)) /* must have minimum of 512 accounts to make profits */
 #define BANK_MIN_MASS   (0x20000000) /*FIXME, reduce !!! minimum 97days fee in admin account to send transactions */
-#define BANK_MIN_MTIME (0x200*BLOCKSEC) /* if not transaction in this period bank can be taken over */
+#define BANK_MIN_MTIME (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
 #define BANK_MIN_WEIGHT (0x1000000000) /* if bank weight below this value, bank can be taken over */
+//#define START_AGE      (0x100*BLOCKSEC) /* 100 blocks fee */
+//#define TIME_FEE(x,y) (0x10*((x)-(y))/BLOCKSEC) /* seconds */
 
 #define MESSAGE_TOO_LONG 0x800000
 #define MESSAGE_LEN_OK 0x10000

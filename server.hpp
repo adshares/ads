@@ -1736,7 +1736,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       else if(*p==TXSTYPE_BRO){
         log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
         utxs.print_broadcast(p);
-        fee=TXS_BRO_FEE(utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_BRO_FEE(utxs.bbank);}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_PUT){
         if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
           utxs.tmass=0;}
@@ -1754,7 +1754,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           to.small[1]=utxs.bbank; //assume big endian
           txs_deposit[to.big]+=utxs.tmass;}
         deduct=utxs.tmass;
-        fee=TXS_PUT_FEE(utxs.tmass)+TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_PUT_FEE(utxs.tmass);}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_MPT){
         char* tbuf=utxs.toaddresses(p);
         utxs.tmass=0;
@@ -1796,7 +1796,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             mpt_size++;}
           utxs.tmass+=tmass;}
         deduct=utxs.tmass;
-        fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank)+TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank);}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_USR){ // this is local bank
         if(utxs.abank!=utxs.bbank){
           usr_t usr;
@@ -1811,7 +1811,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //fee=TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_BNK){ // we will get a confirmation from the network
         txs_bnk[ppi].push_back(utxs.auser);
-        fee=TXS_BNK_FEE*TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_BNK_FEE;}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
           //std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
@@ -1823,10 +1823,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         get.buser=utxs.buser;
         memcpy(get.pkey,usera->pkey,32);
         txs_get[ppb].push_back(get);
-        fee=TXS_GET_FEE*TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_GET_FEE;}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_KEY){
         memcpy(usera->pkey,utxs.key(p),32);
-        fee=TXS_KEY_FEE*TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_KEY_FEE;}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
           //std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
@@ -1842,10 +1842,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         //blk_.lock();
         //blk_bky[ppi]=hash_s;
         //blk_.unlock();
-        fee=TXS_BKY_FEE*TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_BKY_FEE;}//+TIME_FEE(lpath,usera->lpath);
       else if(*p==TXSTYPE_STP){ // we will get a confirmation from the network
         assert(0); //TODO, not implemented
-        fee=TXS_STP_FEE*TIME_FEE(lpath,usera->lpath);}
+        fee=TXS_STP_FEE;}//+TIME_FEE(lpath,usera->lpath);
       //int64_t div=dividend(*usera,msg->svid,utxs.auser,log,now); //do this before checking balance
       int64_t div=dividend(*usera); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){

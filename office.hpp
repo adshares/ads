@@ -367,7 +367,8 @@ public:
       if(read(nd,&nu,sizeof(user_t))!=sizeof(user_t) || !nu.msid){
         fprintf(stderr,"ERROR reading user %08X (users:%08X) in office %s\n",nuser,users,filename);
         exit(-1);} //FIXME, do not exit
-      if(now>nu.lpath+LOCK_TIME && nu.weight-TIME_FEE(now,nu.lpath)<0){ // try changing this account
+//FIXME, do we need LOCK_TIME check ?
+      if(now>nu.lpath+LOCK_TIME && nu.weight<=0){ //-TIME_FEE(now,nu.lpath) // try changing this account
 //FIXME, do not change accounts that are open for too short
       //if(nu.status & USER_CLOSED){ // try changing this account
         file_.lock();
@@ -376,7 +377,6 @@ public:
 //FIXME !!!
 //FIXME, network conflict ... somebody can wire funds to this account while the account is beeing overwritten
 //FIXME !!! (maybe create a slow 'account close' transaction)
-        //if(nu.weight-TIME_FEE(now,nu.lpath)<0){ // commit changing this account
         if(nu.weight<=0){ // commit changing this account
 //FIXME, do not change accounts that are open for too short
           //std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";

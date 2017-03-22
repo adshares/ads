@@ -216,7 +216,7 @@ public:
 		u.node=node;
 		u.user=user;
                 u.lpath=when;
-                u.rpath=when-START_AGE;
+                u.rpath=when; //-START_AGE;
 		u.weight=weight;
 		memcpy(u.pkey,pk,SHA256_DIGEST_LENGTH);
 		user_csum(u,peer,uid);
