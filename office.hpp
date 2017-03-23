@@ -122,7 +122,7 @@ public:
       if(len!=sizeof(user_t)){
         fprintf(stderr,"ERROR, failed to read global user %08X, fatal\n",user);
         exit(-1);}
-      int64_t div=(u.weight>>16)*newdiv-TXS_USR_FEE;
+      int64_t div=(u.weight>>16)*newdiv-TXS_DIV_FEE;
       if(div<-u.weight){
         div=-u.weight;}
       write(dd,&div,sizeof(uint64_t));}
@@ -157,11 +157,11 @@ public:
       alog.time=now;
       alog.node=svid;
       alog.user=user;
-      alog.umid=now;
+      alog.umid=0;
       alog.nmid=0;
-      alog.mpos=0;
+      alog.mpos=now; // change this to block number !!!
       alog.weight=div;
-      bzero(alog.info,32);
+      bzero(alog.info,32); //FIXME, save current account status
       srv_.put_log(svid,user,alog);} //assume, no lock needed
     if(now){
       close(dd);
@@ -368,7 +368,7 @@ public:
         fprintf(stderr,"ERROR reading user %08X (users:%08X) in office %s\n",nuser,users,filename);
         exit(-1);} //FIXME, do not exit
 //FIXME, do we need LOCK_TIME check ?
-      if(now>nu.lpath+LOCK_TIME && nu.weight<=0){ //-TIME_FEE(now,nu.lpath) // try changing this account
+      if(now>nu.lpath+LOCK_TIME && nu.weight<=0){
 //FIXME, do not change accounts that are open for too short
       //if(nu.status & USER_CLOSED){ // try changing this account
         file_.lock();
@@ -383,7 +383,7 @@ public:
           fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",
             nuser,nu.weight);
           //FIXME !!!  wrong time !!! must use time from txs
-          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when,abank,auser);
+          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&nu,sizeof(user_t));
           file_.unlock();
@@ -395,7 +395,7 @@ public:
       return(0);}
     // no old account found, creating new account
     //FIXME !!!  wrong time !!! must use time from txs
-    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?MIN_MASS:0),pk,when,abank,auser);
+    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     if(users>=MAX_USERS){
@@ -448,7 +448,7 @@ public:
         auto jt=it++;
         user_t u;
         get_user(u,svid,jt->second); //watch out for deadlocks
-        //if(u.weight>=MIN_MASS){
+        //if(u.weight>=USER_MIN_MASS){
         if(u.weight>0){
           accounts_.erase(jt);}}
       if(accounts_.size()>MAX_ACCOUNT){

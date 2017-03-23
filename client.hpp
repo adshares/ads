@@ -255,14 +255,12 @@ public:
         std::cerr<<"ERROR: account unlock in porgress\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      //when locked user,path and time are not modified
-      //fee=TXS_LOCKCANCEL_FEE; no fee needed because only 1 cancel permitted
       utxs.ttime=usera.time;//lock time not changed
       //need to read data with _INF to confirm unlock !!!
       luser=usera.user;
       lnode=usera.node;}
     else if(*buf==TXSTYPE_BRO){
-      fee=TXS_BRO_FEE(utxs.bbank);}//+TIME_FEE(lpath,usera.lpath);
+      fee=TXS_BRO_FEE(utxs.bbank);}
     else if(*buf==TXSTYPE_PUT){
       if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
         utxs.tmass=0;}
@@ -274,7 +272,9 @@ public:
         return;}
       deposit=utxs.tmass;
       deduct=utxs.tmass;
-      fee=TXS_PUT_FEE(utxs.tmass);}//+TIME_FEE(lpath,usera.lpath);
+      fee=TXS_PUT_FEE(utxs.tmass);
+      if(utxs.abank!=utxs.bbank){
+        fee+=TXS_LNG_FEE(utxs.tmass);}}
     else if(*buf==TXSTYPE_MPT){
       char* tbuf=utxs.toaddresses(buf);
       //utxs.print_toaddresses(buf,utxs.bbank);
@@ -285,6 +285,7 @@ public:
       std::set<uint64_t> out;
       union {uint64_t big;uint32_t small[2];} to;
       to.small[1]=0;
+      fee=TXS_MIN_FEE;
       for(int i=0;i<utxs.bbank;i++,tbuf+=6+8){
         uint32_t& tuser=to.small[0];
         uint32_t& tbank=to.small[1];
@@ -311,19 +312,24 @@ public:
         mpt_bank.push_back((uint16_t)tbank);
         mpt_user.push_back(tuser);
         mpt_mass.push_back(tmass);
+        fee+=TXS_MPT_FEE(tmass);
+        if(utxs.abank!=tbank){
+          fee+=TXS_LNG_FEE(tmass);}
         utxs.tmass+=tmass;}
       deposit=utxs.tmass;
-      deduct=utxs.tmass;
-      fee=TXS_MPT_FEE(utxs.tmass,utxs.bbank);}//+TIME_FEE(lpath,usera.lpath);
+      deduct=utxs.tmass;}
     else if(*buf==TXSTYPE_USR){
       //if(utxs.bbank!=offi_.svid){
       //  std::cerr<<"ERROR: bad target bank ("<<utxs.bbank<<")\n";
       //  offi_.unlock_user(utxs.auser);
       //  return;}
-      deduct=MIN_MASS;
-      fee=TXS_USR_FEE; //TIME_FEE(lpath,usera.lpath);
-      if(deduct+fee+MIN_MASS>usera.weight){ //check in advance before creating new user
-        std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
+      deduct=USER_MIN_MASS;
+      if(utxs.abank!=utxs.bbank){
+        fee=TXS_USR_FEE;}
+      else{
+        fee=TXS_MIN_FEE;}
+      if(deduct+fee+USER_MIN_MASS>usera.weight){ //check in advance before creating new user
+        std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<USER_MIN_MASS<<">"<<usera.weight<<")\n";
         offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.bbank!=offi_.svid){
@@ -361,30 +367,31 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}}*/
     else if(*buf==TXSTYPE_BNK){ // we will get a confirmation from the network
-      deduct=BANK_MIN_MASS;
-      fee=TXS_BNK_FEE;}//+TIME_FEE(lpath,usera.lpath); 
+      deduct=BANK_MIN_TMASS;
+      fee=TXS_BNK_FEE;}
     else if(*buf==TXSTYPE_GET){ // we will get a confirmation from the network
       if(utxs.abank==utxs.bbank){
 	std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
         offi_.unlock_user(utxs.auser);
         return;}
-//FIXME, check second user and stop transaction if GET is pednig
-      fee=TXS_GET_FEE;}//+TIME_FEE(lpath,usera.lpath);
+//FIXME, check second user and stop transaction if GET is pednig or there are no funds
+      fee=TXS_GET_FEE;}
     else if(*buf==TXSTYPE_KEY){
       memcpy(usera.pkey,utxs.key(buf),32);
-      fee=TXS_KEY_FEE;}//+TIME_FEE(lpath,usera.lpath);
+      fee=TXS_KEY_FEE;}
     else if(*buf==TXSTYPE_BKY){ // we will get a confirmation from the network
       if(utxs.auser){
 	std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
         offi_.unlock_user(utxs.auser);
         return;}
       //buf=(char*)std::realloc(buf,utxs.size);
-      fee=TXS_BKY_FEE;}//+TIME_FEE(lpath,usera.lpath);
-    else if(*buf==TXSTYPE_STP){ // we will get a confirmation from the network
-      assert(0); //TODO, not implemented later
-      fee=TXS_STP_FEE;}//+TIME_FEE(lpath,usera.lpath);
-    if(deduct+fee+MIN_MASS>usera.weight){
-      std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<MIN_MASS<<">"<<usera.weight<<")\n";
+      fee=TXS_BKY_FEE;}
+    //else if(*buf==TXSTYPE_STP){ // we will get a confirmation from the network
+    //  assert(0); //TODO, not implemented later
+    //  fee=TXS_STP_FEE;}
+    if(deduct+fee+(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS)>usera.weight){
+      fprintf(stderr,"ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+        deduct,fee,(uint64_t)(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS),usera.weight);
       offi_.unlock_user(utxs.auser);
       return;}
     //send message
