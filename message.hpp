@@ -552,7 +552,7 @@ public:
     return(1);
   }
 
-  void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,uint8_t* msha,uint32_t& mtim) // assume no errors :-) FIXME
+  void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim) // assume no errors :-) FIXME
   { char filename[64];
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
@@ -561,6 +561,7 @@ public:
       exit(-1);}
     write(fd,csum,4*sizeof(uint64_t));
     write(fd,&weight,sizeof(int64_t));
+    write(fd,&fee,sizeof(int64_t));
     write(fd,msha,SHA256_DIGEST_LENGTH);
     write(fd,&mtim,sizeof(int32_t));
     for(auto it=undo.begin();it!=undo.end();it++){
@@ -570,7 +571,7 @@ public:
     close(fd);
   }
 
-  uint32_t load_undo(std::map<uint32_t,user_t>& undo,uint64_t* csum,int64_t& weight,uint8_t* msha,uint32_t& mtim)
+  uint32_t load_undo(std::map<uint32_t,user_t>& undo,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim)
   { char filename[64];
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
@@ -579,6 +580,7 @@ public:
       exit(-1);}
     read(fd,csum,4*sizeof(uint64_t));
     read(fd,&weight,sizeof(int64_t));
+    read(fd,&fee,sizeof(int64_t));
     read(fd,msha,SHA256_DIGEST_LENGTH);
     read(fd,&mtim,sizeof(int32_t));
     for(;;){

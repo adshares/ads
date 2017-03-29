@@ -82,14 +82,33 @@ public:
     if(gd<0){
       fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
+    log_t alog;
+    alog.type=TXSTYPE_STP|0x8000; //incoming
+    alog.time=time(NULL);
+    alog.nmid=srv_.start_msid;
+    alog.mpos=srv_.start_path;
     for(uint32_t user=0;user<users;user++){
       user_t u;
       int len=read(gd,&u,sizeof(user_t));
       if(len!=sizeof(user_t)){
         fprintf(stderr,"ERROR, failed to read %s after %d (%08X) users, fatal\n",filename,user,user);
         exit(-1);}
-      deposit[user]=srv_.dividend(u); //use deposit to remember data for log entries
-      write(fd,&u,sizeof(user_t));}
+      // record initial user status
+      memcpy(alog.info+ 0,&u.weight,8);
+      memcpy(alog.info+ 8,u.hash,8);
+      memcpy(alog.info+16,&u.lpath,4);
+      memcpy(alog.info+20,&u.rpath,4);
+      memcpy(alog.info+24,u.pkey,6);
+      memcpy(alog.info+30,&u.stat,2);
+      int64_t div=srv_.dividend(u); //use deposit to remember data for log entries
+      if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
+        div=0;}
+      alog.umid=u.msid;
+      alog.node=u.node;
+      alog.user=u.user;
+      alog.weight=div;
+      write(fd,&u,sizeof(user_t));
+      srv_.put_log(svid,user,alog);}
     close(gd);
 
     //init io_service_pool
@@ -130,42 +149,32 @@ public:
     close(dd);
   }
 
-  void process_div(uint32_t now)
+  void process_div(uint32_t path)
   { int dd=-1;
     char filename[64];
+    sprintf(filename,"ofi/%04X_%08X.div",svid,path); // log dividends, save in user logs later
+    dd=open(filename,O_RDONLY);
+    if(dd<0){
+      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      exit(-1);}
     log_t alog;
-    if(now){ //if now==0: firs dididend update load from deposit[]
-      sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
-      dd=open(filename,O_RDONLY);
-      if(dd<0){
-        fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
-        exit(-1);}
-      alog.type=TXSTYPE_CON;}
-    else{
-      alog.type=TXSTYPE_STP;}
+    alog.node=0;
+    alog.user=0;
+    alog.umid=0;
+    alog.nmid=srv_.msid_;
+    alog.mpos=path; 
+    alog.type=TXSTYPE_DIV|0x8000; //incoming
+    bzero(alog.info,32);
     for(uint32_t user=0;user<users;user++){
       int64_t div;
-      if(now){
-        if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
-          break;}
-        add_deposit(user,div);}
-      else{ // no lock needed
-        if(deposit[user]==(int64_t)0x8FFFFFFFFFFFFFFF){
-          deposit[user]=0;}
-        div=deposit[user];
-        deposit[user]=0;}
-      alog.time=now;
-      alog.node=svid;
-      alog.user=user;
-      alog.umid=0;
-      alog.nmid=0;
-      alog.mpos=now; // change this to block number !!!
+      if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
+        break;}
+      add_deposit(user,div);
+      alog.time=time(NULL);
       alog.weight=div;
-      bzero(alog.info,32); //FIXME, save current account status
-      srv_.put_log(svid,user,alog);} //assume, no lock needed
-    if(now){
-      close(dd);
-      unlink(filename);}
+      srv_.put_log(svid,user,alog);}
+    close(dd);
+    unlink(filename);
   }
 
   void update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv)
@@ -178,7 +187,8 @@ public:
     block_ready=now;
   }
 
-  void process_log(uint32_t now)
+//FIXME, !!! master log hygiene
+  void process_log(uint32_t now) //FIXME, check here if logs are not duplicated !!! maybe record stored info
   { uint32_t lpos=0;
     const uint32_t maxl=0xffff;
     std::map<uint64_t,log_t> log;
@@ -200,20 +210,19 @@ public:
         if(read(fd,&ulog,sizeof(log_t))<=0){
           break;}
         uint64_t lkey=(uint64_t)(user)<<32|lpos++;
-        log[lkey]=ulog;
-        if(lpos>=maxl){
-          srv_.put_log(svid,log);
-          log.clear();
-          lpos=0;}}
-      close(fd);}
+        log[lkey]=ulog;}
+      close(fd);
+      if(lpos>=maxl){ //TODO, maybe record what was processed !!!
+        srv_.put_log(svid,log);
+        log.clear();
+        lpos=0;}}
     if(lpos){
       srv_.put_log(svid,log);}
     mque.clear();
   }
 
   void clock()
-  { process_div(0);
-    start_accept();
+  { start_accept();
     while(run){
       uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)

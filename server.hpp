@@ -29,6 +29,9 @@ public:
     uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
     fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
+    //remember start status
+    start_path=path;
+    start_msid=msid_;
     last_srvs_.get(path);
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
@@ -48,6 +51,7 @@ public:
       now-=now%BLOCKSEC;
       last_srvs_.init(now-BLOCKSEC);}
     srvs_=last_srvs_;
+    bank_fee.resize(srvs_.nodes.size());
     pkey=srvs_.nodes[opts_.svid].pk;
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
@@ -164,7 +168,7 @@ public:
     //    msg->remove();}}
   }
 
-//FIXME, log handling should go to office.hpp
+//FIXME, log handling should go to office.hpp or better to log.hpp
   void mklogdir(uint16_t svid)
   { char filename[64];
     sprintf(filename,"log/%04X",svid);
@@ -252,7 +256,8 @@ public:
     unlink(filename);
   }
 
-  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log) // called from office
+//FIXME, during sync ... check if we do not duplicate log data !!!
+  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log) // called from office and during sync
   { uint32_t luser=MAX_USERS;
     int fd=-1;
     if(log.empty()){
@@ -590,6 +595,7 @@ public:
       commit_block(update); // process bkn and get transactions
       commit_dividends(update);
       commit_deposit(update);
+      commit_bankfee();
       std::cerr << "UPDATE accounts\n";
       for(auto it=update.begin();it!=update.end();it++){
         assert(*it<srvs_.nodes.size());
@@ -1522,11 +1528,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     deposit_.unlock();
     std::map<uint32_t,user_t> undo;
      int64_t weight;
+     int64_t fee;
     uint64_t csum[4];
     uint8_t msha[SHA256_DIGEST_LENGTH];
     uint32_t mtim;
-    uint32_t users=msg->load_undo(undo,csum,weight,msha,mtim);
+    uint32_t users=msg->load_undo(undo,csum,weight,fee,msha,mtim);
     srvs_.nodes[msg->svid].weight-=weight;
+    bank_fee[msg->svid]-=fee;
     srvs_.nodes[msg->svid].msid=msg->msid-1; //LESZEK ADDED assuming message exists
     srvs_.xor4(srvs_.nodes[msg->svid].hash,csum);
     memcpy(srvs_.nodes[msg->svid].msha,msha,SHA256_DIGEST_LENGTH);
@@ -1599,17 +1607,20 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     uint32_t ousers=users;
     uint32_t lpath=srvs_.now;
     uint32_t now=time(NULL); //needed for the log
-    uint32_t lpos=0; // needed for log
+    uint32_t lpos=1; // needed for log
     hash_t new_bky;
     bool set_bky=false;
     fprintf(stderr,"PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
     int mpt_size=0;
+    std::vector<uint16_t> mpt_bank; // for MPT to local bank
     std::vector<uint32_t> mpt_user; // for MPT to local bank
     std::vector< int64_t> mpt_mass; // for MPT to local bank
     uint64_t csum[4]={0,0,0,0};
      int64_t weight=0; //FIXME fix weight calculation later !!! (include correct fee handling)
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     int64_t local_fee=0;
+    int64_t lodiv_fee=0;
+    int64_t myput_fee=0; // remote bank_fee for local bank
     while(p<(char*)msg->data+msg->len){
       uint32_t luser=0;
       uint16_t lnode=0;
@@ -1654,6 +1665,12 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(luser>users){
           fprintf(stderr,"ERROR: bad target user id %08X\n",luser);
           return(false);}
+// FIXME conflict ... incomming remote transaction can be processed on the network faster
+// FIXME than the overwrite transaction issued by the bank
+// FIXME !!! otherwise there is a chance of a message loss in 10 years :-(
+// FIXME [or faster if GET is executed on the account]
+// SOLUTION: network should update the status of the account (mark as dead) during dividend calculation !!!
+// DEAD accounts could be reused by the bank
 	if(luser<users){ //1. check if overwriting was legal
           auto lu=changes.find(luser); // get user
           if(lu==changes.end()){
@@ -1665,11 +1682,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             usera=&changes[luser];}
           else{ // there should be no previous transaction on this user !!!
             usera=&lu->second;}
-          dividend(*usera);
-          if(usera->weight>0){
+          int64_t delta=usera->weight;
+          dividend(*usera); // just a test, no update of account
+          if(usera->weight>TXS_DIV_FEE){ // require at least TXS_DIV_FEE otherwiese dust txs will keep user alive
             fprintf(stderr,"ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
               utxs.bbank,luser,usera->weight);
-            return(false);}}
+            return(false);}
+          local_fee+=delta;
+          weight-=delta;}
         else{ //TODO, consider locking
           user_t u;
           bzero(&u,sizeof(user_t));
@@ -1743,12 +1763,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         deduct=utxs.tmass;
         fee=TXS_PUT_FEE(utxs.tmass);
         if(utxs.abank!=utxs.bbank){
+          if(utxs.bbank==opts_.svid){
+            myput_fee+=TXS_LNG_FEE(utxs.tmass);}
           remote_fee+=TXS_LNG_FEE(utxs.tmass);
           fee+=TXS_LNG_FEE(utxs.tmass);}}
       else if(*p==TXSTYPE_MPT){
         char* tbuf=utxs.toaddresses(p);
         utxs.tmass=0;
         mpt_size=0;
+        mpt_bank.reserve(utxs.bbank);
         mpt_user.reserve(utxs.bbank);
         mpt_mass.reserve(utxs.bbank);
         std::set<uint64_t> out;
@@ -1782,11 +1805,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
             //to.small[1]=tbank; //assume big endian
             txs_deposit[to.big]+=tmass;}
           if((uint16_t)tbank==opts_.svid){
+            mpt_bank[mpt_size]=tbank;
             mpt_user[mpt_size]=tuser;
             mpt_mass[mpt_size]=tmass;
             mpt_size++;}
           fee+=TXS_MPT_FEE(tmass);
           if(utxs.abank!=tbank){
+            if((uint16_t)tbank==opts_.svid){
+              myput_fee+=TXS_LNG_FEE(tmass);}
             remote_fee+=TXS_LNG_FEE(tmass);
             fee+=TXS_LNG_FEE(tmass);}
           utxs.tmass+=tmass;}
@@ -1826,7 +1852,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         fee=TXS_KEY_FEE;}
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
-          //std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
           fprintf(stderr,"ERROR: bad user %04X for this bank changes\n",utxs.auser);
           return(false);}
         if(memcmp(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32)){
@@ -1835,11 +1860,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
 	set_bky=true;
         memcpy(new_bky,utxs.key(p),sizeof(hash_t));
         fee=TXS_BKY_FEE;}
-      //else if(*p==TXSTYPE_STP){ // we will get a confirmation from the network
-      //  assert(0); //TODO, not implemented
-      //  fee=TXS_STP_FEE;}
-      //int64_t div=dividend(*usera,msg->svid,utxs.auser,log,now); //do this before checking balance
-      int64_t div=dividend(*usera); //do this before checking balance
+      int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
 fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         weight+=div;}
@@ -1862,23 +1883,37 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
           blog.nmid=msg->msid; //can be overwritten with info
           blog.mpos=mpos; //can be overwritten with info
           blog.weight=utxs.tmass;
-          memcpy(blog.info,utxs.tinfo,32); // only significant for TXSTYPE_PUT
+          if(*p==TXSTYPE_PUT){
+            memcpy(blog.info,utxs.tinfo,32);}
+          else{ //TXSTYPE_GET
+            memcpy(blog.info+ 0,&usera->weight,8);
+            memcpy(blog.info+ 8,&deduct,8);
+            memcpy(blog.info+16,&fee,8);
+            memcpy(blog.info+24,&usera->stat,2);
+            memcpy(blog.info+26,&usera->pkey,6);}
           log[key]=blog;}
         if(*p==TXSTYPE_MPT && mpt_size>0){ //only bbank==my in mpt_....[]
+          log_t blog;
+          blog.time=now;
+          blog.type=*p|0x8000; //incoming
+          blog.node=utxs.abank;
+          blog.user=utxs.auser;
+          blog.umid=utxs.amsid;
+          blog.nmid=msg->msid; //can be overwritten with info
+          blog.mpos=mpos; //can be overwritten with info
+          memcpy(blog.info+ 0,&usera->weight,8);
+          memcpy(blog.info+ 8,&deduct,8);
+          memcpy(blog.info+16,&fee,8);
+          memcpy(blog.info+24,&usera->stat,2);
+          memcpy(blog.info+26,&usera->pkey,6);
           for(int i=0;i<mpt_size;i++){
-            uint64_t key=(uint64_t)mpt_user[i]<<32;
-            key|=lpos++;
-            log_t blog;
-            blog.time=now;
-            blog.type=*p|0x8000; //incoming
-            blog.node=utxs.abank;
-            blog.user=utxs.auser;
-            blog.umid=utxs.amsid;
-            blog.nmid=msg->msid; //can be overwritten with info
-            blog.mpos=mpos; //can be overwritten with info
-            blog.weight=mpt_mass[i];
-            bzero(blog.info,32);
-            log[key]=blog;}}}
+            if(mpt_bank[i]==opts_.svid){
+              uint64_t key=(uint64_t)mpt_user[i]<<32;
+              key|=lpos++;
+              blog.weight=mpt_mass[i];
+              blog.info[31]=(i?0:1);
+              //bzero(blog.info,32);
+              log[key]=blog;}}}}
       usera->msid++;
       usera->time=utxs.ttime;
       usera->node=lnode;
@@ -1901,22 +1936,6 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
       local_deposit[utxs.auser]=0;//to find changes[utxs.auser]
       local_fee+=fee-remote_fee;
       p+=utxs.size;}
-    //log fees
-//FIXME, make sure this log is different from regular dividend log
-    uint64_t key=0;
-    key|=lpos++;
-    log_t alog;
-    alog.time=now;
-    alog.type=TXSTYPE_DIV|0x8000; //incoming
-    alog.node=msg->svid;
-    alog.user=0;
-    alog.umid=0;
-    alog.nmid=msg->msid;
-    alog.mpos=0;
-    alog.weight=BANK_PROFIT(local_fee)-MESSAGE_FEE;
-    bzero(alog.info,32);
-    log[key]=alog;
-    local_deposit[0]+=BANK_PROFIT(local_fee)-MESSAGE_FEE;
     //commit local changes
     user_t u;
     //int offset=(char*)&u.weight-(char*)&u;
@@ -1937,11 +1956,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         read(fd,&u,sizeof(user_t));
         undo[it->first]=u;
         srvs_.xor4(csum,u.csum);
-        //int64_t div=dividend(u,msg->svid,it->first,log,now);
-        int64_t div=dividend(u);
+        int64_t div=dividend(u,lodiv_fee); // store local fee
         if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
-          //if(msg->svid==opts_.svid && !do_sync && ofip!=NULL){ //FIXME, UNDO ???
-          //  ofip_add_remote_deposit(it->first,div);} //DIV ONLY
 fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           weight+=div;}
         u.weight+=it->second;
@@ -1950,19 +1966,59 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         srvs_.xor4(csum,u.csum);
         lseek(fd,-offset,SEEK_CUR);
         write(fd,&u.rpath,offset);}}
-    //close(ud);
+    local_deposit.clear();
+    changes.clear();
     close(fd);
-    //save undo files
-    msg->save_undo(undo,ousers,csum,weight,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim); //message
+    //log bank fees
+    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE;
+    if(msg->svid==opts_.svid){
+      local_fee=BANK_PROFIT(local_fee);
+      lodiv_fee=BANK_PROFIT(lodiv_fee);
+      myput_fee=BANK_PROFIT(myput_fee);
+      log_t alog;
+      alog.time=now;
+      alog.type=TXSTYPE_FEE|0x8000; //incoming
+      alog.node=msg->svid;
+      alog.user=0;
+      alog.umid=0;
+      alog.nmid=msg->msid;
+      alog.mpos=0;
+      alog.weight=profit;
+      memcpy(alog.info,&local_fee,sizeof(int64_t));
+      memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
+      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t));
+      bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
+      log[0]=alog;}
+    else if(myput_fee){
+      local_fee=BANK_PROFIT(local_fee);
+      lodiv_fee=BANK_PROFIT(lodiv_fee);
+      myput_fee=BANK_PROFIT(myput_fee);
+      log_t alog;
+      alog.time=now;
+      alog.type=TXSTYPE_FEE|0x8000; //incoming
+      alog.node=msg->svid;
+      alog.user=0;
+      alog.umid=0;
+      alog.nmid=msg->msid;
+      alog.mpos=0;
+      alog.weight=myput_fee;
+      memcpy(alog.info,&local_fee,sizeof(int64_t));
+      memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
+      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t));
+      bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
+      log[0]=alog;}
+    bank_fee[msg->svid]+=profit;
+    msg->save_undo(undo,ousers,csum,weight,profit,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim);
     srvs_.nodes[msg->svid].weight+=weight;
     srvs_.xor4(srvs_.nodes[msg->svid].hash,csum);
     srvs_.save_undo(msg->svid,undo,ousers); //databank, will change srvs_.nodes[msg->svid].users
     //commit remote deposits
-    //check for maximum deposits.size(), if too large, save old deposits and work on new ones;
     deposit_.lock();
     for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
       deposit[it->first]+=it->second;}
+    //check for maximum deposits.size(), if too large, save old deposits and work on new ones;
     deposit_.unlock();
+    txs_deposit.clear();
     //store block transactions
     blk_.lock();
     if(set_bky){
@@ -1971,12 +2027,10 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         if(!srvs_.find_key(new_bky,skey)){
           fprintf(stderr,"ERROR, failed to change to new bank key, fatal!\n");
           exit(-1);}}}
-    //blk_bky.insert(txs_bky.begin(),txs_bky.end());
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
     blk_get.insert(txs_get.begin(),txs_get.end());
-    //blk_put.insert(txs_put.begin(),txs_put.end());
     blk_.unlock();
-    if(do_sync){
+    if(do_sync){ //FIXME, do not duplicate previous log data !!!
       put_log(msg->svid,log);}
     else{
       put_log(srvs_.now,msg->svid,msg->msid,log);}
@@ -1995,9 +2049,10 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
   }
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
-  { //reset bank_fee
-    bank_fee.clear();
-    bank_fee.resize(srvs_.nodes.size());
+  { mydiv_fee=0;
+    myusr_fee=0;
+    myget_fee=0;
+
     //match remote account transactions
     std::map<uin_t,uint32_t,uin_cmp> uin; //waiting remote account requests
     for(auto it=blk_usr.begin();it!=blk_usr.end();it++){
@@ -2022,29 +2077,31 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           to.small[0]=tx->auser;
           to.small[1]=abank;
           deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
+          if(abank==opts_.svid){
+            myusr_fee+=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));}
           if(tx->bbank==opts_.svid){
             log_t alog;
             alog.time=time(NULL);
-            alog.type=TXSTYPE_UOK;
+            alog.type=TXSTYPE_UOK|0x8000; //incoming
             alog.node=abank;
             alog.user=tx->auser;
-            alog.umid=0;
+            alog.umid=1; // 1 == matching _USR transaction found
             alog.nmid=0;
             alog.mpos=srvs_.now;
-            alog.weight=USER_MIN_MASS;
+            alog.weight=0;
             memcpy(alog.info,tx->pkey,32);
             put_log(tx->bbank,tx->buser,alog);}
           uin[nuin]--;}
         else if(tx->bbank==opts_.svid){ // no matching _USR transaction found
           log_t alog;
           alog.time=time(NULL);
-          alog.type=TXSTYPE_UOK;
+          alog.type=TXSTYPE_UOK|0x8000; //incoming
           alog.node=abank;
           alog.user=tx->auser;
-          alog.umid=0;
+          alog.umid=0; // 0 == no matching _USR transaction found
           alog.nmid=0;
           alog.mpos=srvs_.now;
-          alog.weight=0; // 0 == no matching _USR transaction found
+          alog.weight=0;
           memcpy(alog.info,tx->pkey,32);
           put_log(tx->bbank,tx->buser,alog);}}}
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
@@ -2096,6 +2153,7 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             srvs_.put_node(u,peer,abank,*tx);} //save_undo() in put_node() !!!
           else if(srvs_.nodes.size()<BANK_MAX-1){
             peer=srvs_.add_node(u,abank,*tx); //deposits BANK_MIN_TMASS
+            bank_fee.resize(srvs_.nodes.size());
             fprintf(stderr,"BANK, add new bank %04X\n",peer);}
           else{
             close(fd);
@@ -2163,54 +2221,61 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           if(u.time+2*LOCK_TIME>srvs_.now){
             continue;}
           undo.emplace(tx->buser,u);
-          int64_t div=dividend(u);
+          int64_t fee=0;
+          int64_t div=dividend(u,fee);
           if(u.weight-TXS_GOK_FEE(u.weight)<=0){
             continue;}
+          bank_fee[svid]+=BANK_PROFIT(fee); // only from dividend
+          if(svid==opts_.svid){
+            mydiv_fee+=BANK_PROFIT(fee);}
           if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
-            //if(bbank==opts_.svid && !do_sync && ofip!=NULL){
-            //  ofip_add_remote_deposit(tx->buser,div);} //DIV ONLY
 fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             srvs_.nodes[bbank].weight+=div;}
           int64_t delta=0;
+          int64_t delta_gok=0;
+          fee=0;
+          log_t tlog;
+          memcpy(tlog.info+ 0,&u.weight,8);
           if(u.node!=abank||u.user!=tx->auser){ //initiate withdraw
             u.node=abank;
             u.user=tx->auser;}
           else{ //commit withdraw after lockup (all funds)
             delta=u.weight;
+            delta_gok=u.weight-TXS_GOK_FEE(delta);
+            fee=TXS_GOK_FEE(delta);
             u.weight=0;
             srvs_.nodes[bbank].weight-=delta;
             to.small[0]=tx->auser; //assume big endian
-            deposit[to.big]+=delta-TXS_GOK_FEE(delta);}
+            if(abank==opts_.svid){
+              myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));}
+            //bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(delta_gok))>>2; //reduce bank fee
+            deposit[to.big]+=delta_gok;}
           u.time=srvs_.now;
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
           srvs_.user_csum(u,bbank,tx->buser);
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
           write(fd,&u,sizeof(user_t));
+          tlog.time=time(NULL);
+          tlog.umid=0;
+          tlog.nmid=0;
+          tlog.mpos=srvs_.now;
+          memcpy(tlog.info+ 8,&delta_gok,8); // sender_cost
+          memcpy(tlog.info+16,&fee,8);
+          memcpy(tlog.info+24,&u.stat,2);
+          memcpy(tlog.info+26,&u.pkey,6);
           if(abank==opts_.svid){
-            log_t alog;
-            alog.time=time(NULL);
-            alog.type=TXSTYPE_GET|0x8000; //incoming
-            alog.node=bbank;
-            alog.user=tx->buser;
-            alog.umid=0;
-            alog.nmid=0; //FIXME, remember this ?
-            alog.mpos=srvs_.now; //FIXME, remember this ?
-            alog.weight=delta; // remember: incomming fee: TXS_GOK_FEE(delta) !!!
-            bzero(alog.info,32);
-            put_log(abank,tx->auser,alog);}
+            tlog.type=TXSTYPE_GET|0x8000; //incoming
+            tlog.node=bbank;
+            tlog.user=tx->buser;
+            tlog.weight=delta_gok;
+            put_log(abank,tx->auser,tlog);}
           if(bbank==opts_.svid){
-            log_t blog;
-            blog.time=time(NULL);
-            blog.type=TXSTYPE_GET; //outgoing
-            blog.node=abank;
-            blog.user=tx->auser;
-            blog.umid=0;
-            blog.nmid=0; //FIXME, remember this ?
-            blog.mpos=srvs_.now; //FIXME, remember this ?
-            blog.weight=delta;
-            bzero(blog.info,32);
-            put_log(bbank,tx->buser,blog);}
+            tlog.type=TXSTYPE_GET; //outgoing
+            tlog.node=abank;
+            tlog.user=tx->auser;
+            tlog.weight=-delta_gok;
+            put_log(bbank,tx->buser,tlog);}
           if(bbank==opts_.svid && !do_sync && ofip!=NULL){
             gup_t g;
             g.auser=tx->buser;
@@ -2230,6 +2295,19 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
       int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
       if(div<-u.weight){
         div=-u.weight;}
+      u.weight+=div;
+      return(div);}
+    return(0x8FFFFFFFFFFFFFFF);
+  }
+
+  int64_t dividend(user_t& u,int64_t& fee)
+  { if(u.rpath<period_start && u.lpath<period_start){
+      u.rpath=srvs_.now;
+      int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
+      if(div<-u.weight){
+        div=-u.weight;}
+      else{
+        fee+=TXS_DIV_FEE;}
       u.weight+=div;
       return(div);}
     return(0x8FFFFFFFFFFFFFFF);
@@ -2271,8 +2349,11 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             fprintf(stderr,"ERROR, failed to read user %04X:%08X, fatal\n",svid,user);
             exit(-1);}
           memcpy(&ou,&u,sizeof(user_t)); //to keep data for undo
-          //int64_t div=dividend(u,svid,user,log,now); //returns 0x8FFFFFFFFFFFFFFF if no dividend calculated
-          int64_t div=dividend(u);
+          int64_t fee=0;
+          int64_t div=dividend(u,fee);
+          bank_fee[svid]+=BANK_PROFIT(fee);
+          if(svid==opts_.svid){
+            mydiv_fee+=BANK_PROFIT(fee);}
           if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
 fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
             undo.emplace(user,ou); // no emplace needed, insert is ok
@@ -2296,8 +2377,6 @@ fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
       close(fd);
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
-      //if(svid==opts_.svid){
-      //  put_log(opts_.svid,log);}
   }
 
   void commit_deposit(std::set<uint16_t>& update) //assume single thread, TODO change later !!!
@@ -2338,14 +2417,17 @@ fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
       undo.emplace(user,u);
-      //int64_t div=dividend(u,svid,user,log,srvs_.now);
-      int64_t div=dividend(u); // adds dividend automatically !!!
+      int64_t fee=0;
+      int64_t div=dividend(u,fee);
+      bank_fee[svid]+=BANK_PROFIT(fee);
+      if(svid==opts_.svid){
+        mydiv_fee+=BANK_PROFIT(fee);}
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
       else{
 fprintf(stderr,"DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
         }
-      if(user){ // no fees from deposits to bank
+      if(user){ // no fees from remote deposits to bank
         bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));}
       u.weight+=it->second;
       u.rpath=srvs_.now;
@@ -2364,36 +2446,45 @@ fprintf(stderr,"DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,
       //if(lastsvid==opts_.svid){
       //  put_log(opts_.svid,log);}
     deposit.clear(); //remove deposits after commiting
-    //commit bank_fee
-    //for(auto it=update.begin();it!=update.end();it++){
-    //  uint16_t svid=*it;
-    uint16_t max_svid=srvs_.nodes.size();
+  }
+
+  void commit_bankfee()
+  { uint16_t max_svid=srvs_.nodes.size();
+    user_t u;
+    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
+    assert((char*)&u.rpath<(char*)&u.weight);
+    assert((char*)&u.rpath<(char*)&u.csum);
     for(uint16_t svid=1;svid<max_svid;svid++){
-      int64_t fee=bank_fee[svid]-BANK_USER_FEE(srvs_.nodes[svid].users);
-      fprintf(stderr,"BANK_FEE %016lX to usr/%04X.dat\n",fee,svid);
+      char filename[64];
       sprintf(filename,"usr/%04X.dat",svid);
-      fd=open(filename,O_RDWR,0644);
+      int fd=open(filename,O_RDWR,0644);
       if(fd<0){
         fprintf(stderr,"ERROR, failed to open bank register %04X, fatal\n",svid);
         exit(-1);}
       read(fd,&u,sizeof(user_t));
-      undo.clear();
+      std::map<uint32_t,user_t> undo;
       undo.emplace(0,u);
-      int64_t div=dividend(u);
+      int64_t fee=0;
+      int64_t div=dividend(u,fee);
+      bank_fee[svid]+=BANK_PROFIT(fee);
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
       else{
+        mydiv_fee+=BANK_PROFIT(fee);
 fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         }
-      int64_t before=u.weight; 
-      if(fee<-u.weight){
-       fee=-u.weight;}
-      u.weight+=fee;
-      int64_t after=u.weight; 
-      srvs_.nodes[svid].weight+=fee+div;
+      int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
+      int64_t profit=bank_fee[svid]-buser_fee;
+      fprintf(stderr,"BANK_PROFIT %016lX to usr/%04X.dat\n",profit,svid);
+      //int64_t before=u.weight; 
+      if(profit<-u.weight){
+       profit=-u.weight;}
+      u.weight+=profit;
+      //int64_t after=u.weight; 
+      srvs_.nodes[svid].weight+=profit+div;
       u.rpath=srvs_.now;
       if(svid==opts_.svid && !do_sync && ofip!=NULL){
-        ofip_add_remote_deposit(0,fee);} //DEPOSIT
+        ofip_add_remote_deposit(0,profit);} //DEPOSIT
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
       srvs_.user_csum(u,svid,0);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
@@ -2404,21 +2495,20 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       if(svid==opts_.svid){
         log_t alog;
         alog.time=time(NULL);
-        alog.type=TXSTYPE_DIV|0x8000; //incoming
+        alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
         alog.node=svid;
         alog.user=0;
         alog.umid=0;
         alog.nmid=0;
         alog.mpos=srvs_.now;
-        alog.weight=fee;
-        bzero(alog.info,32); // consider adding some data here
-        memcpy(alog.info,&bank_fee[svid],sizeof(int64_t));
-        fee=BANK_USER_FEE(srvs_.nodes[svid].users);
-        memcpy(alog.info+sizeof(int64_t),&fee,sizeof(int64_t));
-        memcpy(alog.info+2*sizeof(int64_t),&before,sizeof(int64_t));
-        memcpy(alog.info+3*sizeof(int64_t),&after,sizeof(int64_t));
+        alog.weight=profit;
+        memcpy(alog.info,&mydiv_fee,sizeof(int64_t));
+        memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
+        memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
+        memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
         put_log(svid,0,alog);}}
     bank_fee.clear();
+    bank_fee.resize(srvs_.nodes.size());
   }
 
   //bool accept_message(uint32_t lastmsid)
@@ -2642,13 +2732,14 @@ exit(-1);
       mi->status &= ~MSGSTAT_VAL;
       check_msgs_.push_front(mi);}
     check_.unlock();
-    std::set<uint16_t> update;
+    std::set<uint16_t> update; //TODO, remove this, quite useless
     for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       update.insert((*mi)->svid);
       fprintf(stderr,"COMMITING message %04X:%08X\n",(*mi)->svid,(*mi)->msid);}
     commit_block(update); // process bkn and get transactions
     commit_dividends(update);
     commit_deposit(update);
+    commit_bankfee();
     std::cerr << "CHECK accounts\n"; //FIXME, remove later !!!
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
@@ -2955,6 +3046,8 @@ exit(-1);
   uint32_t get_msglist; //block id of the requested msglist of messages
   office* ofip;
   uint8_t *pkey; //used by office/client to create BKY transaction
+  uint32_t start_path;
+  uint32_t start_msid;
 private:
   hash_t skey;
   boost::mutex ulock_[0x100];
@@ -3012,6 +3105,9 @@ private:
   std::map<uint64_t,std::vector<uok_t>> blk_uok; //remote account accept
   //std::map<uint64_t,std::vector<uint32_t>> blk_put; //cancel lock
   std::vector<int64_t> bank_fee;
+  int64_t mydiv_fee; // just to record the local TXS_DIV_FEE bank income
+  int64_t myusr_fee; // just to record the local TXS_DIV_FEE bank income
+  int64_t myget_fee; // just to record the local TXS_DIV_FEE bank income
   uint32_t period_start; //start time of this period
 };
 

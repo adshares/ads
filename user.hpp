@@ -4,8 +4,8 @@
 //bank only
 #define TXSTYPE_STP 0	/* die/stop processing bank */	/* restart requires a new BKY transaction */
 #define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
-#define TXSTYPE_DIV 1
 #define TXSTYPE_UOK 2	/* accept remote account request */
+			/* consider leaving space for more transactions */
 //bank & user
 #define TXSTYPE_BRO 3	/* broadcast */			/* send ads to network */
 #define TXSTYPE_PUT 4	/* send funds */	
@@ -15,15 +15,20 @@
 #define TXSTYPE_GET 8	/* get funds */			/* retreive funds from remote/dead bank */
 #define TXSTYPE_KEY 9	/* change account key */
 #define TXSTYPE_BKY 10	/* change bank key */
+			/* consider leaving space for more transactions */
 //user only
 #define TXSTYPE_INF 11	/* strating from this message only messages between wallet and client.hpp */
 #define TXSTYPE_LOG 12	/* return user status and log */
 #define TXSTYPE_BLG 13	/* return broadcast log */
+			/* request save status in log */
+//overwriting user only TX in log
+#define TXSTYPE_DIV 11	/* user dividend payment tx code */
+#define TXSTYPE_FEE 12	/* bank fee payment tx code */
 //end
 #define TXSTYPE_MAX 14
 
-const char* txsname[TXSTYPE_MAX+1]={
-	"node_started",		//0
+const char* txsname[TXSTYPE_MAX]={
+	"stop",			//0
 	"dividend",		//1
 	"account_created",	//2
 	"broadcast",		//3
@@ -34,10 +39,25 @@ const char* txsname[TXSTYPE_MAX+1]={
 	"retrieve_funds",	//8
 	"change_account_key",	//9
 	"change_node_key",	//10
-	"get_info",		//11
+	"get_info",		//11 also 'get_me'
 	"get_log",		//12
-	"get_broadcast",	//13
-	"none"};		//14
+	"get_broadcast"};	//13
+
+const char* logname[TXSTYPE_MAX]={
+	"node_started",		//0
+	"unknown",		//1
+	"account_created",	//2
+	"broadcast",		//3
+	"send_one",		//4
+	"send_many",		//5
+	"create_account",	//6
+	"create_node",		//7
+	"retrieve_funds",	//8
+	"change_account_key",	//9
+	"change_node_key",	//10
+	"dividend",		//11
+	"bank_profit",		//12
+	"unknown"};		//13
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
@@ -97,7 +117,7 @@ public:
 	uint16_t bbank; // also broadcast message len OR number of to_addresses in MPT transaction
 	uint32_t buser;
 	 int64_t tmass;
-	uint8_t  tinfo[32];
+	uint8_t  tinfo[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	uint8_t* data;
 	int size;	// differs on the network and in office :-( !!!
 			// get_size returns network size, fix names !!!

@@ -406,6 +406,13 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     //commit changes
+    if(*buf!=TXSTYPE_PUT){ // store additional info in log
+      // this is ok for MPT
+      memcpy(utxs.tinfo+ 0,&usera.weight,8);
+      memcpy(utxs.tinfo+ 8,&deduct,8);
+      memcpy(utxs.tinfo+16,&fee,8);
+      memcpy(utxs.tinfo+24,&usera.stat,2);
+      memcpy(utxs.tinfo+26,&usera.pkey,6);}
     usera.msid++;
     usera.time=utxs.ttime;
     usera.node=lnode;
@@ -424,69 +431,53 @@ public:
     SHA256_Final(usera.hash,&sha256);
     offi_.set_user(utxs.auser,usera,deduct+fee);
     //log
-    uint32_t now=time(NULL);
+    log_t tlog;
+    tlog.time=time(NULL);
+    tlog.type=*buf;
+    tlog.node=utxs.bbank;
+    tlog.user=utxs.buser;
+    tlog.umid=utxs.amsid;
+    tlog.nmid=msid;
+    tlog.mpos=mpos;
+    memcpy(tlog.info,utxs.tinfo,32);
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
       int end=mpt_user.size();
       std::map<uint64_t,log_t> log;
       for(int i=0;i<end;i++){
         uint64_t key=((uint64_t)utxs.auser)<<32;
         key|=i;
-        log_t alog;
-        alog.time=now;
-        alog.type=*buf;
-        alog.node=mpt_bank[i];
-        alog.user=mpt_user[i];
-        alog.umid=utxs.amsid;
-        alog.nmid=msid; //can be overwritten with info
-        alog.mpos=mpos; //can be overwritten with info
-        alog.weight=mpt_mass[i];
-	bzero(alog.info,32);
-	log[key]=alog;}
+        tlog.node=mpt_bank[i];
+        tlog.user=mpt_user[i];
+        tlog.weight=-mpt_mass[i];
+        tlog.info[31]=(i?0:1);
+	log[key]=tlog;}
       offi_.put_log(offi_.svid,log);} // could be processed 
     else{
-      log_t alog;
-      alog.time=now;
-      alog.type=*buf;
-      alog.node=utxs.bbank;
-      alog.user=utxs.buser;
-      alog.umid=utxs.amsid;
-      alog.nmid=msid; //can be overwritten with info
-      alog.mpos=mpos; //can be overwritten with info
-      alog.weight=utxs.tmass;
-      memcpy(alog.info,utxs.tinfo,32);
-      offi_.put_log(offi_.svid,utxs.auser,alog);}
+      tlog.weight=-utxs.tmass;
+      //tlog.weight=-deduct;
+      offi_.put_log(offi_.svid,utxs.auser,tlog);}
     offi_.unlock_user(utxs.auser);
+
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
+      tlog.type=*buf|0x8000; //incoming
+      tlog.node=utxs.abank;
+      tlog.user=utxs.auser;
       int end=mpt_user.size();
       for(int i=0;i<end;i++){
         if(mpt_bank[i]==offi_.svid){
-          log_t blog;
-          blog.time=now;
-          blog.type=*buf|0x8000; //incoming
-          blog.node=utxs.abank;
-          blog.user=utxs.auser;
-          blog.umid=utxs.amsid;
-          blog.nmid=msid; //can be overwritten with info
-          blog.mpos=mpos; //can be overwritten with info
-          blog.weight=mpt_mass[i];
-	  bzero(blog.info,32);
+          tlog.weight=mpt_mass[i];
+          tlog.info[31]=(i?0:1);
           offi_.lock_user(utxs.buser);
-          offi_.put_log(offi_.svid,utxs.buser,blog);
+          offi_.put_log(offi_.svid,utxs.buser,tlog);
           offi_.unlock_user(utxs.buser);
           offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}
-    else if(utxs.abank==utxs.bbank){
-      log_t blog;
-      blog.time=now;
-      blog.type=*buf|0x8000; //incoming
-      blog.node=utxs.abank;
-      blog.user=utxs.auser;
-      blog.umid=utxs.amsid;
-      blog.nmid=msid; //can be overwritten with info
-      blog.mpos=mpos; //can be overwritten with info
-      blog.weight=utxs.tmass;
-      memcpy(blog.info,utxs.tinfo,32);
+    else if(utxs.abank==utxs.bbank && *buf==TXSTYPE_PUT){
+      tlog.type=*buf|0x8000; //incoming
+      tlog.node=utxs.abank;
+      tlog.user=utxs.auser;
+      tlog.weight=utxs.tmass;
       offi_.lock_user(utxs.buser);
-      offi_.put_log(offi_.svid,utxs.buser,blog);
+      offi_.put_log(offi_.svid,utxs.buser,tlog);
       offi_.unlock_user(utxs.buser);
       if(*buf==TXSTYPE_PUT && deposit>=0){
         offi_.add_deposit(utxs);}}
