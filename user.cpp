@@ -633,7 +633,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
         char key_hex[13];key_hex[12]='\0';
         ed25519_key2text(key_hex,key,6);
         logentry.put("sender_balance",weight);
-        logentry.put("sender_ammount",deduct);
+        logentry.put("sender_amount",deduct);
         if(txst==TXSTYPE_MPT){
           logentry.put("sender_fee",TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0));
           logentry.put("sender_fee_total",fee);

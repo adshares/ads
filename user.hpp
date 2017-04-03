@@ -39,7 +39,7 @@ const char* txsname[TXSTYPE_MAX]={
 	"retrieve_funds",	//8
 	"change_account_key",	//9
 	"change_node_key",	//10
-	"get_info",		//11 also 'get_me'
+	"get_account",		//11 also 'get_me'
 	"get_log",		//12
 	"get_broadcast"};	//13
 
