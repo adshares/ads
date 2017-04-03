@@ -445,7 +445,8 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("account.status",u.stat);
       pt.put("account.paired_node",u.node);
       pt.put("account.paired_id",u.user);
-      pt.put("account.paired_address",ucnt);
+      if((u.node || u.user) && (u.node != bank || u.user != user)){
+        pt.put("account.paired_address",ucnt);}
       pt.put("account.local_change",u.lpath);
       pt.put("account.remote_change",u.rpath);
       pt.put("account.balance",u.weight);
@@ -460,7 +461,8 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("network_account.status",u.stat);
       pt.put("network_account.paired_node",u.node);
       pt.put("network_account.paired_id",u.user);
-      pt.put("network_account.paired_address",ucnt);
+      if((u.node || u.user) && (u.node != bank || u.user != user)){
+        pt.put("network_account.paired_address",ucnt);}
       pt.put("network_account.local_change",u.lpath);
       pt.put("network_account.remote_change",u.rpath);
       pt.put("network_account.balance",u.weight);
@@ -645,12 +647,12 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
         logentry.put("sender_status",stat);}
       char tx_id[64];
       if(ulog.type & 0x8000){
-        logentry.put("tx_inout","in");
+        logentry.put("inout","in");
         sprintf(tx_id,"%04X%08X%08X",ulog.node,ulog.nmid,ulog.mpos);}
       else{
-        logentry.put("tx_inout","out");
+        logentry.put("inout","out");
         sprintf(tx_id,"%04X%08X%08X",sts.bank,ulog.nmid,ulog.mpos);}
-      logentry.put("tx_id",tx_id);
+      logentry.put("id",tx_id);
       logtree.push_back(std::make_pair("",logentry));}}
   if(sts.json){
     pt.add_child("log",logtree);}
@@ -727,11 +729,11 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
     memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t));
     char tx_id[64];
     sprintf(tx_id,"%04X%08X%08X",utxs.abank,nmid,mpos);
-    blogentry.put("tx_node_msid",nmid);
-    blogentry.put("tx_node_mpos",mpos);
-    blogentry.put("tx_id",tx_id);
+    blogentry.put("node_msid",nmid);
+    blogentry.put("node_mpos",mpos);
+    blogentry.put("id",tx_id);
     //FIXME calculate fee
-    blogentry.put("tx_fee",0);
+    blogentry.put("fee",0);
     blogtree.push_back(std::make_pair("",blogentry));}
   pt.add_child("broadcast",blogtree);
   free(blg);
@@ -792,19 +794,19 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
       txs->print_head();
       txs->print();}
     // tx_user_msid
-    logpt.put("tx_user_msid",sts.msid);
+    logpt.put("tx.account_msid",sts.msid);
     // tx_data
     char* tx_data=(char*)malloc(2*txs->size+1);
     tx_data[2*txs->size]='\0';
     ed25519_key2text(tx_data,txs->data,txs->size);
-    pt.put("tx_data",tx_data);
-    logpt.put("tx_data",tx_data);
+    pt.put("tx.data",tx_data);
+    logpt.put("tx.data",tx_data);
     free(tx_data);
     // tx_user_hashin
     char tx_user_hashin[65];tx_user_hashin[64]='\0';
     ed25519_key2text(tx_user_hashin,sts.ha,32);
-    pt.put("tx_user_hashin",tx_user_hashin);
-    logpt.put("tx_user_hashin",tx_user_hashin);
+    pt.put("tx.account_hashin",tx_user_hashin);
+    logpt.put("tx.account_hashin",tx_user_hashin);
     // calculate tx_user_hashout
     uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     if(txs->ttype<TXSTYPE_INF){
@@ -818,14 +820,14 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
       SHA256_Update(&sha256,hashout,32);
       SHA256_Final(hashout,&sha256);
       ed25519_key2text(tx_user_hashout,hashout,32);
-      pt.put("tx_user_hashout",tx_user_hashout);
+      pt.put("tx.account_hashout",tx_user_hashout);
       //FIXME calculate fee
-      pt.put("tx_fee",0);
+      pt.put("tx.fee",0);
     }
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
       ed25519_key2text(tx_user_public_key,sts.pk,32);
-      logpt.put("tx_user_public_key",tx_user_public_key);}
+      logpt.put("tx.account_public_key",tx_user_public_key);}
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
@@ -893,15 +895,15 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
             else{
               char tx_user_public_key[65];tx_user_public_key[64]='\0';
               ed25519_key2text(tx_user_public_key,myuser.pkey,32);
-              logpt.put("tx_user_public_key_new",tx_user_public_key);
+              logpt.put("tx.account_public_key_new",tx_user_public_key);
               std::cerr<<"PKEY differs\n";}}
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
             //TODO, validate hashout, check if correct
             char tx_user_hashout[65];tx_user_hashout[64]='\0';
             ed25519_key2text(tx_user_hashout,myuser.hash,32);
-            logpt.put("tx_user_hashout",tx_user_hashout);
+            logpt.put("tx.account_hashout",tx_user_hashout);
             if(memcmp(myuser.hash,hashout,32)){
-              pt.put("ERROR_HASH","mismatch");}}
+              pt.put("error.text","hash mismatch");}}
           sts.msid=myuser.msid;
           memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
       if(txs->ttype==TXSTYPE_INF){
@@ -939,15 +941,15 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
         else{
           sts.msid=m.msid;
           // save outgoing message log
-          logpt.put("tx_node_msid",m.msid);
-          logpt.put("tx_node_mpos",m.mpos);
+          logpt.put("tx.node_msid",m.msid);
+          logpt.put("tx.node_mpos",m.mpos);
           out_log(logpt,sts.bank,sts.user);
           if(sts.json){
             char tx_id[64];
             sprintf(tx_id,"%04X%08X%08X",sts.bank,m.msid,m.mpos);
-            pt.put("tx_node_msid",m.msid);
-            pt.put("tx_node_mpos",m.mpos);
-            pt.put("tx_id",tx_id);}
+            pt.put("tx.node_msid",m.msid);
+            pt.put("tx.node_mpos",m.mpos);
+            pt.put("tx.id",tx_id);}
           else{
             fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
     if(sts.json){
