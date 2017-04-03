@@ -107,6 +107,8 @@ public:
       alog.node=u.node;
       alog.user=u.user;
       alog.weight=div;
+      if(u.stat&USER_STAT_DELETED){
+        deleted_users.push_back(user);}
       write(fd,&u,sizeof(user_t));
       srv_.put_log(svid,user,alog);}
     close(gd);
@@ -354,63 +356,31 @@ public:
   }
 
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
-  { static uint32_t nuser=0;
-    static uint32_t lastnow=0;
-    uint32_t now=srv_.last_srvs_.now;
+  { uint32_t nuser;
     user_t nu;
-    char filename[64];
-    sprintf(filename,"ofi/%04X.dat",svid);
-    int nd=open(filename,O_RDONLY);
-    if(nd<0){
-      std::cerr<<"ERROR, failed to open office register\n";
-      return(0);}
-    if(lastnow!=now){
-      lastnow=now;
-      nuser=1;}
-    else{
-      nuser++;}
-    if(lseek(nd,nuser*sizeof(user_t),SEEK_SET)!=(int64_t)nuser*(int64_t)sizeof(user_t)){
-      fprintf(stderr,"ERROR seeking user %08X in office\n",nuser);
-      exit(-1);} //FIXME, do not exit
-    for(;nuser<users;nuser++){ // try overwriting old dead account
-      if(read(nd,&nu,sizeof(user_t))!=sizeof(user_t) || !nu.msid){
-        fprintf(stderr,"ERROR reading user %08X (users:%08X) in office %s\n",nuser,users,filename);
-        exit(-1);} //FIXME, do not exit
-//FIXME, do we need LOCK_TIME check ?
-      if(now>nu.lpath+LOCK_TIME && nu.weight<=0){
-//FIXME, do not change accounts that are open for too short
-      //if(nu.status & USER_CLOSED){ // try changing this account
-        file_.lock();
-        lseek(fd,nuser*sizeof(user_t),SEEK_SET);
-        read(fd,&nu,sizeof(user_t));
-//FIXME !!!
-//FIXME, network conflict ... somebody can wire funds to this account while the account is beeing overwritten
-//FIXME !!! (maybe create a slow 'account close' transaction)
-        if(nu.weight<=0){ // commit changing this account
-//FIXME, do not change accounts that are open for too short
-          //std::cerr<<"WARNING, overwriting account "<<nuser<<"\n";
-          fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",
-            nuser,nu.weight);
-          //FIXME !!!  wrong time !!! must use time from txs
-          srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
-          lseek(fd,-sizeof(user_t),SEEK_CUR);
-          write(fd,&nu,sizeof(user_t));
-          file_.unlock();
-          close(nd);
-          return(nuser);}
-        file_.unlock();}}
-    close(nd);
+    file_.lock();
+    while(!deleted_users.empty()){
+      nuser=deleted_users.front();
+      deleted_users.pop_front();
+      lseek(fd,nuser*sizeof(user_t),SEEK_SET);
+      read(fd,&nu,sizeof(user_t));
+      if((nu.weight<=0) && (nu.stat&USER_STAT_DELETED)){
+        fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
+        //FIXME !!!  wrong time !!! must use time from txs
+        srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
+        lseek(fd,-sizeof(user_t),SEEK_CUR);
+        write(fd,&nu,sizeof(user_t));
+        file_.unlock();
+        return(nuser);}}
+    file_.unlock();
     if(users>=MAX_USERS){
       return(0);}
     // no old account found, creating new account
     //FIXME !!!  wrong time !!! must use time from txs
+    nuser=users++;
     srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
-    if(users>=MAX_USERS){
-      file_.unlock();
-      return(0);}
-    nuser=users++;
     deposit.push_back(0);
     lseek(fd,nuser*sizeof(user_t),SEEK_SET);
     write(fd,&nu,sizeof(user_t));
@@ -419,14 +389,30 @@ public:
   }
 
   void set_user(uint32_t user,user_t& u, int64_t deduct)
-  { assert(user<users);
+  { assert(user<users); // is this safe ???
     file_.lock();
     u.weight+=deposit[user]-deduct;
     deposit[user]=0;
-    assert(u.weight>=0);
+    //assert(u.weight>=0);
 //fprintf(stderr,"\n\nSET USER WRITE\n\n");
     lseek(fd,user*sizeof(user_t),SEEK_SET);
     write(fd,&u,sizeof(user_t));
+    file_.unlock();
+  }
+
+  void delete_user(uint32_t user)
+  { assert(user<users); // is this safe ???
+    file_.lock();
+    user_t u;
+    lseek(fd,user*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
+    u.stat|=USER_STAT_DELETED;
+    if(u.weight>=0){
+      fprintf(stderr,"WARNNG: network deleted active user %08X\n",user);}
+//fprintf(stderr,"\n\nSET USER WRITE\n\n");
+    lseek(fd,-sizeof(user_t),SEEK_CUR);
+    write(fd,&u,sizeof(user_t));
+    deleted_users.push_back(user);
     file_.unlock();
   }
 
@@ -563,6 +549,7 @@ private:
   boost::thread_group threadpool;
   std::stack<dep_t> rdep; // users with remote deposits
   std::deque<uint64_t> mque; // list of message to process log
+  std::deque<uint32_t> deleted_users; // list of accounts to reuse ... this list could be limited (swapped)
 
   boost::mutex client_;
   boost::mutex file_;

@@ -562,7 +562,7 @@ public:
           txs_.lock();
           txs_msgs_[jt->first]=jt->second;
           txs_.unlock();}
-	if(jt->second->load()){
+	if(jt->second->load(0)){ // will be unloaded by the validator
           if(!jt->second->sigh_check()){
             jt->second->read_head(); //to get 'now'
             fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
@@ -923,10 +923,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         std::cerr << "FATAL, created own double spend !!!\n";
         exit(-1);}
       message_ptr dbl_msg(new message(len));
-      if(msg1->data==NULL){
-        msg1->load();}
-      if(msg2->data==NULL){
-        msg2->load();}
+      msg1->load(0);
+      msg2->load(0);
       dbl_msg->data[0]=MSGTYPE_DBL;
       memcpy(dbl_msg->data+1,&len,3);
 //FIXME, include previous hash in this double spend proof
@@ -939,6 +937,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_msg->peer=opts_.svid;
       dbl_msg->hash.num=dbl_msg->dohash();
       dbl_msg->null_signature(); //FIXME, set this to last hash from last block
+      //msg1->unload(0);
+      //msg2->unload(0);
       dbl_.lock();
       dbl_msgs_[dbl_msg->hash.num]=dbl_msg;
       dbl_.unlock();
@@ -1138,6 +1138,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(!osg->save()){ //FIXME, change path
           fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",msg->hash.num,msg->len);
           exit(-1);}
+        //osg->unload(0);
         // process double spend
         //if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
         //  double_spend(osg);
@@ -1188,6 +1189,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         txs_.unlock();
         fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
         msg->save();
+        //msg->unload(0);
         check_.lock();
         check_msgs_.push_back(msg); // running though validator
         check_.unlock();
@@ -1335,7 +1337,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
+        if(!msg->load(0)){
+          std::cerr<<"ERROR, failed to load message !!!\n";
+          exit(-1);}
         bool valid=process_message(msg); //maybe ERROR should be also returned.
+        //msg->unload(0);
         if(valid){
           msg->print_text("VALID");
           msg->status=MSGSTAT_VAL;
@@ -1665,12 +1671,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(luser>users){
           fprintf(stderr,"ERROR: bad target user id %08X\n",luser);
           return(false);}
-// FIXME conflict ... incomming remote transaction can be processed on the network faster
-// FIXME than the overwrite transaction issued by the bank
-// FIXME !!! otherwise there is a chance of a message loss in 10 years :-(
-// FIXME [or faster if GET is executed on the account]
-// SOLUTION: network should update the status of the account (mark as dead) during dividend calculation !!!
-// DEAD accounts could be reused by the bank
 	if(luser<users){ //1. check if overwriting was legal
           auto lu=changes.find(luser); // get user
           if(lu==changes.end()){
@@ -1683,8 +1683,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           else{ // there should be no previous transaction on this user !!!
             usera=&lu->second;}
           int64_t delta=usera->weight;
-          dividend(*usera); // just a test, no update of account
-          if(usera->weight>TXS_DIV_FEE){ // require at least TXS_DIV_FEE otherwiese dust txs will keep user alive
+          //dividend(*usera); // just a test, no update of account
+          //if(usera->weight>TXS_DIV_FEE){ // require at least TXS_DIV_FEE otherwiese dust txs will keep user alive
+          if(!(usera->stat&USER_STAT_DELETED)){
             fprintf(stderr,"ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
               utxs.bbank,luser,usera->weight);
             return(false);}
@@ -2354,7 +2355,10 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
           bank_fee[svid]+=BANK_PROFIT(fee);
           if(svid==opts_.svid){
             mydiv_fee+=BANK_PROFIT(fee);}
-          if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
+//check if account should be closed
+          if(div!=(int64_t)0x8FFFFFFFFFFFFFFF || !u.weight){
+            if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
+              div=0;}
 fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
             undo.emplace(user,ou); // no emplace needed, insert is ok
             srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
@@ -2364,9 +2368,14 @@ fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
             auto it=deposit.find(to.big);
             if(it!=deposit.end()){
               if(svid==opts_.svid && !do_sync && ofip!=NULL){
-                ofip_add_remote_deposit(user,it->second);} //DIV + DEPOSIT
+                ofip_add_remote_deposit(user,it->second);} //DEPOSIT
               u.weight+=it->second;
-              div+=it->second;}
+              div+=it->second;
+              it->second=0;}
+            if(u.weight<=TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath)){ //alow deletion of account
+              u.stat|=USER_STAT_DELETED;
+              if(svid==opts_.svid && !do_sync && ofip!=NULL){
+                ofip_delete_user(user);}}
             srvs_.user_csum(u,svid,user);
             srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
             srvs_.nodes[svid].weight+=div;
@@ -3028,6 +3037,7 @@ exit(-1);
   void ofip_start(uint32_t myusers);
   void ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv);
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
+  void ofip_delete_user(uint32_t user);
 
   //FIXME, move this to servers.hpp
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs

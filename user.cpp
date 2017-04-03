@@ -210,7 +210,7 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::property_tree::ptree pt;
   ss << line;
   try{
-    std::cout<<line;
+    std::cerr<<line;
     boost::property_tree::read_json(ss,pt);}
   catch (std::exception& e){
     std::cerr << "RUN_JSON Exception: " << e.what() << "\n";}
@@ -425,7 +425,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
   pkey[64]='\0';
   hash[64]='\0';
   if(!json){
-    fprintf(stdout,
+    fprintf(stderr,
       "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
       u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);}
   else{
@@ -496,7 +496,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
     info[64]='\0';
     ed25519_key2text(info,ulog.info,32);
     if(!sts.json){
-      fprintf(stdout,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX i%64s\n",
+      fprintf(stderr,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX i%64s\n",
         ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight,info);}
     else{
       boost::property_tree::ptree logentry;
@@ -951,7 +951,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
             pt.put("tx.node_mpos",m.mpos);
             pt.put("tx.id",tx_id);}
           else{
-            fprintf(stdout,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
+            fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){

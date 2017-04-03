@@ -416,7 +416,7 @@ public:
 	}
 
 	void print_head()
-	{	fprintf(stdout,"MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
+	{	fprintf(stderr,"MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
 			ttype,abank,auser,amsid,ttime,bbank,buser,tmass,size);
 	}
 
@@ -425,11 +425,11 @@ public:
 	 	if(ttype==TXSTYPE_KEY){
 			assert((txslen[ttype]+64+64)*2<0x200);
 			ed25519_key2text(msgtxt,data,txslen[ttype]+64+64); // do not send last hash
-			fprintf(stdout,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
+			fprintf(stderr,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 		else{
 			assert((txslen[ttype]+64)*2<0x200);
 			ed25519_key2text(msgtxt,data,txslen[ttype]+64); // do not send last hash
-			fprintf(stdout,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
+			fprintf(stderr,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 	}
 
 	char* key(char* buf) //return new key in message
@@ -441,7 +441,7 @@ public:
 	}
 
 	void print_broadcast(char* buf)
-	{	fprintf(stdout,"BRO:%.*s\n",bbank,broadcast(buf));
+	{	fprintf(stderr,"BRO:%.*s\n",bbank,broadcast(buf));
 	}
 
 	char* broadcast(char* buf) //return broadcast buffer in message

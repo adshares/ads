@@ -120,12 +120,15 @@
 #define TXS_BNK_FEE      (0x10000000) /* 0x0.1 G */
 #define TXS_BKY_FEE      (0x10000000) /* 0x0.1 G */
 #define USER_MIN_MASS    (0x10000000) /* 0x0.1 G minimum user account mass to send transaction */
+#define USER_MIN_AGE     (BLOCKSEC*4) /* wait at least 4 blocks before deleting an account */
 #define BANK_MIN_UMASS   (0x10000000) /* 0x0.1G, minimum admin account mass to send transaction */
 #define BANK_MIN_TMASS   (0x1000000000) /* 0x10G, if bank total mass below this value, bank can be taken over */
 #define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
 #define BANK_MAX         (0xffff)
 #define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (0x1000 + ((BANK_PROFIT(((uint64_t)(x))*(TXS_DIV_FEE/BLOCKDIV)))>>2)) /* every block */
+
+#define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
 #define MESSAGE_TOO_LONG 0x800000
 #define MESSAGE_LEN_OK 0x10000
