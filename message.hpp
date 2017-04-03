@@ -185,7 +185,7 @@ public:
 	peer(msvid)
   { data=NULL;
     hash.dat[1]=type;
-    if(!load()){ //sets len
+    if(!load(0)){ //sets len ... assume this is invoced only by server during sync
       return;}
     memcpy(&now,data+4+64+6,4);
     got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
@@ -498,8 +498,13 @@ public:
     fprintf(stderr,"NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
-  int load() //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
-  { uint32_t head;
+  int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
+  { mtx_.lock();
+    busy.insert(who);
+    if(data!=NULL){
+      mtx_.unlock();
+      return(1);}
+    uint32_t head;
     char filename[64];
       //std::cerr << "ERROR: loading message while data not empty\n";
       //return(0);}
@@ -507,20 +512,23 @@ public:
     std::ifstream myfile(filename,std::ifstream::binary);
     if(!myfile){
       //std::cerr << "ERROR: opening message failed\n";
+      mtx_.unlock();
       return(0);}
     myfile.read((char*)&head,4);
     if(!myfile){
       std::cerr << "ERROR: reading length\n";
+      mtx_.unlock();
       return(0);}
     if(len==header_length){
       len=(head)>>8;}
     else if(len!=((head)>>8)){
       std::cerr << "ERROR: length mismatch\n";
+      mtx_.unlock();
       return(0);}
     assert(len>4+64 && len<=4+2*max_length); // accept DBL messages length
-    if(data!=NULL){
-      free(data);
-      data=NULL;}
+    //if(data!=NULL){
+    //  free(data);
+    //  data=NULL;}
     data=(uint8_t*)std::malloc(len);
     memcpy(data,&head,4);
     myfile.read((char*)data+4,len-4); // TODO, consider loading more saved data (status?)
@@ -528,9 +536,21 @@ public:
       std::cerr << "ERROR: reading data\n";
       free(data);
       data=NULL;
+      mtx_.unlock();
       return(0);}
     myfile.close();
+    mtx_.unlock();
     return(1);
+  }
+
+  void unload(int16_t who)
+  { mtx_.lock();
+    busy.erase(who);
+    if(busy.empty()){
+      if(data!=NULL){
+        free(data);
+        data=NULL;}}
+    mtx_.unlock();
   }
 
   //FIXME, check again the time of saving, consider free'ing data after save

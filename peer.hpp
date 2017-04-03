@@ -172,14 +172,15 @@ public:
   void deliver(message_ptr msg)
   { if(do_sync){
       return;}
+    msg->load(svid);
+    //if(msg->status==MSGSTAT_SAV){
+    //  if(!msg->load()){
+    //    fprintf(stderr,"DELIVER problem for %04X:%08X\n",msg->svid,msg->msid);
+    //    msg->mtx_.unlock();
+    //    return;}}
+    //msg->busy.insert(svid);
     msg->mtx_.lock();//TODO, do this right before sending the message ?
     msg->know.insert(svid);
-    if(msg->status==MSGSTAT_SAV){
-      if(!msg->load()){
-        fprintf(stderr,"DELIVER problem for %04X:%08X\n",msg->svid,msg->msid);
-        msg->mtx_.unlock();
-        return;}}
-    msg->busy.insert(svid);
     msg->mtx_.unlock();
     mtx_.lock();
     if(BLOCK_MODE_SERVER){
@@ -209,7 +210,8 @@ Aborted
 */
     //assert(do_sync); //FIXME, failed !!!
 //FIXME, brakes after handle_read_headers() if there are more headers to load
-    put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
+    put_msg->load(svid);
+    //put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
     mtx_.lock(); //most likely no lock needed
     boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
     //bool no_write_in_progress = write_msgs_.empty();
@@ -221,6 +223,7 @@ Aborted
     //else{
     //std::cerr<<"SENDING in sync mode busy("<<write_msgs_.size()<<"), queued("<<write_msgs_.back()->len<<"B)\n";}
     mtx_.unlock();
+    //put_msg->unload(svid);
   }
 
   void handle_write(const boost::system::error_code& error) //TODO change this later, dont send each message separately if possible
@@ -228,8 +231,9 @@ Aborted
     //std::cerr << "HANDLE WRITE start\n";
     if (!error) {
       mtx_.lock();
+      //write_msgs_.front()->unload(svid);
+      //write_msgs_.front()->busy.erase(svid); // will not work if same message queued 2 times
       write_msgs_.front()->mtx_.lock();
-      write_msgs_.front()->busy.erase(svid); // will not work if same message queued 2 times
       write_msgs_.front()->sent.insert(svid);
       write_msgs_.front()->mtx_.unlock();
       bytes_out+=write_msgs_.front()->len;
@@ -300,13 +304,13 @@ Aborted
               (read_msg_->data[0]==MSGTYPE_GET && srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1 && server_.check_msgs_size()<MAX_CHECKQUE)){
             //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<read_msg_->svid<<":"<<read_msg_->msid<<")\n";
             fprintf(stderr,"REQUESTING MESSAGE from %02X (%04X:%08X)\n",svid,read_msg_->svid,read_msg_->msid);
-            read_msg_->busy_insert(svid);
+            //read_msg_->busy_insert(svid);
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
         fprintf(stderr,"HASH %016lX [%016lX] (requested by:%04X)\n",read_msg_->hash.num,*((uint64_t*)read_msg_->data),svid); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
-          if(read_msg_->load()){
+          if(read_msg_->load(svid)){
             //std::cerr << "PROVIDING MESSAGE (in sync)\n";
             fprintf(stderr,"PROVIDING MESSAGE %04X:%08X (in sync)\n",read_msg_->svid,read_msg_->msid);
             send_sync(read_msg_);} //deliver will not work in do_sync mode

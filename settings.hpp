@@ -4,7 +4,7 @@
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
-    copy(v.begin(), v.end(), std::ostream_iterator<T>(std::cout, " "));
+    copy(v.begin(), v.end(), std::ostream_iterator<T>(std::cerr, " "));
     return os;
 }
 
@@ -87,12 +87,12 @@ public:
 			store(parse_config_file(ifs, config_file_options), vm);
 			notify(vm);
 			if(vm.count("help")){
-				std::cout << "Usage: " << av[0] << " [settings]\n";
-				std::cout << generic << "\n";
-				std::cout << config << "\n";
+				std::cerr << "Usage: " << av[0] << " [settings]\n";
+				std::cerr << generic << "\n";
+				std::cerr << config << "\n";
 				exit(0);}
 			if(vm.count("version")){
-				std::cout << "Version 1.0\n";
+				std::cerr << "Version 1.0\n";
 				exit(0);}
 			if (vm.count("skey")){
 				if(skey.length()!=64){
@@ -101,15 +101,15 @@ public:
 				ed25519_text2key(sk,skey.c_str(),32);
 				ed25519_publickey(sk,pk);
 				ed25519_key2text(pktext,pk,32);
-				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "Public key: " << std::string(pktext) << std::endl;}
+				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
+				std::cerr << "Public key: " << std::string(pktext) << std::endl;}
 			else{
-				std::cout << "ENTER passphrase\n";
+				std::cerr << "ENTER passphrase\n";
 				std::string line;
 				std::getline(std::cin,line);
 				boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
 				if(line.empty()){
-					std::cout << "ERROR, failed to read passphrase\n";
+					std::cerr << "ERROR, failed to read passphrase\n";
 					exit(1);}
 				SHA256_CTX sha256;
 				SHA256_Init(&sha256);
@@ -117,23 +117,23 @@ public:
 				SHA256_Final(sk,&sha256);
 				ed25519_publickey(sk,pk);
 				ed25519_key2text(pktext,pk,32);
-				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "Public key: " << std::string(pktext) << std::endl;}
+				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
+				std::cerr << "Public key: " << std::string(pktext) << std::endl;}
 			if(vm.count("pkey")){
 				if(memcmp(pkey.c_str(),pktext,2*32)){
-					std::cout << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
+					std::cerr << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
 					exit(1);}}
 			else{
-				std::cout << "INFO: suply public key to proceed\n";
+				std::cerr << "INFO: suply public key to proceed\n";
 				exit(0);}
 			/*if (vm.count("snew")){
 				if(snew.length()!=64){
-					std::cout << "ENTER passphrase\n";
+					std::cerr << "ENTER passphrase\n";
 					std::string line;
 					std::getline(std::cin,line);
 					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
 					if(line.empty()){
-						std::cout << "ERROR, failed to read passphrase\n";
+						std::cerr << "ERROR, failed to read passphrase\n";
 						exit(1);}
 					SHA256_CTX sha256;
 					SHA256_Init(&sha256);
@@ -143,16 +143,16 @@ public:
 					ed25519_text2key(sn,snew.c_str(),32);}
 				ed25519_publickey(sn,pn);
 				ed25519_key2text(pktext,pn,32);
-				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "New public key: " << std::string(pktext) << std::endl;}*/
+				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
+				std::cerr << "New public key: " << std::string(pktext) << std::endl;}*/
 			/*if (vm.count("sold")){
 				if(sold.length()!=64){
-					std::cout << "ENTER passphrase\n";
+					std::cerr << "ENTER passphrase\n";
 					std::string line;
 					std::getline(std::cin,line);
 					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
 					if(line.empty()){
-						std::cout << "ERROR, failed to read passphrase\n";
+						std::cerr << "ERROR, failed to read passphrase\n";
 						exit(1);}
 					SHA256_CTX sha256;
 					SHA256_Init(&sha256);
@@ -162,50 +162,50 @@ public:
 					ed25519_text2key(so,sold.c_str(),32);}
 				ed25519_publickey(so,po);
 				ed25519_key2text(pktext,po,32);
-				//std::cout << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cout << "old public key: " << std::string(pktext) << std::endl;}*/
+				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
+				std::cerr << "old public key: " << std::string(pktext) << std::endl;}*/
 			if(vm.count("port")){
-				std::cout << "Bank port: " << vm["port"].as<int>() << std::endl;}
+				std::cerr << "Bank port: " << vm["port"].as<int>() << std::endl;}
 			else{
-				std::cout << "ERROR: bank port missing!" << std::endl;
+				std::cerr << "ERROR: bank port missing!" << std::endl;
 				exit(1);}
 			if (vm.count("addr")){
-				std::cout << "Bank addr: " << vm["addr"].as<std::string>() << std::endl;}
+				std::cerr << "Bank addr: " << vm["addr"].as<std::string>() << std::endl;}
 			else{
-				std::cout << "ERROR: bank addr missing!" << std::endl;
+				std::cerr << "ERROR: bank addr missing!" << std::endl;
 				exit(1);}
 			if (vm.count("bank")){
-				std::cout << "Bank   id: " << vm["bank"].as<int>() << std::endl;}
+				std::cerr << "Bank   id: " << vm["bank"].as<int>() << std::endl;}
 			else{
-				std::cout << "ERROR: bank id missing!" << std::endl;
+				std::cerr << "ERROR: bank id missing!" << std::endl;
 				exit(1);}
 			if (vm.count("user")){
-				std::cout << "User   id: " << vm["user"].as<int>() << std::endl;}
+				std::cerr << "User   id: " << vm["user"].as<int>() << std::endl;}
 			else{
-				std::cout << "ERROR: user id missing!" << std::endl;
+				std::cerr << "ERROR: user id missing!" << std::endl;
 				exit(1);}
 			if (vm.count("msid")){
-				std::cout << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
+				std::cerr << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
 			else{
-				std::cout << "WARNING: last message id missing!" << std::endl;}
+				std::cerr << "WARNING: last message id missing!" << std::endl;}
 			if (vm.count("json")){
-				std::cout << "InputJson: " << vm["json"].as<bool>() << std::endl;}
+				std::cerr << "InputJson: " << vm["json"].as<bool>() << std::endl;}
 			if (vm.count("mlin")){
-				std::cout << "MultiLine: " << vm["mlin"].as<bool>() << std::endl;}
+				std::cerr << "MultiLine: " << vm["mlin"].as<bool>() << std::endl;}
 			if (vm.count("nice")){
-				std::cout << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
+				std::cerr << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
 			if (vm.count("drun")){
-				std::cout << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;}
+				std::cerr << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;}
 			if (vm.count("hash")){
 				if(hash.length()!=64){
 					std::cerr << "ERROR: hash wrong length (should be 64): " << vm["hash"].as<std::string>() << std::endl;
 					exit(1);}
 				ed25519_text2key(ha,hash.c_str(),32);}
 			else{
-				std::cout << "WARNING: last hash missing!" << std::endl;}
+				std::cerr << "WARNING: last hash missing!" << std::endl;}
 			}
 		catch(std::exception &e){
-			std::cout << "Exception: " << e.what() << std::endl;
+			std::cerr << "Exception: " << e.what() << std::endl;
 			exit(1);
 		}
 	}

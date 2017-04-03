@@ -83,6 +83,9 @@ void server::ofip_add_remote_deposit(uint32_t user,int64_t weight)
 void server::ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey)
 {	ofip->add_remote_user(abank,auser,pkey);
 }
+void server::ofip_delete_user(uint32_t auser)
+{	ofip->delete_user(auser);
+}
 
 // server <-> peer
 void server::join(peer_ptr p)
