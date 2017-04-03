@@ -873,7 +873,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
         print_blg(fd,path,pt);
         close(fd);}
       else{
-        pt.put("ERROR","broadcast file missing");}}
+        pt.put("error.text","broadcast file missing");}}
       //boost::property_tree::write_json(std::cout,pt,sts.nice);}
       //if(fd>0){
       //  save_blg(blg,len,path,pt,sts.json);}}
