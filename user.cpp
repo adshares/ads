@@ -220,9 +220,6 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::optional<std::string> json_pkey=pt.get_optional<std::string>("pkey");
   if(json_pkey && !parse_key(to_pkey,json_pkey,32)){
     return(NULL);}
-  boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
-  if(json_info && !parse_key(to_info,json_info,32)){
-    return(NULL);}
   boost::optional<std::string> json_hash=pt.get_optional<std::string>("hash");
   if(json_hash && !parse_key(sts.ha,json_hash,32)){
     return(NULL);}
@@ -280,7 +277,7 @@ usertxs_ptr run_json(settings& sts,char* line)
       return(txs);}
     return(NULL);}
   else if(!run.compare(txsname[TXSTYPE_BRO])){
-    boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("text");
+    boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
     if(json_text_hex){
       std::string text_hex=json_text_hex.get();
       int len=text_hex.length()/2;
@@ -292,7 +289,7 @@ usertxs_ptr run_json(settings& sts,char* line)
       txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,len,to_user,to_mass,to_info,(const char*)text);
       free(text);}
     else{
-      boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("text_asci");
+      boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("message_ascii");
       if(json_text_asci){
          std::string text=json_text_asci.get();
          txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());}
@@ -318,6 +315,9 @@ usertxs_ptr run_json(settings& sts,char* line)
       return(NULL);}
     txs=boost::make_shared<usertxs>(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_num,to_user,to_mass,to_info,text.c_str());}
   else if(!run.compare(txsname[TXSTYPE_PUT])){
+    boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
+    if(json_info && !parse_key(to_info,json_info,32)){
+      return(NULL);}
     txs=boost::make_shared<usertxs>(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
   else if(!run.compare(txsname[TXSTYPE_USR])){
     txs=boost::make_shared<usertxs>(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
@@ -658,28 +658,33 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
     pt.add_child("log",logtree);}
 }
 
-void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
+//void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
+void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree)
 { struct stat sb;
   fstat(fd,&sb);
   uint32_t len=sb.st_size;
-  pt.put("length",len);
+  //pt.put("length",len);
   if(!len){
     return;}
   char *blg=(char*)malloc(len);
   if(blg==NULL){
-    pt.put("ERROR","broadcast file too large");
+    //pt.put("ERROR","broadcast file too large");
+    fprintf(stderr,"ERROR, broadcast file malloc error (size:%d)\n",len);
     return;}
   if(read(fd,blg,len)!=len){
-    pt.put("ERROR","broadcast file read error");
+    //pt.put("ERROR","broadcast file read error");
+    fprintf(stderr,"ERROR, broadcast file read error\n");
     free(blg);
     return;}
-  boost::property_tree::ptree blogtree;
+  //boost::property_tree::ptree blogtree;
   usertxs utxs;
   for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32+4+4){
     boost::property_tree::ptree blogentry;
+    blogentry.put("block_time",path);
     if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
       std::cerr<<"ERROR: failed to parse broadcast transaction\n";
-      pt.put("ERROR","failed to parse transaction");
+      blogentry.put("ERROR","failed to parse transaction");
+      blogtree.push_back(std::make_pair("",blogentry));
       break;}
     blogentry.put("node",utxs.abank);
     blogentry.put("account",utxs.auser);
@@ -735,7 +740,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
     //FIXME calculate fee
     blogentry.put("fee",0);
     blogtree.push_back(std::make_pair("",blogentry));}
-  pt.add_child("broadcast",blogtree);
+  //pt.add_child("broadcast",blogtree);
   free(blg);
 }
 
@@ -785,7 +790,35 @@ void save_log(log_t* log,int len,uint32_t from,settings& sts)
   close(fd);
 }
 
-void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
+bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket)
+{ static bool connected=false;
+  boost::system::error_code error = boost::asio::error::host_not_found;
+  try{
+    if(!connected){
+      boost::asio::ip::tcp::resolver::iterator end;
+      while (endpoint_iterator != end){
+        std::cerr<<"CONNECTING\n";
+        socket.connect(*endpoint_iterator, error);
+        if(!error){
+          break;}
+        socket.close();
+        endpoint_iterator++;}
+      if(error){
+        throw boost::system::system_error(error);}
+      std::cerr<<"CONNECTED\n";
+      connected=true;}
+    else{
+      socket.connect(*endpoint_iterator, error);
+      if(error){
+        throw boost::system::system_error(error);}}}
+  catch (std::exception& e){
+    std::cerr << "Connect Exception: " << e.what() << "\n";
+    socket.close();
+    return(false);}
+  return(true);
+}
+
+void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //len can be deduced from txstype
 { char buf[0xff];
   try{
     boost::property_tree::ptree pt;
@@ -803,13 +836,13 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
     logpt.put("tx.data",tx_data);
     free(tx_data);
     // tx_user_hashin
-    char tx_user_hashin[65];tx_user_hashin[64]='\0';
-    ed25519_key2text(tx_user_hashin,sts.ha,32);
-    pt.put("tx.account_hashin",tx_user_hashin);
-    logpt.put("tx.account_hashin",tx_user_hashin);
     // calculate tx_user_hashout
     uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     if(txs->ttype<TXSTYPE_INF){
+      char tx_user_hashin[65];tx_user_hashin[64]='\0';
+      ed25519_key2text(tx_user_hashin,sts.ha,32);
+      pt.put("tx.account_hashin",tx_user_hashin);
+      logpt.put("tx.account_hashin",tx_user_hashin);
       char tx_user_hashout[65];tx_user_hashout[64]='\0';
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
@@ -833,51 +866,71 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
       return;}
     if(txs->ttype==TXSTYPE_BLG){
       uint32_t path=txs->ttime;
+      uint32_t to=time(NULL)-2*BLOCKSEC;
+      to+=-(to%BLOCKSEC);
       if(!path){
-        path=time(NULL)-BLOCKSEC/10;
-        path+=-(path%BLOCKSEC)-BLOCKSEC;}
-      char filename[64];
-      sprintf(filename,"bro/%08X.bin",path);
-      int fd=open(filename,O_RDONLY);
-      if(fd<0){
-        boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
-        uint32_t head[2];
-        if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
-          std::cerr<<"ERROR reading broadcast log length\n";
-          socket.close();
-          return;}
-        path=head[0];
-        int len=(int)head[1];
-        mkdir("bro",0755);
-        int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
-        char* blg=NULL;
-        if(len){
-          blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
-          if(blg==NULL){
-            fprintf(stderr,"ERROR allocating %08X bytes\n",len);
-            socket.close();
-            return;}
-          if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
-            std::cerr<<"ERROR reading broadcast log\n";
-            free(blg);
-            socket.close();
-            return;}
-          write(fd,(char*)blg,len);
-          free(blg);}}
+        path=to;}
       char blockhex[9];
       blockhex[8]='\0';
+      sprintf(blockhex,"%08X",to);
+      pt.put("to_block_hex",blockhex);
+      pt.put("to_block",to);
       sprintf(blockhex,"%08X",path);
-      pt.put("block_hex",blockhex);
-      pt.put("block",path);
-      if(fd>=0){
-        print_blg(fd,path,pt);
-        close(fd);}
-      else{
-        pt.put("ERROR","broadcast file missing");}}
-      //boost::property_tree::write_json(std::cout,pt,sts.nice);}
-      //if(fd>0){
-      //  save_blg(blg,len,path,pt,sts.json);}}
+      pt.put("from_block_hex",blockhex);
+      pt.put("from_block",path);
+      boost::property_tree::ptree blogtree;
+      for(;path<=to;to-=BLOCKSEC){
+        if(txs->ttime!=to){ // straszny burdel :-( tu nie powinno byc tworzenia transakcji
+          txs->change_time(to);
+          txs->sign(sts.ha,sts.sk,sts.pk);}
+        char filename[64];
+        sprintf(filename,"bro/%08X.bin",to);
+        int fd=open(filename,O_RDONLY);
+        if(fd<0){
+          try{
+            fprintf(stderr,"DEBUG request broadcast from %08X\n",to);
+            if(!node_connect(endpoint_iterator,socket)){
+              break;}
+            boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
+            uint32_t head[2];
+            if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
+              std::cerr<<"ERROR reading broadcast log length\n";
+              socket.close();
+              break;}
+            to=head[0];
+            int len=(int)head[1];
+            mkdir("bro",0755);
+            int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+            char* blg=NULL;
+            if(len){
+              blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
+              if(blg==NULL){
+                fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+                socket.close();
+                break;}
+              if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
+                std::cerr<<"ERROR reading broadcast log\n";
+                free(blg);
+                socket.close();
+                break;}
+              write(fd,(char*)blg,len);
+              free(blg);}
+            else{
+              fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
+            socket.close();}
+          catch (std::exception& e){
+            std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
+            break;}}
+        if(fd>=0){
+          //print_blg(fd,path,pt);
+          print_blg(fd,to,blogtree);
+          close(fd);}}
+        //else{
+        //  pt.put("ERROR","broadcast file missing");}
+      pt.add_child("broadcast",blogtree);}
     else{
+      if(!node_connect(endpoint_iterator,socket)){
+        return;}
       boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
       int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
       if(len!=sizeof(user_t)){
@@ -939,7 +992,7 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
           socket.close();
           return;}
         else{
-          sts.msid=m.msid;
+          //sts.msid=m.msid;
           // save outgoing message log
           logpt.put("tx.node_msid",m.msid);
           logpt.put("tx.node_mpos",m.mpos);
@@ -951,12 +1004,12 @@ void talk(boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs) //
             pt.put("tx.node_mpos",m.mpos);
             pt.put("tx.id",tx_id);}
           else{
-            fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
+            fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}
+      socket.close();}
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){
-    std::cerr << "Exception: " << e.what() << "\n";}
-  socket.close();
+    std::cerr << "Talk Exception: " << e.what() << "\n";}
 }
 
 //TODO add timeout
@@ -968,16 +1021,13 @@ int main(int argc, char* argv[])
   boost::asio::ip::tcp::resolver resolver(io_service);
   boost::asio::ip::tcp::resolver::query query(sts.addr,std::to_string(sts.port).c_str());
   boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-  boost::asio::ip::tcp::resolver::iterator end;
   boost::asio::ip::tcp::socket socket(io_service);
-  boost::system::error_code error = boost::asio::error::host_not_found;
-  bool connected=false;
   try{
     if(!sts.exec.empty()){
       usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length());
       if(txs==NULL){
         std::cerr << "ERROR\n";}
-      talk(socket,sts,txs);
+      talk(endpoint_iterator,socket,sts,txs);
       return(0);}
     //std::string line;
     char line[0x10000];line[0xffff]='\0';
@@ -1004,26 +1054,8 @@ int main(int argc, char* argv[])
         txs=run_json(sts,line);}
       if(txs==NULL){
         break;}
-      if(!connected){
-        while (endpoint_iterator != end){
-          std::cerr<<"CONNECTING\n";
-          socket.connect(*endpoint_iterator, error);
-          if(!error){
-            break;}
-          socket.close();
-          endpoint_iterator++;}
-        if(error){
-          throw boost::system::system_error(error);}
-        std::cerr<<"CONNECTED\n";
-        connected=true;}
-      else{
-        socket.connect(*endpoint_iterator, error);
-        if(error){
-          std::cerr<<"ERROR connecting again\n";
-          break;}}
-      talk(socket,sts,txs);
-      socket.close();}}
+      talk(endpoint_iterator,socket,sts,txs);}}
   catch (std::exception& e){
-    std::cerr << "Exception: " << e.what() << "\n";}
+    std::cerr << "Main Exception: " << e.what() << "\n";}
   return 0;
 }

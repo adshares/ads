@@ -432,6 +432,14 @@ public:
 			fprintf(stderr,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 	}
 
+	void change_time(uint32_t nttime)
+	{	assert(ttype==TXSTYPE_BLG);
+		ttime=nttime;
+		memcpy(data+1+6,&ttime,4);
+		return;
+	}
+
+
 	char* key(char* buf) //return new key in message
 	{	return(buf+1+2+4+4+4);
 	}
