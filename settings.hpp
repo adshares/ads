@@ -29,9 +29,10 @@ public:
 	{}
 	uint8_t ha[SHA256_DIGEST_LENGTH];
 	int port;		// connecting port
-	std::string addr;	// connecting address
-	int bank;		// my bank
-	int user;		// my account
+	std::string host;	// connecting host
+	std::string addr;	// my address
+	uint16_t bank;		// my bank
+	uint32_t user;		// my account
 	int msid;		// my last message id
 	bool json;
 	bool mlin;
@@ -57,14 +58,15 @@ public:
 			boost::program_options::options_description generic("Generic options");
 			generic.add_options()
 				("version,v", "print version string")
-				("help,h", "produce help message")
+				("help", "produce help message")
 				;
 			boost::program_options::options_description config("Configuration [command_line + config_file]");
 			config.add_options()
 				("port,p", boost::program_options::value<int>(&port)->default_value(9080),			"bank port (for clients)")
-				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"bank address or hostname")
-				("bank,b", boost::program_options::value<int>(&bank),						"bank id")
-				("user,u", boost::program_options::value<int>(&user),						"user id")
+				("host,h", boost::program_options::value<std::string>(&host)->default_value("127.0.0.1"),	"bank hostname or ip")
+				("bank,b", boost::program_options::value<uint16_t>(&bank),						"bank id (don't use with --addr)")
+				("user,u", boost::program_options::value<uint32_t>(&user),						"user id (don't use with --addr)")
+				("addr,a", boost::program_options::value<std::string>(&addr),					"address (don't use with --bank, --user)")
 				("msid,i", boost::program_options::value<int>(&msid),						"last message id")
 				("json,j", boost::program_options::value<bool>(&json)->default_value(false),			"expect json input and output")
 				("mlin,m", boost::program_options::value<bool>(&mlin)->default_value(true),			"allow json with multiple lines")
@@ -98,27 +100,46 @@ public:
 				if(skey.length()!=64){
 					std::cerr << "ERROR: secret key wrong length (should be 64): " << vm["skey"].as<std::string>() << std::endl;
 					exit(1);}
+				if(skey.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos){
+					std::cerr << "ERROR: secret key has invalid hex characters: " << vm["skey"].as<std::string>() << std::endl;
+					exit(1);}
+
 				ed25519_text2key(sk,skey.c_str(),32);
 				ed25519_publickey(sk,pk);
 				ed25519_key2text(pktext,pk,32);
 				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
+
+				vm.insert(std::make_pair("pkey", boost::program_options::variable_value(std::string(pktext), false)));
+				pkey = std::string(pktext);
+
 				std::cerr << "Public key: " << std::string(pktext) << std::endl;}
 			else{
-				std::cerr << "ENTER passphrase\n";
+				std::cerr << "ENTER passphrase or private key\n";
 				std::string line;
 				std::getline(std::cin,line);
+
 				boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
 				if(line.empty()){
 					std::cerr << "ERROR, failed to read passphrase\n";
 					exit(1);}
-				SHA256_CTX sha256;
-				SHA256_Init(&sha256);
-				SHA256_Update(&sha256,line.c_str(),line.length());
-				SHA256_Final(sk,&sha256);
-				ed25519_publickey(sk,pk);
-				ed25519_key2text(pktext,pk,32);
+				if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
+					skey = line;
+					ed25519_text2key(sk,skey.c_str(),32);
+					ed25519_publickey(sk,pk);
+					ed25519_key2text(pktext,pk,32);
+				} else {
+					SHA256_CTX sha256;
+					SHA256_Init(&sha256);
+					SHA256_Update(&sha256,line.c_str(),line.length());
+					SHA256_Final(sk,&sha256);
+					ed25519_publickey(sk,pk);
+					ed25519_key2text(pktext,pk,32);
+				}
 				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cerr << "Public key: " << std::string(pktext) << std::endl;}
+				std::cerr << "Public key: " << std::string(pktext) << std::endl;
+				vm.insert(std::make_pair("pkey", boost::program_options::variable_value(std::string(pktext), false)));
+				pkey = std::string(pktext);
+			}
 			if(vm.count("pkey")){
 				if(memcmp(pkey.c_str(),pktext,2*32)){
 					std::cerr << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
@@ -126,63 +147,38 @@ public:
 			else{
 				std::cerr << "INFO: suply public key to proceed\n";
 				exit(0);}
-			/*if (vm.count("snew")){
-				if(snew.length()!=64){
-					std::cerr << "ENTER passphrase\n";
-					std::string line;
-					std::getline(std::cin,line);
-					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
-					if(line.empty()){
-						std::cerr << "ERROR, failed to read passphrase\n";
-						exit(1);}
-					SHA256_CTX sha256;
-					SHA256_Init(&sha256);
-					SHA256_Update(&sha256,line.c_str(),line.length());
-					SHA256_Final(sn,&sha256);}
-				else{
-					ed25519_text2key(sn,snew.c_str(),32);}
-				ed25519_publickey(sn,pn);
-				ed25519_key2text(pktext,pn,32);
-				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cerr << "New public key: " << std::string(pktext) << std::endl;}*/
-			/*if (vm.count("sold")){
-				if(sold.length()!=64){
-					std::cerr << "ENTER passphrase\n";
-					std::string line;
-					std::getline(std::cin,line);
-					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
-					if(line.empty()){
-						std::cerr << "ERROR, failed to read passphrase\n";
-						exit(1);}
-					SHA256_CTX sha256;
-					SHA256_Init(&sha256);
-					SHA256_Update(&sha256,line.c_str(),line.length());
-					SHA256_Final(so,&sha256);}
-				else{
-					ed25519_text2key(so,sold.c_str(),32);}
-				ed25519_publickey(so,po);
-				ed25519_key2text(pktext,po,32);
-				//std::cerr << "secret key: " << vm["skey"].as<std::string>() << std::endl;
-				std::cerr << "old public key: " << std::string(pktext) << std::endl;}*/
 			if(vm.count("port")){
 				std::cerr << "Bank port: " << vm["port"].as<int>() << std::endl;}
 			else{
 				std::cerr << "ERROR: bank port missing!" << std::endl;
 				exit(1);}
-			if (vm.count("addr")){
-				std::cerr << "Bank addr: " << vm["addr"].as<std::string>() << std::endl;}
+			if (vm.count("host")){
+				std::cerr << "Bank host: " << vm["host"].as<std::string>() << std::endl;}
 			else{
-				std::cerr << "ERROR: bank addr missing!" << std::endl;
+				std::cerr << "ERROR: bank host missing!" << std::endl;
 				exit(1);}
+			if (vm.count("addr")) {
+				if(vm.count("bank") || vm.count("user")) {
+					std::cerr << "ERROR: do not specify bank/user and address at the same time" << std::endl;
+					exit(1);
+				}
+				std::cerr << "Address: " << vm["addr"].as<std::string>() << std::endl;
+				if(!parse_acnt(bank, user, addr)){
+					std::cerr << "ERROR: invalid address" << std::endl;
+					exit(1);
+				}
+				vm.insert(std::make_pair("bank", boost::program_options::variable_value(bank, false)));
+				vm.insert(std::make_pair("user", boost::program_options::variable_value(user, false)));
+			}
 			if (vm.count("bank")){
-				std::cerr << "Bank   id: " << vm["bank"].as<int>() << std::endl;}
+				std::cerr << "Bank   id: " << vm["bank"].as<uint16_t>() << std::endl;}
 			else{
-				std::cerr << "ERROR: bank id missing!" << std::endl;
+				std::cerr << "ERROR: bank id missing! Specify --bank or --address" << std::endl;
 				exit(1);}
 			if (vm.count("user")){
-				std::cerr << "User   id: " << vm["user"].as<int>() << std::endl;}
+				std::cerr << "User   id: " << vm["user"].as<uint32_t>() << std::endl;}
 			else{
-				std::cerr << "ERROR: user id missing!" << std::endl;
+				std::cerr << "ERROR: user id missing! Specify --user or --address" << std::endl;
 				exit(1);}
 			if (vm.count("msid")){
 				std::cerr << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
@@ -204,6 +200,8 @@ public:
 			else{
 				std::cerr << "WARNING: last hash missing!" << std::endl;}
 			}
+
+
 		catch(std::exception &e){
 			std::cerr << "Exception: " << e.what() << std::endl;
 			exit(1);

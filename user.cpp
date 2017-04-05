@@ -71,30 +71,6 @@ bool parse_mpt(std::string& text,uint32_t& to_bank,const char* line,int end)
   return(false);
 }
 
-uint16_t crc16(const uint8_t* data_p, uint8_t length)
-{ uint8_t x;
-  uint16_t crc = 0x1D0F; //differet initial checksum !!!
-
-  while(length--){
-    x = crc >> 8 ^ *data_p++;
-    x ^= x>>4;
-    crc = (crc << 8) ^ ((uint16_t)(x << 12)) ^ ((uint16_t)(x <<5)) ^ ((uint16_t)x);}
-  return crc;
-}
-uint16_t crc_acnt(uint16_t to_bank,uint32_t to_user)
-{ uint8_t data[6];
-  uint8_t* bankp=(uint8_t*)&to_bank;
-  uint8_t* userp=(uint8_t*)&to_user;
-  //change endian
-  data[0]=bankp[1];
-  data[1]=bankp[0];
-  data[2]=userp[3];
-  data[3]=userp[2];
-  data[4]=userp[1];
-  data[5]=userp[0];
-  return(crc16(data,6));
-}
-
 //bool parse_bank(uint16_t& to_bank,boost::optional<std::string>& json_bank)
 //{ std::string str_bank=json_bank.get();
 bool parse_bank(uint16_t& to_bank,std::string str_bank)
@@ -123,47 +99,6 @@ bool parse_user(uint32_t& to_user,std::string str_user)
   if(errno || endptr==str_user.c_str()){
     fprintf(stderr,"ERROR: parse_user(%s)\n",str_user.c_str());
     perror("ERROR: strtol");
-    return(false);}
-  return(true);
-}
-
-//bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,boost::optional<std::string>& json_acnt)
-//{ std::string str_acnt=json_acnt.get();
-bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
-{ uint16_t to_csum=0;
-  uint16_t to_crc16;
-  char *endptr;
-  if(str_acnt.length()!=18){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad length (required 18)\n",str_acnt.c_str());
-    return(false);}
-  if(str_acnt[4]!='-' || str_acnt[13]!='-'){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad format (required BBBB-UUUUUUUU-XXXX)\n",str_acnt.c_str());
-    return(false);}
-  str_acnt[4]='\0';
-  str_acnt[13]='\0';
-  errno=0;
-  to_bank=(uint16_t)strtol(str_acnt.c_str(),&endptr,16);
-  if(errno || endptr==str_acnt.c_str()){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",str_acnt.c_str());
-    perror("ERROR: strtol");
-    return(false);}
-  errno=0;
-  to_user=(uint32_t)strtoll(str_acnt.c_str()+5,&endptr,16);
-  if(errno || endptr==str_acnt.c_str()+5){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",str_acnt.c_str());
-    perror("ERROR: strtol");
-    return(false);}
-  if(!strncmp("XXXX",str_acnt.c_str()+14,4)){
-    return(true);}
-  errno=0;
-  to_csum=(uint16_t)strtol(str_acnt.c_str()+14,&endptr,16);
-  if(errno || endptr==str_acnt.c_str()+14){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",str_acnt.c_str());
-    perror("ERROR: strtol");
-    return(false);}
-  to_crc16=crc_acnt(to_bank,to_user);
-  if(to_csum!=to_crc16){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",str_acnt.c_str(),to_crc16);
     return(false);}
   return(true);
 }
@@ -246,7 +181,12 @@ usertxs_ptr run_json(settings& sts,char* line)
   if(!run.compare("get_me")){
     txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);}
   else if(!run.compare(txsname[TXSTYPE_INF])){
-    txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);}
+	if(!to_bank && !to_user) { // no target account specified
+		txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
+	} else {
+		txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
+	}
+  }
   else if(!run.compare(txsname[TXSTYPE_LOG])){
     sts.lastlog=to_from; //save requested log period
     to_from=0;
@@ -939,7 +879,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
         print_user(myuser,pt,sts.json,true,sts.bank,sts.user);
-        if(txs->ttype!=TXSTYPE_INF || ((int)txs->buser==sts.user && (int)txs->bbank==sts.bank)){
+        if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
             std::cerr<<"ERROR transaction failed (bad msid)\n";}
           if(memcmp(sts.pk,myuser.pkey,32)){
@@ -1019,7 +959,7 @@ int main(int argc, char* argv[])
   sts.get(argc,argv);
   boost::asio::io_service io_service;
   boost::asio::ip::tcp::resolver resolver(io_service);
-  boost::asio::ip::tcp::resolver::query query(sts.addr,std::to_string(sts.port).c_str());
+  boost::asio::ip::tcp::resolver::query query(sts.host,std::to_string(sts.port).c_str());
   boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
   boost::asio::ip::tcp::socket socket(io_service);
   try{
