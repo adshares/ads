@@ -151,7 +151,7 @@ public:
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
           std::cerr<<"FAILED to get local user info ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
-        offi_.unlock_user(utxs.auser);
+          offi_.unlock_user(utxs.auser);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       else{

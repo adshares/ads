@@ -181,12 +181,10 @@ usertxs_ptr run_json(settings& sts,char* line)
   if(!run.compare("get_me")){
     txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);}
   else if(!run.compare(txsname[TXSTYPE_INF])){
-	if(!to_bank && !to_user) { // no target account specified
-		txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
-	} else {
-		txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
-	}
-  }
+    if(!to_bank && !to_user) { // no target account specified
+      txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);}
+    else{
+      txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);}}
   else if(!run.compare(txsname[TXSTYPE_LOG])){
     sts.lastlog=to_from; //save requested log period
     to_from=0;
@@ -878,7 +876,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       else{
         user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
-        print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);
+        if(txs->ttype==TXSTYPE_INF){
+          print_user(myuser,pt,sts.json,true,txs->bbank,txs->buser,sts);}
+        else{
+          print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);}
         if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
             std::cerr<<"ERROR transaction failed (bad msid)\n";}
@@ -906,7 +907,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         else{
           user_t myuser;
           memcpy(&myuser,buf,sizeof(user_t));
-          print_user(myuser,pt,sts.json,false,sts.bank,sts.user,sts);}}
+          print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
       else if(txs->ttype==TXSTYPE_LOG){
         int len;
         if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
