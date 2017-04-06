@@ -37,13 +37,14 @@ void ed25519_text2key(uint8_t* key,const char* text,int len) // len = key length
 {       int i;
         char x[3]="00";
         assert(strlen(text)>=(size_t)2*len);
-	try{
-        	for(i=0;i<len;i++){
-			x[0]=text[2*i+0];
-			x[1]=text[2*i+1];
-			key[i]=strtoul(x,NULL,16);}}
-        catch (std::exception& e){
-		std::cerr << "Text2Key Exception: " << e.what() << "\n";}
+	//try{
+        for(i=0;i<len;i++){
+		x[0]=text[2*i+0];
+		x[1]=text[2*i+1];
+		key[i]=strtoul(x,NULL,16);}
+	//}
+        //catch (std::exception& e){
+	//	std::cerr << "Text2Key Exception: " << e.what() << "\n";}
 }
 
 void ed25519_key2text(char* text,const uint8_t* key,int len) // len = key length in bytes

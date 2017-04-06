@@ -165,7 +165,7 @@ usertxs_ptr run_json(settings& sts,char* line)
   if(json_user && !parse_user(to_user,json_user.get())){
     return(NULL);}
   boost::optional<std::string> json_acnt=pt.get_optional<std::string>("address");
-  if(json_acnt && !parse_acnt(to_bank,to_user,json_acnt.get())){
+  if(json_acnt && !sts.parse_acnt(to_bank,to_user,json_acnt.get())){
     return(NULL);}
   boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
   if(json_from){
@@ -243,7 +243,7 @@ usertxs_ptr run_json(settings& sts,char* line)
       uint32_t tuser;
       //int64_t tmass = wire.second.data();
        int64_t tmass = wire.second.get_value<int64_t>();
-      if(!parse_acnt(tbank,tuser,wire.first)){
+      if(!sts.parse_acnt(tbank,tuser,wire.first)){
         return(NULL);}
       char to_acct[2+4+8];
       memcpy(to_acct+0,&tbank,2);
@@ -357,7 +357,7 @@ usertxs_ptr run(settings& sts,const char* line,int len)
     return(NULL);}
 }
 
-void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,uint32_t bank,uint32_t user)
+void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,uint32_t bank,uint32_t user,settings& sts)
 { char pkey[65];
   char hash[65];
   ed25519_key2text(pkey,u.pkey,32);
@@ -369,12 +369,12 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
       u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);}
   else{
-    uint16_t suffix=crc_acnt(bank,user);
+    uint16_t suffix=sts.crc_acnt(bank,user);
     char ucnt[19]="";
     char acnt[19];
     sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
     if(u.node){
-      suffix=crc_acnt(u.node,u.user);
+      suffix=sts.crc_acnt(u.node,u.user);
       sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);}
     if(local){
       pt.put("account.address",acnt);
@@ -440,7 +440,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
         ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight,info);}
     else{
       boost::property_tree::ptree logentry;
-      uint16_t suffix=crc_acnt(ulog.node,ulog.user);
+      uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
       char acnt[19];
       uint16_t txst=ulog.type&0xFF;
       sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
@@ -478,7 +478,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
           logentry.put("account.node",ulog.node);
           logentry.put("account.id",ulog.user);
           logentry.put("dividend",ulog.weight);
-          uint16_t suffix=crc_acnt(ulog.node,ulog.user);
+          uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
           char acnt[19]="";
           sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
           logentry.put("account.address",acnt);
@@ -599,7 +599,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
 }
 
 //void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
-void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree)
+void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
 { struct stat sb;
   fstat(fd,&sb);
   uint32_t len=sb.st_size;
@@ -628,7 +628,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree)
       break;}
     blogentry.put("node",utxs.abank);
     blogentry.put("account",utxs.auser);
-    uint16_t suffix=crc_acnt(utxs.abank,utxs.auser);
+    uint16_t suffix=sts.crc_acnt(utxs.abank,utxs.auser);
     char acnt[19];
     sprintf(acnt,"%04X-%08X-%04X",utxs.abank,utxs.auser,suffix);
     blogentry.put("address",acnt);
@@ -863,7 +863,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             break;}}
         if(fd>=0){
           //print_blg(fd,path,pt);
-          print_blg(fd,to,blogtree);
+          print_blg(fd,to,blogtree,sts);
           close(fd);}}
         //else{
         //  pt.put("ERROR","broadcast file missing");}
@@ -878,7 +878,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       else{
         user_t myuser;
         memcpy(&myuser,buf,sizeof(user_t));
-        print_user(myuser,pt,sts.json,true,sts.bank,sts.user);
+        print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);
         if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
           if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
             std::cerr<<"ERROR transaction failed (bad msid)\n";}
@@ -906,7 +906,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         else{
           user_t myuser;
           memcpy(&myuser,buf,sizeof(user_t));
-          print_user(myuser,pt,sts.json,false,sts.bank,sts.user);}}
+          print_user(myuser,pt,sts.json,false,sts.bank,sts.user,sts);}}
       else if(txs->ttype==TXSTYPE_LOG){
         int len;
         if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){

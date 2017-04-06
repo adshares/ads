@@ -492,8 +492,7 @@ private:
 };
 typedef boost::shared_ptr<usertxs> usertxs_ptr;
 
-
-uint16_t crc16(const uint8_t* data_p, uint8_t length)
+/*uint16_t crc16(const uint8_t* data_p, uint8_t length)
 { uint8_t x;
   uint16_t crc = 0x1D0F; //differet initial checksum !!!
 
@@ -556,6 +555,6 @@ bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
     fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",str_acnt.c_str(),to_crc16);
     return(false);}
   return(true);
-}
+}*/
 
 #endif // USER_HPP
