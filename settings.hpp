@@ -58,14 +58,14 @@ public:
 			boost::program_options::options_description generic("Generic options");
 			generic.add_options()
 				("version,v", "print version string")
-				("help", "produce help message")
+				("help,", "produce help message")
 				;
 			boost::program_options::options_description config("Configuration [command_line + config_file]");
 			config.add_options()
 				("port,p", boost::program_options::value<int>(&port)->default_value(9080),			"bank port (for clients)")
 				("host,h", boost::program_options::value<std::string>(&host)->default_value("127.0.0.1"),	"bank hostname or ip")
-				("bank,b", boost::program_options::value<uint16_t>(&bank),						"bank id (don't use with --addr)")
-				("user,u", boost::program_options::value<uint32_t>(&user),						"user id (don't use with --addr)")
+				("bank,b", boost::program_options::value<uint16_t>(&bank),					"bank id (don't use with --addr)")
+				("user,u", boost::program_options::value<uint32_t>(&user),					"user id (don't use with --addr)")
 				("addr,a", boost::program_options::value<std::string>(&addr),					"address (don't use with --bank, --user)")
 				("msid,i", boost::program_options::value<int>(&msid),						"last message id")
 				("json,j", boost::program_options::value<bool>(&json)->default_value(false),			"expect json input and output")
@@ -145,8 +145,8 @@ public:
 					std::cerr << "Public key: "<<vm["pkey"].as<std::string>()<<" MISMATCH!\n";
 					exit(1);}}
 			else{
-				std::cerr << "INFO: suply public key to proceed\n";
-				exit(0);}
+				std::cerr << "INFO: suply public key to proceed\n";}
+				//exit(0);
 			if(vm.count("port")){
 				std::cerr << "Bank port: " << vm["port"].as<int>() << std::endl;}
 			else{
