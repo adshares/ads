@@ -187,16 +187,17 @@ usertxs_ptr run_json(settings& sts,char* line)
       txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);}}
   else if(!run.compare(txsname[TXSTYPE_LOG])){
     sts.lastlog=to_from; //save requested log period
+    fprintf(stderr,"LOG: print from %d (%08X)\n",to_from,to_from);
     to_from=0;
     char filename[64];
     mkdir("log",0755);
     sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
     int fd=open(filename,O_RDONLY);
     if(fd>=0 && lseek(fd,-sizeof(log_t),SEEK_END)>=0){
-      fprintf(stderr,"LOG: setting last time to %d (%08X)\n",to_from,to_from);
       read(fd,&to_from,sizeof(uint32_t));
       if(to_from>0){
-        to_from--;}} // accept 1s overlap
+        to_from--;} // accept 1s overlap
+      fprintf(stderr,"LOG: setting last time to %d (%08X)\n",to_from,to_from);}
     txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);}
   else if(!run.compare(txsname[TXSTYPE_BLG])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
@@ -424,11 +425,13 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
         uint32_t ltime=0;
         tseek=read(fd,&ltime,sizeof(uint32_t));
         if(ltime<sts.lastlog-1){ // tollerate 1s difference
+          lseek(fd,-tseek,SEEK_CUR);
           break;}}}}
   log_t ulog;
   boost::property_tree::ptree logtree;
   while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)){
     if(ulog.time<sts.lastlog){
+fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       continue;}
     char info[65];
     info[64]='\0';
