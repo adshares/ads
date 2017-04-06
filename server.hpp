@@ -854,6 +854,7 @@ public:
 
   message_ptr message_find(message_ptr msg,uint16_t svid)
   { fprintf(stderr,"HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
+    assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_GET){
       txs_.lock();
       std::map<uint64_t,message_ptr>::iterator it=txs_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
@@ -937,8 +938,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       dbl_msg->peer=opts_.svid;
       dbl_msg->hash.num=dbl_msg->dohash();
       dbl_msg->null_signature(); //FIXME, set this to last hash from last block
-      //msg1->unload(0);
-      //msg2->unload(0);
+      msg1->unload(0);
+      msg2->unload(0);
       dbl_.lock();
       dbl_msgs_[dbl_msg->hash.num]=dbl_msg;
       dbl_.unlock();
@@ -1138,7 +1139,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         if(!osg->save()){ //FIXME, change path
           fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",msg->hash.num,msg->len);
           exit(-1);}
-        //osg->unload(0);
+        osg->unload(0);
         // process double spend
         //if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
         //  double_spend(osg);
@@ -1189,7 +1190,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         txs_.unlock();
         fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
         msg->save();
-        //msg->unload(0);
+        msg->unload(0);
         check_.lock();
         check_msgs_.push_back(msg); // running though validator
         check_.unlock();
@@ -1214,6 +1215,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       cand_.unlock();
       return;}
     hash_s cand; //TODO
+    assert(msg->data!=NULL);
     memcpy(cand.hash,msg->data+message::data_offset,sizeof(hash_t));
     auto it=candidates_.find(cand);
     if(it==candidates_.end()){
@@ -1242,6 +1244,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
     if(!vip){
       fprintf(stderr,"BLOCK ignore non-vip vote msid:%08x svid:%04x\n",msg->msid,(uint32_t)msg->svid);
       return;}
+    assert(msg->data!=NULL);
     header_t* h=(header_t*)(msg->data+4+64+10); 
     bool no=memcmp(h->nowhash,last_srvs_.nowhash,sizeof(hash_t));
     blk_.lock();
@@ -1294,6 +1297,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         for(auto re=tmp_msgs_.begin();re!=tmp_msgs_.end();re++){
 	  uint16_t svid=(*re)->request();
           if(svid){
+            assert((*re)->data!=NULL);
             fprintf(stderr,"HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
             //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<(*re)->svid<<":"<<(*re)->msid<<")\n";
             fprintf(stderr,"REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
@@ -1341,7 +1345,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           std::cerr<<"ERROR, failed to load message !!!\n";
           exit(-1);}
         bool valid=process_message(msg); //maybe ERROR should be also returned.
-        //msg->unload(0);
         if(valid){
           msg->print_text("VALID");
           msg->status=MSGSTAT_VAL;
@@ -1356,6 +1359,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           //TODO, inform peer if peer==author;
           std::cerr<<"ERROR, have invalid message !!!\n";
           exit(-1);}
+        msg->unload(0);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
           fprintf(stderr,"SLEEP 5s after validation\n");
@@ -1469,7 +1473,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }*/
 
   bool undo_message(message_ptr msg)
-  { char* p=(char*)msg->data+4+64+10;
+  { if(!msg->load(0)){
+      std::cerr<<"ERROR, failed to load message !!!\n";
+      exit(-1);}
+    assert(msg->data!=NULL);
+    char* p=(char*)msg->data+4+64+10;
     std::map<uint64_t,int64_t> txs_deposit;
     std::set<uint64_t> txs_get; //set lock / withdraw
     //TODO, load message from file
@@ -1565,6 +1573,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       write(fd,&it->second,sizeof(user_t));}
     close(fd);
     del_log(srvs_.now,msg->svid,msg->msid);
+    msg->unload(0);
     return(true);
   }
 
@@ -1593,7 +1602,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   }
 
   bool process_message(message_ptr msg)
-  { char* p=(char*)msg->data+4+64+10;
+  { assert(msg->data!=NULL);
+    char* p=(char*)msg->data+4+64+10;
     char filename[64];
     sprintf(filename,"usr/%04X.dat",msg->svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions

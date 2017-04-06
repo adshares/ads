@@ -61,6 +61,7 @@ public:
       std::cerr<<"ERROR: read txs error\n";
       offi_.leave(shared_from_this());
       return;}
+    bzero(&utxs,sizeof(usertxs));
     utxs.parse(buf);
     utxs.print_head();
     if(*buf==TXSTYPE_BRO){
@@ -339,7 +340,8 @@ public:
             BLOCKSEC-now%BLOCKSEC);
           offi_.unlock_user(utxs.auser);
           return;}
-        bzero(buf+txslen[(int)*buf]+64+0,4+32);} //FIXME, remove 32 bytes
+        bzero(buf+txslen[(int)*buf]+64+0,4+32);
+        utxs.buser=0;} //FIXME, remove 32 bytes
       else{
         uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime,utxs.auser);
         if(!nuser){
@@ -349,7 +351,8 @@ public:
         memcpy(buf+txslen[(int)*buf]+64+0,&nuser,4);
         memcpy(buf+txslen[(int)*buf]+64+4,usera.pkey,32); //FIXME, this data is not needed !!!
         lnode=0;
-        luser=nuser;}}
+        luser=nuser;
+	utxs.buser=nuser;}}
       /*if(utxs.abank!=offi_.svid){
       //if(utxs.abank!=offi_.svid && !offi_.try_account((hash_s*)usera.pkey)){
       //  std::cerr<<"ERROR: failed to open account (pkey known)\n";

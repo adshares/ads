@@ -150,7 +150,8 @@ public:
   }
 
   bool hash_tree(uint8_t* newsigh)
-  { assert(data[0]==MSGTYPE_MSG);
+  { assert(data!=NULL);
+    assert(data[0]==MSGTYPE_MSG);
     hash_t hash;
     hashtree tree;
     usertxs utxs;
@@ -228,7 +229,8 @@ public:
   }
 
   uint64_t dohash(uint16_t mysvid)
-  { union {uint64_t num; uint8_t dat[8];} h;
+  { assert(data!=NULL);
+    union {uint64_t num; uint8_t dat[8];} h;
     h.dat[0]=hashval(mysvid);
     h.dat[1]=data[0];
     memcpy(h.dat+2,&msid,4);
@@ -262,6 +264,7 @@ public:
     assert(busy.empty());
     assert(sent.empty());
     got=time(NULL);
+    assert(data!=NULL);
     if(data[0]==MSGTYPE_INI){
       memcpy(&len,data+1,3);
       if(len!=4+64+10+sizeof(handshake_t)){
@@ -363,6 +366,7 @@ public:
         return(-1);}}
     else{
       uint64_t g[8];
+      assert(data!=NULL);
       memcpy(g,data+4,8*sizeof(uint64_t));
       h[0]=g[0]^g[4];
       h[1]=g[1]^g[5];
@@ -378,6 +382,7 @@ public:
   { uint64_t h[4];
     uint64_t g[8];
     //memcpy(g,sig,8*sizeof(uint64_t));
+    assert(data!=NULL);
     memcpy(g,data+4,8*sizeof(uint64_t));
     h[0]=g[0]^g[4];
     h[1]=g[1]^g[5];
@@ -387,7 +392,8 @@ public:
   }
 
   void read_head(void)
-  { if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
+  { assert(data!=NULL);
+    if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
       memcpy(&svid,data+4+64+0,2);
       memcpy(&msid,data+4+64+2,4);
       memcpy( &now,data+4+64+6,4);}
@@ -401,7 +407,7 @@ public:
   }
 
   int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
-  {
+  { assert(data!=NULL);
     //FIXME, should include previous hash in signed message
     if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_BLK){
       //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
@@ -465,7 +471,8 @@ public:
   }
 
   void print_text(const char* suffix) const
-  { char hash[16];
+  { assert(data!=NULL);
+    char hash[16];
     ed25519_key2text((char*)hash,sigh,8);
     fprintf(stderr,"%04X[%04X:%02X]now:%08X[l:%d] %.16s %s",peer,svid,msid&0xff,now,len-4-64-10,hash,suffix);
     if(len>4+64+10){
@@ -485,7 +492,8 @@ public:
   }
 
   void print_header()
-  { char hash[2*SHA256_DIGEST_LENGTH];
+  { assert(data!=NULL);
+    char hash[2*SHA256_DIGEST_LENGTH];
     header_t* h=(header_t*)(data+4+64+10);
     fprintf(stderr,"HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
     ed25519_key2text(hash,h->oldhash,32);
@@ -555,7 +563,8 @@ public:
 
   //FIXME, check again the time of saving, consider free'ing data after save
   int save() //TODO, consider locking
-  { char filename[64];
+  { assert(data!=NULL);
+    char filename[64];
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
     std::ofstream myfile(filename,std::ifstream::binary);
     if(!myfile){
@@ -694,7 +703,8 @@ public:
   }
 
   uint16_t request() //find a peer from which we will request the message
-  { if(status>=MSGSTAT_DAT || len!=header_length){
+  { assert(data!=NULL);
+    if(status>=MSGSTAT_DAT || len!=header_length){
       std::cerr<<"IGNORING REQUEST for "<<svid<<":"<<msid<<"\n";
       return(0);}
     uint32_t mynow=time(NULL);

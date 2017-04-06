@@ -130,8 +130,11 @@ public:
 		ttype(TXSTYPE_MAX),
 		abank(0),
 		auser(0),
+		amsid(0),
+		ttime(0),
 		bbank(0),
 		buser(0),
+		tmass(0),
 		data(NULL)
 	{
 	}
@@ -322,15 +325,19 @@ public:
 		memcpy(&amsid,txs+1+6 ,4);
 		memcpy(&ttime,txs+1+10,4);
 		memcpy(&bbank,txs+1+14,2);
-		memcpy(&buser,txs+1+16,4);
+                if(ttype==TXSTYPE_GET){
+			memcpy(&buser,txs+1+16,4);
+			return(true);}
                 if(ttype==TXSTYPE_UOK){
+			memcpy(&buser,txs+1+16,4);
 			size=txslen[TXSTYPE_UOK]; // no signature !
 			return(true);}
-		memcpy(&tmass,txs+1+20,8);
                 if(ttype==TXSTYPE_PUT){
+			memcpy(&buser,txs+1+16,4);
+			memcpy(&tmass,txs+1+20,8);
 			memcpy(tinfo,txs+1+28,32);}
-		else{
-			bzero(tinfo,32);}
+		//else{
+		//	bzero(tinfo,32);}
 		if(ttype==TXSTYPE_BKY){
 			size+=32;}
 		else if(ttype==TXSTYPE_USR){

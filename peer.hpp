@@ -152,6 +152,7 @@ public:
   int message_len(message_ptr msg) // shorten candidate vote messages if possible
   { if(do_sync){
       return(msg->len);}
+    assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_CNG && msg->len>4+64+10+sizeof(hash_t)){//shorten message if peer knows this hash
       //hash_s cand;
       //memcpy(cand.hash,msg->data+4+64+10,sizeof(hash_t));
@@ -187,6 +188,7 @@ public:
       wait_msgs_.push_back(msg);
       mtx_.unlock();
       return;}
+    assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_STP){
       BLOCK_MODE_SERVER=1;}
     bool no_write_in_progress = write_msgs_.empty();
@@ -223,7 +225,7 @@ Aborted
     //else{
     //std::cerr<<"SENDING in sync mode busy("<<write_msgs_.size()<<"), queued("<<write_msgs_.back()->len<<"B)\n";}
     mtx_.unlock();
-    //put_msg->unload(svid);
+    put_msg->unload(svid);
   }
 
   void handle_write(const boost::system::error_code& error) //TODO change this later, dont send each message separately if possible
@@ -231,7 +233,6 @@ Aborted
     //std::cerr << "HANDLE WRITE start\n";
     if (!error) {
       mtx_.lock();
-      //write_msgs_.front()->unload(svid);
       //write_msgs_.front()->busy.erase(svid); // will not work if same message queued 2 times
       write_msgs_.front()->mtx_.lock();
       write_msgs_.front()->sent.insert(svid);
@@ -240,6 +241,7 @@ Aborted
       files_out++;
       if(write_msgs_.front()->data[0]==MSGTYPE_STP){
         BLOCK_MODE_SERVER=2;
+        write_msgs_.front()->unload(svid);
         write_msgs_.pop_front();
         if(BLOCK_MODE_PEER){ // TODO what is this ???
           mtx_.unlock();
@@ -253,6 +255,7 @@ Aborted
           svid_msid_new[write_msgs_.front()->svid]=write_msgs_.front()->msid; // maybe a lock on svid_msid_new would help
           fprintf(stderr,"UPDATE PEER SVID_MSID: %04X:%08X\n",write_msgs_.front()->svid,write_msgs_.front()->msid);}}
       //std::cerr << "HANDLE WRITE sent "<<write_msgs_.front()->len<<" bytes\n";
+      write_msgs_.front()->unload(svid);
       write_msgs_.pop_front();
       if (!write_msgs_.empty()) {
         //FIXME, now load the message from db if needed !!! do not do this when inserting in write_msgs_, unless You do not worry about RAM but worry about speed
@@ -601,6 +604,7 @@ Aborted
 
   void write_msglist()
   { servers header;
+    assert(read_msg_->data!=NULL);
     memcpy(&header.now,read_msg_->data+1,4);
     if(!header.header_get()){
       //std::cerr<<"FAILED to read header "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
@@ -626,6 +630,7 @@ Aborted
       server_.leave(shared_from_this());
       return;}
     servers header;
+    assert(read_msg_->data!=NULL);
     memcpy(&header.now,read_msg_->data+4,4);
     if(server_.get_msglist!=header.now){
       std::cerr << "ERROR got wrong msglist id\n"; // consider updating server
@@ -887,6 +892,7 @@ Aborted
 
   void write_servers()
   { uint32_t now;
+    assert(read_msg_->data!=NULL);
     memcpy(&now,read_msg_->data+1,4);
     fprintf(stderr,"SENDING block servers for block %08X\n",now);
     if(server_.last_srvs_.now!=now){
@@ -941,6 +947,7 @@ Aborted
     msid=read_msg_->msid;
     svid=read_msg_->svid;
     fprintf(stderr,"PEER HEADER %04X:\n",svid);
+    assert(read_msg_->data!=NULL);
     memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
     srvs_.header_print(peer_hs.head);
     //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
@@ -1122,6 +1129,7 @@ Aborted
     if(read_msg_->svid==svid){
       //std::cerr << "BLOCK from peer "<<svid<<"\n";
       fprintf(stderr,"BLOCK from peer %04X\n",svid);
+      assert(read_msg_->data!=NULL);
       memcpy(&peer_hs.head,read_msg_->data+4+64+10,sizeof(header_t));
       char hash[2*SHA256_DIGEST_LENGTH];
       //ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
@@ -1145,6 +1153,7 @@ Aborted
       std::cerr << "READ error\n";
       server_.leave(shared_from_this());
       return;}
+    assert(read_msg_->data!=NULL);
     memcpy(last_message_hash,read_msg_->data+1,SHA256_DIGEST_LENGTH);
       char hash[2*SHA256_DIGEST_LENGTH]; hash[2*SHA256_DIGEST_LENGTH-1]='?';
       ed25519_key2text(hash,last_message_hash,SHA256_DIGEST_LENGTH);
@@ -1205,6 +1214,7 @@ Aborted
       std::cerr << "READ read_peer_missing_header error\n";
       server_.leave(shared_from_this());
       return;}
+    assert(read_msg_->data!=NULL);
     memcpy(&peer_missed,read_msg_->data,2);
     if(peer_missed){
       free(read_msg_->data);
@@ -1228,6 +1238,7 @@ Aborted
     // create peer_missing list;
     svid_msid_peer_missing.clear();
     svid_msid_peer_missing.reserve(peer_missed);
+    assert(read_msg_->data!=NULL);
     for(int i=0;i<peer_missed;i++){
       svidmsid_t svms;
       memcpy(&svms.svid,read_msg_->data+6*i,2);
@@ -1278,6 +1289,7 @@ Aborted
         ed25519_key2text(sigh,mp->second->sigh,SHA256_DIGEST_LENGTH);
         fprintf(stderr,"HSEND: %04X:%08X>%08X %.*s\n",(int)(it->svid),(int)(mp->second->msid),it->msid,2*SHA256_DIGEST_LENGTH,sigh);
       //std::cerr << "PHASH: " << it->first << ":" << it->second.msid << " " << it->second.sigh[0] << "..." << it->second.sigh[31] << "\n";
+        assert(put_msg->data!=NULL);
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),&mp->second->msid,4);
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH)+4,mp->second->sigh,SHA256_DIGEST_LENGTH);}
       assert(i==peer_missed);
@@ -1329,6 +1341,7 @@ Aborted
     svid_miss.clear(); // from peer (missed by server)
     for(auto it=svid_msid_server_missing.begin();it!=svid_msid_server_missing.end();++it,i++){
       msidhash_t msha;
+      assert(read_msg_->data!=NULL);
       memcpy(&msha.msid,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH),4);
       memcpy(msha.sigh,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH)+4,SHA256_DIGEST_LENGTH);
       svid_msha[it->svid]=msha;
@@ -1438,6 +1451,7 @@ Aborted
       fprintf(stderr,"BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       return(0);}
     hash_s cand;
+    assert(read_msg_->data!=NULL);
     memcpy(cand.hash,read_msg_->data+message::data_offset,sizeof(hash_t));
     candidate_ptr c_ptr=server_.known_candidate(cand,svid);
     char hash[2*SHA256_DIGEST_LENGTH];
