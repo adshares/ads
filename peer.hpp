@@ -226,6 +226,7 @@ Aborted
     //std::cerr<<"SENDING in sync mode busy("<<write_msgs_.size()<<"), queued("<<write_msgs_.back()->len<<"B)\n";}
     mtx_.unlock();
     if(put_msg->len!=message::header_length){
+//FIXME, do not unload everything ...
       put_msg->unload(svid);}
   }
 
@@ -349,6 +350,8 @@ Aborted
               read_msg_->svid,read_msg_->msid);}}}
       else if(read_msg_->data[0]==MSGTYPE_HEA){
 	write_headers();}
+      else if(read_msg_->data[0]==MSGTYPE_NHR){
+	write_headers();}
       else if(read_msg_->data[0]==MSGTYPE_SER){ //servers request
 	write_servers();}
       else if(read_msg_->data[0]==MSGTYPE_MSL){ //msg list request
@@ -407,6 +410,13 @@ Aborted
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_block,shared_from_this(),boost::asio::placeholders::error));
 	return;}
+      if(read_msg_->data[0]==MSGTYPE_NHD){
+        std::cerr << "READ next header\n";
+        assert(read_msg_->len==8+SHA256_DIGEST_LENGTH+sizeof(headlink_t));
+        boost::asio::async_read(socket_,
+          boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
+          boost::bind(&peer::handle_next_header,shared_from_this(),boost::asio::placeholders::error));
+	return;}
       //std::cerr << "WAIT read body\n";
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
@@ -433,9 +443,9 @@ Aborted
   { uint32_t from;
     memcpy(&from,read_msg_->data+1,4);
     uint32_t to=sync_hs.head.now;
-    if(from>to){
+    if(from>to){ // expect _NHR
       fprintf(stderr,"SENDING block header %08X\n",from); 
-      message_ptr put_msg(new message(SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
+      message_ptr put_msg(new message(8+SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
       headlink_t link;
       servers linkservers;
       linkservers.now=from;
@@ -443,9 +453,11 @@ Aborted
 	std::cerr<<"ERROR, failed to provide header links\n";
         server_.leave(shared_from_this()); // consider updateing client
         return;}
-      memcpy((char*)put_msg->data,(const char*)linkservers.oldhash,SHA256_DIGEST_LENGTH);
+      put_msg->data[0]=MSGTYPE_NHD;
+      memcpy(put_msg->data+1,&from,4);
+      memcpy((char*)put_msg->data+8,(const char*)linkservers.oldhash,SHA256_DIGEST_LENGTH);
       linkservers.filllink(link);
-      memcpy((char*)put_msg->data+SHA256_DIGEST_LENGTH,(const char*)&link,sizeof(headlink_t));
+      memcpy((char*)put_msg->data+8+SHA256_DIGEST_LENGTH,(const char*)&link,sizeof(headlink_t));
       send_sync(put_msg);
       return;}
     uint32_t num=((to-from)/BLOCKSEC)-1;
@@ -476,40 +488,67 @@ Aborted
     send_sync(put_msg);
   }
 
-  void handle_next_headers(uint32_t now,uint8_t* nowhash) //WARNING, this requests a not validated header
+  void request_next_headers(uint32_t now,uint8_t* nowhash) //WARNING, this requests a not validated header
   { if(peer_hs.head.now>=now){ // this peer should send this header anytime soon
       return;}
     fprintf(stderr,"SENDING block header request for %08X\n",now);
     message_ptr put_msg(new message());
-    put_msg->data[0]=MSGTYPE_HEA;
+    put_msg->data[0]=MSGTYPE_NHR;
     memcpy(put_msg->data+1,&now,4);
     send_sync(put_msg);
-    char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t));
-    int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
-//ERROR, this is blocking !!!
-    if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t))){
-      std::cerr << "READ headers error\n";
-      free(data);
+  }
+
+//FIXME, this will fail because there is another read queued :-(
+//must send a new message type (not _HEA)
+/*
+    int len=SHA256_DIGEST_LENGTH+sizeof(headlink_t);
+    read_msg_ = boost::make_shared<message>(len);
+    boost::asio::async_read(socket_,
+      boost::asio::buffer(read_msg_->data,len),
+      boost::bind(&peer::handle_next_headers,shared_from_this(),boost::asio::placeholders::error,now,nowhash));
+    //char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t));
+    //ERROR, this is blocking !!!
+    //int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
+  }
+*/
+
+  //void handle_next_headers(const boost::system::error_code& error,uint32_t next_now,uint8_t* next_nowhash)
+  void handle_next_header(const boost::system::error_code& error)
+  { if(error){
+      std::cerr << "ERROR reading next headers\n";
       server_.leave(shared_from_this());
       return;}
+    //if(read_msg_->len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)+8)){
+    //  std::cerr << "READ next headers error\n";
+    //  server_.leave(shared_from_this());
+    //  return;}
+    uint32_t from;
+    memcpy(&from,read_msg_->data+1,3);
+    char* data=(char*)read_msg_->data+8;
     std::cerr << "PROCESSING block header request\n";
     servers peer_ls;
     headlink_t* link=(headlink_t*)(data+SHA256_DIGEST_LENGTH);
-    peer_ls.loadlink(*link,now,data);
-    if(memcmp(peer_ls.oldhash,nowhash,SHA256_DIGEST_LENGTH)){
+    peer_ls.loadlink(*link,from,data);
+    /*if(memcmp(peer_ls.oldhash,next_nowhash,SHA256_DIGEST_LENGTH)){
       std::cerr << "ERROR, initial oldhash mismatch :-(\n";
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,peer_ls.oldhash,SHA256_DIGEST_LENGTH);
       fprintf(stderr,"NOWHASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-      ed25519_key2text(hash,nowhash,SHA256_DIGEST_LENGTH);
+      ed25519_key2text(hash,next_nowhash,SHA256_DIGEST_LENGTH);
       fprintf(stderr,"NOWHASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
       server_.leave(shared_from_this());
       std::cerr << "\nMaybe start syncing from an older block (peer will disconnect)\n\n";
-      return;}
+      server_.leave(shared_from_this());
+      return;}*/
     server_.peer_.lock();
-    if(server_.headers.back().now==now-BLOCKSEC){
+    if(server_.headers.back().now==from-BLOCKSEC &&
+       !memcmp(peer_ls.oldhash,server_.headers.back().nowhash,SHA256_DIGEST_LENGTH)){
       server_.headers.insert(server_.headers.end(),peer_ls);}
     server_.peer_.unlock();
+    read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
+    boost::asio::async_read(socket_,
+      boost::asio::buffer(read_msg_->data,message::header_length),
+      boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
     return;
   }
 

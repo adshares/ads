@@ -105,6 +105,8 @@
 #define MSGTYPE_PAT 20  /* current sync path */
 #define MSGTYPE_USR 21  /* bank file */
 #define MSGTYPE_USG 22  /* bank file request */
+#define MSGTYPE_NHR 23  /* next header request */
+#define MSGTYPE_NHD 24  /* next header data */
 #define MSGTYPE_SOK 99  /* peer synced */
 
 #define TXS_MIN_FEE      (0x1000) /* minimum fee per transaction */
@@ -138,6 +140,14 @@
 #define MESSAGE_FEE      (0x1000) /* fee for each bank message */
 
 #pragma pack(1)
+typedef struct headlink_s { // header links sent when syncing
+        uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
+        uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
+        uint32_t div; // dividend
+        uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
+        //uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
+        uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+} headlink_t;
 typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
 	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t

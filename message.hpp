@@ -351,6 +351,17 @@ public:
       memcpy(&len,data+1,3);
       data=(uint8_t*)std::realloc(data,len);
       return 1;}
+    if(data[0]==MSGTYPE_NHR){
+      std::cerr << "NEXT header request received\n";
+      svid=peer_svid;
+      len=header_length;
+      return 1;}
+    if(data[0]==MSGTYPE_NHD){
+      std::cerr << "NEXT header data received\n";
+      svid=peer_svid;
+      len=SHA256_DIGEST_LENGTH+sizeof(headlink_t)+8;
+      data=(uint8_t*)std::realloc(data,len);
+      return 1;}
     if(data[0]==MSGTYPE_SOK){
       std::cerr << "SYNC OK received\n";
       svid=peer_svid;
@@ -509,7 +520,9 @@ public:
   }
 
   int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
-  { mtx_.lock();
+  { if(!path){
+      return(data!=NULL);}
+    mtx_.lock();
     busy.insert(who);
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
@@ -556,7 +569,9 @@ public:
   }
 
   void unload(int16_t who)
-  { mtx_.lock();
+  { if(!path){
+      return;}
+    mtx_.lock();
     busy.erase(who);
     if(busy.empty()){
       if(len==header_length){

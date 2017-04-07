@@ -3,14 +3,14 @@
 
 //FIXME, concider separating header and nodes into header.hpp and node.hpp
 #pragma pack(1)
-typedef struct headlink_s { // header links sent when syncing
+/*typedef struct headlink_s { // header links sent when syncing
 	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
 	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
 	uint32_t div; // dividend
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
-} headlink_t;
+} headlink_t;*/
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef struct node_s {
 	ed25519_public_key pk; // public key

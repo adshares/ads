@@ -160,7 +160,7 @@ void server::get_more_headers(uint32_t now,uint8_t* nowhash) //use random order
 	peer_.unlock();
 	if(!(*pi)->do_sync){
 		fprintf(stderr,"REQUEST more headers from peer %04X\n",(*pi)->svid);
-		(*pi)->handle_next_headers(now,nowhash);}
+		(*pi)->request_next_headers(now,nowhash);}
 }
 void server::fillknown(message_ptr msg) //use random order
 {	static uint32_t r=0;
