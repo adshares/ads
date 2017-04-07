@@ -22,10 +22,22 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0)
+  {
+  }
+
+  ~server()
+  { //do_validate=0;
+    //threadpool.join_all();
+    //clock_thread->interrupt();
+    //clock_thread->join();
+    std::cerr<<"Server down\n";
+  }
+
+  void start()
   { mkdir("usr",0755); // create dir for bank accounts
     mkdir("blk",0755); // create dir for blocks
-    mklogdir(opts_.svid);
-    mklogfile(opts_.svid,0);
+    //mklogdir(opts_.svid);
+    //mklogfile(opts_.svid,0);
     uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
     fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
@@ -99,13 +111,7 @@ public:
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept();
   }
-  ~server()
-  { //do_validate=0;
-    //threadpool.join_all();
-    //clock_thread->interrupt();
-    //clock_thread->join();
-    std::cerr<<"Server down\n";
-  }
+
   void iorun()
   { while(1){
       try{
@@ -168,78 +174,21 @@ public:
     //    msg->remove();}}
   }
 
-//FIXME, log handling should go to office.hpp or better to log.hpp
-  void mklogdir(uint16_t svid)
-  { char filename[64];
-    sprintf(filename,"log/%04X",svid);
-    mkdir("log",0755); // create dir for user history
-    mkdir(filename,0755);
-  }
-
-  void mklogfile(uint16_t svid,uint32_t user)
-  { char filename[64];
-    sprintf(filename,"log/%04X/%03X",svid,user>>20);
-    mkdir(filename,0755);
-    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
-    mkdir(filename,0755);
-    //create log file ... would be created later anyway
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int fd=open(filename,O_WRONLY|O_CREAT,0644);
-    if(fd<0){
-      std::cerr<<"ERROR, failed to create log directory "<<filename<<"\n";}
-    close(fd);
-  }
-
-  // use (2) fallocate to remove beginning of files
-  // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
-  int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
-  { log_t log;
-    assert(!(4096%sizeof(log_t)));
-    int r,size=lseek(fd,0,SEEK_END); // maybe stat would be faster
-    if(size%sizeof(log_t)){
-      std::cerr<<"ERROR, log corrupt register\n";
-      return(-2);}
-    if(size<LOG_PURGE_START){
-      return(0);}
-    lock_user(user);
-    size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
-    for(;size>=LOG_PURGE_START;size-=4096){
-      if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)){
-        unlock_user(user);
-        std::cerr<<"ERROR, log lseek error\n";
-        return(-1);}
-      if((r=read(fd,&log,sizeof(log_t)))!=sizeof(log_t)){
-        unlock_user(user);
-        //std::cerr<<"ERROR, log read error\n";
-        fprintf(stderr,"ERROR, log read error (%d,%s)\n",r,strerror(errno));
-        return(-1);}
-      if(log.time+MAX_LOG_AGE>=srvs_.now){ // purge first block
-        unlock_user(user);
-        return(0);}
-      if((r=fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096))<0){
-        unlock_user(user);
-        //std::cerr<<"ERROR, log purge failed\n";
-        fprintf(stderr,"ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
-        return(-1);}}
-    unlock_user(user);
-    return(0);
-  }
-
-  void put_log(uint16_t svid,uint32_t user,log_t& log)
-  { char filename[64];
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
-    if(fd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
-      return;} // :-( maybe we should throw here something
-    write(fd,&log,sizeof(log_t));
-    close(fd);
-  }
-
-  void put_log(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log)
+  void del_msglog(uint32_t now,uint16_t svid,uint32_t msid)
   { char filename[64];
     sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
-    int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+    unlink(filename);
+  }
+
+  void put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log) //message log, by server
+  { char filename[64];
+    int fd;
+    if(svid){
+      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
+      fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);}
+    else{
+      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,0,0);
+      fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);}
     if(fd<0){
       std::cerr<<"ERROR, failed to open log file "<<filename<<"\n";
       return;} // :-( maybe we should throw here something
@@ -248,121 +197,6 @@ public:
       write(fd,&user,sizeof(uint32_t));
       write(fd,&it->second,sizeof(log_t));}
     close(fd);
-  }
-
-  void del_log(uint32_t now,uint16_t svid,uint32_t msid)
-  { char filename[64];
-    sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
-    unlink(filename);
-  }
-
-//FIXME, during sync ... check if we do not duplicate log data !!!
-  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log) // called from office and during sync
-  { uint32_t luser=MAX_USERS;
-    int fd=-1;
-    if(log.empty()){
-      return;}
-    for(auto it=log.begin();it!=log.end();it++){
-      uint32_t user=(it->first)>>32;
-      if(luser!=user){
-        if(fd>=0){
-          purge_log(fd,luser);
-          close(fd);
-          //unlock_user(luser);
-          }
-        luser=user;
-        char filename[64];
-        sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-        fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
-        if(fd<0){
-          std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
-          return;} // :-( maybe we should throw here something
-        //lock_user(user); // needed only when purging
-        }
-//TODO, monotonic time increase would help
-      write(fd,&it->second,sizeof(log_t));}
-    purge_log(fd,luser);
-    close(fd);
-    //unlock_user(luser);
-    log.clear();
-  }
-
-  bool fix_log(uint16_t svid,uint32_t user)
-  { char filename[64];
-    struct stat sb;
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
-    if(rd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for reading\n";
-      return(false);}
-    fstat(rd,&sb);
-    if(!(sb.st_size%sizeof(log_t))){ // file is ok
-      close(rd);
-      return(false);}
-    int l=lseek(rd,sb.st_size%sizeof(log_t),SEEK_SET);
-    int ad=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
-    if(ad<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for appending\n";
-      close(rd);
-      return(false);}
-    log_t log;
-    memset(&log,0,sizeof(log_t));
-    write(ad,&log,l); // append a suffix
-    close(ad);
-    int wd=open(filename,O_WRONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
-    if(wd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for writing\n";
-      close(rd);
-      return(false);}
-    fstat(wd,&sb);
-    if(sb.st_size%sizeof(log_t)){ // file is ok
-      std::cerr<<"ERROR, failed to append log register "<<filename<<", why ???\n";
-      close(rd);
-      close(wd);
-      return(false);}
-    for(l=sizeof(log_t);l<sb.st_size;l+=sizeof(log_t)){
-      if(read(rd,&log,sizeof(log_t))!=sizeof(log_t)){
-        std::cerr<<"ERROR, failed to read log register "<<filename<<" while fixing\n";
-        break;}
-      if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
-        std::cerr<<"ERROR, failed to write log register "<<filename<<" while fixing\n";
-        break;}}
-    if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
-      std::cerr<<"ERROR, failed to write log register "<<filename<<" while duplicating last log\n";}
-    close(rd);
-    close(wd);
-    return(false);
-  }
-
-  bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
-  { char filename[64];
-    struct stat sb;
-    if(from==0xffffffff){
-      fix_log(svid,user);}
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int fd=open(filename,O_RDWR|O_CREAT,0644); //maybe no lock needed with O_APPEND
-    if(fd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
-      return(false);}
-    fstat(fd,&sb);
-    uint32_t len=sb.st_size;
-    slog.append((char*)&len,4);
-    if(len%sizeof(log_t)){
-      std::cerr<<"ERROR, log corrupt register "<<filename<<"\n";
-      from=0;} // ignore from 
-    log_t log;
-    int l,mis=0;
-    for(uint32_t tot=0;(l=read(fd,&log,sizeof(log_t)))>0 && tot<len;tot+=l){
-      if(log.time<from){
-        mis+=l;
-        continue;}
-      slog.append((char*)&log,l);}
-    len-=mis;
-    slog.replace(0,4,(char*)&len,4);
-    if(!(len%sizeof(log_t))){
-      purge_log(fd,user);}
-    close(fd);
-    return(true);
   }
 
   //update_nodehash is similar
@@ -388,7 +222,6 @@ public:
         if(ud>=0){
           u.msid=0;
           if(sizeof(user_t)==read(ud,&u,sizeof(user_t)) && u.msid){
-            //std::cerr<<"OVERWRITE: "<<bank<<":"<<user<<" ("<<u.weight<<")\n";
             fprintf(stderr,"OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
@@ -578,6 +411,7 @@ public:
       blk_.unlock();
       std::set<uint16_t> update;
       missing_.lock();
+      message_queue commit_msgs;
       for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
         missing_.unlock();
         update.insert(it->second->svid);
@@ -592,6 +426,7 @@ public:
         else{
           txs_.lock();
           txs_msgs_[jt->first]=jt->second;
+          commit_msgs.push_back(jt->second);
           txs_.unlock();}
 	if(jt->second->load(0)){ // will be unloaded by the validator
           if(!jt->second->sigh_check()){
@@ -642,6 +477,13 @@ public:
       last_srvs_=srvs_; // consider not making copies of nodes
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       period_start=srvs_.nextblock();
+      //FIXME should be a separate thread
+      //ofip_update_block(period_start,srvs_.now,commit_msgs,srvs_.div);
+      fprintf(stderr,"UPDATE LOG\n");
+      ofip_update_block(period_start,0,commit_msgs,srvs_.div);
+      fprintf(stderr,"PROCESS LOG\n");
+      ofip_process_log(srvs_.now);
+      fprintf(stderr,"UPDATED LOG\n");
       now=time(NULL);
       now-=now%BLOCKSEC;
       peer_.lock();
@@ -1603,7 +1445,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
       lseek(fd,it->first*sizeof(user_t),SEEK_SET);
       write(fd,&it->second,sizeof(user_t));}
     close(fd);
-    del_log(srvs_.now,msg->svid,msg->msid);
+    del_msglog(srvs_.now,msg->svid,msg->msid);
     msg->unload(0);
     return(true);
   }
@@ -2072,10 +1914,11 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
     blk_get.insert(txs_get.begin(),txs_get.end());
     blk_.unlock();
-    if(do_sync){ //FIXME, do not duplicate previous log data !!!
-      put_log(msg->svid,log);}
-    else{
-      put_log(srvs_.now,msg->svid,msg->msid,log);}
+    //if(do_sync){ //FIXME, do not duplicate previous log data !!!
+    //  put_log(msg->svid,log);} //put_blklog
+    //else{
+    put_msglog(srvs_.now,msg->svid,msg->msid,log);
+    //} //put_msglog
     return(true);
   }
 
@@ -2094,6 +1937,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
   { mydiv_fee=0;
     myusr_fee=0;
     myget_fee=0;
+    uint32_t lpos=1;
+    std::map<uint64_t,log_t> log;
 
     //match remote account transactions
     std::map<uin_t,uint32_t,uin_cmp> uin; //waiting remote account requests
@@ -2122,6 +1967,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           if(abank==opts_.svid){
             myusr_fee+=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));}
           if(tx->bbank==opts_.svid){
+            uint64_t key=(uint64_t)tx->buser<<32;
+            key|=lpos++;
             log_t alog;
             alog.time=time(NULL);
             alog.type=TXSTYPE_UOK|0x8000; //incoming
@@ -2132,9 +1979,12 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             alog.mpos=srvs_.now;
             alog.weight=0;
             memcpy(alog.info,tx->pkey,32);
-            put_log(tx->bbank,tx->buser,alog);}
+            log[key]=alog;}
+            //put_log(tx->bbank,tx->buser,alog); //put_blklog
           uin[nuin]--;}
         else if(tx->bbank==opts_.svid){ // no matching _USR transaction found
+          uint64_t key=(uint64_t)tx->buser<<32;
+          key|=lpos++;
           log_t alog;
           alog.time=time(NULL);
           alog.type=TXSTYPE_UOK|0x8000; //incoming
@@ -2145,7 +1995,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           alog.mpos=srvs_.now;
           alog.weight=0;
           memcpy(alog.info,tx->pkey,32);
-          put_log(tx->bbank,tx->buser,alog);}}}
+          log[key]=alog;}}}
+          //put_log(tx->bbank,tx->buser,alog); //put_blklog
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
       for(;n>0;n--){
@@ -2156,6 +2007,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         if(it->first.auser){
           bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));} //else would generate extra fee for bank
         if(it->first.abank==opts_.svid){
+          uint64_t key=(uint64_t)it->first.auser<<32;
+          key|=lpos++;
           log_t alog;
           alog.time=time(NULL);
           alog.type=TXSTYPE_UOK|0x8000; //incoming
@@ -2166,7 +2019,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           alog.mpos=srvs_.now;
           alog.weight=USER_MIN_MASS;
           memcpy(alog.info,it->first.pkey,32);
-          put_log(it->first.abank,it->first.auser,alog);}}}
+          log[key]=alog;}}}
+          //put_log(it->first.abank,it->first.auser,alog); //put_blklog
 
     //create new banks
     if(!blk_bnk.empty()){
@@ -2208,6 +2062,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             if(*tx){
               bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_TMASS));} //else would generate extra fee
             if(abank==opts_.svid){
+              uint64_t key=(uint64_t)*tx<<32;
+              key|=lpos++;
               log_t alog;
               alog.time=time(NULL);
               alog.type=TXSTYPE_BNK|0x8000; //incoming
@@ -2218,12 +2074,13 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
               alog.mpos=srvs_.now;
               alog.weight=BANK_MIN_TMASS;
               memcpy(alog.info,u.pkey,32);
-              put_log(abank,*tx,alog);}
+              log[key]=alog;}
+              //put_log(abank,*tx,alog); //put_blklog
             continue;}
           update.insert(peer);
           if(abank==opts_.svid){
-            //uint64_t key=(uint64_t)(*tx)<<32;
-            //key|=mpos;
+            uint64_t key=(uint64_t)*tx<<32;
+            key|=lpos++;
             log_t alog;
             alog.time=time(NULL);
             alog.type=TXSTYPE_BNK|0x8000; //incoming
@@ -2234,7 +2091,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             alog.mpos=srvs_.now;
             alog.weight=0;
             memcpy(alog.info,u.pkey,32);
-            put_log(abank,*tx,alog);}}
+            log[key]=alog;}}
+            //put_log(abank,*tx,alog); //put_blklog
         close(fd);}
       //BLK_END:
       blk_bnk.clear();}
@@ -2307,17 +2165,23 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
           memcpy(tlog.info+24,&u.stat,2);
           memcpy(tlog.info+26,&u.pkey,6);
           if(abank==opts_.svid){
+            uint64_t key=(uint64_t)tx->auser<<32;
+            key|=lpos++;
             tlog.type=TXSTYPE_GET|0x8000; //incoming
             tlog.node=bbank;
             tlog.user=tx->buser;
             tlog.weight=delta_gok;
-            put_log(abank,tx->auser,tlog);}
+            log[key]=tlog;}
+            //put_log(abank,tx->auser,tlog); //put_blklog
           if(bbank==opts_.svid){
+            uint64_t key=(uint64_t)tx->buser<<32;
+            key|=lpos++;
             tlog.type=TXSTYPE_GET; //outgoing
             tlog.node=abank;
             tlog.user=tx->auser;
             tlog.weight=-delta_gok;
-            put_log(bbank,tx->buser,tlog);}
+            log[key]=tlog;}
+            //put_log(bbank,tx->buser,tlog); //put_blklog
           if(bbank==opts_.svid && !do_sync && ofip!=NULL){
             gup_t g;
             g.auser=tx->buser;
@@ -2329,6 +2193,8 @@ fprintf(stderr,"DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
     if(svid){
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
+    del_msglog(srvs_.now,0,0);
+    put_msglog(srvs_.now,0,0,log);
   }
 
   int64_t dividend(user_t& u)
@@ -2453,8 +2319,6 @@ fprintf(stderr,"DIV: to %04X:%08X (%016lX)\n",svid,user,div);
           close(fd);}
         srvs_.save_undo(lastsvid,undo,0);
         undo.clear();
-        //if(lastsvid==opts_.svid){
-        //  put_log(opts_.svid,log);}
         //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
         lastsvid=svid;
 	update.insert(svid);
@@ -2493,8 +2357,6 @@ fprintf(stderr,"DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,
       close(fd);
       srvs_.save_undo(lastsvid,undo,0);
       undo.clear();}
-      //if(lastsvid==opts_.svid){
-      //  put_log(opts_.svid,log);}
     deposit.clear(); //remove deposits after commiting
   }
 
@@ -2504,6 +2366,8 @@ fprintf(stderr,"DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,
     const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
     assert((char*)&u.rpath<(char*)&u.weight);
     assert((char*)&u.rpath<(char*)&u.csum);
+    std::map<uint64_t,log_t> log;
+
     for(uint16_t svid=1;svid<max_svid;svid++){
       char filename[64];
       sprintf(filename,"usr/%04X.dat",svid);
@@ -2543,6 +2407,7 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       close(fd);
       srvs_.save_undo(svid,undo,0);
       if(svid==opts_.svid){
+        uint64_t key=(uint64_t)svid<<32;
         log_t alog;
         alog.time=time(NULL);
         alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
@@ -2556,9 +2421,11 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
         memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
         memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
-        put_log(svid,0,alog);}}
+        log[key]=alog;}}
+        //put_log(svid,0,alog);  //put_blklog
     bank_fee.clear();
     bank_fee.resize(srvs_.nodes.size());
+    put_msglog(srvs_.now,0,0,log);
   }
 
   //bool accept_message(uint32_t lastmsid)
@@ -3046,13 +2913,13 @@ exit(-1);
   { return(check_msgs_.size());
   }
 
-  void lock_user(uint32_t cuser)
-  { ulock_[cuser & 0xff].lock();
-  }
+//void lock_user(uint32_t cuser)
+//{ ulock_[cuser & 0xff].lock();
+//}
 
-  void unlock_user(uint32_t cuser)
-  { ulock_[cuser & 0xff].unlock();
-  }
+//void unlock_user(uint32_t cuser)
+//{ ulock_[cuser & 0xff].unlock();
+//}
 
   uint32_t srvs_now()
   { return(srvs_.now);
@@ -3077,6 +2944,7 @@ exit(-1);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);
   void ofip_start(uint32_t myusers);
   void ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv);
+  void ofip_process_log(uint32_t now);
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
   void ofip_delete_user(uint32_t user);
 

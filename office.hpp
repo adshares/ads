@@ -30,6 +30,8 @@ public:
     fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
     if(fd<0){
       std::cerr<<"ERROR, failed to open office register\n";}
+    mklogdir(opts_.svid);
+    mklogfile(opts_.svid,0);
   }
 
   ~office()
@@ -82,6 +84,7 @@ public:
     if(gd<0){
       fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
+    log_.lock();
     log_t alog;
     alog.type=TXSTYPE_STP|0x8000; //incoming
     alog.time=time(NULL);
@@ -110,8 +113,12 @@ public:
       if(u.stat&USER_STAT_DELETED){
         deleted_users.push_back(user);}
       write(fd,&u,sizeof(user_t));
-      srv_.put_log(svid,user,alog);}
+      // check last log status
+      //log_t llog;
+      //srv_.get_lastlog(svid,user,llog);
+      put_log(user,alog);}
     close(gd);
+    log_.unlock();
 
     //init io_service_pool
     run=true; //not used yet
@@ -159,7 +166,9 @@ public:
     if(dd<0){
       fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
+    log_.lock();
     log_t alog;
+    alog.time=time(NULL);
     alog.node=0;
     alog.user=0;
     alog.umid=0;
@@ -172,10 +181,10 @@ public:
       if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
         break;}
       add_deposit(user,div);
-      alog.time=time(NULL);
       alog.weight=div;
-      srv_.put_log(svid,user,alog);}
+      put_log(user,alog);}
     close(dd);
+    log_.unlock();
     unlink(filename);
   }
 
@@ -183,26 +192,45 @@ public:
   { for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       uint64_t svms=(uint64_t)((*mi)->svid)<<32|(*mi)->msid;
       mque.push_back(svms);}
+    //fprintf(stderr,"UPDATE LOG processed queue\n");
     if(period_start==now){
+      assert(now);
       update_div(now,newdiv);
+      //fprintf(stderr,"UPDATE LOG processed div\n");
       div_ready=now;}
     block_ready=now;
+    //fprintf(stderr,"UPDATE LOG return\n");
   }
 
-//FIXME, !!! master log hygiene
   void process_log(uint32_t now) //FIXME, check here if logs are not duplicated !!! maybe record stored info
   { uint32_t lpos=0;
     const uint32_t maxl=0xffff;
     std::map<uint64_t,log_t> log;
+    mque.push_back(0); //add block message
+    char filename[64];
+    sprintf(filename,"blk/%03X/%05X/log/time.bin",now>>20,now&0xFFFFF);
+    int fd=open(filename,O_RDWR|O_CREAT,0644);
+    if(fd<0){
+      fprintf(stderr,"ERROR, failed to open log time file %s, fatal\n",filename);
+      exit(-1);}
+    struct stat sb;
+    fstat(fd,&sb);
+    if(sb.st_size){ // file is ok
+//FIXME, !!! master log hygiene
+      fprintf(stderr,"ERROR, log time file %s not empty, fatal\n",filename);
+      exit(-1);}
+    log_.lock();
+    uint32_t ntime=time(NULL);
+    write(fd,&ntime,sizeof(uint32_t));
+    close(fd);
     for(auto mi=mque.begin();mi!=mque.end();mi++){
       uint64_t svms=(*mi);
-      uint32_t svid=svms>>32;
+      uint32_t bank=svms>>32;
       uint32_t msid=svms&0xFFFFFFFF;
-      char filename[64];
-      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
+      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,bank,msid);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
-        std::cerr<<"ERROR, failed to open log file "<<filename<<"\n";
+        fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
         continue;}
       while(1){
         uint32_t user;
@@ -215,11 +243,12 @@ public:
         log[lkey]=ulog;}
       close(fd);
       if(lpos>=maxl){ //TODO, maybe record what was processed !!!
-        srv_.put_log(svid,log);
+        put_log(log,ntime);
         log.clear();
         lpos=0;}}
     if(lpos){
-      srv_.put_log(svid,log);}
+      put_log(log,ntime);}
+    log_.unlock();
     mque.clear();
   }
 
@@ -378,6 +407,7 @@ public:
     // no old account found, creating new account
     //FIXME !!!  wrong time !!! must use time from txs
     nuser=users++;
+    mklogfile(svid,nuser);
     srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
@@ -491,10 +521,6 @@ public:
     return(uid<=users);
   }
 
-  bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
-  { return(srv_.get_log(svid,user,from,slog));
-  }
-
   bool find_key(uint8_t* pkey,uint8_t* skey)
   { return(srv_.last_srvs_.find_key(pkey,skey));
   }
@@ -503,16 +529,189 @@ public:
   { return(srv_.last_srvs_.now);
   }
 
-  void put_log(uint16_t svid,uint32_t user,log_t& log)
-  { srv_.put_log(svid,user,log);
+//LOG handling
+
+//FIXME, log handling should go to office.hpp or better to log.hpp
+  void mklogdir(uint16_t svid)
+  { char filename[64];
+    sprintf(filename,"log/%04X",svid);
+    mkdir("log",0755); // create dir for user history
+    mkdir(filename,0755);
   }
 
-  void put_log(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log)
-  { srv_.put_log(now,svid,msid,log);
+  void mklogfile(uint16_t svid,uint32_t user)
+  { char filename[64];
+    sprintf(filename,"log/%04X/%03X",svid,user>>20);
+    mkdir(filename,0755);
+    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
+    mkdir(filename,0755);
+    //create log file ... would be created later anyway
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      std::cerr<<"ERROR, failed to create log directory "<<filename<<"\n";}
+    close(fd);
   }
 
-  void put_log(uint16_t svid,std::map<uint64_t,log_t>& log)
-  { srv_.put_log(svid,log);
+  // use (2) fallocate to remove beginning of files
+  // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
+  int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
+  { log_t log;
+    assert(!(4096%sizeof(log_t)));
+    int r,size=lseek(fd,0,SEEK_END); // maybe stat would be faster
+    if(size%sizeof(log_t)){
+      std::cerr<<"ERROR, log corrupt register\n";
+      return(-2);}
+    if(size<LOG_PURGE_START){
+      return(0);}
+    size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
+    for(;size>=LOG_PURGE_START;size-=4096){
+      if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)){
+        std::cerr<<"ERROR, log lseek error\n";
+        return(-1);}
+      if((r=read(fd,&log,sizeof(log_t)))!=sizeof(log_t)){
+        //std::cerr<<"ERROR, log read error\n";
+        fprintf(stderr,"ERROR, log read error (%d,%s)\n",r,strerror(errno));
+        return(-1);}
+      if(log.time+MAX_LOG_AGE>=srv_.last_srvs_.now){ // purge first block
+        return(0);}
+      if((r=fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096))<0){
+        //std::cerr<<"ERROR, log purge failed\n";
+        fprintf(stderr,"ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
+        return(-1);}}
+    return(0);
+  }
+
+  void put_log(uint32_t user,log_t& log) //single user, called by office and client
+  { char filename[64];
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+      return;} // :-( maybe we should throw here something
+    write(fd,&log,sizeof(log_t));
+    close(fd);
+  }
+
+  void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) //many users, called by office and client
+  { uint32_t luser=MAX_USERS;
+    int fd=-1;
+    if(log.empty()){
+      return;}
+    for(auto it=log.begin();it!=log.end();it++){
+      uint32_t user=(it->first)>>32;
+      if(luser!=user){
+        if(fd>=0){
+          purge_log(fd,luser);
+          close(fd);}
+        luser=user;
+        char filename[64];
+        sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+        fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+        if(fd<0){
+          std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+          return;} // :-( maybe we should throw here something
+        }
+      it->second.time=ntime;
+      write(fd,&it->second,sizeof(log_t));}
+    purge_log(fd,luser);
+    close(fd);
+    log.clear();
+  }
+
+  void put_ulog(uint32_t user,log_t& log) //single user, called by office and client
+  { log_.lock();
+    log.time=time(NULL);
+    put_log(user,log);
+    log_.unlock();
+  }
+
+  void put_ulog(std::map<uint64_t,log_t>& log) //single user, called by office and client
+  { log_.lock();
+    uint32_t ntime=time(NULL);
+    put_log(log,ntime);
+    log_.unlock();
+  }
+
+  bool fix_log(uint16_t svid,uint32_t user)
+  { char filename[64];
+    struct stat sb;
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(rd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for reading\n";
+      return(false);}
+    fstat(rd,&sb);
+    if(!(sb.st_size%sizeof(log_t))){ // file is ok
+      close(rd);
+      return(false);}
+    int l=lseek(rd,sb.st_size%sizeof(log_t),SEEK_SET);
+    int ad=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+    if(ad<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for appending\n";
+      close(rd);
+      return(false);}
+    log_t log;
+    memset(&log,0,sizeof(log_t));
+    write(ad,&log,l); // append a suffix
+    close(ad);
+    int wd=open(filename,O_WRONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(wd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<" for writing\n";
+      close(rd);
+      return(false);}
+    fstat(wd,&sb);
+    if(sb.st_size%sizeof(log_t)){ // file is ok
+      std::cerr<<"ERROR, failed to append log register "<<filename<<", why ???\n";
+      close(rd);
+      close(wd);
+      return(false);}
+    for(l=sizeof(log_t);l<sb.st_size;l+=sizeof(log_t)){
+      if(read(rd,&log,sizeof(log_t))!=sizeof(log_t)){
+        std::cerr<<"ERROR, failed to read log register "<<filename<<" while fixing\n";
+        break;}
+      if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
+        std::cerr<<"ERROR, failed to write log register "<<filename<<" while fixing\n";
+        break;}}
+    if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
+      std::cerr<<"ERROR, failed to write log register "<<filename<<" while duplicating last log\n";}
+    close(rd);
+    close(wd);
+    return(false);
+  }
+
+  //bool get_lastlog(uint16_t svid,uint32_t user,log_t& slog)
+
+// move this to office !!!
+  bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
+  { char filename[64];
+    struct stat sb;
+    if(from==0xffffffff){
+      fix_log(svid,user);}
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int fd=open(filename,O_RDWR|O_CREAT,0644); //maybe no lock needed with O_APPEND
+    if(fd<0){
+      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+      return(false);}
+    fstat(fd,&sb);
+    uint32_t len=sb.st_size;
+    slog.append((char*)&len,4);
+    if(len%sizeof(log_t)){
+      std::cerr<<"ERROR, log corrupt register "<<filename<<"\n";
+      from=0;} // ignore from 
+    log_t log;
+    int l,mis=0;
+    for(uint32_t tot=0;(l=read(fd,&log,sizeof(log_t)))>0 && tot<len;tot+=l){
+      if(log.time<from){
+        mis+=l;
+        continue;}
+      slog.append((char*)&log,l);}
+    len-=mis;
+    slog.replace(0,4,(char*)&len,4);
+    if(!(len%sizeof(log_t))){
+      purge_log(fd,user);}
+    close(fd);
+    return(true);
   }
 
   uint16_t svid;
@@ -556,6 +755,7 @@ private:
   boost::mutex account_;
   boost::mutex message_;
   boost::mutex users_[0x100];
+  boost::mutex log_;
 };
 
 #endif // OFFICE_HPP

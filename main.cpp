@@ -8,6 +8,7 @@ int main(int argc, char* argv[])
     server s(opt);
     office o(opt,s);
     s.ofip=&o;
+    s.start();
     std::string line;
     while (std::getline(std::cin,line)){
       if(line[0]=='.' && line[1]=='\0'){
@@ -70,6 +71,9 @@ void office::leave(client_ptr c)
 // server <-> office
 void server::ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv)
 {	ofip->update_block(period_start,now,commit_msgs,newdiv);
+}
+void server::ofip_process_log(uint32_t now)
+{	ofip->process_log(now);
 }
 void server::ofip_start(uint32_t myusers)
 {	ofip->start(myusers);

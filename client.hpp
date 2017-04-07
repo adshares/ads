@@ -76,9 +76,7 @@ public:
       boost::asio::async_read(socket_,boost::asio::buffer(buf+len,utxs.bbank*(6+8)),
         boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    //offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     parse();
-    //offi_.unlock_user(utxs.auser);
     offi_.leave(shared_from_this());
   }
 
@@ -87,9 +85,7 @@ public:
       std::cerr<<"ERROR: read more error\n";
       offi_.leave(shared_from_this());
       return;}
-    //offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
     parse();
-    //offi_.unlock_user(utxs.auser);
     offi_.leave(shared_from_this());
   }
 
@@ -454,12 +450,11 @@ public:
         tlog.weight=-mpt_mass[i];
         tlog.info[31]=(i?0:1);
 	log[key]=tlog;}
-      offi_.put_log(offi_.svid,log);} // could be processed 
+      offi_.put_ulog(log);} // could be processed 
     else{
       tlog.weight=-utxs.tmass;
       //tlog.weight=-deduct;
-      offi_.put_log(offi_.svid,utxs.auser,tlog);}
-    offi_.unlock_user(utxs.auser);
+      offi_.put_ulog(utxs.auser,tlog);}
 
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
       tlog.type=*buf|0x8000; //incoming
@@ -470,25 +465,26 @@ public:
         if(mpt_bank[i]==offi_.svid){
           tlog.weight=mpt_mass[i];
           tlog.info[31]=(i?0:1);
-          offi_.lock_user(utxs.buser);
-          offi_.put_log(offi_.svid,utxs.buser,tlog);
-          offi_.unlock_user(utxs.buser);
+          offi_.put_ulog(utxs.buser,tlog);
           offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}
     else if(utxs.abank==utxs.bbank && *buf==TXSTYPE_PUT){
       tlog.type=*buf|0x8000; //incoming
       tlog.node=utxs.abank;
       tlog.user=utxs.auser;
       tlog.weight=utxs.tmass;
-      offi_.lock_user(utxs.buser);
-      offi_.put_log(offi_.svid,utxs.buser,tlog);
-      offi_.unlock_user(utxs.buser);
+      offi_.put_ulog(utxs.buser,tlog);
       if(*buf==TXSTYPE_PUT && deposit>=0){
         offi_.add_deposit(utxs);}}
+    offi_.unlock_user(utxs.auser);
     //FIXME, return msid and mpos
     fprintf(stderr,"SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
-    boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
-    boost::asio::write(socket_,boost::asio::buffer(&msid,sizeof(uint32_t)));
-    boost::asio::write(socket_,boost::asio::buffer(&mpos,sizeof(uint32_t)));
+    try{
+      //respond with a single message
+      boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
+      boost::asio::write(socket_,boost::asio::buffer(&msid,sizeof(uint32_t)));
+      boost::asio::write(socket_,boost::asio::buffer(&mpos,sizeof(uint32_t)));}
+    catch (std::exception& e){
+      fprintf(stderr,"ERROR responding to client %08X\n",utxs.auser);}
     return;
   }
 
