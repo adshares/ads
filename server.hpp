@@ -326,6 +326,7 @@ public:
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
     if(srvs_.now<now){
+
       peer_.lock();
       uint32_t n=headers.size();
       peer_.unlock();
@@ -334,36 +335,12 @@ public:
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         peer_.lock();
         n=headers.size();
-        peer_.unlock();}}
-    peer_.lock();
-    block=headers.begin();
-    peer_.unlock();
-    for(block=headers.begin();srvs_.now<now;){
+        peer_.unlock();}
       peer_.lock();
-
-//FIXME, new headers will be inserted before .end() !!! :-(
-//FIXME, must use vector again :-(
-
-      if(block==headers.end()){ // wait for peers to load more blocks
-        fprintf(stderr,"WAITING at block end (headers:%d)\n",(int)headers.size());
-        servers& peer_ls=headers.back();
-        peer_.unlock();
-	if(block!=headers.begin()){
-          uint32_t nnow=time(NULL);
-          //std::cerr<<"WAITING for headers "<<block->now<<", maybe need more peers\n";
-          //fprintf(stderr,"WAITING for headers %08X, maybe need more peers\n",headers.rbegin()->now+BLOCKSEC);
-          fprintf(stderr,"WAITING for headers %08X, maybe need more peers (srvs_.now:%08X;now:%08X;nnow:%08X)\n",peer_ls.now+BLOCKSEC,srvs_.now,now,nnow);
-//will block !!!
-          get_more_headers(peer_ls.now+BLOCKSEC,peer_ls.nowhash);}
-        peer_.lock();
-        if(block==headers.end()){ // wait for peers to load more blocks
-          peer_.unlock();
-          fprintf(stderr,"\nWAITING 2s\n");
-          boost::this_thread::sleep(boost::posix_time::seconds(2));}
-	else{
-          peer_.unlock();}
-        continue;}
+      block=headers.begin();
       peer_.unlock();
+    //for(;srvs_.now<now;){
+    for(;;){
       //std::cerr<<"START syncing header "<<block->now<<"\n";
       fprintf(stderr,"START syncing header %08X\n",block->now);
       if(srvs_.now!=block->now){
@@ -492,9 +469,36 @@ fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
       writemsid();
       now=time(NULL);
       now-=now%BLOCKSEC;
+      if(srvs_.now>=now){
+        break;}
       peer_.lock();
-      block++;
-      peer_.unlock();}
+      for(block++;block==headers.end();block++){ // wait for peers to load more blocks
+        block--;
+        peer_.unlock();
+        fprintf(stderr,"WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
+          (int)headers.size(),srvs_.now,now);
+        get_more_headers(block->now+BLOCKSEC,block->nowhash); //blocking :-(
+
+        /*servers& peer_ls=headers.back();
+        peer_.unlock();
+	if(block!=headers.begin()){
+          uint32_t nnow=time(NULL);
+          fprintf(stderr,"WAITING for headers %08X, maybe need more peers (srvs_.now:%08X;now:%08X;nnow:%08X)\n",
+            peer_ls.now+BLOCKSEC,srvs_.now,now,nnow);
+          get_more_headers(peer_ls.now+BLOCKSEC,peer_ls.nowhash);}
+        peer_.lock();
+        if(block==headers.end()){ // wait for peers to load more blocks
+          peer_.unlock();
+          fprintf(stderr,"\nWAITING 2s\n");
+          boost::this_thread::sleep(boost::posix_time::seconds(2));}
+	else{
+          peer_.unlock();}
+        continue;*/
+
+        fprintf(stderr,"\nWAITING 2s\n");
+        boost::this_thread::sleep(boost::posix_time::seconds(2));
+        peer_.lock();}
+      peer_.unlock();}}
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     txs_.lock();
