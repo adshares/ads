@@ -477,25 +477,8 @@ fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
         peer_.unlock();
         fprintf(stderr,"WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
           (int)headers.size(),srvs_.now,now);
-        get_more_headers(block->now+BLOCKSEC,block->nowhash); //blocking :-(
-
-        /*servers& peer_ls=headers.back();
-        peer_.unlock();
-	if(block!=headers.begin()){
-          uint32_t nnow=time(NULL);
-          fprintf(stderr,"WAITING for headers %08X, maybe need more peers (srvs_.now:%08X;now:%08X;nnow:%08X)\n",
-            peer_ls.now+BLOCKSEC,srvs_.now,now,nnow);
-          get_more_headers(peer_ls.now+BLOCKSEC,peer_ls.nowhash);}
-        peer_.lock();
-        if(block==headers.end()){ // wait for peers to load more blocks
-          peer_.unlock();
-          fprintf(stderr,"\nWAITING 2s\n");
-          boost::this_thread::sleep(boost::posix_time::seconds(2));}
-	else{
-          peer_.unlock();}
-        continue;*/
-
-        fprintf(stderr,"\nWAITING 2s\n");
+//FIXME, insecure !!! it is better to ask more peers (disconnect if needed) and wait for a block with enough votes
+        get_more_headers(block->now+BLOCKSEC);
         boost::this_thread::sleep(boost::posix_time::seconds(2));
         peer_.lock();}
       peer_.unlock();}}
@@ -2949,7 +2932,7 @@ exit(-1);
   void connect(std::string peer_address);
   void connect(uint16_t svid);
   void fillknown(message_ptr msg);
-  void get_more_headers(uint32_t now,uint8_t* nowhash);
+  void get_more_headers(uint32_t now);
   void ofip_gup_push(gup_t& g);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);
   void ofip_start(uint32_t myusers);

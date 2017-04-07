@@ -148,7 +148,7 @@ int server::deliver(message_ptr msg,uint16_t svid)
 	msg->sent.erase(svid);
 	return(0);
 }
-void server::get_more_headers(uint32_t now,uint8_t* nowhash) //use random order
+void server::get_more_headers(uint32_t now) //use random order
 {	peer_.lock();
 	auto pi=peers_.begin();
 	if(!peers_.size()){
@@ -160,7 +160,7 @@ void server::get_more_headers(uint32_t now,uint8_t* nowhash) //use random order
 	peer_.unlock();
 	if(!(*pi)->do_sync){
 		fprintf(stderr,"REQUEST more headers from peer %04X\n",(*pi)->svid);
-		(*pi)->request_next_headers(now,nowhash);}
+		(*pi)->request_next_headers(now);}
 }
 void server::fillknown(message_ptr msg) //use random order
 {	static uint32_t r=0;

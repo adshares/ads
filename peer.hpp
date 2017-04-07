@@ -488,7 +488,7 @@ Aborted
     send_sync(put_msg);
   }
 
-  void request_next_headers(uint32_t now,uint8_t* nowhash) //WARNING, this requests a not validated header
+  void request_next_headers(uint32_t now) //WARNING, this requests a not validated header
   { if(peer_hs.head.now>=now){ // this peer should send this header anytime soon
       return;}
     fprintf(stderr,"SENDING block header request for %08X\n",now);
@@ -523,7 +523,7 @@ Aborted
     //  server_.leave(shared_from_this());
     //  return;}
     uint32_t from;
-    memcpy(&from,read_msg_->data+1,3);
+    memcpy(&from,read_msg_->data+1,4);
     char* data=(char*)read_msg_->data+8;
     std::cerr << "PROCESSING block header request\n";
     servers peer_ls;
