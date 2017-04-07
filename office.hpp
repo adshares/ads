@@ -217,8 +217,9 @@ public:
     fstat(fd,&sb);
     if(sb.st_size){ // file is ok
 //FIXME, !!! master log hygiene
-      fprintf(stderr,"ERROR, log time file %s not empty, fatal\n",filename);
-      exit(-1);}
+      fprintf(stderr,"\n\nERROR, log time file %s not empty, fatal\n\n\n",filename);
+//    exit(-1);
+      }
     log_.lock();
     uint32_t ntime=time(NULL);
     write(fd,&ntime,sizeof(uint32_t));

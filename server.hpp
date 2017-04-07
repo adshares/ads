@@ -372,7 +372,9 @@ public:
         exit(-1);} //FIXME, prevent this
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
+fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
       if(!block->load_msglist(missing_msgs_,opts_.svid)){
+        fprintf(stderr,"LOAD messages from peers\n");
         //request list of transactions from peers
         peer_.lock(); // consider changing this to missing_lock
         get_msglist=srvs_.now;
@@ -394,6 +396,9 @@ public:
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
         srvs_.msg=block->msg; //check
         srvs_.msg_put(missing_msgs_);}
+      else{
+        srvs_.msg=block->msg; //check
+        memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
       //inform peers about current sync block
       message_ptr put_msg(new message());
       put_msg->data[0]=MSGTYPE_PAT;
@@ -457,6 +462,7 @@ public:
         boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
 	blk_.lock();}
       blk_.unlock();
+fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
       std::cerr << "COMMIT deposits\n";
       commit_block(update); // process bkn and get transactions
       commit_dividends(update);
@@ -482,7 +488,8 @@ public:
       ofip_update_block(period_start,0,commit_msgs,srvs_.div);
       fprintf(stderr,"PROCESS LOG\n");
       ofip_process_log(srvs_.now-BLOCKSEC);
-      fprintf(stderr,"UPDATED LOG\n");
+      fprintf(stderr,"WRITE NEW MSID\n");
+      writemsid();
       now=time(NULL);
       now-=now%BLOCKSEC;
       peer_.lock();
