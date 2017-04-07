@@ -478,11 +478,10 @@ public:
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       period_start=srvs_.nextblock();
       //FIXME should be a separate thread
-      //ofip_update_block(period_start,srvs_.now,commit_msgs,srvs_.div);
       fprintf(stderr,"UPDATE LOG\n");
       ofip_update_block(period_start,0,commit_msgs,srvs_.div);
       fprintf(stderr,"PROCESS LOG\n");
-      ofip_process_log(srvs_.now);
+      ofip_process_log(srvs_.now-BLOCKSEC);
       fprintf(stderr,"UPDATED LOG\n");
       now=time(NULL);
       now-=now%BLOCKSEC;
