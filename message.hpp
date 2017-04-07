@@ -556,16 +556,16 @@ public:
   }
 
   void unload(int16_t who)
-  { 
-
-    return;
-
-    mtx_.lock();
+  { mtx_.lock();
     busy.erase(who);
     if(busy.empty()){
-      if(data!=NULL){
-        free(data);
-        data=NULL;}}
+      if(len==header_length){
+        fprintf(stderr,"WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
+          (uint32_t)hashtype(),svid,msid,len);}
+      else{
+        if(data!=NULL){
+          free(data);
+          data=NULL;}}}
     mtx_.unlock();
   }
 

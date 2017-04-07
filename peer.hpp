@@ -225,7 +225,8 @@ Aborted
     //else{
     //std::cerr<<"SENDING in sync mode busy("<<write_msgs_.size()<<"), queued("<<write_msgs_.back()->len<<"B)\n";}
     mtx_.unlock();
-    put_msg->unload(svid);
+    if(put_msg->len!=message::header_length){
+      put_msg->unload(svid);}
   }
 
   void handle_write(const boost::system::error_code& error) //TODO change this later, dont send each message separately if possible
@@ -241,7 +242,7 @@ Aborted
       files_out++;
       if(write_msgs_.front()->data[0]==MSGTYPE_STP){
         BLOCK_MODE_SERVER=2;
-        write_msgs_.front()->unload(svid);
+        //write_msgs_.front()->unload(svid);
         write_msgs_.pop_front();
         if(BLOCK_MODE_PEER){ // TODO what is this ???
           mtx_.unlock();
@@ -255,7 +256,8 @@ Aborted
           svid_msid_new[write_msgs_.front()->svid]=write_msgs_.front()->msid; // maybe a lock on svid_msid_new would help
           fprintf(stderr,"UPDATE PEER SVID_MSID: %04X:%08X\n",write_msgs_.front()->svid,write_msgs_.front()->msid);}}
       //std::cerr << "HANDLE WRITE sent "<<write_msgs_.front()->len<<" bytes\n";
-      write_msgs_.front()->unload(svid);
+      if(write_msgs_.front()->len!=message::header_length){
+        write_msgs_.front()->unload(svid);}
       write_msgs_.pop_front();
       if (!write_msgs_.empty()) {
         //FIXME, now load the message from db if needed !!! do not do this when inserting in write_msgs_, unless You do not worry about RAM but worry about speed
