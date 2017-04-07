@@ -140,6 +140,7 @@ public:
       ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
       hash_signature();}
     else{
+      assert(text_type==MSGTYPE_MSG);
       if(!hash_tree(sigh)){
         fprintf(stderr,"ERROR hash_tree error, FATAL\n");
         exit(-1);}
@@ -151,7 +152,7 @@ public:
 
   bool hash_tree(uint8_t* newsigh)
   { assert(data!=NULL);
-    assert(data[0]==MSGTYPE_MSG);
+    assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
     hash_t hash;
     hashtree tree;
     usertxs utxs;
@@ -362,6 +363,7 @@ public:
   int sigh_check() // check signature of loaded message
   { uint64_t h[4];
     if(hash.dat[1]==MSGTYPE_MSG){
+      assert(data[0]==MSGTYPE_MSG);
       if(!hash_tree((uint8_t*)h)){
         return(-1);}}
     else{
@@ -509,8 +511,9 @@ public:
   int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
   { mtx_.lock();
     busy.insert(who);
-    if(data!=NULL){
+    if(data!=NULL && len!=header_length){
       mtx_.unlock();
+      fprintf(stderr,"blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
       return(1);}
     uint32_t head;
     char filename[64];
@@ -534,9 +537,9 @@ public:
       mtx_.unlock();
       return(0);}
     assert(len>4+64 && len<=4+2*max_length); // accept DBL messages length
-    //if(data!=NULL){
-    //  free(data);
-    //  data=NULL;}
+    if(data!=NULL){
+      free(data);
+      data=NULL;}
     data=(uint8_t*)std::malloc(len);
     memcpy(data,&head,4);
     myfile.read((char*)data+4,len-4); // TODO, consider loading more saved data (status?)
@@ -548,11 +551,16 @@ public:
       return(0);}
     myfile.close();
     mtx_.unlock();
+    fprintf(stderr,"blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     return(1);
   }
 
   void unload(int16_t who)
-  { mtx_.lock();
+  { 
+
+    return;
+
+    mtx_.lock();
     busy.erase(who);
     if(busy.empty()){
       if(data!=NULL){

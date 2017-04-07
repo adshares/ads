@@ -484,11 +484,13 @@ Aborted
     send_sync(put_msg);
     char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t));
     int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
+//ERROR, this is blocking !!!
     if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t))){
       std::cerr << "READ headers error\n";
       free(data);
       server_.leave(shared_from_this());
       return;}
+    std::cerr << "PROCESSING block header request\n";
     servers peer_ls;
     headlink_t* link=(headlink_t*)(data+SHA256_DIGEST_LENGTH);
     peer_ls.loadlink(*link,now,data);
@@ -749,12 +751,21 @@ Aborted
             memcpy((char*)u,&v,sizeof(user_t));}}
         NEXTUSER:;
         //print user
-        fprintf(stderr,"USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
-          user,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
+        fprintf(stderr,"USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",
+          user,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight,*((uint32_t*)(u->csum)));
         weight+=u->weight;
         //SHA256_Update(&sha256,u,sizeof(user_t));
+        //FIXME, debug only !!!
+        { user_t n;
+          memcpy(&n,u,sizeof(user_t));
+          server_.last_srvs_.user_csum(n,bank,user);
+          if(memcmp(n.csum,u->csum,32)){
+            fprintf(stderr,"ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",user,
+              *((uint32_t*)(n.csum)),*((uint32_t*)(u->csum)));
+            exit(-1);}
+        }
         server_.last_srvs_.xor4(csum,u->csum);}
-      fprintf(stderr,"SENDING bank %04X block %08X msid %08X max user %08X sum %016lX\n",bank,path,msid,user,s.nodes[bank].weight);
+      fprintf(stderr,"SENDING bank %04X block %08X chunk %08X max user %08X sum %016lX hash %08X\n",bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum));
       send_sync(put_msg); // send even if we have errors
       if(user==users){
         //uint8_t hash[32];
@@ -794,7 +805,7 @@ Aborted
     uint16_t bank=read_msg_->svid;
     if(!bank || bank>=server_.last_srvs_.nodes.size()){
       //std::cerr << "ERROR reading bank "<<bank<<" (bad svid)\n";
-      fprintf(stderr,"ERROR reading bank %04X (bad hash)\n",bank);
+      fprintf(stderr,"ERROR reading bank %04X (bad num)\n",bank);
       server_.leave(shared_from_this());
       return;}
     //if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
@@ -852,6 +863,10 @@ Aborted
     user_t* u=(user_t*)(read_msg_->data+8);
     uint32_t uid=0x10000*read_msg_->msid;
     for(uint32_t i=0;i<read_msg_->len;i++,u++,uid++){
+      //fprintf(stderr,"USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+      //  uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
+      fprintf(stderr,"USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",
+        uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight,*((uint32_t*)(u->csum)));
       weight+=u->weight;
       //SHA256_Update(&sha256,u,sizeof(user_t));
       server_.last_srvs_.user_csum(*u,bank,uid); //overwrite u.csum (TODO consider not sending over network!!!)
@@ -862,19 +877,21 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
+    fprintf(stderr,"GOT bank %04X users %08X sum %016lX hash %08X\n",bank,uid,weight,*((uint32_t*)csum));
     //uint8_t hash[32];
     //SHA256_Final(hash,&sha256);
     //if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32))
-    if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))){
-      //unlink(filename); //TODO, enable this later
-      //std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
-      fprintf(stderr,"ERROR reading bank %04X (bad hash)\n",bank);
-      server_.leave(shared_from_this());
-      return;}
     if(server_.last_srvs_.nodes[bank].weight!=weight){
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad sum)\n";
       fprintf(stderr,"ERROR reading bank %04X (bad sum)\n",bank);
+      server_.leave(shared_from_this());
+      return;}
+    if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))){
+      //unlink(filename); //TODO, enable this later
+      //std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
+      fprintf(stderr,"ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",bank,
+        *((uint32_t*)server_.last_srvs_.nodes[bank].hash),*((uint32_t*)csum));
       server_.leave(shared_from_this());
       return;}
     char new_name[64];

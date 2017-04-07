@@ -273,7 +273,7 @@ public:
         luser=user;
         char filename[64];
         sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-        fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+        fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
         if(fd<0){
           std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
           return;} // :-( maybe we should throw here something
@@ -402,6 +402,15 @@ public:
         NEXTUSER:;
         weight+=u.weight;
         //SHA256_Update(&sha256,&u,sizeof(user_t));
+        //FIXME, debug only !!!
+        { user_t n;
+          memcpy(&n,&u,sizeof(user_t));
+          last_srvs_.user_csum(n,bank,user);
+          if(memcmp(n.csum,u.csum,32)){
+            fprintf(stderr,"ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",user,
+              *((uint32_t*)(n.csum)),*((uint32_t*)(u.csum)));
+            return(0);}
+        }
         last_srvs_.xor4(csum,u.csum);}
       close(fd);
       if(ud>=0){
@@ -477,24 +486,46 @@ public:
 
   void load_chain()
   { uint32_t now=time(NULL);
+    auto block=headers.begin();
     now-=now%BLOCKSEC;
     do_validate=1;
     threadpool.create_thread(boost::bind(&server::validator, this));
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
-    for(auto block=headers.begin();srvs_.now<now;){
+    if(srvs_.now<now){
       peer_.lock();
+      uint32_t n=headers.size();
+      peer_.unlock();
+      for(;!n;){
+        fprintf(stderr,"\nWAITING 1s\n");
+        boost::this_thread::sleep(boost::posix_time::seconds(1));
+        peer_.lock();
+        n=headers.size();
+        peer_.unlock();}}
+    peer_.lock();
+    block=headers.begin();
+    peer_.unlock();
+    for(block=headers.begin();srvs_.now<now;){
+      peer_.lock();
+
+//FIXME, new headers will be inserted before .end() !!! :-(
+//FIXME, must use vector again :-(
+
       if(block==headers.end()){ // wait for peers to load more blocks
+        fprintf(stderr,"WAITING at block end (headers:%d)\n",(int)headers.size());
         servers& peer_ls=headers.back();
         peer_.unlock();
 	if(block!=headers.begin()){
+          uint32_t nnow=time(NULL);
           //std::cerr<<"WAITING for headers "<<block->now<<", maybe need more peers\n";
           //fprintf(stderr,"WAITING for headers %08X, maybe need more peers\n",headers.rbegin()->now+BLOCKSEC);
-          fprintf(stderr,"WAITING for headers %08X, maybe need more peers\n",peer_ls.now+BLOCKSEC);
+          fprintf(stderr,"WAITING for headers %08X, maybe need more peers (srvs_.now:%08X;now:%08X;nnow:%08X)\n",peer_ls.now+BLOCKSEC,srvs_.now,now,nnow);
+//will block !!!
           get_more_headers(peer_ls.now+BLOCKSEC,peer_ls.nowhash);}
         peer_.lock();
         if(block==headers.end()){ // wait for peers to load more blocks
           peer_.unlock();
+          fprintf(stderr,"\nWAITING 2s\n");
           boost::this_thread::sleep(boost::posix_time::seconds(2));}
 	else{
           peer_.unlock();}
@@ -519,8 +550,8 @@ public:
         memcpy(put_msg->data+1,&block->now,4);
         put_msg->got=0; // do first request emidiately
         while(get_msglist){ // consider using future/promise
-          uint32_t now=time(NULL);
-          if(put_msg->got<now-MAX_MSGWAIT){
+          uint32_t nnow=time(NULL);
+          if(put_msg->got<nnow-MAX_MSGWAIT){
             fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
             uint16_t svid=put_msg->request();
             if(svid){
@@ -2494,7 +2525,7 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         }
       int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
       int64_t profit=bank_fee[svid]-buser_fee;
-      fprintf(stderr,"BANK_PROFIT %016lX to usr/%04X.dat\n",profit,svid);
+      fprintf(stderr,"BANK_PROFIT %016lX to usr/%04X.dat (%ld)\n",profit,svid,profit);
       //int64_t before=u.weight; 
       if(profit<-u.weight){
        profit=-u.weight;}
