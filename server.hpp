@@ -69,7 +69,7 @@ public:
     period_start=srvs_.nextblock();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
 
-    if(!undo_bank()){//check database consistance, if 
+    if(!undo_bank()){//check database consistance
       if(!opts_.fast){
         std::cerr<<"DATABASE check failed, must use fast option to load new datase from network\n";
         exit(-1);}
@@ -91,7 +91,7 @@ public:
     for(std::string addr : opts_.peer){
       //std::cerr<<"CONNECT :"<<addr<<"\n";
       connect(addr);
-      boost::this_thread::sleep(boost::posix_time::seconds(1));} //wait some time before connecting to more peers
+      boost::this_thread::sleep(boost::posix_time::seconds(2));} //wait some time before connecting to more peers
     peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){

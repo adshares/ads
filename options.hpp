@@ -24,6 +24,7 @@ public:
 	int svid;
 	std::string addr;
 	uint32_t ipv4;
+	int back;
 	//std::string skey;
 	//ed25519_secret_key sk;
 	//ed25519_public_key pk; // calculated
@@ -47,6 +48,7 @@ public:
 				("svid,i", boost::program_options::value<int>(&svid),						"service id (assigned by the network)")
 				//("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
 				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port or hostname:port, multiple peers allowed")
+				("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (irreversable!)")
 				;
 			boost::program_options::options_description cmdline_options;
 			cmdline_options.add(generic).add(config);
@@ -101,7 +103,9 @@ public:
 				std::cout << "ERROR: Service secret key missing!" << std::endl;
 				exit(1);}*/
 			if (vm.count("peer")){
-				std::cout << "Peers are: " << vm["peer"].as<std::vector<std::string>>() << std::endl;}}
+				std::cout << "Peers are: " << vm["peer"].as<std::vector<std::string>>() << std::endl;}
+			if(vm.count("back")){
+				std::cout << "Roll back DB: " << vm["back"].as<int>() << std::endl;}}
 		catch(std::exception &e){
 			std::cout << "Exception: " << e.what() << std::endl;
 			exit(1);

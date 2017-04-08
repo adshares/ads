@@ -803,7 +803,9 @@ Aborted
           if(memcmp(n.csum,u->csum,32)){
             fprintf(stderr,"ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",user,
               *((uint32_t*)(n.csum)),*((uint32_t*)(u->csum)));
-            exit(-1);}
+            //exit(-1);
+            server_.leave(shared_from_this());
+            return;}
         }
         server_.last_srvs_.xor4(csum,u->csum);}
       fprintf(stderr,"SENDING bank %04X block %08X chunk %08X max user %08X sum %016lX hash %08X\n",bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum));
