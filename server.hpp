@@ -38,7 +38,7 @@ public:
     mkdir("blk",0755); // create dir for blocks
     //mklogdir(opts_.svid);
     //mklogfile(opts_.svid,0);
-    uint32_t path=readmsid(); // reads msid_ and path, FIXME, do not read msid, read only path
+    uint32_t path=readmsid()-opts_.back*BLOCKSEC; // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
     fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
     //remember start status
@@ -208,15 +208,24 @@ public:
   int undo_bank() //will undo database changes and check if the database is consistant
   { //could use multiple threads but disk access could limit the processing anyway
     uint32_t path=srvs_.now; //use undo from next block
-    fprintf(stderr,"CHECK DATA @ %08X (and undo @ %08X)\n",last_srvs_.now,path);
+    int rollback=opts_.back;
+    fprintf(stderr,"CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
     for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
       char filename[64];
       sprintf(filename,"usr/%04X.dat",bank);
       int fd=open(filename,O_RDWR);
       if(fd<0){
         return(0);}
-      sprintf(filename,"blk/%03X/%05X/und/%04X.dat",path>>20,path&0xFFFFF,bank);
-      int ud=open(filename,O_RDONLY);
+      std::vector<int> ud;
+      int n;
+      for(n=0;n<=rollback;n++){
+        uint32_t npath=path+n*BLOCKSEC;
+        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",npath>>20,npath&0xFFFFF,bank);
+        int nd=open(filename,O_RDONLY);
+        if(nd<0){
+          continue;}
+        fprintf(stderr,"USING bank %04X block %08X undo %s\n",bank,npath,filename);
+        ud.push_back(nd);}
       uint32_t users=last_srvs_.nodes[bank].users;
        int64_t weight=0;
       //SHA256_CTX sha256;
@@ -224,16 +233,19 @@ public:
       uint64_t csum[4]={0,0,0,0};
       for(uint32_t user=0;user<users;user++){
         user_t u;
-        if(ud>=0){
+        //if(ud>=0){
+        for(auto it=ud.begin();it!=ud.end();it++){
           u.msid=0;
-          if(sizeof(user_t)==read(ud,&u,sizeof(user_t)) && u.msid){
+          if(sizeof(user_t)==read(*it,&u,sizeof(user_t)) && u.msid){
             fprintf(stderr,"OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
         if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
           close(fd);
-          if(ud>=0){
-            close(ud);}
+          for(auto it=ud.begin();it!=ud.end();it++){
+            close(*it);}
+          //if(ud>=0){
+          //  close(ud);}
           //std::cerr << "ERROR loading bank "<<bank<<" (bad read)\n";
           fprintf(stderr,"ERROR loading bank %04X (bad read)\n",bank);
           return(0);}
@@ -251,8 +263,10 @@ public:
         }
         last_srvs_.xor4(csum,u.csum);}
       close(fd);
-      if(ud>=0){
-        close(ud);}
+      for(auto it=ud.begin();it!=ud.end();it++){
+        close(*it);}
+      //if(ud>=0){
+      //  close(ud);}
       if(last_srvs_.nodes[bank].weight!=weight){
         //std::cerr << "ERROR loading bank "<<bank<<" (bad sum:"<<last_srvs_.nodes[bank].weight<<"<>"<<weight<<")\n";
         fprintf(stderr,"ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
@@ -263,9 +277,9 @@ public:
       if(memcmp(last_srvs_.nodes[bank].hash,csum,32)){
         //std::cerr << "ERROR loading bank "<<bank<<" (bad hash)\n";
         fprintf(stderr,"ERROR loading bank %04X (bad hash)\n",bank);
-        return(0);}
-      if(ud>=0){
-        unlink(filename);}}
+        return(0);}}
+      //if(ud>=0){
+      //  unlink(filename);}
     return(1);
   }
 
