@@ -18,7 +18,7 @@ public:
     acceptor_(io_service_,endpoint_),
     srv_(srv),
     opts_(opts),
-    fd(0),
+    offifd_(0),
     message_sent(0),
     next_io_service_(0)
   { svid=opts_.svid;
@@ -27,16 +27,16 @@ public:
     mkdir("ofi",0755);
     char filename[64];
     sprintf(filename,"ofi/%04X.dat",svid);
-    fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
-    if(fd<0){
+    offifd_=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
+    if(offifd_<0){
       std::cerr<<"ERROR, failed to open office register\n";}
     mklogdir(opts_.svid);
     mklogfile(opts_.svid,0);
   }
 
   ~office()
-  { if(fd){
-      close(fd);}
+  { if(offifd_){
+      close(offifd_);}
     std::cerr<<"Office down\n";
   }
   void iorun_client(int i)
@@ -112,7 +112,7 @@ public:
       alog.weight=div;
       if(u.stat&USER_STAT_DELETED){
         deleted_users.push_back(user);}
-      write(fd,&u,sizeof(user_t));
+      write(offifd_,&u,sizeof(user_t));
       // check last log status
       //log_t llog;
       //srv_.get_lastlog(svid,user,llog);
@@ -266,7 +266,15 @@ public:
   }
 
   void clock()
-  { start_accept();
+  { 
+    while(run){
+      if(srv_.msid_>=srv_.start_msid){
+        break;}
+      fprintf(stderr,"OFFICE, wait for server to read last message %08X\n",srv_.start_msid);
+      boost::this_thread::sleep(boost::posix_time::seconds(2));}
+    if(run){
+      get_msg(srv_.msid_+1);
+      start_accept();}
     while(run){
       uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)
@@ -298,10 +306,12 @@ public:
 	std::cerr<<"WARNING, server not ready for a new message ("<<srv_.msid_<<")\n";
         continue;}
       message_.lock();
+      uint32_t newmsid=srv_.msid_+1;
       std::cerr<<"SENDING new message (old msid:"<<srv_.msid_<<")\n";
       srv_.write_message(message);
       message.clear();
       message_.unlock();
+      del_msg(newmsid);
       message_sent=now;}
   }
 
@@ -321,16 +331,16 @@ public:
       gup_t& cgup=gup.top();
       assert(cgup.auser<users);
       file_.lock();
-      lseek(fd,cgup.auser*sizeof(user_t),SEEK_SET);
-      read(fd,&u,sizeof(user_t));
+      lseek(offifd_,cgup.auser*sizeof(user_t),SEEK_SET);
+      read(offifd_,&u,sizeof(user_t));
       u.node=cgup.node;
       u.user=cgup.user;
       u.time=cgup.time;
       u.rpath=now;
       u.weight+=deposit[cgup.auser]-cgup.delta;
       deposit[cgup.auser]=0;
-      lseek(fd,-sizeof(user_t),SEEK_CUR);
-      write(fd,&u,sizeof(user_t));
+      lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+      write(offifd_,&u,sizeof(user_t));
       file_.unlock();
       gup.pop();}
   }
@@ -341,13 +351,13 @@ public:
       dep_t& dep=rdep.top();
       assert(dep.auser<users);
       file_.lock();
-      lseek(fd,dep.auser*sizeof(user_t),SEEK_SET);
-      read(fd,&u,sizeof(user_t));
+      lseek(offifd_,dep.auser*sizeof(user_t),SEEK_SET);
+      read(offifd_,&u,sizeof(user_t));
       u.rpath=now;
       u.weight+=deposit[dep.auser]+dep.weight;
       deposit[dep.auser]=0;
-      lseek(fd,-sizeof(user_t),SEEK_CUR);
-      write(fd,&u,sizeof(user_t));
+      lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+      write(offifd_,&u,sizeof(user_t));
       file_.unlock();
       rdep.pop();}
   }
@@ -368,8 +378,8 @@ public:
     if(cuser>=users){
       return(false);}
     file_.lock();
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
-    read(fd,&u,sizeof(user_t));
+    lseek(offifd_,cuser*sizeof(user_t),SEEK_SET);
+    read(offifd_,&u,sizeof(user_t));
     if(!u.msid){
       file_.unlock();
       return(false);}
@@ -377,8 +387,8 @@ public:
       u.weight+=deposit[cuser];
       deposit[cuser]=0;
       assert(u.weight>=0);
-      lseek(fd,-sizeof(user_t),SEEK_CUR);
-      write(fd,&u,sizeof(user_t));}
+      lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+      write(offifd_,&u,sizeof(user_t));}
     file_.unlock();
     return(true);
   }
@@ -393,7 +403,7 @@ public:
       uint32_t msid;
       uint32_t mpos;
       usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,0,(const char*)pkey));
-      add_msg(txs->data,txs->size,0,msid,mpos); //FIXME, fee ???
+      add_msg(txs->data,txs->size,msid,mpos);
       add_key((hash_s*)pkey,luser);} //blacklist
   }
 
@@ -404,14 +414,14 @@ public:
     while(!deleted_users.empty()){
       nuser=deleted_users.front();
       deleted_users.pop_front();
-      lseek(fd,nuser*sizeof(user_t),SEEK_SET);
-      read(fd,&nu,sizeof(user_t));
+      lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
+      read(offifd_,&nu,sizeof(user_t));
       if((nu.weight<=0) && (nu.stat&USER_STAT_DELETED)){
         fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
         //FIXME !!!  wrong time !!! must use time from txs
         srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
-        lseek(fd,-sizeof(user_t),SEEK_CUR);
-        write(fd,&nu,sizeof(user_t));
+        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        write(offifd_,&nu,sizeof(user_t));
         file_.unlock();
         return(nuser);}}
     file_.unlock();
@@ -425,8 +435,8 @@ public:
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
     deposit.push_back(0);
-    lseek(fd,nuser*sizeof(user_t),SEEK_SET);
-    write(fd,&nu,sizeof(user_t));
+    lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
+    write(offifd_,&nu,sizeof(user_t));
     file_.unlock();
     return(nuser);
   }
@@ -438,8 +448,8 @@ public:
     deposit[user]=0;
     //assert(u.weight>=0);
 //fprintf(stderr,"\n\nSET USER WRITE\n\n");
-    lseek(fd,user*sizeof(user_t),SEEK_SET);
-    write(fd,&u,sizeof(user_t));
+    lseek(offifd_,user*sizeof(user_t),SEEK_SET);
+    write(offifd_,&u,sizeof(user_t));
     file_.unlock();
   }
 
@@ -447,14 +457,14 @@ public:
   { assert(user<users); // is this safe ???
     file_.lock();
     user_t u;
-    lseek(fd,user*sizeof(user_t),SEEK_SET);
-    read(fd,&u,sizeof(user_t));
+    lseek(offifd_,user*sizeof(user_t),SEEK_SET);
+    read(offifd_,&u,sizeof(user_t));
     u.stat|=USER_STAT_DELETED;
     if(u.weight>=0){
       fprintf(stderr,"WARNNG: network deleted active user %08X\n",user);}
 //fprintf(stderr,"\n\nSET USER WRITE\n\n");
-    lseek(fd,-sizeof(user_t),SEEK_CUR);
-    write(fd,&u,sizeof(user_t));
+    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    write(offifd_,&u,sizeof(user_t));
     deleted_users.push_back(user);
     file_.unlock();
   }
@@ -505,15 +515,49 @@ public:
     account_.unlock();
   }
 
-  void add_msg(uint8_t* msg,int len, int64_t fee,uint32_t& msid,uint32_t& mpos)
+  void get_msg(uint32_t msid)
+  { message_.lock();
+    char filename[64];
+    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    int md=open(filename,O_RDONLY);
+    if(md<0){
+      message_.unlock();
+      return;} // :-( maybe we should throw here something
+    struct stat sb;
+    fstat(md,&sb);
+    if(!sb.st_size){
+      close(md);
+      message_.unlock();
+      return;}
+    char msg[sb.st_size];
+    read(md,msg,sb.st_size);
+    close(md);
+    message.append((char*)msg,sb.st_size);
+    message_.unlock();
+  }
+
+  void del_msg(uint32_t msid)
+  { char filename[64];
+    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    unlink(filename);
+  }
+
+  void add_msg(uint8_t* msg,int len,uint32_t& msid,uint32_t& mpos)
   { if(!run){ return;}
     message_.lock();
-    msid=srv_.msid_+1;
+    msid=srv_.msid_+1; // check if no conflict !!!
     mpos=message.length()+message::data_offset;
     message.append((char*)msg,len);
+    char filename[64];
+    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+    if(md<0){
+      message_.unlock();
+      std::cerr<<"ERROR, failed to log message "<<filename<<"\n";
+      return;} // :-( maybe we should throw here something
+    write(md,msg,len);
+    close(md);
     message_.unlock();
-    mfee+=BANK_PROFIT(fee); //do we need this?
-    //mfee should be commited to bank from time to time.
   }
 
   void lock_user(uint32_t cuser)
@@ -745,9 +789,9 @@ private:
   server& srv_;
   options& opts_;
   std::set<client_ptr> clients_;
-  int fd; // user file descriptor
+  int offifd_; // user file descriptor
   //uint32_t msid;
-   int64_t mfee; // let's see if we need this
+  //int64_t mfee;
   uint32_t message_sent;
   boost::thread* clock_thread;
   std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates

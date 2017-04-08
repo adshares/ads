@@ -139,9 +139,10 @@ public:
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_){
-      std::cerr<<"WARNING increase msid\n";
-      msid_=firstmsid;
-      return;}
+      std::cerr<<"ERROR initial msid lower than on network, fatal\n";
+      //msid_=firstmsid;
+      //return;
+      exit(-1);}
     if(firstmsid==msid_){
       std::cerr<<"NO recycle needed\n";
       return;}
@@ -1053,10 +1054,18 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         return(1);}
       if(msg->svid==opts_.svid){ // own message
         txs_msgs_[msg->hash.num]=msg;
-        msg->path=srvs_.now;
+	//if(msg->path && msg->path!=srvs_.now){ //move message
+        //  fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] path mismatch (%08X<>%08X)\n",
+        //    msg->hash.num,msg->len,msg->path,srvs_.now);
+        //  exit(-1);}
+        //assert(msg->path==srvs_.now || msg->path==srvs_.now+BLOCKSEC);
+        msg->path=srvs_.now; // all messages must be in current block
         txs_.unlock();
         fprintf(stderr,"HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
-        msg->save();
+	//saved before insertion
+        if(!msg->save()){
+          fprintf(stderr,"ERROR, failed to save own message %08X, fatal\n",msg->msid);
+          exit(-1);}
         msg->unload(0);
         check_.lock();
         check_msgs_.push_back(msg); // running though validator
@@ -1209,7 +1218,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           wait_.unlock();
           continue;}
         if(!msg->load(0)){
-          std::cerr<<"ERROR, failed to load message !!!\n";
+          fprintf(stderr,"ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",msg->path>>20,msg->path&0xFFFFF,(uint32_t)msg->hashtype(),msg->svid,msg->msid,msg->len);
           exit(-1);}
         bool valid=process_message(msg); //maybe ERROR should be also returned.
         if(valid){
@@ -2715,14 +2724,17 @@ exit(-1);
     mtx_.lock(); //FIXME, probably no lock needed
     int msid=++msid_; // can be atomic
     mtx_.unlock();
-    writemsid(); //FIXME we should save the message before updating the message counter
     // add location info. FIXME, set location to 0 before exit
     usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
     line.append((char*)txs.data,txs.size);
     message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
+    //if(!msg->save()){
+    //  fprintf(stderr,"ERROR, failed to save own message %08X, fatal\n",msid);
+    //  exit(-1);}
     if(!txs_insert(msg)){
       std::cerr << "FATAL message insert error for own message, dying !!!\n";
       exit(-1);}
+    writemsid();
     return(msid_);
     //update(msg);
   }
@@ -2815,14 +2827,14 @@ exit(-1);
     while(1){
       uint32_t now=time(NULL);
       if(missing_msgs_.size()){
-        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X) (miss:%d:%016lX)\n",
-          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),(int)wait_msgs_.size(),
-          (int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),(int)missing_msgs_.size(),
-          missing_msgs_.begin()->first);}
-      else{
-        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X)\n",
+        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) (miss:%d:%016lX)\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash));}
+          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,
+          (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
+      else{
+        fprintf(stderr,"CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X)\n",
+          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now);}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;

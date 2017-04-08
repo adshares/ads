@@ -357,7 +357,7 @@ public:
       // add_account ...
 
         //FIXME, check if original bank is in our whitelist
-        offi_.add_msg((uint8_t*)buf,utxs.size,0,msid,mpos); //TODO, could return pointer to file
+        offi_.add_msg((uint8_t*)buf,utxs.size,msid,mpos); //TODO, could return pointer to file
         offi_.add_account((hash_s*)usera.pkey,nuser); //blacklist
         user_t userb;
         offi_.get_user(userb,utxs.bbank,nuser); // send userb
@@ -398,8 +398,7 @@ public:
     if(*buf==TXSTYPE_BKY){ // commit key change
       memcpy(utxs.opkey(buf),offi_.pkey,32);
       memcpy(offi_.pkey,utxs.key(buf),32);}
-    //offi_.add_msg(buf,txslen[(int)*buf]+64+extralen,fee); //TODO, could return pointer to file
-    offi_.add_msg((uint8_t*)buf,utxs.size,fee,msid,mpos); //TODO, could return pointer to file
+    offi_.add_msg((uint8_t*)buf,utxs.size,msid,mpos);
     if(!msid||!mpos){
       std::cerr<<"ERROR: message submission failed ("<<msid<<","<<mpos<<")\n";
       offi_.unlock_user(utxs.auser);
