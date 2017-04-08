@@ -84,6 +84,7 @@ public:
         if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
           std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
         do_sync=1;}}
+    ofip_init(last_srvs_.nodes[opts_.svid].users); //exactly @ end of a block
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     ioth_ = new boost::thread(boost::bind(&server::iorun, this));
@@ -326,7 +327,6 @@ public:
     threadpool.create_thread(boost::bind(&server::validator, this));
 //FIXME, must start with a matching nowhash and load serv_
     if(srvs_.now<now){
-
       peer_.lock();
       uint32_t n=headers.size();
       peer_.unlock();
@@ -349,7 +349,7 @@ public:
         exit(-1);} //FIXME, prevent this
       //block->load_signatures(); //TODO should go through signatures and update vok, vno
       block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
-fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
+      //fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
       if(!block->load_msglist(missing_msgs_,opts_.svid)){
         fprintf(stderr,"LOAD messages from peers\n");
         //request list of transactions from peers
@@ -370,118 +370,119 @@ fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
               //std::cerr << "REQUESTING MSL from "<<svid<<"\n";
               fprintf(stderr,"REQUESTING MSL from %04X\n",svid);
               deliver(put_msg,svid);}}
-          boost::this_thread::sleep(boost::posix_time::seconds(1));}
+          boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
         srvs_.msg=block->msg; //check
         srvs_.msg_put(missing_msgs_);}
       else{
         srvs_.msg=block->msg; //check
         memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
-      //inform peers about current sync block
-      message_ptr put_msg(new message());
-      put_msg->data[0]=MSGTYPE_PAT;
-      memcpy(put_msg->data+1,&srvs_.now,4);
-      deliver(put_msg);
-      //request missing messages from peers
-      txs_.lock();
-      txs_msgs_.clear();
-      txs_.unlock();
-      dbl_.lock();
-      dbl_msgs_.clear();
-      dbl_.unlock();
-      blk_.lock();
-      blk_msgs_.clear();
-      blk_.unlock();
-      std::set<uint16_t> update;
-      missing_.lock();
-      message_queue commit_msgs;
-      for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
-        missing_.unlock();
-        update.insert(it->second->svid);
-	auto jt=it++;
+        //inform peers about current sync block
+        message_ptr put_msg(new message());
+        put_msg->data[0]=MSGTYPE_PAT;
+        memcpy(put_msg->data+1,&srvs_.now,4);
+        deliver(put_msg);
+        //request missing messages from peers
+        txs_.lock();
+        txs_msgs_.clear();
+        txs_.unlock();
+        dbl_.lock();
+        dbl_msgs_.clear();
+        dbl_.unlock();
         blk_.lock();
-        blk_msgs_[jt->first]=jt->second; //overload the use of blk_msgs_ , during sync store here the list of messages to be validated (meybe we should use a different container for ths later)
+        blk_msgs_.clear();
         blk_.unlock();
-	if(jt->second->hash.dat[1]==MSGTYPE_DBL){
-          dbl_.lock();
-          dbl_msgs_[jt->first]=jt->second;
-          dbl_.unlock();}
-        else{
-          txs_.lock();
-          txs_msgs_[jt->first]=jt->second;
-          commit_msgs.push_back(jt->second);
-          txs_.unlock();}
-	if(jt->second->load(0)){ // will be unloaded by the validator
-          if(!jt->second->sigh_check()){
-            jt->second->read_head(); //to get 'now'
-            fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
+        std::set<uint16_t> update;
+        missing_.lock();
+        message_queue commit_msgs;
+        for(auto it=missing_msgs_.begin();it!=missing_msgs_.end();){
+          missing_.unlock();
+          update.insert(it->second->svid);
+          auto jt=it++;
+          blk_.lock();
+          //overload the use of blk_msgs_ , during sync store here the list of messages to be validated
+          //(meybe we should use a different container for ths later)
+          blk_msgs_[jt->first]=jt->second;
+          blk_.unlock();
+          if(jt->second->hash.dat[1]==MSGTYPE_DBL){
+            dbl_.lock();
+            dbl_msgs_[jt->first]=jt->second;
+            dbl_.unlock();}
+          else{
+            txs_.lock();
+            txs_msgs_[jt->first]=jt->second;
+            commit_msgs.push_back(jt->second);
+            txs_.unlock();}
+          if(jt->second->load(0)){ // will be unloaded by the validator
+            if(!jt->second->sigh_check()){
+              jt->second->read_head(); //to get 'now'
+              fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X\n",
+                jt->second->svid,jt->second->msid,jt->second->path);
+              check_.lock();
+              check_msgs_.push_back(jt->second); // send to validator
+              check_.unlock();
+              missing_msgs_erase(jt->second);
+              continue;}
+            fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X failed\n",
               jt->second->svid,jt->second->msid,jt->second->path);
-            check_.lock();
-            check_msgs_.push_back(jt->second); // send to validator
-            check_.unlock();
-            missing_msgs_erase(jt->second);
-            continue;}
-          //std::cerr << "LOADING TXS "<<jt->second->svid<<":"<<jt->second->msid<<" from database("<<jt->second->path<<" failed !!!)\n";
-          fprintf(stderr,"LOADING TXS %04X:%08X from path:%08X failed\n",
-            jt->second->svid,jt->second->msid,jt->second->path);
-          jt->second->len=message::header_length;}
-	fillknown(jt->second);
-	uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
-        if(svid){
-          //std::cerr << "REQUESTING TXS from "<<svid<<"\n";
-          fprintf(stderr,"REQUESTING TXS from %04X\n",svid);
-          deliver(jt->second,svid);}
-        missing_.lock();}
-      missing_.unlock();
-      //wait for all messages to be processed by the validators
-      blk_.lock();
-      while(blk_msgs_.size()){
+            jt->second->len=message::header_length;}
+          fillknown(jt->second);
+          uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
+          if(svid){
+            //std::cerr << "REQUESTING TXS from "<<svid<<"\n";
+            fprintf(stderr,"REQUESTING TXS from %04X\n",svid);
+            deliver(jt->second,svid);}
+          missing_.lock();}
+        missing_.unlock();
+        //wait for all messages to be processed by the validators
+        blk_.lock();
+        while(blk_msgs_.size()){
+          blk_.unlock();
+          boost::this_thread::sleep(boost::posix_time::milliseconds(50)); //yes, yes, use futur/promise instead
+          blk_.lock();}
         blk_.unlock();
-        boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
-	blk_.lock();}
-      blk_.unlock();
-fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
-      std::cerr << "COMMIT deposits\n";
-      commit_block(update); // process bkn and get transactions
-      commit_dividends(update);
-      commit_deposit(update);
-      commit_bankfee();
-      std::cerr << "UPDATE accounts\n";
-      for(auto it=update.begin();it!=update.end();it++){
-        assert(*it<srvs_.nodes.size());
-        if(!srvs_.check_nodehash(*it)){ //FIXME, remove this later !, this is checked during download.
-          fprintf(stderr,"FATAL ERROR, failed to check the hash of bank %04X at block %08X\n",*it,srvs_.now);
-          exit(-1);}}
-      //finish block
-      srvs_.finish(); //FIXME, add locking
-      if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
-        //std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
-        fprintf(stderr,"ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
-        exit(-1);}
-      last_srvs_=srvs_; // consider not making copies of nodes
-      memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-      period_start=srvs_.nextblock();
-      //FIXME should be a separate thread
-      fprintf(stderr,"UPDATE LOG\n");
-      ofip_update_block(period_start,0,commit_msgs,srvs_.div);
-      fprintf(stderr,"PROCESS LOG\n");
-      ofip_process_log(srvs_.now-BLOCKSEC);
-      fprintf(stderr,"WRITE NEW MSID\n");
-      writemsid();
-      now=time(NULL);
-      now-=now%BLOCKSEC;
-      if(srvs_.now>=now){
-        break;}
-      peer_.lock();
-      for(block++;block==headers.end();block++){ // wait for peers to load more blocks
-        block--;
-        peer_.unlock();
-        fprintf(stderr,"WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
-          (int)headers.size(),srvs_.now,now);
-//FIXME, insecure !!! it is better to ask more peers (disconnect if needed) and wait for a block with enough votes
-        get_more_headers(block->now+BLOCKSEC);
-        boost::this_thread::sleep(boost::posix_time::seconds(2));
-        peer_.lock();}
-      peer_.unlock();}}
+        //fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
+        std::cerr << "COMMIT deposits\n";
+        commit_block(update); // process bkn and get transactions
+        commit_dividends(update);
+        commit_deposit(update);
+        commit_bankfee();
+        std::cerr << "UPDATE accounts\n";
+        for(auto it=update.begin();it!=update.end();it++){
+          assert(*it<srvs_.nodes.size());
+          if(!srvs_.check_nodehash(*it)){ //FIXME, remove this later !, this is checked during download.
+            fprintf(stderr,"FATAL ERROR, failed to check the hash of bank %04X at block %08X\n",*it,srvs_.now);
+            exit(-1);}}
+        //finish block
+        srvs_.finish(); //FIXME, add locking
+        if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
+          //std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
+          fprintf(stderr,"ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
+          exit(-1);}
+        last_srvs_=srvs_; // consider not making copies of nodes
+        memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+        period_start=srvs_.nextblock();
+        //FIXME should be a separate thread
+        fprintf(stderr,"UPDATE LOG\n");
+        ofip_update_block(period_start,0,commit_msgs,srvs_.div);
+        fprintf(stderr,"PROCESS LOG\n");
+        ofip_process_log(srvs_.now-BLOCKSEC);
+        fprintf(stderr,"WRITE NEW MSID\n");
+        writemsid();
+        now=time(NULL);
+        now-=now%BLOCKSEC;
+        if(srvs_.now>=now){
+          break;}
+        peer_.lock();
+        for(block++;block==headers.end();block++){ // wait for peers to load more blocks
+          block--;
+          peer_.unlock();
+          fprintf(stderr,"WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
+            (int)headers.size(),srvs_.now,now);
+          //FIXME, insecure !!! better to ask more peers (disconnect if needed) and wait for block with enough votes
+          get_more_headers(block->now+BLOCKSEC);
+          boost::this_thread::sleep(boost::posix_time::seconds(2));
+          peer_.lock();}
+        peer_.unlock();}}
     //TODO, add nodes if needed
     vip_max=srvs_.update_vip();
     txs_.lock();
@@ -1184,7 +1185,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
         check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
         check_.unlock();
         //TODO, check if there are no forgotten messeges in the missing_msgs_ queue
-	boost::this_thread::sleep(boost::posix_time::milliseconds(500));} // adds latency but works
+	boost::this_thread::sleep(boost::posix_time::milliseconds(100));} // adds latency but works
       else{
         message_ptr msg=check_msgs_.front();
 	check_msgs_.pop_front();
@@ -2779,11 +2780,10 @@ exit(-1);
 
   void peers() // connect new peers
   { 
-//FIXME, run this
-    return;
-
+    //FIXME, run this
+    //return;
     while(1){
-      boost::this_thread::sleep(boost::posix_time::seconds(1)); //will be interrupted to return
+      boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
       if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2){
         continue;}
       int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
@@ -2802,7 +2802,7 @@ exit(-1);
     //start office
     while(ofip==NULL){
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
-    ofip_start(srvs_.nodes[opts_.svid].users); //exactly @ end of a block
+    ofip_start(); //exactly @ end of a block
 
     //TODO, number of validators should depend on opts_.
     if(!do_validate){
@@ -2935,7 +2935,8 @@ exit(-1);
   void get_more_headers(uint32_t now);
   void ofip_gup_push(gup_t& g);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);
-  void ofip_start(uint32_t myusers);
+  void ofip_init(uint32_t myusers);
+  void ofip_start();
   void ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv);
   void ofip_process_log(uint32_t now);
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);

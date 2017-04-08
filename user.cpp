@@ -449,6 +449,14 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       logentry.put("type_no",ulog.type);
       if(txst<TXSTYPE_MAX){
         logentry.put("type",logname[txst]);}
+      if(ulog.type & 0x4000){ //errors
+        if(txst==TXSTYPE_STP){ //node start
+          logentry.put("account.error","logerror");
+          logentry.put("account.newtime",ulog.time);
+          logentry.put("account.badtime",ulog.nmid);
+          logentry.put("account.badblock",ulog.mpos);
+          logtree.push_back(std::make_pair("",logentry));
+          continue;}}
       if(ulog.type & 0x8000){ //incomming network transactions (responses) except _GET
         if(txst==TXSTYPE_STP){ //node start
           logentry.put("node_start_msid",ulog.nmid);

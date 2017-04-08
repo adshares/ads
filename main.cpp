@@ -75,8 +75,11 @@ void server::ofip_update_block(uint32_t period_start,uint32_t now,message_queue&
 void server::ofip_process_log(uint32_t now)
 {	ofip->process_log(now);
 }
-void server::ofip_start(uint32_t myusers)
-{	ofip->start(myusers);
+void server::ofip_init(uint32_t myusers)
+{	ofip->init(myusers);
+}
+void server::ofip_start()
+{	ofip->start();
 }
 void server::ofip_gup_push(gup_t& g)
 {	ofip->gup.push(g);

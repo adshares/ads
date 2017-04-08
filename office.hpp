@@ -72,7 +72,7 @@ public:
     //submit message
   }
 
-  void start(uint32_t myusers)
+  void init(uint32_t myusers)
   { memcpy(pkey,srv_.pkey,32);
     users=myusers; //FIXME !!! this maybe incorrect !!!
     //msid=srv_.msid_;
@@ -119,8 +119,10 @@ public:
       put_log(user,alog);}
     close(gd);
     log_.unlock();
+  }
 
-    //init io_service_pool
+  void start()
+  { //init io_service_pool
     run=true; //not used yet
     div_ready=0;
     block_ready=0;
@@ -215,12 +217,23 @@ public:
       exit(-1);}
     struct stat sb;
     fstat(fd,&sb);
-    if(sb.st_size){ // file is ok
-//FIXME, !!! master log hygiene
-      fprintf(stderr,"\n\nERROR, log time file %s not empty, fatal\n\n\n",filename);
-      exit(-1);}
     log_.lock();
     uint32_t ntime=time(NULL);
+    if(sb.st_size){ // file is ok
+//FIXME, !!! master log hygiene
+      fprintf(stderr,"\nERROR, log time file %s not empty, inform all users about change\n\n",filename);
+      uint32_t otime;
+      read(fd,&otime,sizeof(uint32_t));
+      log_t alog;
+      bzero(&alog,sizeof(log_t));
+      alog.type=TXSTYPE_STP|0x4000;
+      alog.time=ntime;
+      alog.mpos=now;
+      alog.nmid=otime;
+      for(uint32_t user=0;user<users;user++){
+        put_log(user,alog);}
+      lseek(fd,0,SEEK_SET);
+      exit(-1);}
     write(fd,&ntime,sizeof(uint32_t));
     close(fd);
     for(auto mi=mque.begin();mi!=mque.end();mi++){
