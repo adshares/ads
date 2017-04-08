@@ -84,7 +84,7 @@ public:
         if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
           std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
         do_sync=1;}}
-    ofip_init(last_srvs_.nodes[opts_.svid].users); //exactly @ end of a block
+    //ofip_init(last_srvs_.nodes[opts_.svid].users); //must do this after recycling messages !!!
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     ioth_ = new boost::thread(boost::bind(&server::iorun, this));
@@ -164,6 +164,9 @@ public:
           msg->move(srvs_.now);}}
       else{
         fprintf(stderr,"RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);}}
+    if(msid_!=start_msid){
+      fprintf(stderr,"ERROR, failed to get correct msid now:%08X<>start:%08X, check msid.txt\n",msid_,start_msid);
+      exit(-1);}
     //std::cerr<<"FINISH recycle (remove old files)\n";
     //if(srvs_.now!=lastpath){
     //  message_ptr msg(new message());
@@ -2811,16 +2814,35 @@ exit(-1);
 
   void clock()
   { 
+    //while(ofip==NULL){
+    //  boost::this_thread::sleep(boost::posix_time::seconds(1));}
     //start office
-    while(ofip==NULL){
-      boost::this_thread::sleep(boost::posix_time::seconds(1));}
-    ofip_start(); //exactly @ end of a block
 
     //TODO, number of validators should depend on opts_.
     if(!do_validate){
       do_validate=1;
       threadpool.create_thread(boost::bind(&server::validator, this));
       threadpool.create_thread(boost::bind(&server::validator, this));}
+
+    //TODO, consider validating local messages faster to limit delay in this region
+    //finish recycle submitted office messages
+    while(msid_>srvs_.nodes[opts_.svid].msid){
+      fprintf(stderr,"DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+      boost::this_thread::sleep(boost::posix_time::seconds(1));}
+    //recycle office message queue
+    std::string line;
+    if(ofip_get_msg(msid_+1,line)){
+      fprintf(stderr,"DEBUG, adding office message queue (%08X)\n",msid_+1);
+      write_message(line);
+      while(msid_>srvs_.nodes[opts_.svid].msid){
+        fprintf(stderr,"DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+        boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      ofip_del_msg(msid_);}
+    //must do this after recycling messages !!!
+    ofip_init(srvs_.nodes[opts_.svid].users); // this can be slow :-(
+    ofip_start();
+
+    //TODO, if we are out of sync we could consider starting again now possibly with no local messages
 
     // block creation cycle
     hash_s cand;
@@ -2949,6 +2971,8 @@ exit(-1);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);
   void ofip_init(uint32_t myusers);
   void ofip_start();
+  bool ofip_get_msg(uint32_t msid,std::string& line);
+  void ofip_del_msg(uint32_t msid);
   void ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv);
   void ofip_process_log(uint32_t now);
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);

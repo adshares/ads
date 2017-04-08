@@ -232,8 +232,7 @@ public:
       alog.nmid=otime;
       for(uint32_t user=0;user<users;user++){
         put_log(user,alog);}
-      lseek(fd,0,SEEK_SET);
-      exit(-1);}
+      lseek(fd,0,SEEK_SET);}
     write(fd,&ntime,sizeof(uint32_t));
     close(fd);
     for(auto mi=mque.begin();mi!=mque.end();mi++){
@@ -266,15 +265,15 @@ public:
   }
 
   void clock()
-  { 
-    while(run){
-      if(srv_.msid_>=srv_.start_msid){
-        break;}
-      fprintf(stderr,"OFFICE, wait for server to read last message %08X\n",srv_.start_msid);
-      boost::this_thread::sleep(boost::posix_time::seconds(2));}
-    if(run){
-      get_msg(srv_.msid_+1);
-      start_accept();}
+  { //while(run){
+    //  if(srv_.msid_>=srv_.start_msid){
+    //    break;}
+    //  fprintf(stderr,"OFFICE, wait for server to read last message %08X\n",srv_.start_msid);
+    //  boost::this_thread::sleep(boost::posix_time::seconds(2));}
+    //if(run){
+    //  get_msg(srv_.msid_+1);
+    //  start_accept();}
+    start_accept();
     while(run){
       uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)
@@ -515,25 +514,27 @@ public:
     account_.unlock();
   }
 
-  void get_msg(uint32_t msid)
-  { message_.lock();
+  bool get_msg(uint32_t msid,std::string& line)
+  { //message_.lock();
     char filename[64];
     sprintf(filename,"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_RDONLY);
     if(md<0){
-      message_.unlock();
-      return;} // :-( maybe we should throw here something
+      //message_.unlock();
+      return(false);} // :-( maybe we should throw here something
     struct stat sb;
     fstat(md,&sb);
     if(!sb.st_size){
       close(md);
-      message_.unlock();
-      return;}
+      //message_.unlock();
+      return(false);}
     char msg[sb.st_size];
     read(md,msg,sb.st_size);
     close(md);
-    message.append((char*)msg,sb.st_size);
-    message_.unlock();
+    line.append((char*)msg,sb.st_size);
+    //message.append((char*)msg,sb.st_size);
+    //message_.unlock();
+    return(true);
   }
 
   void del_msg(uint32_t msid)

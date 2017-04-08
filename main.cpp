@@ -81,6 +81,12 @@ void server::ofip_init(uint32_t myusers)
 void server::ofip_start()
 {	ofip->start();
 }
+bool server::ofip_get_msg(uint32_t msid,std::string& line)
+{	return(ofip->get_msg(msid,line));
+}
+void server::ofip_del_msg(uint32_t msid)
+{	ofip->del_msg(msid);
+}
 void server::ofip_gup_push(gup_t& g)
 {	ofip->gup.push(g);
 }

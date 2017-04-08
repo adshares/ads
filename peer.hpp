@@ -39,7 +39,7 @@ public:
       myself=shared_from_this(); //FIXME, this dies if peer_ptr not created yet :-(
       std::cerr << "Peer.Service.Run starting\n";
       peer_io_service_.run();
-      std::cerr << "Peer.Service.Run finished\n";} //Now we know the server is down.
+      std::cerr << "Peer.Service.Run finished\n\n\n";} //Now we know the server is down.
     catch (std::exception& e){
       std::cerr << "Peer.Service.Run error: " << e.what() << "\n";}
     if(myself!=NULL){
@@ -1049,7 +1049,8 @@ Aborted
         ed25519_key2text(hash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH);
         fprintf(stderr,"HASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-        fprintf(stderr,"HASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);}}
+        fprintf(stderr,"HASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        return(0);}}
     //if(!server_.do_sync){ //we are in sync
     if(!sync_hs.do_sync){ //we are in sync
       if(peer_hs.head.now>sync_hs.head.now){
@@ -1115,8 +1116,12 @@ Aborted
       std::cerr << "ERROR reading head\n";
       server_.leave(shared_from_this());
       return;}
+    if(read_msg_->data[0]==MSGTYPE_MSG){
+      if(srvs_.nodes[read_msg_->svid].msid+1!=read_msg_->msid){
+        fprintf(stderr,"\nIGNORE message with bad msid %08X<>%08X+1\n\n",
+          read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
+        return;}}
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
-      //std::cerr << "BAD signature from "<<read_msg_->svid<<"\n";
       fprintf(stderr,"BAD signature from %04X\n",read_msg_->svid);
       ed25519_printkey(srvs_.nodes[read_msg_->svid].pk,32);
       server_.leave(shared_from_this());
