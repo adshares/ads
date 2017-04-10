@@ -40,28 +40,37 @@ public:
     //mklogfile(opts_.svid,0);
     uint32_t path=readmsid()-opts_.back*BLOCKSEC; // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
-    fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
     //remember start status
     start_path=path;
     start_msid=msid_;
     last_srvs_.get(path);
-    if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
-      std::cerr << "ERROR: reading servers\n";
-      exit(-1);} 
-    //if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
-    pkey=last_srvs_.nodes[opts_.svid].pk;
-    if(!last_srvs_.find_key(pkey,skey)){
-      char pktext[2*32+1]; pktext[2*32]='\0';
-      ed25519_key2text(pktext,pkey,32);
-      //std::cerr << "ERROR: failed to find secret key for key:\n"<<pktext<<"\n";
-      fprintf(stderr,"ERROR: failed to find secret key for key:\n%.16s\n",pktext);
-      exit(-1);}
-    //TODO, check vok and vno, if bad, inform user and suggest an older starting point
+    ////if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
+    //pkey=last_srvs_.nodes[opts_.svid].pk;
+    ////TODO, check vok and vno, if bad, inform user and suggest an older starting point
 
     if(opts_.init){
+      struct stat sb;   
       uint32_t now=time(NULL);
       now-=now%BLOCKSEC;
-      last_srvs_.init(now-BLOCKSEC);}
+      if(stat("usr/0001.dat",&sb)>=0){
+        fprintf(stderr,"START from last database state (file usr/0001.dat found)\n");
+        last_srvs_.now=now;
+        last_srvs_.blockdir();
+        srvs_=last_srvs_;
+        if(!undo_bank()){
+          fprintf(stderr,"ERROR loading initial database, fatal\n");
+          exit(-1);}
+        last_srvs_.finish();}
+      else{
+        path=0;
+        lastpath=0;
+        start_path=0;
+        start_msid=0;
+        msid_=0;
+        fprintf(stderr,"START from a fresh database\n");
+        last_srvs_.init(now-BLOCKSEC);}}
+
+    fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
     srvs_=last_srvs_;
     bank_fee.resize(srvs_.nodes.size());
     pkey=srvs_.nodes[opts_.svid].pk;
@@ -69,7 +78,17 @@ public:
     period_start=srvs_.nextblock();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
 
-    if(!undo_bank()){//check database consistance
+    if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
+      std::cerr << "ERROR: reading servers\n";
+      exit(-1);} 
+    if(!last_srvs_.find_key(pkey,skey)){
+      char pktext[2*32+1]; pktext[2*32]='\0';
+      ed25519_key2text(pktext,pkey,32);
+      fprintf(stderr,"ERROR: failed to find secret key for key:\n%.16s\n",pktext);
+      exit(-1);}
+
+    if(!opts_.init && !undo_bank()){//check database consistance
+    //if(!undo_bank()){//check database consistance
       if(!opts_.fast){
         std::cerr<<"DATABASE check failed, must use fast option to load new datase from network\n";
         exit(-1);}
@@ -139,7 +158,7 @@ public:
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_){
-      std::cerr<<"ERROR initial msid lower than on network, fatal\n";
+      fprintf(stderr,"ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
       //msid_=firstmsid;
       //return;
       exit(-1);}
@@ -588,11 +607,9 @@ public:
   }
 
   uint32_t readmsid()
-  { if(opts_.init){
-      msid_=0;
-      return(0);}
-    FILE* fp=fopen("msid.txt","r");
+  { FILE* fp=fopen("msid.txt","r");
     if(fp==NULL){
+      msid_=0;
       return(0);}
     uint32_t path;
     uint32_t svid;
