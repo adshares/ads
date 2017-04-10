@@ -157,7 +157,7 @@ public:
   void recyclemsid(uint32_t lastpath)
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
-    if(firstmsid>msid_){
+    if(firstmsid>msid_ && !opts_.fast){
       fprintf(stderr,"ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
       //msid_=firstmsid;
       //return;
