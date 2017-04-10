@@ -462,6 +462,7 @@ public:
 		header_print();
 		clear_undo();
 	}
+
 	void hashnow()
 	{	SHA256_CTX sha256;
 	 	SHA256_Init(&sha256);

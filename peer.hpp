@@ -41,6 +41,8 @@ public:
       peer_io_service_.run();
       std::cerr << "Peer.Service.Run finished\n\n\n";} //Now we know the server is down.
     catch (std::exception& e){
+//FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
+//FIXME, wipe out inactive peers (better solution)
       std::cerr << "Peer.Service.Run error: " << e.what() << "\n";}
     if(myself!=NULL){
       myself.reset();}
@@ -578,7 +580,7 @@ Aborted
       send_sync(put_msg);
       //std::cerr<<"READING block headers starting after "<<from<<" and ending before "<<to<<" ("<<(num-1)<<")\n"; 
       fprintf(stderr,"READING block headers starting after %08X and ending before %08X (num:%d)\n",from,to,num-1); 
-      char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)); assert(peer_nods!=NULL);
+      char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)); assert(data!=NULL);
       int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));
       if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1))){
         std::cerr << "READ headers error\n";
