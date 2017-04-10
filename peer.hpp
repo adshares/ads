@@ -695,6 +695,11 @@ Aborted
 //FIXME, validate list has correct hash !!! (calculate hash again)
     if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){
       std::cerr << "ERROR got wrong msglist msghash\n"; // consider updating server
+      char hash[2*SHA256_DIGEST_LENGTH];
+      ed25519_key2text(hash,read_msg_->data+8,SHA256_DIGEST_LENGTH);
+      fprintf(stderr,"MSGHASH got  %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+      ed25519_key2text(hash,header.msghash,SHA256_DIGEST_LENGTH);
+      fprintf(stderr,"MSGHASH have %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
@@ -703,7 +708,7 @@ Aborted
     std::map<uint64_t,message_ptr> map;
     header.msg_map((char*)(read_msg_->data+8),map,opts_.svid);
     if(!header.msg_check(map)){
-      std::cerr << "ERROR got wrong msglist msghash\n"; // consider updating server
+      std::cerr << "ERROR msghash check failed\n"; // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),

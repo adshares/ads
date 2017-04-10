@@ -36,31 +36,35 @@ public:
   void start()
   { mkdir("usr",0755); // create dir for bank accounts
     mkdir("blk",0755); // create dir for blocks
-    //mklogdir(opts_.svid);
-    //mklogfile(opts_.svid,0);
     uint32_t path=readmsid()-opts_.back*BLOCKSEC; // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
     //remember start status
     start_path=path;
     start_msid=msid_;
     last_srvs_.get(path);
-    ////if(memcmp(last_srvs_.nodes[opts_.svid].pk,opts_.pk,32)){ // move this to get servers
-    //pkey=last_srvs_.nodes[opts_.svid].pk;
-    ////TODO, check vok and vno, if bad, inform user and suggest an older starting point
+    bank_fee.resize(last_srvs_.nodes.size());
+    pkey=last_srvs_.nodes[opts_.svid].pk;
 
     if(opts_.init){
       struct stat sb;   
       uint32_t now=time(NULL);
       now-=now%BLOCKSEC;
       if(stat("usr/0001.dat",&sb)>=0){
-        fprintf(stderr,"START from last database state (file usr/0001.dat found)\n");
-        last_srvs_.now=now;
-        last_srvs_.blockdir();
-        srvs_=last_srvs_;
+        fprintf(stderr,"INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
         if(!undo_bank()){
           fprintf(stderr,"ERROR loading initial database, fatal\n");
           exit(-1);}
-        last_srvs_.finish();}
+        // do not rebuild blockchain
+        //last_srvs_.now=now;
+        //last_srvs_.blockdir();
+        //last_srvs_.finish();
+        // rebuild blockchain
+        srvs_=last_srvs_;
+        memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+        period_start=srvs_.nextblock();
+        fprintf(stderr,"MAKE BLOCKCHAIN\n");
+        for(;srvs_.now<now;){
+          finish_block();}}
       else{
         path=0;
         lastpath=0;
@@ -68,14 +72,17 @@ public:
         start_msid=0;
         msid_=0;
         fprintf(stderr,"START from a fresh database\n");
-        last_srvs_.init(now-BLOCKSEC);}}
+        last_srvs_.init(now-BLOCKSEC);
+        srvs_=last_srvs_;
+        memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+        period_start=srvs_.nextblock();} //changes now!
+      do_sync=0;}
+    else{
+      srvs_=last_srvs_;
+      memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+      period_start=srvs_.nextblock();} //changes now!
 
     fprintf(stderr,"START @ %08X with MSID: %08X\n",path,msid_);
-    srvs_=last_srvs_;
-    bank_fee.resize(srvs_.nodes.size());
-    pkey=srvs_.nodes[opts_.svid].pk;
-    memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-    period_start=srvs_.nextblock();
     vip_max=srvs_.update_vip(); //based on initial weights at start time
 
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
@@ -87,22 +94,22 @@ public:
       fprintf(stderr,"ERROR: failed to find secret key for key:\n%.16s\n",pktext);
       exit(-1);}
 
-    if(!opts_.init && !undo_bank()){//check database consistance
-    //if(!undo_bank()){//check database consistance
-      if(!opts_.fast){
-        std::cerr<<"DATABASE check failed, must use fast option to load new datase from network\n";
-        exit(-1);}
-      do_sync=1;}
-    else{
-      std::cerr<<"DATABASE check passed\n";
-      uint32_t now=time(NULL);
-      now-=now%BLOCKSEC;
-      if(last_srvs_.now==now-BLOCKSEC){
-        do_sync=0;}
+    if(!opts_.init){
+      if(!undo_bank()){//check database consistance
+        if(!opts_.fast){
+          std::cerr<<"DATABASE check failed, must use fast option to load new datase from network\n";
+          exit(-1);}
+        do_sync=1;}
       else{
-        if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
-          std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
-        do_sync=1;}}
+        std::cerr<<"DATABASE check passed\n";
+        uint32_t now=time(NULL);
+        now-=now%BLOCKSEC;
+        if(last_srvs_.now==now-BLOCKSEC){
+          do_sync=0;}
+        else{
+          if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
+            std::cerr<<"WARNING, possibly missing too much history for full resync\n";}
+          do_sync=1;}}}
     //ofip_init(last_srvs_.nodes[opts_.svid].users); //must do this after recycling messages !!!
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
@@ -227,7 +234,8 @@ public:
   //update_nodehash is similar
   int undo_bank() //will undo database changes and check if the database is consistant
   { //could use multiple threads but disk access could limit the processing anyway
-    uint32_t path=srvs_.now; //use undo from next block
+    //uint32_t path=srvs_.now; //use undo from next block
+    uint32_t path=last_srvs_.now+BLOCKSEC; //use undo from next block
     int rollback=opts_.back;
     fprintf(stderr,"CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
     for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
@@ -356,6 +364,16 @@ public:
     missing_.unlock();
   }
 
+  //void make_chain()
+  //{ uint32_t now=time(NULL);
+  //  now-=now%BLOCKSEC;
+  //  srvs_=last_srvs_;
+  //  memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+  //  period_start=srvs_.nextblock();
+  //  for(;srvs_.now<now;){
+  //    finish_block();}
+  //}
+    
   void load_chain()
   { uint32_t now=time(NULL);
     auto block=headers.begin();
@@ -377,43 +395,39 @@ public:
       peer_.lock();
       block=headers.begin();
       peer_.unlock();
-    //for(;srvs_.now<now;){
-    for(;;){
-      //std::cerr<<"START syncing header "<<block->now<<"\n";
-      fprintf(stderr,"START syncing header %08X\n",block->now);
-      if(srvs_.now!=block->now){
-        //std::cerr<<"ERROR, got strange block numbers "<<srvs_.now<<"<>"<<block->now<<"\n";
-        fprintf(stderr,"ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
-        exit(-1);} //FIXME, prevent this
-      //block->load_signatures(); //TODO should go through signatures and update vok, vno
-      block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
-      //fprintf(stderr,"TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
-      if(!block->load_msglist(missing_msgs_,opts_.svid)){
-        fprintf(stderr,"LOAD messages from peers\n");
-        //request list of transactions from peers
-        peer_.lock(); // consider changing this to missing_lock
-        get_msglist=srvs_.now;
-        peer_.unlock();
-        //prepare txslist request message
-        message_ptr put_msg(new message());
-        put_msg->data[0]=MSGTYPE_MSL;
-        memcpy(put_msg->data+1,&block->now,4);
-        put_msg->got=0; // do first request emidiately
-        while(get_msglist){ // consider using future/promise
-          uint32_t nnow=time(NULL);
-          if(put_msg->got<nnow-MAX_MSGWAIT){
-            fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
-            uint16_t svid=put_msg->request();
-            if(svid){
-              //std::cerr << "REQUESTING MSL from "<<svid<<"\n";
-              fprintf(stderr,"REQUESTING MSL from %04X\n",svid);
-              deliver(put_msg,svid);}}
-          boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
-        srvs_.msg=block->msg; //check
-        srvs_.msg_put(missing_msgs_);}
-      else{
-        srvs_.msg=block->msg; //check
-        memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
+      for(;;){
+        fprintf(stderr,"START syncing header %08X\n",block->now);
+        if(srvs_.now!=block->now){
+          fprintf(stderr,"ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
+          exit(-1);} //FIXME, prevent this
+        //block->load_signatures(); //TODO should go through signatures and update vok, vno
+        block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
+        if(!block->load_msglist(missing_msgs_,opts_.svid)){
+          fprintf(stderr,"LOAD messages from peers\n");
+          //request list of transactions from peers
+          peer_.lock(); // consider changing this to missing_lock
+          get_msglist=srvs_.now;
+          peer_.unlock();
+          //prepare txslist request message
+          message_ptr put_msg(new message());
+          put_msg->data[0]=MSGTYPE_MSL;
+          memcpy(put_msg->data+1,&block->now,4);
+          put_msg->got=0; // do first request emidiately
+          while(get_msglist){ // consider using future/promise
+            uint32_t nnow=time(NULL);
+            if(put_msg->got<nnow-MAX_MSGWAIT){
+              fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
+              uint16_t svid=put_msg->request();
+              if(svid){
+                //std::cerr << "REQUESTING MSL from "<<svid<<"\n";
+                fprintf(stderr,"REQUESTING MSL from %04X\n",svid);
+                deliver(put_msg,svid);}}
+            boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
+          srvs_.msg=block->msg; //check
+          srvs_.msg_put(missing_msgs_);}
+        else{
+          srvs_.msg=block->msg; //check
+          memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
         //inform peers about current sync block
         message_ptr put_msg(new message());
         put_msg->data[0]=MSGTYPE_PAT;
@@ -466,7 +480,6 @@ public:
           fillknown(jt->second);
           uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
           if(svid){
-            //std::cerr << "REQUESTING TXS from "<<svid<<"\n";
             fprintf(stderr,"REQUESTING TXS from %04X\n",svid);
             deliver(jt->second,svid);}
           missing_.lock();}
@@ -2500,51 +2513,52 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   { 
     txs_.lock();
     std::map<uint16_t,message_ptr> last_block_svid_msgs=last_svid_msgs; // last block latest validated message from server, should change this to now_svid_msgs
-    for(auto it=winner->svid_have.begin();it!=winner->svid_have.end();it++){
-      //last_block_svid_msgs.erase(*it);
-      uint16_t svid=it->first;
-      uint32_t msid=it->second.msid;
-      if(!msid){
-        fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
-        continue;}
-      uint8_t* sigh=it->second.sigh;
-      union {uint64_t num; uint8_t dat[8];} h;
-      h.dat[0]=0; // hash
-      h.dat[1]=0; // message type
-      memcpy(h.dat+2,&msid,4);
-      memcpy(h.dat+6,&svid,2);
+    if(!do_sync){ // not during make_chain()
+      for(auto it=winner->svid_have.begin();it!=winner->svid_have.end();it++){
+        //last_block_svid_msgs.erase(*it);
+        uint16_t svid=it->first;
+        uint32_t msid=it->second.msid;
+        if(!msid){
+          fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
+          continue;}
+        uint8_t* sigh=it->second.sigh;
+        union {uint64_t num; uint8_t dat[8];} h;
+        h.dat[0]=0; // hash
+        h.dat[1]=0; // message type
+        memcpy(h.dat+2,&msid,4);
+        memcpy(h.dat+6,&svid,2);
 //FIXME, include dblspend message search
-      auto mi=txs_msgs_.lower_bound(h.num);
-      while(1){
-        if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
-          fprintf(stderr,"FATAL, could not find svid_have message :-( %016lX\n",h.num);
-          exit(-1);}
-        if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
-          last_block_svid_msgs[it->first]=mi->second;
-          break;}
-        mi++;}}
-    for(auto it=winner->svid_miss.begin();it!=winner->svid_miss.end();it++){
-      uint16_t svid=it->first;
-      uint32_t msid=it->second.msid;
-      if(!msid){
-        fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
-        continue;}
-      uint8_t* sigh=it->second.sigh;
-      union {uint64_t num; uint8_t dat[8];} h;
-      h.dat[0]=0; // hash
-      h.dat[1]=0; // message type
-      memcpy(h.dat+2,&msid,4);
-      memcpy(h.dat+6,&svid,2);
+        auto mi=txs_msgs_.lower_bound(h.num);
+        while(1){
+          if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
+            fprintf(stderr,"FATAL, could not find svid_have message :-( %016lX\n",h.num);
+            exit(-1);}
+          if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
+            last_block_svid_msgs[it->first]=mi->second;
+            break;}
+          mi++;}}
+      for(auto it=winner->svid_miss.begin();it!=winner->svid_miss.end();it++){
+        uint16_t svid=it->first;
+        uint32_t msid=it->second.msid;
+        if(!msid){
+          fprintf(stderr,"WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
+          continue;}
+        uint8_t* sigh=it->second.sigh;
+        union {uint64_t num; uint8_t dat[8];} h;
+        h.dat[0]=0; // hash
+        h.dat[1]=0; // message type
+        memcpy(h.dat+2,&msid,4);
+        memcpy(h.dat+6,&svid,2);
 //FIXME, include dblspend message search
-      auto mi=txs_msgs_.lower_bound(h.num);
-      while(1){
-        if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
-          fprintf(stderr,"FATAL, could not find svid_miss message :-( %016lX\n",h.num);
-          exit(-1);}
-        if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
-          last_block_svid_msgs[it->first]=mi->second;
-          break;}
-        mi++;}}
+        auto mi=txs_msgs_.lower_bound(h.num);
+        while(1){
+          if((mi==txs_msgs_.end()) || ((mi->first & 0xFFFFFFFFFFFF0000L)!=(h.num))){
+            fprintf(stderr,"FATAL, could not find svid_miss message :-( %016lX\n",h.num);
+            exit(-1);}
+          if(!memcmp(sigh,mi->second->sigh,sizeof(hash_t))){
+            last_block_svid_msgs[it->first]=mi->second;
+            break;}
+          mi++;}}}
     txs_.unlock();
 
     // save list of final message hashes
@@ -2565,13 +2579,14 @@ fprintf(stderr,"DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     // confirm hash;
     hash_s last_block_message;
     message_shash(last_block_message.hash,last_block_svid_msgs);
-    cand_.lock();
-    auto ca=candidates_.find(last_block_message);
-    if(ca==candidates_.end() || memcmp(last_block_message.hash,ca->first.hash,sizeof(hash_t))){
-      std::cerr << "FATAL, failed to confirm block hash\n";
-      cand_.unlock();
-      exit(-1);}
-    cand_.unlock();
+    if(!do_sync){
+      cand_.lock();
+      auto ca=candidates_.find(last_block_message);
+      if(ca==candidates_.end() || memcmp(last_block_message.hash,ca->first.hash,sizeof(hash_t))){
+        std::cerr << "FATAL, failed to confirm block hash\n";
+        cand_.unlock();
+        exit(-1);}
+      cand_.unlock();}
     ed25519_key2text(hash,last_block_message.hash,sizeof(hash_t));
     fprintf(stderr,"DELTA: 0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
@@ -2705,19 +2720,20 @@ exit(-1);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
-    ofip_update_block(period_start,srvs_.now,commit_msgs,srvs_.div);
     vip_max=srvs_.update_vip();
-    free(hash);
-    for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
-      auto mi=mj++;
-      if(mi->second->msid<last_srvs_.now){
-        cnd_msgs_.erase(mi);
-        continue;}}
-    for(auto mj=blk_msgs_.begin();mj!=blk_msgs_.end();){
-      auto mi=mj++;
-      if(mi->second->msid<last_srvs_.now){
-        blk_msgs_.erase(mi);
-        continue;}}
+    if(!do_sync){
+      ofip_update_block(period_start,srvs_.now,commit_msgs,srvs_.div);
+      free(hash);
+      for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
+        auto mi=mj++;
+        if(mi->second->msid<last_srvs_.now){
+          cnd_msgs_.erase(mi);
+          continue;}}
+      for(auto mj=blk_msgs_.begin();mj!=blk_msgs_.end();){
+        auto mi=mj++;
+        if(mi->second->msid<last_srvs_.now){
+          blk_msgs_.erase(mi);
+          continue;}}}
     std::cerr << "NEW BLOCK created\n";
     srvs_.clean_old(opts_.svid);
   }

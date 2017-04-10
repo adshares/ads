@@ -60,6 +60,9 @@ public:
 //fprintf(stderr,"       START as %d\n",i);
 				memcpy(hash,hash_[i],SHA256_DIGEST_LENGTH);
 				break;}}
+		if(i==MAXTREE){
+			bzero(hash,SHA256_DIGEST_LENGTH);
+			return;}
 		for(i++;i<MAXTREE;i++){
 			if(hash_loaded[i]){
 //fprintf(stderr,"       ADD      %d\n",i);
