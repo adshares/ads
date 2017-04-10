@@ -157,11 +157,12 @@ public:
   void recyclemsid(uint32_t lastpath)
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
-    if(firstmsid>msid_ && !opts_.fast){
+    if(firstmsid>msid_){
       fprintf(stderr,"ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
-      //msid_=firstmsid;
-      //return;
-      exit(-1);}
+      if(!opts_.fast){
+        exit(-1);}
+      msid_=firstmsid;
+      return;}
     if(firstmsid==msid_){
       std::cerr<<"NO recycle needed\n";
       return;}
