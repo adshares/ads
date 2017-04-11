@@ -635,8 +635,11 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       logentry.put("amount",print_amount(ulog.weight));
       //FIXME calculate fee
       if(txst==TXSTYPE_PUT){
-	logentry.put("sender_fee",print_amount(TXS_PUT_FEE(ulog.weight)));
-	logentry.put("sender_fee_total",print_amount(TXS_PUT_FEE(ulog.weight)));
+        int64_t amass=fabsl(ulog.weight);
+        if(ulog.node==sts.bank){
+	  logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));}
+        else{
+	  logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));}
         logentry.put("message",info);}
       else{
         int64_t weight;
