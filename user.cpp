@@ -904,6 +904,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 socket.close();
                 break;}
               write(fd,(char*)blg,len);
+              lseek(fd,0,SEEK_SET);
               free(blg);}
             else{
               fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
