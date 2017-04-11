@@ -464,8 +464,10 @@ public:
         if(mpt_bank[i]==offi_.svid){
           tlog.weight=mpt_mass[i];
           tlog.info[31]=(i?0:1);
-          offi_.put_ulog(utxs.buser,tlog);
-          offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}
+          //offi_.put_ulog(utxs.buser,tlog);
+          offi_.put_ulog(mpt_user[i],tlog);
+          if(mpt_mass[i]>=0){
+            offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}}
     else if(utxs.abank==utxs.bbank && *buf==TXSTYPE_PUT){
       tlog.type=*buf|0x8000; //incoming
       tlog.node=utxs.abank;

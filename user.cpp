@@ -130,6 +130,37 @@ bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len)
   return(true);
 }
 
+bool parse_amount(int64_t& amount,std::string str_amount)
+{ int64_t big=0;//,small=0;
+  char small[11]=" 000000000";
+  int n=sscanf(str_amount.c_str(),"%ld%10s",&big,small);
+  if(n<1){
+    fprintf(stderr,"ERROR: parse_amount(%s)\n",str_amount.c_str());
+    return(false);}
+  if(n==1 || small[0]!='.'){
+    amount=big*1000000000;
+    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
+    return(true);}
+  for(n=1;n<10;n++){
+    if(!isdigit(small[n])){
+      break;}}
+  for(;n<10;n++){
+    small[n]='0';}
+  if(big>=0){
+    amount=big*1000000000+atol(small+1);}
+  else{
+    amount=big*1000000000-atol(small+1);}
+  //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
+  return(true);
+}
+
+char* print_amount(int64_t amount)
+{ static char text[32];
+  sprintf(text,"%ld.%ld",amount/1000000000,amount%1000000000);
+  //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
+  return(text);
+}
+
 usertxs_ptr run_json(settings& sts,char* line)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
@@ -158,6 +189,9 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::optional<std::string> json_hash=pt.get_optional<std::string>("hash");
   if(json_hash && !parse_key(sts.ha,json_hash,32)){
     return(NULL);}
+  boost::optional<std::string> json_mass=pt.get_optional<std::string>("amount");
+  if(json_mass && !parse_amount(to_mass,json_mass.get())){
+    return(NULL);}
   boost::optional<std::string> json_bank=pt.get_optional<std::string>("node");
   if(json_bank && !parse_bank(to_bank,json_bank.get())){
     return(NULL);}
@@ -170,9 +204,6 @@ usertxs_ptr run_json(settings& sts,char* line)
   boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
   if(json_from){
     to_from=json_from.get();}
-  boost::optional< int64_t> json_mass=pt.get_optional< int64_t>("amount");
-  if(json_mass){
-    to_mass=json_mass.get();}
   boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
   if(json_msid){
     sts.msid=json_msid.get();}
@@ -241,8 +272,10 @@ usertxs_ptr run_json(settings& sts,char* line)
       uint16_t tbank;
       uint32_t tuser;
       //int64_t tmass = wire.second.data();
-       int64_t tmass = wire.second.get_value<int64_t>();
+       int64_t tmass; // = wire.second.get_value<int64_t>();
       if(!sts.parse_acnt(tbank,tuser,wire.first)){
+        return(NULL);}
+      if(!parse_amount(tmass,wire.second.get_value<std::string>())){
         return(NULL);}
       char to_acct[2+4+8];
       memcpy(to_acct+0,&tbank,2);
@@ -388,7 +421,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
         pt.put("account.paired_address",ucnt);}
       pt.put("account.local_change",u.lpath);
       pt.put("account.remote_change",u.rpath);
-      pt.put("account.balance",u.weight);
+      pt.put("account.balance",print_amount(u.weight));
       pt.put("account.public_key",pkey);
       pt.put("account.hash",hash);}
     else{
@@ -404,7 +437,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
         pt.put("network_account.paired_address",ucnt);}
       pt.put("network_account.local_change",u.lpath);
       pt.put("network_account.remote_change",u.rpath);
-      pt.put("network_account.balance",u.weight);
+      pt.put("network_account.balance",print_amount(u.weight));
       pt.put("network_account.public_key",pkey);
       pt.put("network_account.hash",hash);}}
 }
@@ -477,7 +510,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
           ed25519_key2text(hash_hex,hash,8);
           char pkey_hex[13];pkey_hex[12]='\0';
           ed25519_key2text(pkey_hex,pkey,6);
-          logentry.put("account.balance",weight);
+          logentry.put("account.balance",print_amount(weight));
           logentry.put("account.local_change",lpath);
           logentry.put("account.remote_change",rpath);
           logentry.put("account.hash_prefix_8",hash_hex);
@@ -486,7 +519,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
           logentry.put("account.msid",ulog.umid);
           logentry.put("account.node",ulog.node);
           logentry.put("account.id",ulog.user);
-          logentry.put("dividend",ulog.weight);
+          logentry.put("dividend",print_amount(ulog.weight));
           uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
           char acnt[19]="";
           sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
@@ -496,11 +529,11 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         if(txst==TXSTYPE_DIV){ //dividend
           logentry.put("node_msid",ulog.nmid);
           logentry.put("node_block",ulog.mpos);
-          logentry.put("dividend",ulog.weight);
+          logentry.put("dividend",print_amount(ulog.weight));
           logtree.push_back(std::make_pair("",logentry));
           continue;}
         if(txst==TXSTYPE_FEE){ //bank profit
-          logentry.put("profit",ulog.weight);
+          logentry.put("profit",print_amount(ulog.weight));
           if(ulog.nmid){
             logentry.put("node",ulog.node);
             logentry.put("node_msid",ulog.nmid);
@@ -510,9 +543,9 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             memcpy(&fee,ulog.info+ 0,8);
             memcpy(&div,ulog.info+ 8,8);
             memcpy(&put,ulog.info+16,8);
-            logentry.put("profit_fee",fee);
-            logentry.put("profit_div",div);
-            logentry.put("profit_put",put);}
+            logentry.put("profit_fee",print_amount(fee));
+            logentry.put("profit_div",print_amount(div));
+            logentry.put("profit_put",print_amount(put));}
           else{
             logentry.put("node_block",ulog.mpos);
             int64_t div;
@@ -523,10 +556,10 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             memcpy(&usr,ulog.info+ 8,8);
             memcpy(&get,ulog.info+16,8);
             memcpy(&fee,ulog.info+24,8);
-            logentry.put("profit_div",div);
-            logentry.put("profit_usr",usr);
-            logentry.put("profit_get",get);
-            logentry.put("fee",fee);}
+            logentry.put("profit_div",print_amount(div));
+            logentry.put("profit_usr",print_amount(usr));
+            logentry.put("profit_get",print_amount(get));
+            logentry.put("fee",print_amount(fee));}
           logtree.push_back(std::make_pair("",logentry));
           continue;}
         if(txst==TXSTYPE_UOK){ //creare remote account
@@ -541,7 +574,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
               logentry.put("request","late");}}
           else{
             logentry.put("request","failed");
-            logentry.put("amount",ulog.weight);}
+            logentry.put("amount",print_amount(ulog.weight));}
           logentry.put("public_key",info);
           logtree.push_back(std::make_pair("",logentry));
           continue;}
@@ -552,7 +585,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             logentry.put("request","accepted");}
           else{
             logentry.put("request","failed");
-            logentry.put("amount",ulog.weight);}
+            logentry.put("amount",print_amount(ulog.weight));}
           logentry.put("public_key",info);
           logtree.push_back(std::make_pair("",logentry));
           continue;}}
@@ -565,10 +598,10 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         logentry.put("node_msid",ulog.nmid);
         logentry.put("node_mpos",ulog.mpos);
         logentry.put("account_msid",ulog.umid);}
-      logentry.put("amount",ulog.weight);
+      logentry.put("amount",print_amount(ulog.weight));
       //FIXME calculate fee
       if(txst==TXSTYPE_PUT){
-        logentry.put("sender_fee",TXS_PUT_FEE(ulog.weight));
+        logentry.put("sender_fee",print_amount(TXS_PUT_FEE(ulog.weight)));
         logentry.put("message",info);}
       else{
         int64_t weight;
@@ -583,15 +616,15 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         memcpy(    key,ulog.info+26,6);
         char key_hex[13];key_hex[12]='\0';
         ed25519_key2text(key_hex,key,6);
-        logentry.put("sender_balance",weight);
-        logentry.put("sender_amount",deduct);
+        logentry.put("sender_balance",print_amount(weight));
+        logentry.put("sender_amount",print_amount(deduct));
         if(txst==TXSTYPE_MPT){
-          logentry.put("sender_fee",TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0));
-          logentry.put("sender_fee_total",fee);
+          logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
+          logentry.put("sender_fee_total",print_amount(fee));
           key_hex[2*5]='\0';
           logentry.put("sender_public_key_prefix_5",key_hex);}
         else{
-          logentry.put("sender_fee",fee);
+          logentry.put("sender_fee",print_amount(fee));
           logentry.put("sender_public_key_prefix_6",key_hex);}
         logentry.put("sender_status",stat);}
       char tx_id[64];
@@ -687,7 +720,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     blogentry.put("node_mpos",mpos);
     blogentry.put("id",tx_id);
     //FIXME calculate fee
-    blogentry.put("fee",0);
+//  blogentry.put("fee",0);
     blogtree.push_back(std::make_pair("",blogentry));}
   //pt.add_child("broadcast",blogtree);
   free(blg);
@@ -804,7 +837,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       ed25519_key2text(tx_user_hashout,hashout,32);
       pt.put("tx.account_hashout",tx_user_hashout);
       //FIXME calculate fee
-      pt.put("tx.fee",0);
+//    pt.put("tx.fee",0);
     }
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
