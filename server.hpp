@@ -488,6 +488,12 @@ public:
         blk_.lock();
         while(blk_msgs_.size()){
           blk_.unlock();
+//boost::this_thread::sleep(boost::posix_time::seconds(1));
+//blk_.lock();
+//fprintf(stderr,"LEFT %d messages\n",(int)blk_msgs_.size());
+//for(auto it=blk_msgs_.begin();it!=blk_msgs_.end();it++){
+//  fprintf(stderr,"MSG: %04X:%08X\n",it->second->svid,it->second->msid);}
+//blk_.unlock();
           boost::this_thread::sleep(boost::posix_time::milliseconds(50)); //yes, yes, use futur/promise instead
           blk_.lock();}
         blk_.unlock();
@@ -1194,6 +1200,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
   void validator(void)
   {
     while(do_validate){
+      //fprintf(stderr,"VALIDATOR\n");
       check_.lock(); //TODO this should be a lock for check_msgs_ only maybe
       if(check_msgs_.empty()){
         check_.unlock();
@@ -1677,7 +1684,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ fprintf(stderr,"HASH ha
           return(false);}}
       else if(*p==TXSTYPE_BRO){
         log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
-        utxs.print_broadcast(p);
+        //utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank);}
       else if(*p==TXSTYPE_PUT){
         if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges

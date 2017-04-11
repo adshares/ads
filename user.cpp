@@ -724,7 +724,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     blogentry.put("node_mpos",mpos);
     blogentry.put("id",tx_id);
     //FIXME calculate fee
-//  blogentry.put("fee",0);
+    blogentry.put("fee",0);
     blogtree.push_back(std::make_pair("",blogentry));}
   //pt.add_child("broadcast",blogtree);
   free(blg);
@@ -841,7 +841,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       ed25519_key2text(tx_user_hashout,hashout,32);
       pt.put("tx.account_hashout",tx_user_hashout);
       //FIXME calculate fee
-//    pt.put("tx.fee",0);
+      pt.put("tx.fee",0);
     }
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
