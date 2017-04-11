@@ -484,6 +484,8 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
       logentry.put("time",ulog.time);
       logentry.put("type_no",ulog.type);
+      // FIXME: properly flag confirmed transactions, which will not be rolled back
+      logentry.put("confirmed", 1);
       if(txst<TXSTYPE_MAX){
         logentry.put("type",logname[txst]);}
       if(ulog.type & 0x4000){ //errors
@@ -605,7 +607,8 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       logentry.put("amount",print_amount(ulog.weight));
       //FIXME calculate fee
       if(txst==TXSTYPE_PUT){
-        logentry.put("sender_fee",print_amount(TXS_PUT_FEE(ulog.weight)));
+	logentry.put("sender_fee",print_amount(TXS_PUT_FEE(ulog.weight)));
+	logentry.put("sender_fee_total",print_amount(TXS_PUT_FEE(ulog.weight)));
         logentry.put("message",info);}
       else{
         int64_t weight;
@@ -812,8 +815,6 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     if(!sts.json){
       txs->print_head();
       txs->print();}
-    // tx_user_msid
-    logpt.put("tx.account_msid",sts.msid);
     // tx_data
     char* tx_data=(char*)malloc(2*txs->size+1);
     tx_data[2*txs->size]='\0';
@@ -821,6 +822,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     pt.put("tx.data",tx_data);
     logpt.put("tx.data",tx_data);
     free(tx_data);
+    // account_msid
+    pt.put("tx.account_msid",sts.msid);
+    logpt.put("tx.account_msid",sts.msid);
     // tx_user_hashin
     // calculate tx_user_hashout
     uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -998,7 +1002,12 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){
-    std::cerr << "Talk Exception: " << e.what() << "\n";}
+    std::cerr << "Talk Exception: " << e.what() << "\n";
+    // exit with error code to enable sane bash scripting
+    if(!isatty(fileno(stdin))) {
+	    exit(1);
+    }
+  }
 }
 
 //TODO add timeout
