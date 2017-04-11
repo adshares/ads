@@ -156,7 +156,11 @@ bool parse_amount(int64_t& amount,std::string str_amount)
 
 char* print_amount(int64_t amount)
 { static char text[32];
-  sprintf(text,"%ld.%ld",amount/1000000000,amount%1000000000);
+  int64_t a=fabsl(amount);
+  if(amount>=0){
+    sprintf(text,"%ld.%ld",a/1000000000,a%1000000000);}
+  else{
+    sprintf(text,"-%ld.%ld",a/1000000000,a%1000000000);}
   //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
   return(text);
 }
