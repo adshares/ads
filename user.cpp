@@ -886,7 +886,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             to=head[0];
             int len=(int)head[1];
             mkdir("bro",0755);
-            int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+            fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
             char* blg=NULL;
             if(len){
               blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
