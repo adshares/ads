@@ -480,8 +480,11 @@ public:
           fillknown(jt->second);
           uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
           if(svid){
-            fprintf(stderr,"REQUESTING TXS from %04X\n",svid);
-            deliver(jt->second,svid);}
+            if(srvs_.nodes[jt->second->svid].msid==jt->second->msid-1){ // do not request if previous message not processed
+              fprintf(stderr,"REQUESTING TXS %04X:%08X from %04X\n",jt->second->svid,jt->second->msid,svid);
+              deliver(jt->second,svid);}
+            else{
+              fprintf(stderr,"POSTPONING TXS %04X:%08X\n",jt->second->svid,jt->second->msid);}}
           missing_.lock();}
         missing_.unlock();
         //wait for all messages to be processed by the validators
