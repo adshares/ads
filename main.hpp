@@ -170,8 +170,9 @@ typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} 
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
 typedef struct uin_cmp {
   bool operator()(const uin_t& i,const uin_t& j) const {int k=memcmp(&i,&j,sizeof(uin_t));return(k<0);}} uin_c;
-
 #pragma pack()
+
+#define LOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();fprintf(stderr,__VA_ARGS__);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 
 #include "ed25519/ed25519.h"
 #include "hash.hpp"

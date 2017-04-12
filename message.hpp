@@ -132,7 +132,7 @@ public:
       char hash[4*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,data+4,2*SHA256_DIGEST_LENGTH);
       hash_signature();
-      fprintf(stderr,"BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
+      LOG("BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
     else if(text_type==MSGTYPE_CND){
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
       hash_signature();}
@@ -142,7 +142,7 @@ public:
     else{
       assert(text_type==MSGTYPE_MSG);
       if(!hash_tree(sigh)){
-        fprintf(stderr,"ERROR hash_tree error, FATAL\n");
+        LOG("ERROR hash_tree error, FATAL\n");
         exit(-1);}
       ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);}
       //ed25519_sign2(msha,32,data+4+64,10+text_len,mysk,mypk,data+4);
@@ -311,7 +311,7 @@ public:
       memcpy(&svid,data+6,2); // this is the bank id
       if(len>MESSAGE_CHUNK){
         uint64_t h=*((uint64_t*)data);
-        fprintf(stderr,"USR HEADER:%016lX\n",h);
+        LOG("USR HEADER:%016lX\n",h);
         std::cerr<<"ERROR in user message length\n";
         return 0;}
       data=(uint8_t*)std::realloc(data,8+len*sizeof(user_t));
@@ -427,7 +427,7 @@ public:
       status=MSGSTAT_DAT; // have data
       if(data[0]==MSGTYPE_MSG){
         if(!hash_tree(sigh)){
-          fprintf(stderr,"ERROR, hash_tree error\n");
+          LOG("ERROR, hash_tree error\n");
           return(-1);}
         hash.num=dohash(mysvid);
         return(ed25519_sign_open2(msha,32,sigh,32,svpk,data+4));}
@@ -487,7 +487,7 @@ public:
   { assert(data!=NULL);
     char hash[16];
     ed25519_key2text((char*)hash,sigh,8);
-    fprintf(stderr,"%04X[%04X:%02X]now:%08X[l:%d] %.16s %s",peer,svid,msid&0xff,now,len-4-64-10,hash,suffix);
+    LOG("%04X[%04X:%02X]now:%08X[l:%d] %.16s %s",peer,svid,msid&0xff,now,len-4-64-10,hash,suffix);
     if(len>4+64+10){
       //if(data[4+64+10]==TXSTYPE_PUT){
       //  std::cout<<"SEND";}
@@ -508,15 +508,15 @@ public:
   { assert(data!=NULL);
     char hash[2*SHA256_DIGEST_LENGTH];
     header_t* h=(header_t*)(data+4+64+10);
-    fprintf(stderr,"HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
+    LOG("HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
     ed25519_key2text(hash,h->oldhash,32);
-    fprintf(stderr,"OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    LOG("OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->msghash,32);
-    fprintf(stderr,"TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    LOG("TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->nodhash,32);
-    fprintf(stderr,"NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    LOG("NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->nowhash,32);
-    fprintf(stderr,"NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    LOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
   int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
@@ -526,7 +526,7 @@ public:
     busy.insert(who);
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
-      fprintf(stderr,"blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
+      LOG("blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
       return(1);}
     uint32_t head;
     char filename[64];
@@ -564,7 +564,7 @@ public:
       return(0);}
     myfile.close();
     mtx_.unlock();
-    fprintf(stderr,"blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    LOG("blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     return(1);
   }
 
@@ -575,7 +575,7 @@ public:
     busy.erase(who);
     if(busy.empty()){
       if(len==header_length){
-        fprintf(stderr,"WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
+        LOG("WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
           (uint32_t)hashtype(),svid,msid,len);}
       else{
         if(data!=NULL){
@@ -609,7 +609,7 @@ public:
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
     if(fd<0){
-      fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
+      LOG("ERROR failed to open %s, fatal\n",filename);
       exit(-1);}
     write(fd,csum,4*sizeof(uint64_t));
     write(fd,&weight,sizeof(int64_t));
@@ -628,7 +628,7 @@ public:
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
-      fprintf(stderr,"ERROR failed to open %s, fatal\n",filename);
+      LOG("ERROR failed to open %s, fatal\n",filename);
       exit(-1);}
     read(fd,csum,4*sizeof(uint64_t));
     read(fd,&weight,sizeof(int64_t));
@@ -656,12 +656,12 @@ public:
     sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.und",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     rename(oldname,newname); //does not exist before validation
     //if(rename(oldname,newname)){
-    //  fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
+    //  LOG("FAILED to move %s to %s\n",oldname,newname);
     //  exit(-1);} //FIXME, do not exit later
     sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.msg",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     if((r=rename(oldname,newname))){
-      fprintf(stderr,"FAILED to move %s to %s\n",oldname,newname);
+      LOG("FAILED to move %s to %s\n",oldname,newname);
       exit(-1);} //FIXME, do not exit later
     path=nextpath;
     return(r);

@@ -175,7 +175,7 @@ public:
         std::cerr<<"ERROR: get log failed\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      fprintf(stderr,"SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,slog.size());
+      LOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,slog.size());
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}
@@ -189,7 +189,7 @@ public:
       else{
         path=utxs.ttime-utxs.ttime%BLOCKSEC;
         if(path>=lpath){
-          fprintf(stderr,"ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
+          LOG("ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
           offi_.unlock_user(utxs.auser);
           return;}}
       //FIXME, report only completed broadcast files (<=last_path())
@@ -199,7 +199,7 @@ public:
       if(fd<0){
         size=0;
         boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
-        fprintf(stderr,"SENDING broadcast log %08X [empty]\n",path);
+        LOG("SENDING broadcast log %08X [empty]\n",path);
         offi_.unlock_user(utxs.auser);
         return;}
       struct stat sb;
@@ -210,7 +210,7 @@ public:
         size=MESSAGE_CHUNK;}
       else{
         size=sb.st_size;}
-      fprintf(stderr,"SENDING broadcast log %08X [len:%d]\n",path,size);
+      LOG("SENDING broadcast log %08X [len:%d]\n",path,size);
       if(!size){
         boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
         close(fd);
@@ -222,7 +222,7 @@ public:
         int len=read(fd,buf+2*sizeof(uint32_t),size);
         if(len<=0){
           close(fd);
-          fprintf(stderr,"ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
+          LOG("ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
           offi_.unlock_user(utxs.auser);
           return;}
         if(!pos){
@@ -297,7 +297,7 @@ public:
           offi_.unlock_user(utxs.auser);
           return;}
         if(out.find(to.big)!=out.end()){
-          fprintf(stderr,"ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+          LOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
           offi_.unlock_user(utxs.auser);
           return;}
         if(!offi_.check_user((uint16_t)tbank,tuser)){
@@ -332,7 +332,7 @@ public:
       if(utxs.bbank!=offi_.svid){
         uint32_t now=time(NULL);
         if(now%BLOCKSEC>BLOCKSEC/2){
-          fprintf(stderr,"ERROR: bad timing for remote account request, try after %d seconds\n",
+          LOG("ERROR: bad timing for remote account request, try after %d seconds\n",
             BLOCKSEC-now%BLOCKSEC);
           offi_.unlock_user(utxs.auser);
           return;}
@@ -389,7 +389,7 @@ public:
     //  assert(0); //TODO, not implemented later
     //  fee=TXS_STP_FEE;}
     if(deduct+fee+(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS)>usera.weight){
-      fprintf(stderr,"ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+      LOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
         deduct,fee,(uint64_t)(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS),usera.weight);
       offi_.unlock_user(utxs.auser);
       return;}
@@ -478,14 +478,14 @@ public:
         offi_.add_deposit(utxs);}}
     offi_.unlock_user(utxs.auser);
     //FIXME, return msid and mpos
-    fprintf(stderr,"SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
+    LOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
     try{
       //respond with a single message
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
       boost::asio::write(socket_,boost::asio::buffer(&msid,sizeof(uint32_t)));
       boost::asio::write(socket_,boost::asio::buffer(&mpos,sizeof(uint32_t)));}
     catch (std::exception& e){
-      fprintf(stderr,"ERROR responding to client %08X\n",utxs.auser);}
+      LOG("ERROR responding to client %08X\n",utxs.auser);}
     return;
   }
 

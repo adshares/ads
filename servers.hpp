@@ -153,7 +153,7 @@ public:
 				bzero(it->pk,SHA256_DIGEST_LENGTH);
 				it->users=0;
 				it->weight=0;}}
-		fprintf(stderr,"INIT: weight diff: %016lX\n",TOTALMASS-sum);
+		LOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
 		//nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
 		finish();
@@ -249,10 +249,10 @@ public:
 
 	bool check_user(uint16_t peer,uint32_t uid)
 	{	if(peer>=nodes.size()){
-			fprintf(stderr,"ERROR, bad user %04X:%08X (bad node)\n",peer,uid);
+			LOG("ERROR, bad user %04X:%08X (bad node)\n",peer,uid);
 			return(false);}
 	 	if(nodes[peer].users<=uid){
-			fprintf(stderr,"ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
+			LOG("ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
 			return(false);}
 		return(true);
 	}
@@ -288,19 +288,19 @@ public:
 		for(uint32_t i=0;i<end;i++){
 			user_t u;
 			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
-				fprintf(stderr,"ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
+				LOG("ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
 				exit(-1);}
 //FIXME, remove
-        fprintf(stderr,"USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+        LOG("USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
           peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
 			xor4(csum,u.csum);
 			weight+=u.weight;}
 		close(fd);
 		if(nodes[peer].weight!=weight){
-			fprintf(stderr,"ERROR: check_node: bad weight sum\n");
+			LOG("ERROR: check_node: bad weight sum\n");
 			return(false);}
 		if(memcmp(nodes[peer].hash,csum,4*sizeof(uint64_t))){
-			fprintf(stderr,"ERROR: check_node: bad hash\n");
+			LOG("ERROR: check_node: bad hash\n");
 			return(false);}
 		return(true);
 	}
@@ -378,11 +378,11 @@ public:
 		for(auto it=map.begin();it!=map.end();++it,i++){
 			tree.update(it->second->sigh);}
 		if(msg!=i){
-			fprintf(stderr,"ERROR, bad message numer\n");
+			LOG("ERROR, bad message numer\n");
 			return(false);}
 		tree.finish(hash);
 		if(memcmp(hash,msghash,SHA256_DIGEST_LENGTH)){
-			fprintf(stderr,"ERROR, bad message hash\n");
+			LOG("ERROR, bad message hash\n");
 			return(false);}
 		return(true);
 	}
@@ -434,7 +434,7 @@ public:
 		SHA256_CTX sha256;
 		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
+			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
 			SHA256_Init(&sha256);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
@@ -451,7 +451,7 @@ public:
 		tree.finish(nodhash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		hashnow();
 		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);
@@ -561,27 +561,27 @@ public:
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
+	 	LOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
 		ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nowhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
 	void header_print(header_t& head)
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	fprintf(stderr,"HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
+	 	LOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
 		ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nodhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nowhash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
 	void save_signature(uint16_t svid,uint8_t* sig,bool ok)
 	{	char filename[64];
@@ -654,7 +654,7 @@ public:
 			if(error){
 				char hash[4*SHA256_DIGEST_LENGTH];
 				ed25519_key2text(hash,data+2,2*SHA256_DIGEST_LENGTH);
-				fprintf(stderr,"BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
+				LOG("BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
 				header_print(head);
 				continue;}
 			if(j!=i){
@@ -711,7 +711,7 @@ public:
 		SHA256_CTX sha256;
 		hashtree tree;
 		for(i=0;i<peer_srvn;i++){ // consider changing this to hashtree/hashcalendar
-			fprintf(stderr,"NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
+			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&peer_node[i].pk[0]),(uint32_t)*((uint32_t*)&peer_node[i].hash[0]),(uint32_t)*((uint32_t*)&peer_node[i].msha[0]),
 				peer_node[i].msid,peer_node[i].mtim,peer_node[i].status,peer_node[i].weight,peer_node[i].users);
 			SHA256_Init(&sha256);
@@ -729,7 +729,7 @@ public:
 		tree.finish(tmphash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,tmphash,SHA256_DIGEST_LENGTH);
-		fprintf(stderr,"NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		LOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		return(memcmp(tmphash,peer_nodehash,SHA256_DIGEST_LENGTH));
 	}
 
@@ -785,15 +785,27 @@ public:
 				sum+=nodes[n].weight;}
 			if(sum<TOTALMASS){
 				if(sum<TOTALMASS/2){
-					fprintf(stderr,"WARNING, very small account sum %016lX\n",sum);}
+					LOG("WARNING, very small account sum %016lX\n",sum);}
 				//div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>32));
 				div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>16));}
 			else{
 				div=0;}
-			//fprintf(stderr,"NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
-			fprintf(stderr,"NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
+			//LOG("NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
+			LOG("NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
                           div,(float)(div)/0xFFFF,TOTALMASS-sum,(double)(TOTALMASS-sum)/(double)sum);}
 		blockdir();
+		//change log directory
+		{	extern boost::mutex flog;
+			extern FILE* stdlog;
+			char filename[32];
+			sprintf(filename,"blk/%03X/%05X/log.txt",now>>20,now&0xFFFFF);
+			flog.lock();
+			fclose(stdlog);
+			stdlog=fopen(filename,"a");
+			uint32_t ntime=time(NULL);
+			fprintf(stdlog,"START: %08X\n",ntime);
+			flog.unlock();
+		}
 		return(now-num*BLOCKSEC);
 	}
 
@@ -816,7 +828,7 @@ public:
 
 	void clean_old(uint16_t svid)
 	{	char pat[8];
-		fprintf(stderr,"CLEANING by %04X\n",svid);
+		LOG("CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
 #if BLOCKSEC == 0x20
 		for(int i=30*24*2;i<10;i+=16){
@@ -831,11 +843,11 @@ public:
 			sprintf(pathname,"blk/%03X/%05X",path>>20,path&0xFFFFF);
 			dir=opendir(pathname);
 			if(dir==NULL){
-				fprintf(stderr,"UNLINK: no such dir %s\n",pathname);
+				LOG("UNLINK: no such dir %s\n",pathname);
 				continue;}
 			dd=dirfd(dir);
 			if((fd=openat(dd,"clean.txt",O_RDONLY))>=0){
-				fprintf(stderr,"UNLINK: dir %s clean\n",pathname);
+				LOG("UNLINK: dir %s clean\n",pathname);
 				close(fd);
 				closedir(dir);
 				continue;}
@@ -850,7 +862,7 @@ public:
 				    dat->d_name[4]!=pat[1] ||
 				    dat->d_name[5]!=pat[2] ||
 				    dat->d_name[6]!=pat[3])){
-					fprintf(stderr,"UNLINK: %s/%s\n",pathname,dat->d_name);
+					LOG("UNLINK: %s/%s\n",pathname,dat->d_name);
 					unlinkat(dd,dat->d_name,0);}}
 			if((fd=openat(dd,"clean.txt",O_WRONLY|O_CREAT,0644))>=0){
 				close(fd);}

@@ -1,7 +1,10 @@
 #include "main.hpp"
 
+boost::mutex flog;
+FILE* stdlog=NULL;
+
 int main(int argc, char* argv[])
-{
+{ stdlog=fopen("log.txt","a");
   options opt;
   opt.get(argc,argv);
   try{
@@ -25,6 +28,7 @@ int main(int argc, char* argv[])
     s.stop(); }
   catch (std::exception& e){
     std::cerr << "Exception: " << e.what() << "\n";}
+  fclose(stdlog);
   return 0;
 }
 
@@ -168,7 +172,7 @@ void server::get_more_headers(uint32_t now) //use random order
 		advance(pi,num);}
 	peer_.unlock();
 	if(!(*pi)->do_sync){
-		fprintf(stderr,"REQUEST more headers from peer %04X\n",(*pi)->svid);
+		LOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
 		(*pi)->request_next_headers(now);}
 }
 void server::fillknown(message_ptr msg) //use random order
