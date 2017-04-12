@@ -1243,8 +1243,17 @@ Aborted
   }
 
   void svid_msid_rollback(message_ptr msg) // remove deleted message from known messages map
-  { if(svid_msid_new[msg->svid]>msg->msid-1){
-      svid_msid_new[msg->svid]=msg->msid-1;}
+  { 
+
+//FIXME, this will insert svid_msid_new[msg->svid]=0 :-( !!!
+
+    auto it=svid_msid_new.find(msg->svid);
+    if(it==svid_msid_new.end()){
+      return;}
+    if(it->second>msg->msid-1){
+      it->second=msg->msid-1;}
+    //if(svid_msid_new[msg->svid]>msg->msid-1){
+    //  svid_msid_new[msg->svid]=msg->msid-1;}
   }
 
   void write_peer_missing_messages()
