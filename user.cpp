@@ -1071,7 +1071,7 @@ int main(int argc, char* argv[])
   boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
   boost::asio::ip::tcp::socket socket(io_service);
 #if INTPTR_MAX == INT64_MAX
-  assert(sizeof(val)==16);
+  assert(sizeof(long double)==16);
   //fprintf(stderr,"Lf size:%ld ; Ld size:%ld\n",sizeof(long double),sizeof(long long int));
 #endif
   try{
