@@ -819,9 +819,9 @@ public:
 		fprintf(stderr,"CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
 #if BLOCKSEC == 0x20
-		for(int i=5;i<10;i++){
-#else
 		for(int i=30*24*2;i<10;i+=16){
+#else
+		for(int i=5;i<10;i++){
 #endif
 			uint32_t path=now-i*BLOCKDIV*BLOCKSEC; // remove from last div periods
 			int fd,dd;
