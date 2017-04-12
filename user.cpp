@@ -139,6 +139,7 @@ bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len)
   return(true);
 }
 
+#if INTPTR_MAX == INT64_MAX
 bool parse_amount(int64_t& amount,std::string str_amount)
 { long double val;
   if(1!=sscanf(str_amount.c_str(),"%Lf",&val)){
@@ -146,7 +147,6 @@ bool parse_amount(int64_t& amount,std::string str_amount)
   amount=llroundl(val*1000000000.0);
   return(true);
 }
-
 char* print_amount(int64_t amount)
 { static char text[32];
   const long double div=(long double)1.0/(long double)1000000000.0;
@@ -154,8 +154,8 @@ char* print_amount(int64_t amount)
   sprintf(text,"%.9Lf",val*div);
   return(text);
 }
-
-/*bool parse_amount(int64_t& amount,std::string str_amount)
+#elif INTPTR_MAX == INT32_MAX
+bool parse_amount(int64_t& amount,std::string str_amount)
 { int64_t big=0;//,small=0;
   char small[11]=" 000000000";
   int n=sscanf(str_amount.c_str(),"%ld%10s",&big,small);
@@ -177,9 +177,8 @@ char* print_amount(int64_t amount)
     amount=big*1000000000-atol(small+1);}
   //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
   return(true);
-}*/
-
-/*char* print_amount(int64_t amount)
+}
+char* print_amount(int64_t amount)
 { static char text[32];
   int64_t a=fabsl(amount);
   if(amount>=0){
@@ -188,7 +187,10 @@ char* print_amount(int64_t amount)
     sprintf(text,"-%ld.%09ld",a/1000000000,a%1000000000);}
   //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
   return(text);
-}*/
+}
+#else
+#error Unknown pointer size or missing size macros!
+#endif
 
 usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
 { uint16_t to_bank=0;
@@ -1068,8 +1070,10 @@ int main(int argc, char* argv[])
   boost::asio::ip::tcp::resolver::query query(sts.host,std::to_string(sts.port).c_str());
   boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
   boost::asio::ip::tcp::socket socket(io_service);
-  //fprintf(stderr,"Lf size:%ld ; Ld size:%ld\n",sizeof(long double),sizeof(long long int));
+#if INTPTR_MAX == INT64_MAX
   assert(sizeof(val)==16);
+  //fprintf(stderr,"Lf size:%ld ; Ld size:%ld\n",sizeof(long double),sizeof(long long int));
+#endif
   try{
     if(!sts.exec.empty()){
       int64_t fee=0;
