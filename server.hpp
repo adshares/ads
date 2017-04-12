@@ -723,28 +723,34 @@ public:
     votes_max=0.0;
     do_vote=0;
     //FIXME, this should be moved to servers.hpp
+    std::set<uint16_t> svid_rset;
     std::vector<uint16_t> svid_rank;
     for(auto it=last_svid_msgs.begin();it!=last_svid_msgs.end();++it){
       if(srvs_.nodes[it->second->svid].status & SERVER_DBL){
         continue;}
-      //std::cerr << "ELECTOR accepted : " << it->second->svid << "(" << it->second->msid << ")\n";
-      LOG("ELECTOR accepted:%04X msid:%08X\n",it->second->svid,it->second->msid);
-      svid_rank.push_back(it->second->svid);}
-    if(!svid_rank.size()){
-      std::cerr << "ERROR, no valid server for this block :-(, TODO create own block\n";}
+      LOG("ELECTOR accepted:%04X (msg)\n",(it->second->svid));
+      svid_rset.insert(it->second->svid);}
+    for(auto it=blk_msgs_.begin();it!=blk_msgs_.end();++it){ //add also nodes with blk_msgs_
+      if(it->second->msid!=srvs_.now || 
+         !(it->second->status & MSGSTAT_VAL) ||
+         (srvs_.nodes[it->second->svid].status & SERVER_DBL)){
+        continue;}
+      LOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
+      svid_rset.insert(it->second->svid);}
+    if(!svid_rset.size()){
+      LOG("ERROR, no valid server for this block :-(\n");}
     else{
-      //std::cerr << "SORT \n";
+      for(auto sv : svid_rset){
+        svid_rank.push_back(sv);}
       std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
     for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      //std::cerr << "ELECTOR[" << svid_rank[j] << "]=" << srvs_.nodes[svid_rank[j]].weight << "\n";
       LOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
       electors[svid_rank[j]]=srvs_.nodes[svid_rank[j]].weight;
       votes_max+=srvs_.nodes[svid_rank[j]].weight;}
     winner=NULL;
-    //std::cerr << "ELECTOR max:" << votes_max << "\n";
     LOG("ELECTOR max:%016lX\n",votes_max);
     cand_.unlock();
   }
@@ -1115,9 +1121,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           LOG("ERROR, failed to save own message %08X, fatal\n",msg->msid);
           exit(-1);}
         msg->unload(0);
-        check_.lock();
-        check_msgs_.push_back(msg); // running though validator
-        check_.unlock();
+        if(msg->now>srvs_.now+BLOCKSEC){
+          LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n",
+            msg->hash.num,msg->len,msg->now);
+          wait_.lock();
+          wait_msgs_.push_back(msg);
+          wait_.unlock();}
+        else{
+          check_.lock();
+          check_msgs_.push_back(msg); // running though validator
+          check_.unlock();}
 	assert(msg->peer==msg->svid);
         return(1);}
       txs_.unlock();
@@ -1163,11 +1176,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(msg->msid!=last_srvs_.now){
       LOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
       return;}
-    msg->status=MSGSTAT_VAL; // all can vote
     uint32_t vip=last_srvs_.nodes[msg->svid].status & SERVER_VIP;
     if(!vip){
       LOG("BLOCK ignore non-vip vote msid:%08x svid:%04x\n",msg->msid,(uint32_t)msg->svid);
       return;}
+    msg->status=MSGSTAT_VAL;
     assert(msg->data!=NULL);
     header_t* h=(header_t*)(msg->data+4+64+10); 
     bool no=memcmp(h->nowhash,last_srvs_.nowhash,sizeof(hash_t));
@@ -2543,6 +2556,8 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         uint32_t msid=it->second.msid;
         if(!msid){
           LOG("WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
+          //try a fix:
+          last_block_svid_msgs.erase(it->first);
           continue;}
         uint8_t* sigh=it->second.sigh;
         union {uint64_t num; uint8_t dat[8];} h;

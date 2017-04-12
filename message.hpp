@@ -38,8 +38,8 @@ public:
   uint8_t preh[SHA256_DIGEST_LENGTH]; // hash of previous signature
   uint32_t len;		// length of data
   uint32_t msid;	// msid from the server
-  uint32_t now;		// time message created, updated with every download request (busy_insert)
-  uint32_t got;		// time message received
+  uint32_t now;		// time message created
+  uint32_t got;		// time message received, updated with every download request (busy_insert)
   uint32_t path;	// path == block_id
   uint16_t svid;	// server id of message author
   uint16_t peer;	// server id of peer sending message
