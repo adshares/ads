@@ -130,6 +130,19 @@ void server::disconnect(uint16_t svid)
 			break;}}
 	peer_.unlock();
 }
+const char* server::peers_list()
+{	static std::string list;
+	list="";
+ 	peer_.lock();
+	if(!peers_.size()){
+ 		peer_.unlock();
+		return("");}
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		list+=",";
+		list+=std::to_string((*pi)->svid);}
+ 	peer_.unlock();
+	return(list.c_str()+1);
+}
 bool server::connected(uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
@@ -153,7 +166,9 @@ int server::deliver(message_ptr msg,uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
+			msg->mtx_.lock();
 			msg->sent.insert(svid);
+			msg->mtx_.unlock();
 			(*pi)->deliver(msg);
 			peer_.unlock();
 			return(1);}}
@@ -207,15 +222,19 @@ void server::start_accept()
 {	peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
  	//peer_ptr new_peer(new peer(io_service_,*this,true,srvs_,opts_));
         //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/io_service_pool.cpp
+	new_peer->iostart();
 	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::handle_accept,this,new_peer,boost::asio::placeholders::error));
 }
 void server::handle_accept(peer_ptr new_peer,const boost::system::error_code& error)
 {	if (!error){
 		new_peer->start();}
+	else{
+		new_peer->stop();}
 	start_accept();
 }
 void server::connect(std::string peer_address)
 {	try{
+		LOG("TRY connecting to address %s\n",peer_address.c_str());
 		const char* port=SERVER_PORT;
 		char* p=strchr((char*)peer_address.c_str(),':');
 		if(p!=NULL){
@@ -225,12 +244,14 @@ void server::connect(std::string peer_address)
 		boost::asio::ip::tcp::resolver::query query(peer_address.c_str(),port);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
+                new_peer->iostart();
+		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::accept,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}
 }
 void server::connect(uint16_t svid)
 {	try{
+		LOG("TRY connecting to peer %04X\n",svid);
 		//char ipv4t[32];
 		//sprintf(ipv4t,"%s",inet_ntoa(srvs_.nodes[svid].ipv4));
 		struct in_addr addr;
@@ -241,7 +262,8 @@ void server::connect(uint16_t svid)
 		boost::asio::ip::tcp::resolver::query query(inet_ntoa(addr),portt);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::start,new_peer));}
+                new_peer->iostart();
+		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::accept,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}
 }

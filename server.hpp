@@ -731,9 +731,13 @@ public:
       LOG("ELECTOR accepted:%04X (msg)\n",(it->second->svid));
       svid_rset.insert(it->second->svid);}
     for(auto it=blk_msgs_.begin();it!=blk_msgs_.end();++it){ //add also nodes with blk_msgs_
-      if(it->second->msid!=srvs_.now || 
+      if((it->second->msid!=srvs_.now-BLOCKSEC) || 
          !(it->second->status & MSGSTAT_VAL) ||
          (srvs_.nodes[it->second->svid].status & SERVER_DBL)){
+        int a=(int)(!(it->second->status & MSGSTAT_VAL));
+        int b=(int)(srvs_.nodes[it->second->svid].status & SERVER_DBL);
+        LOG("ELECTOR blk ignor %04X (%08X<>%08X||%d||%d)\n",
+          it->second->svid,it->second->msid,srvs_.now-BLOCKSEC,a,b);
         continue;}
       LOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
       svid_rset.insert(it->second->svid);}
@@ -1197,10 +1201,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       disconnect(msg->svid);}
   }
 
-  void missing_sent_remove(uint16_t svid)
+  void missing_sent_remove(uint16_t svid) //TODO change name to missing_know_send_remove()
   { missing_.lock();
     for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
-      mi->second->sent.erase(svid);}
+      mi->second->mtx_.lock();
+      mi->second->know.erase(svid);
+      mi->second->sent.erase(svid);
+      mi->second->mtx_.unlock();}
     missing_.unlock();
   }
 
@@ -2533,7 +2540,9 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         uint16_t svid=it->first;
         uint32_t msid=it->second.msid;
         if(!msid){
-          LOG("WARNING msid==0 for svid:%04X (svid_miss)\n",(uint32_t)svid); //FIXME, this caused errors
+          LOG("WARNING msid==0 for svid:%04X (svid_have)\n",(uint32_t)svid); //FIXME, this caused errors
+          //try a fix:
+          last_block_svid_msgs.erase(it->first);
           continue;}
         uint8_t* sigh=it->second.sigh;
         union {uint64_t num; uint8_t dat[8];} h;
@@ -2624,7 +2633,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       auto mi=mj++;
       if(mi->second->path>0 && mi->second->path<srvs_.now){
         LOG("ERASE message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
-	mi->second->remove_undo();
+        mi->second->remove_undo();
+        txs_msgs_.erase(mi); // forget old messages
+        continue;}
+      if(mi->second->path==0 && mi->second->len==message::header_length &&
+         mi->second->msid<last_srvs_.nodes[mi->second->svid].msid){
+        LOG("CLEAN JUNK message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
         txs_msgs_.erase(mi); // forget old messages
         continue;}
       if(nsvid!=mi->second->svid){
@@ -2912,15 +2926,16 @@ exit(-1);
     hash_s cand;
     while(1){
       uint32_t now=time(NULL);
+      const char* plist=peers_list();
       if(missing_msgs_.size()){
-        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) (miss:%d:%016lX)\n",
+        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s] (miss:%d:%016lX)\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,
+          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
           (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
       else{
-        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X)\n",
+        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s]\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now);}
+          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist);}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;
@@ -3019,6 +3034,7 @@ exit(-1);
   void join(peer_ptr participant);
   void leave(peer_ptr participant);
   void disconnect(uint16_t svid);
+  const char* peers_list();
   bool connected(uint16_t svid);
   int duplicate(peer_ptr participant);
   void deliver(message_ptr msg);

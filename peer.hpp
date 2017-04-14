@@ -23,33 +23,64 @@ public:
       bytes_in(0),
       BLOCK_MODE_SERVER(0),
       BLOCK_MODE_PEER(0),
+      io_on(false),
       myself(NULL)
   { read_msg_ = boost::make_shared<message>();
-    std::cerr << "Client create\n";
-    iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+    //std::cerr << "Client create\n";
+    //iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
 
   ~peer()
-  { std::cerr << "Client destruct " << addr << ":" << port << "\n";
+  { if(io_on){
+      LOG("PEER %04X IO still on :-(\n",svid);
+      peer_io_service_.stop();
+      socket_.close();
+      //socket_.release(NULL);
+      //iothp_->interrupt();
+      //boost::this_thread::sleep(boost::posix_time::seconds(1));
+      //iothp_->join(); // try joining yourself error
+      }
+    if(port||1){
+      LOG("PEER %04X destruct %s:%d\n\n\n",svid,addr.c_str(),port);}
+  }
+
+  void iostart()
+  { myself=shared_from_this();
+    io_on=true;
+    iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
 
   void iorun()
-  { try{
-      boost::this_thread::sleep(boost::posix_time::seconds(1));
-      myself=shared_from_this(); //FIXME, this dies if peer_ptr not created yet :-(
-      std::cerr << "Peer.Service.Run starting\n";
+  { LOG("PEER IORUN START %04X\n",svid);
+    try{
+//    boost::this_thread::sleep(boost::posix_time::seconds(1));
+      //myself=shared_from_this(); //FIXME, this dies if peer_ptr not created yet :-(
+      //std::cerr << "Peer.Service.Run starting\n";
       peer_io_service_.run();
-      std::cerr << "Peer.Service.Run finished\n\n\n";} //Now we know the server is down.
+      //std::cerr << "Peer.Service.Run finished\n\n\n";
+      } //Now we know the server is down.
     catch (std::exception& e){
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
-      std::cerr << "Peer.Service.Run error: " << e.what() << "\n";}
+      //std::cerr << "Peer.Service.Run error: " << e.what() << "\n";
+      LOG("PERR %04X Service.Run error:%s\n",svid,e.what());
+      server_.leave(myself);}
+    io_on=false;
+    LOG("PEER IORUN END %04X\n",svid);
     if(myself!=NULL){
+      LOG("PEER IORUN END %04X, finish\n",svid);
       myself.reset();}
   }
 
   void stop()
-  { peer_io_service_.stop();
+  { 
+    LOG("PEER END %04X\n",svid);
+    peer_io_service_.stop();
+    socket_.close();
+    //socket_.release(NULL);
+    //iothp_->interrupt();
+    //boost::this_thread::sleep(boost::posix_time::seconds(1));
+    //iothp_->join(); try joining yourself error
   }
 
   boost::asio::ip::tcp::socket& socket()
@@ -63,8 +94,20 @@ public:
       std::cerr << "Client available\n";}
   }
 
+  void accept(const boost::system::error_code& error)
+  { if(error){
+      LOG("PEER ACCEPT %04X ERROR\n",svid);
+      stop();
+      return;}
+    LOG("PEER ACCEPT %04X OK\n",svid);
+    start();
+  }
+
   void start()
-  { addr = socket_.remote_endpoint().address().to_string();
+  { 
+    LOG("PEER START %04X\n",svid);
+    //iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+    addr = socket_.remote_endpoint().address().to_string();
     //ipv4 = socket_.remote_endpoint().address().to_v4().to_ulong();
     port = socket_.remote_endpoint().port();
     server_.join(shared_from_this());
@@ -1276,7 +1319,7 @@ Aborted
         svms.svid=it->first;
 	svms.msid=msid;
         svid_msid_server_missing.push_back(svms);
-        LOG("SERVER missed %d:%d>%d\n",it->first,it->second,svms.msid);
+        LOG("SERVER missed %d:%d[%X]>%d\n",it->first,it->second,it->second,svms.msid);
         server_missed++;}}
     LOG("SERVER missed %d in total\n",server_missed);
     message_ptr put_msg(new message(2+6*server_missed));
@@ -1328,7 +1371,7 @@ Aborted
         std::cerr << "ERROR read_peer_missing_messages peersvid\n";
         server_.leave(shared_from_this());
         return;}
-      LOG("PEER missed %d:%d<?\n",svms.svid,svms.msid);
+      LOG("PEER missed %d:%d[%X]<?\n",svms.svid,svms.msid,svms.msid);
       svid_msid_peer_missing.push_back(svms);}
     write_peer_missing_hashes(error);
   }
@@ -1692,6 +1735,7 @@ private:
   std::map<uint16_t,msidhash_t> svid_have; // missed by peer
   uint8_t BLOCK_MODE_SERVER;
   uint8_t BLOCK_MODE_PEER;
+  bool io_on;
   peer_ptr myself; // to block destructor
 };
 

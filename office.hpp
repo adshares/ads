@@ -22,16 +22,19 @@ public:
     message_sent(0),
     next_io_service_(0)
   { svid=opts_.svid;
-    std::cerr<<"OFFICE ("<<svid<<") open\n";
-    // prapare local register [this could be in RAM later or be on a RAM disk]
-    mkdir("ofi",0755);
-    char filename[64];
-    sprintf(filename,"ofi/%04X.dat",svid);
-    offifd_=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
-    if(offifd_<0){
-      std::cerr<<"ERROR, failed to open office register\n";}
-    mklogdir(opts_.svid);
-    mklogfile(opts_.svid,0);
+    try{
+      std::cerr<<"OFFICE ("<<svid<<") open\n";
+      // prapare local register [this could be in RAM later or be on a RAM disk]
+      mkdir("ofi",0755);
+      char filename[64];
+      sprintf(filename,"ofi/%04X.dat",svid);
+      offifd_=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
+      if(offifd_<0){
+        std::cerr<<"ERROR, failed to open office register\n";}
+      mklogdir(opts_.svid);
+      mklogfile(opts_.svid,0);}
+    catch (std::exception& e){
+      std::cerr << "Office.Open error: " << e.what() << "\n";}
   }
 
   ~office()
@@ -126,12 +129,15 @@ public:
     run=true; //not used yet
     div_ready=0;
     block_ready=0;
-    for(int i=0;i<CLIENT_POOL;i++){
-      io_services_[i]=boost::make_shared<boost::asio::io_service>();
-      io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);
-      threadpool.create_thread(boost::bind(&office::iorun_client,this,i));}
-    ioth_ = new boost::thread(boost::bind(&office::iorun, this));
-    clock_thread = new boost::thread(boost::bind(&office::clock, this));
+    try{
+      for(int i=0;i<CLIENT_POOL;i++){
+        io_services_[i]=boost::make_shared<boost::asio::io_service>();
+        io_works_[i]=boost::make_shared<boost::asio::io_service::work>(*io_services_[i]);
+        threadpool.create_thread(boost::bind(&office::iorun_client,this,i));}
+      ioth_ = new boost::thread(boost::bind(&office::iorun, this));
+      clock_thread = new boost::thread(boost::bind(&office::clock, this));}
+    catch (std::exception& e){
+      std::cerr << "Office.Start error: " << e.what() << "\n";}
   }
 
   void update_div(uint32_t now,uint32_t newdiv)
