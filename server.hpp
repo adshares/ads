@@ -2666,13 +2666,18 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           remove=true;}
         if(remove){
           LOG("\n\nREMOVE message %04X:%08X (msg.now:%08X vs. last.now:%08X) [len:%d]:-(\n\n\n",nsvid,mi->second->msid,mi->second->now,last_srvs_.now,mi->second->len);
-          if(mi->second->svid==opts_.svid){
+          if(mi->second->len>message::header_length){
+            if(mi->second->svid==opts_.svid){
 //FIXME, sign message with new time
 exit(-1);
 
 
-          }
-          remove_msgs.push(mi->second);}
+            }
+            remove_msgs.push(mi->second);}
+          else{
+            ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
+            LOG("IGNOR: %04X:%08X %.16s %016lX (%016lX) ... INIT JUNK ...\n",
+              nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);}}
         else{
           if(mi->second->status&MSGSTAT_VAL){
             LOG("INVALIDATE message %04X:%08X later!\n",nsvid,mi->second->msid);
