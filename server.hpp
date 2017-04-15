@@ -660,7 +660,7 @@ public:
     for(std::map<uint16_t,message_ptr>::iterator it=map.begin();it!=map.end();++it){
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second->sigh,SHA256_DIGEST_LENGTH);
-      LOG("SHASH: %d:%d %.*s\n",(int)(it->first),(int)(it->second->msid),2*SHA256_DIGEST_LENGTH,sigh);
+      LOG("SHASH: %04X:%08X %.*s\n",it->first,it->second->msid,2*SHA256_DIGEST_LENGTH,sigh);
       // do not hash messages from ds_server
       SHA256_Update(&sha256,it->second->sigh,4*sizeof(uint64_t));}
     SHA256_Final(mhash, &sha256); // std::cerr << "message_shash\n";
@@ -1197,8 +1197,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       std::cerr << "BAD BLOCK consensus :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
       exit(-1);}
     if(no){
-      LOG("\n\nBLOCK differs, disconnect!\n\n\n\n");
-      disconnect(msg->svid);}
+      if(msg->peer==msg->svid){
+        LOG("\n\nBLOCK differs, disconnect from %04X!\n\n\n",msg->svid);
+        disconnect(msg->svid);}}
   }
 
   void missing_sent_remove(uint16_t svid) //TODO change name to missing_know_send_remove()
@@ -1548,6 +1549,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 
   bool process_message(message_ptr msg)
   { assert(msg->data!=NULL);
+    if(msg->now<last_srvs_.now){
+      LOG("ERROR MSG %04X:%08X too old :-( (%08X<%08X)\n",msg->svid,msg->msid,msg->now,last_srvs_.now);
+      return(false);}
+    LOG("PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
     char* p=(char*)msg->data+4+64+10;
     char filename[64];
     sprintf(filename,"usr/%04X.dat",msg->svid);
@@ -1571,7 +1576,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     uint32_t lpos=1; // needed for log
     hash_t new_bky;
     bool set_bky=false;
-    LOG("PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
     int mpt_size=0;
     std::vector<uint16_t> mpt_bank; // for MPT to local bank
     std::vector<uint32_t> mpt_user; // for MPT to local bank
@@ -2661,12 +2665,13 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         continue;}
       if(mi->second->msid>maxmsid){
         if(mi->second->now<last_srvs_.now){ // remove messages if failed to be included in 2 blocks
-          if(!remove){
-            svid_msid_rollback(mi->second);}
+          //if(!remove){ //this couases errors, because of timing :-(
+          //  svid_msid_rollback(mi->second);}
           remove=true;}
         if(remove){
-          LOG("\n\nREMOVE message %04X:%08X (msg.now:%08X vs. last.now:%08X) [len:%d]:-(\n\n\n",nsvid,mi->second->msid,mi->second->now,last_srvs_.now,mi->second->len);
           if(mi->second->len>message::header_length){
+            LOG("\n\nREMOVE message %04X:%08X (msg.now:%08X<last.now:%08X) [len:%d]:-(\n\n\n",
+              nsvid,mi->second->msid,mi->second->now,last_srvs_.now,mi->second->len);
             if(mi->second->svid==opts_.svid){
 //FIXME, sign message with new time
 exit(-1);
@@ -2882,7 +2887,9 @@ exit(-1);
     //return;
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
-      if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2){
+      uint32_t now=time(NULL)+5; // do not connect if close to block creation time
+      now-=now%BLOCKSEC;
+      if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2 || srvs_.now<now){
         continue;}
       int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
       if(!svid || svid==opts_.svid || !srvs_.nodes[svid].ipv4 || !srvs_.nodes[svid].port){
@@ -2995,7 +3002,11 @@ exit(-1);
 
   bool break_silence(uint32_t now,std::string& message) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
-    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+ opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+#if BLOCKSEC == 0x20
+    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid) && svid_msgs_.size()<MIN_MSGNUM){
+#else
+    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+#endif
       std::cerr << "SILENCE, sending void message due to silence\n";
       usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
       message.append((char*)txs.data,txs.size);

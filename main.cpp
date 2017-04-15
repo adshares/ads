@@ -214,7 +214,8 @@ void server::update(message_ptr msg)
 	peer_.unlock();
 }
 void server::svid_msid_rollback(message_ptr msg)
-{	peer_.lock();
+{	assert(0); //do not use this, this causes sync problems if peers is in different block
+	peer_.lock();
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::svid_msid_rollback, _1, msg));
 	peer_.unlock();
 }
