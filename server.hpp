@@ -3033,19 +3033,19 @@ exit(-1);
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
 #if BLOCKSEC == 0x20
-    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(del) && svid_msgs_.size()<MIN_MSGNUM){
+    if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(del) && svid_msgs_.size()<MIN_MSGNUM){
 #else
-    if(!do_block && do_hallo!=srvs_.now && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
+    if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
 #endif
       std::cerr << "SILENCE, sending void message due to silence\n";
       usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
       message.append((char*)txs.data,txs.size);
       do_hallo=srvs_.now;
-      del=(rand()*BLOCKSEC)/RAND_MAX;
+      del=rand()%BLOCKSEC;
       return(true);}
     if(do_hallo<srvs_.now-BLOCKSEC){
       do_hallo=srvs_.now-BLOCKSEC;
-      del=(rand()*BLOCKSEC)/RAND_MAX;}
+      del=rand()%BLOCKSEC;}
     return(false);
   }
 
