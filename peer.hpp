@@ -200,16 +200,19 @@ public:
   { if(do_sync){
       return(msg->len);}
     assert(msg->data!=NULL);
-    if(msg->data[0]==MSGTYPE_CNG && msg->len>4+64+10+sizeof(hash_t)){//shorten message if peer knows this hash
+    //if(msg->data[0]==MSGTYPE_CNG && msg->len>4+64+10+sizeof(hash_t)){//shorten message if peer knows this hash
+    if(msg->data[0]==MSGTYPE_CND && msg->len>4+64+10+sizeof(hash_t)){//shorten message if peer knows this hash
       //hash_s cand;
       //memcpy(cand.hash,msg->data+4+64+10,sizeof(hash_t));
       //candidate_ptr c_ptr=server_.known_candidate(cand,0);
       hash_s* cand=(hash_s*)(msg->data+4+64+10);
       candidate_ptr c_ptr=server_.known_candidate(*cand,0);
       if(c_ptr!=NULL && c_ptr->peers.find(svid)!=c_ptr->peers.end()){ // send only the hash, not the whole message
+//FIXME, is this ok ?
 	LOG("%04X WARNING, truncating cnd message\n",svid);
         return(4+64+10+sizeof(hash_t));}}
-    if(msg->data[0]==MSGTYPE_BLG && msg->len>4+64+10){
+    //if(msg->data[0]==MSGTYPE_BLK && msg->len>4+64+10){
+    if(msg->data[0]==MSGTYPE_BLG && msg->len>4+64+10){ // probably only during sync
       header_t* h=(header_t*)(msg->data+4+64+10);
       if(peer_hs.head.now==h->now && !memcmp(peer_hs.head.nowhash,h->nowhash,SHA256_DIGEST_LENGTH)){
 	LOG("%04X WARNING, truncating blk message\n",svid);
@@ -288,6 +291,9 @@ Aborted
       write_msgs_.front()->mtx_.unlock();
       bytes_out+=write_msgs_.front()->len;
       files_out++;
+      LOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d) [total %lub %uf]\n",svid,
+        write_msgs_.front()->svid,write_msgs_.front()->msid,
+        write_msgs_.front()->data[0],write_msgs_.front()->len,bytes_out,files_out);
       if(write_msgs_.front()->data[0]==MSGTYPE_STP){
         BLOCK_MODE_SERVER=2;
         //write_msgs_.front()->unload(svid);
@@ -330,8 +336,7 @@ Aborted
     read_msg_->know.insert(svid);
     if(read_msg_->len==message::header_length){
       if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid){ //unknown svid
-        //std::cerr << "ERROR message from unknown server "<< read_msg_->svid <<"\n";
-        LOG("%04X ERROR message from unknown server %04X\n",svid,read_msg_->svid);
+        LOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         server_.leave(shared_from_this());
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
@@ -365,7 +370,7 @@ Aborted
           read_msg_->path=peer_path;
           if(read_msg_->load(svid)){
             //std::cerr << "PROVIDING MESSAGE (in sync)\n";
-            LOG("%04X PROVIDING MESSAGE %04X:%08X (in sync)\n",svid,read_msg_->svid,read_msg_->msid);
+            LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d) (in sync)\n",svid,read_msg_->svid,read_msg_->msid,read_msg_->hash.dat[1],read_msg_->len);
             send_sync(read_msg_);} //deliver will not work in do_sync mode
           else{
             //std::cerr << "FAILED answering request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";
@@ -385,7 +390,7 @@ Aborted
                 }
               else{
                 //std::cerr << "PROVIDING MESSAGE\n";
-                LOG("%04X PROVIDING MESSAGE %04X:%08X (len:%d)\n",svid,read_msg_->svid,read_msg_->msid,msg->len);
+                LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
                 //msg->sent_insert(svid); // handle_write does this
                 deliver(msg);}} // must force deliver without checks
             else{ // no real message available
@@ -1606,6 +1611,7 @@ Aborted
     if(c_ptr==NULL){
       LOG("%04X PARSE --NEW-- vote for --NEW-- candidate\n",svid);
       uint16_t changed;
+      //FIXME, change this to uint32_t
       if(2!=boost::asio::read(socket_,boost::asio::buffer(&changed,2))){ // hangs:-(
         LOG("%04X PARSE vote short message read FATAL\n",svid);
         return(0);}
@@ -1684,7 +1690,6 @@ Aborted
     //modify tail from message
     uint16_t changed=c_ptr->svid_miss.size()+c_ptr->svid_have.size(); //FIXME, this can be more than 0xFFFF !!!!
     if(changed){
-      LOG("%04X CHANGE CAND LENGTH!\n",svid);
 //FIXME, does not enter this place !!!
       read_msg_->len=message::data_offset+sizeof(hash_t)+2+(changed*(2+4+sizeof(hash_t)));
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
@@ -1698,6 +1703,7 @@ Aborted
         memcpy(d,&it->first,2);
         memcpy(d+2,&it->second.msid,4);
         memcpy(d+6,&it->second.sigh,sizeof(hash_t));}
+      LOG("%04X CHANGE CAND LENGTH! [len:%d]\n",svid,read_msg_->len);
       assert(d-read_msg_->data==read_msg_->len);}
     else{
       read_msg_->len=message::data_offset+sizeof(hash_t);

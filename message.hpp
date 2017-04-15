@@ -500,21 +500,17 @@ public:
   { assert(data!=NULL);
     char hash[16];
     ed25519_key2text((char*)hash,sigh,8);
-    LOG("%04X[%04X:%02X]now:%08X[l:%d] %.16s %s",peer,svid,msid&0xff,now,len-4-64-10,hash,suffix);
-    if(len>4+64+10){
-      //if(data[4+64+10]==TXSTYPE_PUT){
-      //  std::cout<<"SEND";}
-      if(data[4+64+10]==TXSTYPE_BRO){
-        uint32_t mlen;
-        memcpy(&mlen,data+4+64+10+1,3);
-        std::cerr.write((char*)data+4+64+10+4,mlen);}} //TODO, print more data
+    LOG("%04X [%04X:%08X] [l:%d] (%08X) %.16s %s\n",peer,svid,msid,len,now,hash,suffix);
+    //if(len>4+64+10){
+    //  if(data[4+64+10]==TXSTYPE_BRO){
+    //    uint32_t mlen;
+    //    memcpy(&mlen,data+4+64+10+1,3);
+    //    std::cerr.write((char*)data+4+64+10+4,mlen);}} //TODO, print more data
     //std::cout << " " << suffix << "\n";
   }
 
   void print(const char* suffix) const
-  { std::printf("%04X[%04X-%02X]%08X:[%d]",peer,svid,msid&0xff,now,len-4-64-10);
-    //std::cout << suffix << "\n";
-    std::cout << suffix << "/" << msid << "\n";
+  { LOG("%04X [%04X-%08X] [l:%d] (%08X) %s\n",peer,svid,msid,len,now,suffix);
   }
 
   void print_header()
