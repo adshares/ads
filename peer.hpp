@@ -498,7 +498,7 @@ Aborted
       linkservers.now=from;
       if(!linkservers.header_get()){
 	LOG("%04X ERROR, failed to provide header links\n",svid);
-        server_.leave(shared_from_this()); // consider updateing client
+        server_.leave(shared_from_this()); // consider updating client
         return;}
       put_msg->data[0]=MSGTYPE_NHD;
       memcpy(put_msg->data+1,&from,4);
@@ -1150,6 +1150,7 @@ Aborted
       return(0);}
     //now decide if You want to sync to last stage first ; or load missing blocks and messages first, You can decide based on size of databases and time to next block
     //the decision should be in fact made at the beginning by the server
+    server_.add_electors(peer_hs.head,peer_svsi);
     if(opts_.fast){
       handle_read_servers();
       server_.last_srvs_.header(sync_hs.head);} // set new starting point for headers synchronisation

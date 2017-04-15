@@ -128,7 +128,10 @@ public:
     memcpy(data+4+64+6,&now,4);
     memcpy(data+4+64+10,text,text_len);
     if(text_type==MSGTYPE_BLK){
-      ed25519_sign(data+4+64+10,sizeof(header_t)-4,mysk,mypk,data+4); // consider signing also svid,msid,0
+      if(mypk==NULL){ // creating message from network
+        memcpy(data+4,mysk,64);}
+      else{
+        ed25519_sign(data+4+64+10,sizeof(header_t)-4,mysk,mypk,data+4);} // consider signing also svid,msid,0
       char hash[4*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,data+4,2*SHA256_DIGEST_LENGTH);
       hash_signature();
@@ -179,6 +182,16 @@ public:
     return(true);
   }
 
+  void signnewtime(uint32_t ntime,ed25519_secret_key mysk,ed25519_public_key mypk,hash_t msha)
+  { assert(data[0]==MSGTYPE_MSG);
+    memcpy(data+4+64+6,&ntime,4);
+    now=ntime;
+    if(!hash_tree(sigh)){
+      LOG("ERROR hash_tree error, FATAL\n");
+      exit(-1);}
+    ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);
+  }
+
   message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
 	len(header_length),
 	msid(mmsid),
@@ -187,7 +200,7 @@ public:
 	peer(msvid)
   { data=NULL;
     hash.dat[1]=type;
-    if(!load(0)){ //sets len ... assume this is invoced only by server during sync
+    if(!load(0)){ //sets len ... assume this is invoked only by server during sync
       return;}
     memcpy(&now,data+4+64+6,4);
     got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
@@ -196,8 +209,8 @@ public:
     assert(data!=NULL);
     if(check_signature(svpk,msvid,msha)){
       status=0;}
-    else{
-      memcpy(msha,sigh,sizeof(hash_t));}
+    //else{
+    //  memcpy(msha,sigh,sizeof(hash_t));}
   }
 
   ~message()
