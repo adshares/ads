@@ -106,6 +106,20 @@ public:
     hash.num=0;
   }
 
+  message(uint32_t l,uint8_t* d) :
+	len(l),
+	msid(0),
+	now(0),
+	got(0),
+	path(0),
+	svid(0),
+        peer(0),
+	status(MSGSTAT_DAT) // not VAL because not yet saved
+  { data=(uint8_t*)std::malloc(len);
+    memcpy(data,d,len);
+    hash.num=0;
+  }
+
   message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,ed25519_public_key mypk,hash_t msha) : // create from terminal/rpc
 	len(data_offset+text_len),
 	msid(mymsid),

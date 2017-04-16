@@ -172,7 +172,7 @@ typedef struct uin_cmp {
   bool operator()(const uin_t& i,const uin_t& j) const {int k=memcmp(&i,&j,sizeof(uin_t));return(k<0);}} uin_c;
 #pragma pack()
 
-#define LOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();fprintf(stderr,__VA_ARGS__);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#define LOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 
 #include "ed25519/ed25519.h"
 #include "hash.hpp"

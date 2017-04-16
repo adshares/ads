@@ -248,12 +248,14 @@ public:
     uint32_t path=last_srvs_.now+BLOCKSEC; //use undo from next block
     int rollback=opts_.back;
     LOG("CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
+    bool failed=false;
     for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
       char filename[64];
       sprintf(filename,"usr/%04X.dat",bank);
       int fd=open(filename,O_RDWR);
       if(fd<0){
-        return(0);}
+        failed=true;
+        continue;}
       std::vector<int> ud;
       int n;
       for(n=0;n<=rollback;n++){
@@ -279,14 +281,14 @@ public:
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
         if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
-          close(fd);
-          for(auto it=ud.begin();it!=ud.end();it++){
-            close(*it);}
+          //close(fd);
+          //for(auto it=ud.begin();it!=ud.end();it++){
+          //  close(*it);}
           //if(ud>=0){
           //  close(ud);}
           //std::cerr << "ERROR loading bank "<<bank<<" (bad read)\n";
           LOG("ERROR loading bank %04X (bad read)\n",bank);
-          return(0);}
+          failed=true;}
         NEXTUSER:;
         weight+=u.weight;
         //SHA256_Update(&sha256,&u,sizeof(user_t));
@@ -295,9 +297,9 @@ public:
           memcpy(&n,&u,sizeof(user_t));
           last_srvs_.user_csum(n,bank,user);
           if(memcmp(n.csum,u.csum,32)){
-            LOG("ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",user,
+            LOG("ERROR !!!, checksum mismatch for user %04X:%08X [%08X<>%08X]\n",bank,user,
               *((uint32_t*)(n.csum)),*((uint32_t*)(u.csum)));
-            return(0);}
+            failed=true;}
         }
         last_srvs_.xor4(csum,u.csum);}
       close(fd);
@@ -309,15 +311,17 @@ public:
         //std::cerr << "ERROR loading bank "<<bank<<" (bad sum:"<<last_srvs_.nodes[bank].weight<<"<>"<<weight<<")\n";
         LOG("ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
           bank,last_srvs_.nodes[bank].weight,weight);
-        return(0);}
+        failed=true;}
       //uint8_t hash[32];
       //SHA256_Final(hash,&sha256);
       if(memcmp(last_srvs_.nodes[bank].hash,csum,32)){
         //std::cerr << "ERROR loading bank "<<bank<<" (bad hash)\n";
         LOG("ERROR loading bank %04X (bad hash)\n",bank);
-        return(0);}}
+        failed=true;}}
       //if(ud>=0){
       //  unlink(filename);}
+    if(failed){
+      return(0);}
     return(1);
   }
 
@@ -715,6 +719,15 @@ public:
       if(do_vote){
         write_candidate(best);}
       return;}
+    if(do_block==2){
+      winner->print_missing(&srvs_);}
+      //std::string list;
+      //cand_.lock();
+      //for(auto it=winner->waiting_server.begin();it!=winner->waiting_server.end();it++){
+      //   list+=" ";
+      //   list+=std::to_string(*it);}
+      //cand_.unlock();
+      //LOG("CANDIDATE missing %s\n",list.c_str());
     if(do_vote && num1->accept() && num1->peers.size()>1){
       std::cerr << "CANDIDATE proposal accepted\n";
       write_candidate(best);
@@ -1025,10 +1038,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           it++;}
         if((++it)!=blk_msgs_.end()){
           nxt=it->second;}
-        if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+        if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
           return(1);}
-        if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+        if(nxt!=NULL && nxt!=it->second && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
           return(1);}
         std::cerr << "DEBUG, storing blk message\n";
@@ -1099,11 +1112,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             it++;}
           if((++it)!=txs_msgs_.end()){
             nxt=it->second;}
-          if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+          if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
             LOG("HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",osg->hash.num,osg->len);
             create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
             return(1);}
-          if(nxt!=NULL && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
+          if(nxt!=NULL && nxt!=it->second && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
             LOG("HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",osg->hash.num,osg->len);
             create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
             return(1);}
@@ -1147,7 +1160,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           exit(-1);}
         msg->unload(0);
         if(msg->now>=srvs_.now+BLOCKSEC){
-          LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n",
+          LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n", //FIXME, fatal in start !!!
             msg->hash.num,msg->len,msg->now);
           wait_.lock();
           wait_msgs_.push_back(msg);
@@ -1337,8 +1350,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         msg->unload(0);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
-          LOG("SLEEP 5s after validation\n");
-          boost::this_thread::sleep(boost::posix_time::seconds(5.0*((float)random()/(float)RAND_MAX)));
+          uint32_t seconds=(rand()%5);
+          LOG("SLEEP %d after validation\n",seconds);
+          boost::this_thread::sleep(boost::posix_time::seconds(seconds));
           if(valid){
             update_candidates(msg);
             update(msg);}}
@@ -2807,16 +2821,6 @@ exit(-1);
     srvs_.clean_old(opts_.svid);
   }
 
-  void update_candidates(message_ptr msg)
-  { cand_.lock();
-    if(do_block>0){ // update candidates, check if this message was not missing
-      for(auto it=candidates_.begin();it!=candidates_.end();it++){
-        auto m=it->second->svid_miss.find(msg->svid);
-        if(m!=it->second->svid_miss.end() && m->second.msid==msg->msid && !memcmp(m->second.sigh,msg->sigh,sizeof(hash_t))){
-          it->second->waiting_server.erase(msg->svid);}}}
-    cand_.unlock();
-  }
-
   //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)
   message_ptr write_handshake(uint16_t peer,handshake_t& hs)
   { last_srvs_.header(hs.head); //
@@ -2871,16 +2875,73 @@ exit(-1);
     update(msg); // update peers even if we are not an elector
   }
 
-  void save_candidate(const hash_s& h,candidate_ptr c)
-  {
-    cand_.lock(); // lock only candidates
+  candidate_ptr save_candidate(const hash_s& h,std::map<uint16_t,msidhash_t>& miss,std::map<uint16_t,msidhash_t>& have,uint16_t svid)
+  { cand_.lock(); // lock only candidates
     auto it=candidates_.find(h);
     if(it==candidates_.end()){
-      candidates_[h]=c;}
-    else if(c->peer){
-      it->second->peers.insert(c->peer);}
+      std::map<uint16_t,msidhash_t> new_svid_miss(miss);
+      std::map<uint16_t,msidhash_t> new_svid_have(have);
+      bool failed=false;
+      for(auto jt=new_svid_have.begin();jt!=new_svid_have.end();){
+        auto it=jt++;
+        if(!it->second.msid){
+          continue;}
+        if(it->second.msid==0xffffffff){
+          auto mt=new_svid_miss.find(it->first);
+          if(mt!=new_svid_miss.end() && mt->second.msid!=0xffffffff){
+            failed=true;}
+          continue;}
+        auto sm=last_svid_msgs.find(it->first);
+        if(sm!=last_svid_msgs.end() && sm->second->msid==0xffffffff){ // we will not accespt double spend
+          failed=true;}
+        message_ptr pm=message_svidmsid(it->first,it->second.msid);
+        if(pm==NULL){
+          LOG("%04X CAND failed to find %04X:%08X from have list\n",svid,it->first,it->second.msid);
+          new_svid_miss[it->first]=it->second;
+          new_svid_have.erase(it);
+          continue;}
+        if(pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
+          // do not accept candidates with missing: double spend, my messeges, old messages
+          LOG("%04X ERROR old message %04X:%08X missing\n",svid,it->first,it->second.msid);
+          failed=true;}}
+      for(auto jt=new_svid_miss.begin();jt!=new_svid_miss.end();){
+        auto it=jt++;
+        if(!it->second.msid){
+          continue;}
+        if(it->second.msid==0xffffffff){
+          auto mt=new_svid_have.find(it->first);
+          if(mt!=new_svid_have.end() && mt->second.msid!=0xffffffff){
+            failed=true;}
+          continue;}
+        auto sm=last_svid_msgs.find(it->first);
+        if(sm!=last_svid_msgs.end() && sm->second->msid==0xffffffff){ // we will not accespt double spend
+          failed=true;}
+        message_ptr pm=message_svidmsid(it->first,it->second.msid);
+        if(pm!=NULL){
+          LOG("%04X CAND failed to find %04X:%08X from have list\n",svid,it->first,it->second.msid);
+          new_svid_have[it->first]=it->second;
+          new_svid_miss.erase(it);
+          continue;}}
+      candidate_ptr c_ptr(new candidate(new_svid_miss,new_svid_have,svid,failed));
+      candidates_[h]=c_ptr;
+      cand_.unlock();
+      return(c_ptr);}
+    else if(svid){
+      it->second->peers.insert(svid);}
     cand_.unlock();
+    return(it->second);
   }
+
+  //void save_candidate(const hash_s& h,candidate_ptr c)
+  //{
+  //  cand_.lock(); // lock only candidates
+  //  auto it=candidates_.find(h);
+  //  if(it==candidates_.end()){
+  //    candidates_[h]=c;}
+  //  else if(c->peer){
+  //    it->second->peers.insert(c->peer);}
+  //  cand_.unlock();
+  //}
 
   candidate_ptr known_candidate(const hash_s& h,uint16_t peer)
   { 
@@ -2893,6 +2954,14 @@ exit(-1);
       it->second->peers.insert(peer);}
     cand_.unlock();
     return(it->second);
+  }
+
+  void update_candidates(message_ptr msg)
+  { cand_.lock();
+    if(do_block>0){ // update candidates, check if this message was not missing
+      for(auto it=candidates_.begin();it!=candidates_.end();it++){
+        it->second->update(msg);}}
+    cand_.unlock();
   }
 
   void write_header()
@@ -3000,8 +3069,9 @@ exit(-1);
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
           LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
-        candidate_ptr c_ptr(new candidate());
-        save_candidate(cand,c_ptr);
+        std::map<uint16_t,msidhash_t> miss;
+        std::map<uint16_t,msidhash_t> have;
+        save_candidate(cand,miss,have,opts_.svid);
         prepare_poll(); // sets do_vote
         do_block=1;
         do_validate=1;
@@ -3148,7 +3218,7 @@ private:
   //uint32_t maxnow; // do not process messages if time >= maxnow
   candidate_ptr winner; // elected candidate
   std::set<peer_ptr> peers_;
-  std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates
+  std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates, TODO should be map of message_ptr
   message_queue wait_msgs_; //TODO, not used yet :-/
   message_queue check_msgs_;
   std::map<uint16_t,message_ptr> svid_msgs_; //last validated txs message or dbl message from server
