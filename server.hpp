@@ -980,11 +980,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(!osg->save()){ //FIXME, do not exit !!! return fail
           std::cerr << "ERROR, message save failed, abort server\n";
           return(-1);}
+        cnd_.lock();
         if(it!=cnd_msgs_.begin()){
           pre=(--it)->second;
           it++;}
         if((++it)!=cnd_msgs_.end()){
           nxt=it->second;}
+        cnd_.unlock();
         if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
           return(1);}
@@ -1033,11 +1035,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(!osg->save()){ //FIXME, save where ???, check legal time !!!
           std::cerr << "ERROR, message save failed, abort server\n";
           return(-1);}
+        blk_.lock();
         if(it!=blk_msgs_.begin()){
           pre=(--it)->second;
           it++;}
         if((++it)!=blk_msgs_.end()){
           nxt=it->second;}
+        blk_.unlock();
         if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
           return(1);}
@@ -1107,11 +1111,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         // check for double spend
         if(!do_sync){
           message_ptr pre=NULL,nxt=NULL; //probably not needed when syncing
+          txs_.lock();
           if(it!=txs_msgs_.begin()){
             pre=(--it)->second;
             it++;}
           if((++it)!=txs_msgs_.end()){
             nxt=it->second;}
+          txs_.unlock();
           if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
             LOG("HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",osg->hash.num,osg->len);
             create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_

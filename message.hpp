@@ -544,10 +544,12 @@ public:
   }
 
   int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
-  { if(!path){
-      return(data!=NULL);}
+  { 
     mtx_.lock();
     busy.insert(who);
+    if(!path){
+      mtx_.unlock();
+      return(data!=NULL);}
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
       LOG("blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
@@ -596,6 +598,7 @@ public:
   { if(!path){
       return;}
     mtx_.lock();
+    //assert(busy.find(who)!=busy.end());
     busy.erase(who);
     if(busy.empty()){
       if(len==header_length){

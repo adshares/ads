@@ -185,6 +185,7 @@ public:
     put_msg->svid=msg->svid;
     put_msg->msid=msg->msid;
     put_msg->hash.num=put_msg->dohash(put_msg->data);
+    put_msg->busy.insert(svid);
     LOG("%04X HASH %016lX [%016lX] (update) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
     if(BLOCK_MODE_SERVER){
       wait_msgs_.push_back(put_msg);
@@ -258,6 +259,7 @@ public:
         memcpy(put_msg->data+1,&put_msg->len,3); //FIXME, make this a change_length function in message.hpp
         put_msg->svid=msg->svid; //just for reporting
         put_msg->msid=msg->msid; //just for reporting
+        put_msg->busy.insert(svid);
         msg=put_msg;}
       else{
         //FIXME, create new message and remove msids that are identical to our last_msid list
@@ -310,14 +312,16 @@ Aborted
       message* msg=&(*(write_msgs_.front()));
       //msg->busy.erase(svid); // will not work if same message queued 2 times
       msg->mtx_.lock();
+      assert(msg->busy.find(svid)!=msg->busy.end());
+      assert(msg->data!=NULL);
       msg->sent.insert(svid);
-      msg->mtx_.unlock();
-      bytes_out+=msg->len;
-      files_out++;
       uint32_t len=msg->len;
       if(msg->len>64){ //find length submitted to peer
         len=0;
         memcpy(&len,msg->data+1,3);}
+      msg->mtx_.unlock();
+      bytes_out+=msg->len;
+      files_out++;
       if(msg->len>64 && len!=msg->len){
         LOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d<>%d) [total %lub %uf] LENGTH DIFFERS!\n",svid,
           msg->svid,msg->msid,msg->data[0],msg->len,len,bytes_out,files_out);}
@@ -1382,6 +1386,7 @@ Aborted
     memcpy(put_msg->data,&server_missed,2);
     if(server_missed){
       memcpy(put_msg->data+2,data.c_str(),6*server_missed);}
+    put_msg->busy.insert(svid);
     mtx_.lock(); // needed ?
     write_msgs_.push_front(put_msg); // to prevent data loss
     mtx_.unlock(); // needed ?
@@ -1478,6 +1483,7 @@ Aborted
       //std::cerr << "PHASH: " << it->first << ":" << it->second.msid << " " << it->second.sigh[0] << "..." << it->second.sigh[31] << "\n";
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),&mp->second->msid,4);
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH)+4,mp->second->sigh,SHA256_DIGEST_LENGTH);}
+      put_msg->busy.insert(svid);
       assert(i==peer_missed);
       assert(write_msgs_.empty());
       mtx_.lock(); // needed ?
@@ -1624,8 +1630,9 @@ Aborted
 
 //DONOW //maybe wait for actual confirmation from peer
 
-    write_msgs_.clear();
+    write_msgs_.clear(); //TODO, is this needed ???
     for(auto me=wait_msgs_.begin();me!=wait_msgs_.end();me++){
+      (*me)->busy.insert(svid); //just in case
       write_msgs_.push_back(*me);}
     wait_msgs_.clear();
     BLOCK_MODE_SERVER=0;
@@ -1732,9 +1739,6 @@ Aborted
       LOG("%04X OK candidate from peer\n",svid);
       std::map<uint16_t,msidhash_t> have;
       c_ptr=server_.save_candidate(cand,new_svid_msha,have,svid);}
-      //candidate_ptr n_ptr(new candidate(new_svid_miss,new_svid_have,svid,failed));
-      //c_ptr=n_ptr;
-      //server_.save_candidate(cand,c_ptr);
     else{
       LOG("%04X PARSE vote for known candidate\n",svid);}
     //modify tail from message
