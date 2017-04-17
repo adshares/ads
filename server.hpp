@@ -2991,8 +2991,13 @@ exit(-1);
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
       uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       now-=now%BLOCKSEC;
-      if(peers_.size()>=MIN_PEERS || peers_.size()>=srvs_.nodes.size()-2 || srvs_.now<now){
+#if BLOCKSEC == 0x20
+      if(peers_.size()>=2 || peers_.size()>(srvs_.nodes.size()-2)/2 || srvs_.now<now){
         continue;}
+#else
+      if(peers_.size()>=MIN_PEERS || peers_.size()>(srvs_.nodes.size()-2)/2 || srvs_.now<now){
+        continue;}
+#endif
       int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
       if(!svid || svid==opts_.svid || !srvs_.nodes[svid].ipv4 || !srvs_.nodes[svid].port){
         //LOG("IGNORE CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
