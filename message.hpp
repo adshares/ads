@@ -394,7 +394,8 @@ public:
       svid=peer_svid;
       len=header_length;
       return 1;} // short message
-    std::cerr << "ERROR: unknown message from peer: " << (int)((int)(data[0])+0) << "\n"; // TODO, ban ip
+    //std::cerr << "ERROR: unknown message from peer: " << (int)((int)(data[0])+0) << "\n"; // TODO, ban ip
+    LOG("ERROR: unknown message header %016lX\n",(uint64_t)(*(uint64_t*)data));
     return 0;
   }
 

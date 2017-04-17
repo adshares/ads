@@ -55,7 +55,10 @@ public:
 
   const char* print_missing(servers* srvs) //TODO, consider having local lock
   { static std::string line;
-    line="MISSING: ";
+    if(failed_peer){
+      line="FAILED MISSING: ";}
+    else{
+      line="MISSING: ";}
     for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
       char miss[64];
       assert(it->first<srvs->nodes.size());

@@ -42,6 +42,10 @@ public:
       }
     if(port||1){
       LOG("%04X PEER destruct %s:%d\n\n\n",svid,addr.c_str(),port);}
+#if BLOCKSEC == 0x20
+    if(server_.known_elector(svid)){ //TEST connection death
+      exit(-1);}
+#endif
   }
 
   void iostart()
@@ -251,6 +255,9 @@ public:
         // send only the hash, not the whole message
         LOG("%04X WARNING, truncating cnd message\n",svid);
         message_ptr put_msg(new message(4+64+10+sizeof(hash_t),msg->data));
+        memcpy(put_msg->data+1,&put_msg->len,3); //FIXME, make this a change_length function in message.hpp
+        put_msg->svid=msg->svid; //just for reporting
+        put_msg->msid=msg->msid; //just for reporting
         msg=put_msg;}
       else{
         //FIXME, create new message and remove msids that are identical to our last_msid list
@@ -343,7 +350,7 @@ Aborted
           boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error)); }
       mtx_.unlock(); }
     else {
-      LOG("%04X WRITE error\n",svid);
+      LOG("%04X WRITE error %d %s\n",svid,error.value(),error.message().c_str());
       server_.leave(shared_from_this()); }
   }
 

@@ -713,14 +713,14 @@ public:
       if(winner->failed_peer){
         std::cerr << "BAD CANDIDATE elected :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
         exit(-1);}}
-    if(do_block==2 && winner->accept()){
+    if(do_block==2 && winner->elected_accept()){
       std::cerr << "CANDIDATE winner accepted\n";
       do_block=3;
       if(do_vote){
         write_candidate(best);}
       return;}
     if(do_block==2){
-      winner->print_missing(&srvs_);}
+      LOG("ELECTION: %s\n",winner->print_missing(&srvs_));}
       //std::string list;
       //cand_.lock();
       //for(auto it=winner->waiting_server.begin();it!=winner->waiting_server.end();it++){
@@ -2962,6 +2962,10 @@ exit(-1);
       for(auto it=candidates_.begin();it!=candidates_.end();it++){
         it->second->update(msg);}}
     cand_.unlock();
+  }
+
+  bool known_elector(uint16_t svid)
+  { return(electors.find(svid)!=electors.end());
   }
 
   void write_header()
