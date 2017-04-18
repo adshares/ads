@@ -31,6 +31,7 @@ public:
     svid_miss=miss;
     svid_have=have;
     for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
+      //assert(it->second.msid!=srvs->nodes[it->first].msid); //TODO, remove later
       if(it->second.msid){
         waiting_server.insert(it->first);}}
   }
