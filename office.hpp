@@ -20,7 +20,9 @@ public:
     opts_(opts),
     offifd_(0),
     message_sent(0),
-    next_io_service_(0)
+    next_io_service_(0),
+    ioth_(NULL),
+    clock_thread(NULL)
   { svid=opts_.svid;
     try{
       std::cerr<<"OFFICE ("<<svid<<") open\n";
@@ -65,13 +67,15 @@ public:
   void stop() // send and empty txs queue
   { run=false;
     io_service_.stop();
-    ioth_->join();
-    for(int i=0;i<CLIENT_POOL;i++){
-      io_services_[i]->stop();}
+    if(ioth_!=NULL){
+      ioth_->join();
+      for(int i=0;i<CLIENT_POOL;i++){
+        io_services_[i]->stop();}}
     threadpool.interrupt_all();
     threadpool.join_all();
-    clock_thread->interrupt();
-    clock_thread->join();
+    if(clock_thread!=NULL){
+      clock_thread->interrupt();
+      clock_thread->join();}
     //submit message
   }
 
@@ -792,7 +796,6 @@ private:
   boost::asio::io_service io_service_;
   boost::asio::io_service::work work_;
   boost::asio::ip::tcp::acceptor acceptor_;
-  boost::thread* ioth_;
   server& srv_;
   options& opts_;
   std::set<client_ptr> clients_;
@@ -800,7 +803,6 @@ private:
   //uint32_t msid;
   //int64_t mfee;
   uint32_t message_sent;
-  boost::thread* clock_thread;
   std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates
 
   //io_service_pool
@@ -813,6 +815,9 @@ private:
   std::stack<dep_t> rdep; // users with remote deposits
   std::deque<uint64_t> mque; // list of message to process log
   std::deque<uint32_t> deleted_users; // list of accounts to reuse ... this list could be limited (swapped)
+
+  boost::thread* ioth_;
+  boost::thread* clock_thread;
 
   boost::mutex client_;
   boost::mutex file_;

@@ -1247,7 +1247,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
       mi->second->mtx_.lock();
       mi->second->know.erase(svid);
-      mi->second->sent.erase(svid);
+      mi->second->sent_erase(svid);
       mi->second->mtx_.unlock();}
     missing_.unlock();
   }
@@ -3030,6 +3030,7 @@ exit(-1);
     //TODO, consider validating local messages faster to limit delay in this region
     //finish recycle submitted office messages
     while(msid_>srvs_.nodes[opts_.svid].msid){
+//FIXME, hangs sometimes !!!
       LOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
     //recycle office message queue

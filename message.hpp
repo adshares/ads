@@ -549,6 +549,8 @@ public:
     busy.insert(who);
     if(!path){
       mtx_.unlock();
+      if(data==NULL){
+        LOG("blk/%03X/%05X/%02x_%04x_%08x.msg lost [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);}
       return(data!=NULL);}
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
@@ -734,6 +736,12 @@ public:
     mtx_.unlock();
   }
 
+  void busy_erase(uint16_t p)
+  { mtx_.lock();
+    busy.erase(p);
+    mtx_.unlock();
+  }
+
   void know_insert(uint16_t p)
   { mtx_.lock();
     know.insert(p);
@@ -748,7 +756,8 @@ public:
 
   void sent_erase(uint16_t p)
   { mtx_.lock();
-    sent.erase(p);
+    if(busy.find(p)==busy.end()){
+      sent.erase(p);}
     mtx_.unlock();
   }
 

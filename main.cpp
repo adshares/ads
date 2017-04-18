@@ -166,14 +166,14 @@ int server::deliver(message_ptr msg,uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
-			msg->mtx_.lock();
-			msg->sent.insert(svid);
-			msg->mtx_.unlock();
+			//msg->mtx_.lock();
+			//msg->sent.insert(svid);
+			//msg->mtx_.unlock();
 			(*pi)->deliver(msg);
 			peer_.unlock();
 			return(1);}}
 	peer_.unlock();
-	msg->sent.erase(svid);
+	msg->sent_erase(svid);
 	return(0);
 }
 void server::get_more_headers(uint32_t now) //use random order
