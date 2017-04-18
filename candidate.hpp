@@ -31,7 +31,7 @@ public:
     svid_miss=miss;
     svid_have=have;
     for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
-      if(it->second.msid && it->second.msid!=0xffffffff){ //always accept 
+      if(it->second.msid){
         waiting_server.insert(it->first);}}
   }
 
@@ -45,6 +45,12 @@ public:
   { if(waiting_server.size()==0){
       return true;}
     return false;
+  }
+
+  void remove_missing_double_spend() //ignore waiting double spend confirmations !!!
+  { for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
+      if(it->second.msid==0xFFFFFFFF){
+        waiting_server.erase(it->first);}}
   }
 
   void update(message_ptr msg)

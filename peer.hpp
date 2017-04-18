@@ -45,7 +45,8 @@ public:
       LOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);}
 #if BLOCKSEC == 0x20
     if(server_.known_elector(svid)){ //TEST connection death
-      boost::this_thread::sleep(boost::posix_time::seconds(2));
+      sleep(2);
+      //boost::this_thread::sleep(boost::posix_time::seconds(2));
       exit(-1);}
 #endif
   }
@@ -1617,9 +1618,9 @@ Aborted
 
 //DONOW //... send sync ok
 
-    //TODO, store last_message_hash in list of message_hashes;
-    //candidate_ptr c_ptr(new candidate(svid_miss,svid_have,svid,failed));
-    server_.save_candidate(peer_cand,svid_miss,svid_have,svid);
+    //server_.save_candidate(peer_cand,svid_miss,svid_have,svid);
+    //std::map<uint16_t,msidhash_t> have;
+    server_.save_candidate(peer_cand,svid_msha,svid);
     peer_block_finish(error);
   }
 
@@ -1672,25 +1673,21 @@ Aborted
     LOG("%04X CAND %04X %.*s (len:%d)\n",svid,read_msg_->svid,2*SHA256_DIGEST_LENGTH,hash,read_msg_->len);
     if(c_ptr==NULL){
       LOG("%04X PARSE --NEW-- vote for --NEW-- candidate\n",svid);
-      //if(2!=boost::asio::read(socket_,boost::asio::buffer(&changed,2))){ // hangs:-(
       if(read_msg_->len<4+64+10+sizeof(hash_t)+2){
         LOG("%04X PARSE vote short message read FATAL\n",svid);
         return(0);}
-      uint16_t changed; //FIXME, change this to uint32_t
+      uint16_t changed; //TODO, confirm no need to change this to uint32_t
       memcpy(&changed,read_msg_->data+4+64+10+sizeof(hash_t),2);
       if(!changed){
         LOG("%04X PARSE vote empty change list FATAL\n",svid);
         return(0);}
       uint32_t len=changed*(2+4+sizeof(hash_t));
       uint8_t changes[len],*d=changes;
-      //if(len!=boost::asio::read(socket_,boost::asio::buffer(changes,len))){ // hangs:-(
       if(read_msg_->len<4+64+10+sizeof(hash_t)+2+len){
         LOG("%04X PARSE vote bad message length read FATAL (len:%d)\n",svid,len);
         return(0);}
       memcpy(changes,read_msg_->data+4+64+10+sizeof(hash_t)+2,len);
       std::map<uint16_t,msidhash_t> new_svid_msha(svid_msha);
-      //std::map<uint16_t,msidhash_t> new_svid_miss(svid_miss);
-      //std::map<uint16_t,msidhash_t> new_svid_have(svid_have);
       for(int i=0;i<changed;i++,d+=2+4+sizeof(hash_t)){
         uint16_t psvid;
         msidhash_t msha;
@@ -1698,57 +1695,17 @@ Aborted
         memcpy(&msha.msid,d+2,4);
         memcpy(&msha.sigh,d+6,sizeof(hash_t));
         if(psvid>=srvs_.nodes.size()){
-          //std::cerr << "PARSE bad psvid " << psvid << " FATAL\n";
           LOG("%04X PARSE bad psvid %04X, FATAL\n",svid,psvid);
           return(0);}
         new_svid_msha[psvid]=msha;}
-      //new_svid_miss.erase(psvid);
-      //new_svid_have.erase(psvid);
-      //if(!msha.msid){
-      //  new_svid_miss[psvid]=msha;
-      //  continue;}
-      //// check status of message
-      //auto me=server_.last_svid_msgs.find(psvid);
-      //if(me!=server_.last_svid_msgs.end() && me->second->msid==msha.msid){ 
-      //  if(memcmp(msha.sigh,me->second->sigh,sizeof(hash_t))){
-      //    char hash1[2*SHA256_DIGEST_LENGTH];
-      //    char hash2[2*SHA256_DIGEST_LENGTH];
-      //    ed25519_key2text(hash1,msha.sigh,SHA256_DIGEST_LENGTH);
-      //    ed25519_key2text(hash2,me->second->sigh,SHA256_DIGEST_LENGTH);
-      //    LOG("%04X HASH mismatch for %04X:%08X\n  %.*s vs\n  %.*s\n",svid,psvid,msha.msid,2*SHA256_DIGEST_LENGTH,hash1,2*SHA256_DIGEST_LENGTH,hash2);
-      //    return(0);}
-      //  else{ // we have this hash in our final list
-      //    continue;}}
-      //if(me!=server_.last_svid_msgs.end() && me->second->msid>msha.msid){ // have a newer hash
-      //  new_svid_have[psvid]=msha;}
-      //else{
-      //  new_svid_miss[psvid]=msha;}}
-      //bool failed=false;
-      //for(auto it=new_svid_have.begin();it!=new_svid_have.end();it++){
-      //  message_ptr pm=server_.message_svidmsid(it->first,it->second.msid);
-      //  if(pm==NULL){
-      //    LOG("%04X ERROR failed to find %d:%d\n",svid,it->first,it->second.msid);
-      //    return(0);}
-      //  if(pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
-      //    // do not accept candidates with missing: double spend, my messeges, old messages
-      //    LOG("%04X TEST THIS !!!!!!!!!!!!\n",svid);
-      //    failed=true;}
-      //  auto sm=server_.last_svid_msgs.find(it->first);
-      //  if(sm==server_.last_svid_msgs.end() || sm->second->msid==0xffffffff || sm->second->svid==opts_.svid){ // we will not accept missing this message
-      //    // do not accept candidates with missing: double spend, my messeges, old messages
-      //    failed=true;}}
-      // calculate the hash, TODO TODO, use peer as reference !!!
       hash_t tmp_hash;
       message_phash(tmp_hash,new_svid_msha);
-      // create new map and
       if(memcmp(cand.hash,tmp_hash,SHA256_DIGEST_LENGTH)){
-        //std::cerr << "ERROR parsing hash from peer "<< svid <<"\n";
         LOG("%04X ERROR parsing hash from peer\n",svid);
         return(0);}
-      //std::cerr << "OK candidate from peer "<< svid <<"\n";
       LOG("%04X OK candidate from peer\n",svid);
-      std::map<uint16_t,msidhash_t> have;
-      c_ptr=server_.save_candidate(cand,new_svid_msha,have,svid);}
+      //std::map<uint16_t,msidhash_t> have;
+      c_ptr=server_.save_candidate(cand,new_svid_msha,svid);} // only new_svid_msha needed
     else{
       LOG("%04X PARSE vote for known candidate\n",svid);}
     //modify tail from message
@@ -1823,13 +1780,13 @@ private:
   //uint8_t oldhash[SHA256_DIGEST_LENGTH]; //used in authentication
   uint8_t last_message_hash[SHA256_DIGEST_LENGTH]; //used in block building
   // block hash of messages
-  uint16_t peer_missed;
-  std::vector<svidmsid_t> svid_msid_server_missing;
-  std::vector<svidmsid_t> svid_msid_peer_missing;
+  uint16_t peer_missed;  //FIXME, rename peer_changed
+  std::vector<svidmsid_t> svid_msid_server_missing;	//FIXME rename to svid_msid_serv_changed
+  std::vector<svidmsid_t> svid_msid_peer_missing;	//FIXME rename to svid_msid_peer_changed
   std::map<uint16_t,uint32_t> svid_msid_new; // highest msid for each svid known to peer
   std::map<uint16_t,msidhash_t> svid_msha; // peer last hash status
-  std::map<uint16_t,msidhash_t> svid_miss; // from peer (missed by server)
-  std::map<uint16_t,msidhash_t> svid_have; // missed by peer
+  std::map<uint16_t,msidhash_t> svid_miss; // from peer (missed by server)	//FIXME svid_msha_peer
+  std::map<uint16_t,msidhash_t> svid_have; // missed by peer			//FIXME svid_msha_serv
   uint8_t BLOCK_MODE_SERVER;
   uint8_t BLOCK_MODE_PEER;
   bool io_on;

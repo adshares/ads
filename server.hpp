@@ -701,7 +701,6 @@ public:
         (num1->score>(num2!=NULL?num2->score:0)+(votes_max-votes_counted))||
         (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
       uint64_t x=(num2!=NULL?num2->score:0);
-      //std::cerr << "BLOCK elected: " << num1->score << " second:" << x << " max:" << votes_max << " counted:" << votes_counted << "\n";
       if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
         LOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
           num1->score,x,votes_max,votes_counted);}
@@ -710,9 +709,9 @@ public:
           num1->score,x,votes_max,votes_counted);}
       do_block=2;
       winner=num1;
+      winner->remove_missing_double_spend();
       if(winner->failed_peer){
-        std::cerr << "BAD CANDIDATE elected :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
-        exit(-1);}}
+        std::cerr << "BAD CANDIDATE elected :-(\n";}} // FIXME, do not exit, initiate sync
     if(do_block==2 && winner->elected_accept()){
       std::cerr << "CANDIDATE winner accepted\n";
       do_block=3;
@@ -867,7 +866,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     svid_.lock();
     srvs_.nodes[msg->svid].status|=SERVER_DBL;
     srvs_.nodes[msg->svid].msid=msg->msid; //FIXME, this should be maybe(!) msid from last block + 1
-    svid_msgs_[msg->svid]=msg;
+    svid_msgs_[msg->svid]=msg; // msg->msid should be 0xFFFFFFFF
     svid_.unlock();
     if(!do_sync){
       update(msg);}
@@ -2881,53 +2880,42 @@ exit(-1);
     update(msg); // update peers even if we are not an elector
   }
 
-  candidate_ptr save_candidate(const hash_s& h,std::map<uint16_t,msidhash_t>& miss,std::map<uint16_t,msidhash_t>& have,uint16_t svid)
+  candidate_ptr save_candidate(const hash_s& h,std::map<uint16_t,msidhash_t>& changed,uint16_t svid)
   { cand_.lock(); // lock only candidates
     auto it=candidates_.find(h);
     if(it==candidates_.end()){
-      std::map<uint16_t,msidhash_t> new_svid_miss(miss);
-      std::map<uint16_t,msidhash_t> new_svid_have(have);
+      std::map<uint16_t,msidhash_t> new_svid_miss;
+      std::map<uint16_t,msidhash_t> new_svid_have;
       bool failed=false;
-      for(auto jt=new_svid_have.begin();jt!=new_svid_have.end();){
-        auto it=jt++;
-        if(!it->second.msid){
-          continue;}
-        if(it->second.msid==0xffffffff){
-          auto mt=new_svid_miss.find(it->first);
-          if(mt!=new_svid_miss.end() && mt->second.msid!=0xffffffff){
-            failed=true;}
-          continue;}
-        auto sm=last_svid_msgs.find(it->first);
-        if(sm!=last_svid_msgs.end() && sm->second->msid==0xffffffff){ // we will not accespt double spend
-          failed=true;}
-        message_ptr pm=message_svidmsid(it->first,it->second.msid);
-        if(pm==NULL){
-          LOG("%04X CAND failed to find %04X:%08X from have list\n",svid,it->first,it->second.msid);
-          new_svid_miss[it->first]=it->second;
-          new_svid_have.erase(it);
-          continue;}
-        if(pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){ // we will not accept missing this message
-          // do not accept candidates with missing: double spend, my messeges, old messages
-          LOG("%04X ERROR old message %04X:%08X missing\n",svid,it->first,it->second.msid);
-          failed=true;}}
-      for(auto jt=new_svid_miss.begin();jt!=new_svid_miss.end();){
-        auto it=jt++;
-        if(!it->second.msid){
-          continue;}
-        if(it->second.msid==0xffffffff){
-          auto mt=new_svid_have.find(it->first);
-          if(mt!=new_svid_have.end() && mt->second.msid!=0xffffffff){
-            failed=true;}
-          continue;}
-        auto sm=last_svid_msgs.find(it->first);
-        if(sm!=last_svid_msgs.end() && sm->second->msid==0xffffffff){ // we will not accespt double spend
-          failed=true;}
-        message_ptr pm=message_svidmsid(it->first,it->second.msid);
-        if(pm!=NULL){
-          LOG("%04X CAND failed to find %04X:%08X from have list\n",svid,it->first,it->second.msid);
-          new_svid_have[it->first]=it->second;
-          new_svid_miss.erase(it);
-          continue;}}
+      for(auto ct=changed.begin();ct!=changed.end();ct++){
+        auto sm=last_svid_msgs.find(ct->first);
+        if(sm!=last_svid_msgs.end()){
+          if(sm->second->msid==ct->second.msid &&
+             (sm->second->msid==0xFFFFFFFF || !memcmp(sm->second->sigh,ct->second.sigh,sizeof(hash_t)))){
+            continue;}
+          else{
+            if(ct->second.msid<sm->second->msid && sm->second->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
+              LOG("%04X WARNING old message %04X:%08X missing\n",svid,ct->first,ct->second.msid);
+              failed=true;}
+            else{
+              if(sm->second->msid==0xffffffff){
+                LOG("%04X WARNING double spend message from %04X missing\n",svid,ct->first);
+                failed=true;}}
+            if(!ct->second.msid){
+              new_svid_have[ct->first]=ct->second;
+              continue;}
+            message_ptr pm=message_svidmsid(ct->first,ct->second.msid);
+            if(pm!=NULL && !memcmp(pm->sigh,ct->second.sigh,sizeof(hash_t))){
+              new_svid_have[ct->first]=ct->second;}
+            else{
+              new_svid_miss[ct->first]=ct->second;}}}
+        else{
+          if(!ct->second.msid){
+            continue;}
+          else{
+            new_svid_miss[ct->first]=ct->second;}}}
+      LOG("%04X SAVE CANDIDATE changed:%d miss:%d have:%d failed:%d\n",
+        svid,(int)changed.size(),(int)new_svid_miss.size(),(int)new_svid_have.size(),failed);
       candidate_ptr c_ptr(new candidate(new_svid_miss,new_svid_have,svid,failed));
       candidates_[h]=c_ptr;
       cand_.unlock();
@@ -3085,9 +3073,8 @@ exit(-1);
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
           LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
-        std::map<uint16_t,msidhash_t> miss;
-        std::map<uint16_t,msidhash_t> have;
-        save_candidate(cand,miss,have,opts_.svid);
+        std::map<uint16_t,msidhash_t> changed;
+        save_candidate(cand,changed,opts_.svid);
         prepare_poll(); // sets do_vote
         do_block=1;
         do_validate=1;
