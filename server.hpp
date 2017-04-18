@@ -694,7 +694,7 @@ public:
     cand_.unlock();
     if(num1==NULL){
       if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
-        std::cerr << "CANDIDATE proposing\n";
+        LOG("CANDIDATE proposing\n");
         write_candidate(cand);}
       return;}
     if(do_block<2 && (
@@ -710,10 +710,13 @@ public:
       do_block=2;
       winner=num1;
       winner->remove_missing_double_spend();
+      char text[2*SHA256_DIGEST_LENGTH];
+      ed25519_key2text(text,best.hash,SHA256_DIGEST_LENGTH);
+      LOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
       if(winner->failed_peer){
-        std::cerr << "BAD CANDIDATE elected :-(\n";}} // FIXME, do not exit, initiate sync
+        LOG("BAD CANDIDATE elected :-(\n");}} // FIXME, do not exit, initiate sync
     if(do_block==2 && winner->elected_accept()){
-      std::cerr << "CANDIDATE winner accepted\n";
+      LOG("CANDIDATE winner accepted\n");
       do_block=3;
       if(do_vote){
         write_candidate(best);}
@@ -728,11 +731,11 @@ public:
       //cand_.unlock();
       //LOG("CANDIDATE missing %s\n",list.c_str());
     if(do_vote && num1->accept() && num1->peers.size()>1){
-      std::cerr << "CANDIDATE proposal accepted\n";
+      LOG("CANDIDATE proposal accepted\n");
       write_candidate(best);
       return;}
     if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
-      std::cerr << "CANDIDATE proposing\n";
+      LOG("CANDIDATE proposing\n");
       write_candidate(cand);}
   }
 
