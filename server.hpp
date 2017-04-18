@@ -655,14 +655,14 @@ public:
   }
 
   //move this to message
-  void message_msha(std::map<uint16_t,message_ptr>& map)
+  /*void svid_msha_set(std::map<uint16_t,message_ptr>& map) // not needed probably
   { svid_msha.clear();
     for(std::map<uint16_t,message_ptr>::iterator it=map.begin();it!=map.end();++it){
       msidhash_t msha;
       msha.msid=it->second->msid;
       memcpy(msha.sigh,it->second->sigh,sizeof(hash_t));
       svid_msha[it->first]=msha;}
-  }
+  }*/
 
   //move this to message
   void message_shash(uint8_t* mhash,std::map<uint16_t,message_ptr>& map)
@@ -758,11 +758,6 @@ public:
     //FIXME, this should be moved to servers.hpp
     std::set<uint16_t> svid_rset;
     std::vector<uint16_t> svid_rank;
-    //for(auto it=last_svid_msgs.begin();it!=last_svid_msgs.end();++it){ // this is too unstable
-    //  if(srvs_.nodes[it->second->svid].status & SERVER_DBL){
-    //    continue;}
-    //  LOG("ELECTOR accepted:%04X (msg)\n",(it->second->svid));
-    //  svid_rset.insert(it->second->svid);}
     for(auto it=blk_msgs_.begin();it!=blk_msgs_.end();++it){ //add also nodes with blk_msgs_
       if((it->second->msid!=srvs_.now-BLOCKSEC) || 
          !(it->second->status & MSGSTAT_VAL) ||
@@ -3059,13 +3054,13 @@ exit(-1);
         svid_.lock();
         last_svid_msgs.swap(svid_msgs_);
         svid_msgs_.clear();
+        //svid_msha_set(last_svid_msgs); // this is not needed probably
         svid_.unlock();
         cand_.lock();
         electors.clear();
         candidates_.clear();
         cand_.unlock();
         message_shash(cand.hash,last_svid_msgs);
-        message_msha(last_svid_msgs);
           message_ptr put_msg(new message(1+SHA256_DIGEST_LENGTH));
           put_msg->data[0]=MSGTYPE_STP;
           memcpy(put_msg->data+1,cand.hash,SHA256_DIGEST_LENGTH);
@@ -3073,7 +3068,7 @@ exit(-1);
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
           LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
-        std::map<uint16_t,msidhash_t> changed;
+        std::map<uint16_t,msidhash_t> changed; // could be also svid_msha
         save_candidate(cand,changed,opts_.svid);
         prepare_poll(); // sets do_vote
         do_block=1;
@@ -3184,7 +3179,7 @@ exit(-1);
 
   //FIXME, move this to servers.hpp
   std::map<uint16_t,message_ptr> last_svid_msgs; // last validated message from server, should change this to now_svid_msgs
-  std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
+  //std::map<uint16_t,msidhash_t> svid_msha; // copy of msid and hashed from last_svid_msgs
   //FIXME, use serv_.now instead
   servers last_srvs_;
   //message_ptr block; // my block message, now data in last_srvs_
