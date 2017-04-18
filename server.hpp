@@ -3106,7 +3106,8 @@ exit(-1);
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
 #if BLOCKSEC == 0x20
-    if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(del) && svid_msgs_.size()<MIN_MSGNUM){
+    //if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(del) && svid_msgs_.size()<MIN_MSGNUM){
+    if((!(opts_.svid%2) && !(rand()%4)) || del==srvs_.now+del){ // send message ever 4s
 #else
     if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
 #endif
