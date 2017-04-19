@@ -259,6 +259,7 @@ public:
       return;}
     assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_STP){
+      LOG("%04X SERV in block mode\n",svid);
       BLOCK_MODE_SERVER=1;} // will wait for delivery and queue other messages to wait_msgs_
     //special handling of CND messages ... FIXME prevent slow search in candidates by each peer
     if(msg->data[0]==MSGTYPE_CND && msg->len>4+64+10+sizeof(hash_t)){
@@ -336,6 +337,7 @@ Aborted
         LOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d) [total %lub %uf]\n",svid,
           msg->svid,msg->msid,msg->data[0],msg->len,bytes_out,files_out);}
       if(msg->data[0]==MSGTYPE_STP){
+        LOG("%04X SERV sent STOP\n",svid);
         BLOCK_MODE_SERVER=2; // STOP sent
         //msg->unload(svid);
         write_msgs_.pop_front();
@@ -1327,7 +1329,7 @@ Aborted
 
   void handle_read_stop(const boost::system::error_code& error)
   {
-    LOG("%04X STOP, got STOP\n",svid);
+    LOG("%04X PEER got STOP\n",svid);
     if(error){
       LOG("%04X READ error %d %s (STOP)\n",svid,error.value(),error.message().c_str());
       server_.leave(shared_from_this());
@@ -1369,6 +1371,7 @@ Aborted
   { std::string data;
     uint16_t server_changed=0;
 
+    LOG("%04X SYNC start (no UPDATE PEER SVID_MSID after this)\n",svid);
     svid_msid_serv_changed.clear();
     //assume svid_msid_new is the same for server and peer, send differnce between this and last_svid_msgs_ (server block state)
     for(auto st=server_.last_svid_msgs.begin();st!=server_.last_svid_msgs.end();++st){ //svid_msid_new and last_svid_msgs must not change after thread_clock entered block mode
@@ -1377,20 +1380,20 @@ Aborted
       if(pt!=svid_msid_new.end()){
         msid=pt->second;}
       if(st->second->msid!=msid || BLOCK_MODE_ERROR){
-        if(st->second->msid==server_.last_srvs_.nodes[st->first].msid){ // server_.last_srvs_.nodes[it->first].msid may have changed, no big problem, just extra data to send
-          msid=0;}
-        else{
-          msid=st->second->msid;}
+        //if(st->second->msid==server_.last_srvs_.nodes[st->first].msid){ // server_.last_srvs_.nodes[it->first].msid may have changed, no big problem, just extra data to send
+        //  msid=0;}
+        //else
+        msid=st->second->msid;
         data.append((const char*)&st->first,2);
         data.append((const char*)&msid,4);
         svidmsid_t svms;
         svms.svid=st->first;
         svms.msid=msid;
         svid_msid_serv_changed.push_back(svms);
-        LOG("%04X SERVER changed %04X:%08X\n",svid,st->first,msid);
+        LOG("%04X SERV %04X:%08X changed\n",svid,st->first,msid);
         server_changed++;}}
     for(auto it=svid_msid_new.begin();it!=svid_msid_new.end();++it){ //svid_msid_new and last_svid_msgs must not change after thread_clock entered block mode
-      assert(it->first<=server_.last_srvs_.nodes.size());
+      //assert(it->first<=server_.last_srvs_.nodes.size());
       if(server_.last_svid_msgs.find(it->first)!=server_.last_svid_msgs.end()){ //already processed
         continue;}
       msid=0;
@@ -1400,9 +1403,10 @@ Aborted
       svms.svid=it->first;
       svms.msid=msid;
       svid_msid_serv_changed.push_back(svms);
-      LOG("%04X SERVER missed %04X:%08X\n",svid,it->first,it->second);
+      LOG("%04X SERV %04X:%08X missed\n",svid,it->first,it->second);
       server_changed++;}
-    LOG("%04X SERVER changed %d in total from %d\n",svid,(int)server_changed,(int)svid_msid_new.size());
+    LOG("%04X SERVER changed %d in total (from:%d|%d)\n",svid,
+      (int)server_changed,(int)server_.last_svid_msgs.size(),(int)svid_msid_new.size());
     message_ptr put_msg(new message(2+6*server_changed));
     memcpy(put_msg->data,&server_changed,2);
     if(server_changed){
@@ -1424,7 +1428,7 @@ Aborted
     assert(read_msg_->data!=NULL);
     memcpy(&peer_changed,read_msg_->data,2);
     if(peer_changed){
-      LOG("%04X PEER changed in total %d\n",svid,peer_changed);
+      LOG("%04X PEER changed %d in total\n",svid,peer_changed);
       free(read_msg_->data);
       read_msg_->data=(uint8_t*)malloc(6*peer_changed);
       boost::asio::async_read(socket_,
@@ -1454,7 +1458,7 @@ Aborted
         LOG("%04X ERROR read_peer_missing_messages peersvid\n",svid);
         server_.leave(shared_from_this());
         return;}
-      LOG("%04X PEER changed %04X:%08X\n",svid,svms.svid,svms.msid);
+      LOG("%04X PEER changed %04X:%08X<-xxxxxxxx\n",svid,svms.svid,svms.msid);
       svid_msid_peer_changed.push_back(svms);}
     write_peer_missing_hashes(error);
   }
@@ -1465,14 +1469,14 @@ Aborted
       server_.leave(shared_from_this());
       return;}
     mtx_.lock();
-    LOG("%04X PEER write peer missing hashes\n",svid);
+    //LOG("%04X PEER write peer missing hashes\n",svid);
     if(BLOCK_MODE_PEER<2){ // must be called 2 times, from write_peer_missing_messages and from read_peer_missing_messages; second call writes response
       BLOCK_MODE_PEER=2;
       mtx_.unlock();
       return;}
     write_msgs_.pop_front();
     mtx_.unlock();
-    LOG("%04X PEER write peer missing hashes run\n",svid);
+    //LOG("%04X PEER write peer missing hashes run\n",svid);
     // we have svid_msid_peer_changed defined, lets send missing hashes
     // first let's check if the msids are correct (must be!) ... later we can consider not sending them, but we will need to make sure we know about all double spends
     if(peer_changed){ // TODO, send also server_changed
@@ -1483,16 +1487,16 @@ Aborted
         auto mp=server_.last_svid_msgs.find(it->svid);
         if(mp==server_.last_svid_msgs.end() || mp->second->msid==server_.last_srvs_.nodes[it->svid].msid){ //SERVER used hash from previous block
           if(!it->msid){
-            LOG("%04X HSEND: %04X:00000000==00000000\n",svid,it->svid);}
+            LOG("%04X SEND: %04X:00000000<-00000000 [%08X@%08X]\n",svid,it->svid,
+              server_.last_srvs_.nodes[it->svid].msid,server_.last_srvs_.now);}
           else{
-            LOG("%04X HSEND: %04X:00000000<>%08X, MISSING PEER HASH!\n",svid,it->svid,it->msid);}
+            LOG("%04X SEND: %04X:%08X<-00000000 [%08X@%08X], SERVER NO CHANGES!\n",svid,it->svid,it->msid,
+              server_.last_srvs_.nodes[it->svid].msid,server_.last_srvs_.now);}
           bzero(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),4+SHA256_DIGEST_LENGTH); //send 0 to indicate hash from last block
           continue;}
         char sigh[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(sigh,mp->second->sigh,SHA256_DIGEST_LENGTH);
-        LOG("%04X HSEND: %04X:%08X<-%08X %.*s\n",svid,(int)(it->svid),(int)(mp->second->msid),it->msid,2*SHA256_DIGEST_LENGTH,sigh);
-        //LOG("%04X HSEND: %04X:%08X>%08X %016lX\n",svid,(int)(it->svid),(int)(mp->second->msid),it->msid,
-        //  (uint64_t)(*((uint64_t*)mp->second->sigh)));
+        LOG("%04X SEND: %04X:%08X<-%08X %.*s\n",svid,(int)(it->svid),it->msid,(int)(mp->second->msid),2*SHA256_DIGEST_LENGTH,sigh);
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),&mp->second->msid,4);
         memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH)+4,mp->second->sigh,SHA256_DIGEST_LENGTH);}
       put_msg->sent.insert(svid);
@@ -1526,12 +1530,13 @@ Aborted
     SHA256_Init(&sha256);
     for(std::map<uint16_t,msidhash_t>::iterator it=map.begin();it!=map.end();++it){
       if(!it->second.msid){
-        LOG("%04X PHASH: %04X:0 LAST\n",svid,it->first);
+        LOG("%04X HASH: %04X:00000000<-[%08X@%08X] no change, ignore\n",svid,it->first,
+          server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now);
         continue;}
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second.sigh,SHA256_DIGEST_LENGTH);
-      LOG("%04X PHASH: %04X:%08X %.*s\n",svid,(int)(it->first),(int)(it->second.msid),2*SHA256_DIGEST_LENGTH,sigh);
-      //std::cerr << "PHASH: " << it->first << ":" << it->second.msid << " " << it->second.sigh[0] << "..." << it->second.sigh[31] << "\n";
+      LOG("%04X HASH: %04X:%08X<-[%08X@%08X] %.*s\n",svid,(int)(it->first),(int)(it->second.msid),
+        server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now,2*SHA256_DIGEST_LENGTH,sigh);
       SHA256_Update(&sha256,it->second.sigh,sizeof(hash_t));}
     SHA256_Final(mhash, &sha256);
   }
@@ -1546,11 +1551,10 @@ Aborted
       msidhash_t msha;
       msha.msid=it->second->msid;
       memcpy(msha.sigh,it->second->sigh,sizeof(hash_t));
-      LOG("%04X SERV %04X:%08X start\n",svid,it->first,it->second->msid);
+      LOG("%04X SERV %04X:%08X<-[%08X@%08X] start\n",svid,it->first,it->second->msid,
+        server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now);
       svid_msha[it->first]=msha;}
-    LOG("%04X PEER read peer missing hashes (svid_msha.size=%d)\n",svid,(int)svid_msha.size());
-    //LOG("%04X PEER read peer missing hashes (svid_msha.size=%d)\n",svid,(int)server_.svid_msha.size());
-    //svid_msha=server_.svid_msha;
+    //LOG("%04X PEER read peer missing hashes (svid_msha.size=%d)\n",svid,(int)svid_msha.size());
 
     // newer hashes from peer
     assert(!svid_msid_serv_changed.size() || read_msg_->data!=NULL);
@@ -1566,7 +1570,7 @@ Aborted
       //  svid_msha.erase(it->svid);}
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,msha.sigh,SHA256_DIGEST_LENGTH);
-      LOG("%04X PEER %04X:%08X<-%08X changed %.*s\n",svid,it->svid,msha.msid,it->msid,2*SHA256_DIGEST_LENGTH,hash);}
+      LOG("%04X SERV %04X:%08X<-%08X missed  %.*s\n",svid,it->svid,msha.msid,it->msid,2*SHA256_DIGEST_LENGTH,hash);}
 
     // other peer changes
     for(auto it=svid_msid_peer_changed.begin();it!=svid_msid_peer_changed.end();++it){
@@ -1596,29 +1600,25 @@ Aborted
     ed25519_key2text(hash1,last_message_hash,SHA256_DIGEST_LENGTH);
     ed25519_key2text(hash2,peer_cand.hash,SHA256_DIGEST_LENGTH);
     LOG("%04X HASH check:\n  %.*s vs\n  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash1,2*SHA256_DIGEST_LENGTH,hash2);
-    char ok;
     if(memcmp(last_message_hash,peer_cand.hash,SHA256_DIGEST_LENGTH)){
-      LOG("%04X HASH server check ERROR\n",svid);
-      if(BLOCK_MODE_ERROR & 4){
-        LOG("%04X ERROR again, leaving\n",svid);
+      BLOCK_MODE_ERROR|=1;
+      if(BLOCK_MODE_ERROR & 0xC){
+        LOG("%04X HASH server check ERROR (%X) again, leaving\n",svid,BLOCK_MODE_ERROR);
         server_.leave(shared_from_this());
         return;}
-      BLOCK_MODE_ERROR|=1;
-      ok=0;
+      LOG("%04X HASH server check ERROR (%X)\n",svid,BLOCK_MODE_ERROR);
       return;}
     else{
-      LOG("%04X HASH server check OK\n",svid);
-      ok=1;
+      LOG("%04X HASH server check OK (%X)\n",svid,BLOCK_MODE_ERROR);
 #if BLOCKSEC == 0x20
       if(opts_.svid==4 && !BLOCK_MODE_ERROR){ //check this backup protocoll
         BLOCK_MODE_ERROR|=1;
-        LOG("%04X HASH server check overwrite to ERROR\n",svid);
-        ok=0;}
+        LOG("%04X HASH server check overwrite to ERROR (%X)\n",svid,BLOCK_MODE_ERROR);}
 #endif
       }
     message_ptr put_msg(new message());
     assert(put_msg->len==message::header_length);
-    put_msg->data[0]=ok;
+    put_msg->data[0]=BLOCK_MODE_ERROR<<1;
     put_msg->sent.insert(svid); //only to prevent assert(false)
     put_msg->busy.insert(svid); //only to prevent assert(false)
     mtx_.lock();
@@ -1650,18 +1650,18 @@ Aborted
       LOG("%04X ERROR peer_block_finish error\n",svid);
       server_.leave(shared_from_this());
       return;}
-    if(read_msg_->data[0]){
-      LOG("%04X HASH peer check OK\n",svid);}
-    else{
-      if(BLOCK_MODE_ERROR & 4){
-        LOG("%04X ERROR again, leaving\n",svid);
+    BLOCK_MODE_ERROR|=read_msg_->data[0];
+    if(BLOCK_MODE_ERROR & 0x2){
+      if(BLOCK_MODE_ERROR & 0xC){
+        LOG("%04X HASH peer check ERROR (%X) again, leaving\n",svid,BLOCK_MODE_ERROR);
         server_.leave(shared_from_this());
         return;}
-      BLOCK_MODE_ERROR|=2;
-      LOG("%04X HASH peer check ERROR\n",svid);}
-    if(BLOCK_MODE_ERROR & 3){
-      LOG("%04X SYNC error, trying again\n",svid);
-      BLOCK_MODE_ERROR=4;
+      LOG("%04X HASH peer check ERROR (%X)\n",svid,BLOCK_MODE_ERROR);}
+    else{
+      LOG("%04X HASH peer check OK (%X)\n",svid,BLOCK_MODE_ERROR);}
+    if(BLOCK_MODE_ERROR & 0x3){
+      LOG("%04X SYNC error (%X), trying again\n",svid,BLOCK_MODE_ERROR);
+      BLOCK_MODE_ERROR=0x4;
       BLOCK_MODE_PEER=1;
       BLOCK_MODE_SERVER=2;
       read_msg_ = boost::make_shared<message>(); // continue with a fresh message container

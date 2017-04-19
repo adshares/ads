@@ -664,6 +664,15 @@ public:
       svid_msha[it->first]=msha;}
   }*/
 
+  void clean_last_svid_msgs(std::map<uint16_t,message_ptr>& map)
+  { for(std::map<uint16_t,message_ptr>::iterator jt=map.begin();jt!=map.end();){
+      auto it=jt++;
+      if(it->second->msid<=last_srvs_.nodes[it->first].msid){
+        LOG("CLEAN: %04X:%08X<-[%08X] !!!\n",it->first,it->second->msid,
+          last_srvs_.nodes[it->first].msid);
+        map.erase(it);}}
+  }
+
   //move this to message
   void message_shash(uint8_t* mhash,std::map<uint16_t,message_ptr>& map)
   { SHA256_CTX sha256;
@@ -671,7 +680,8 @@ public:
     for(std::map<uint16_t,message_ptr>::iterator it=map.begin();it!=map.end();++it){
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second->sigh,SHA256_DIGEST_LENGTH);
-      LOG("SHASH: %04X:%08X %.*s\n",it->first,it->second->msid,2*SHA256_DIGEST_LENGTH,sigh);
+      LOG("SHASH: %04X:%08X<-[%08X] %.*s\n",it->first,it->second->msid,
+        last_srvs_.nodes[it->first].msid,2*SHA256_DIGEST_LENGTH,sigh);
       // do not hash messages from ds_server
       SHA256_Update(&sha256,it->second->sigh,4*sizeof(uint64_t));}
     SHA256_Final(mhash, &sha256); // std::cerr << "message_shash\n";
@@ -3056,6 +3066,7 @@ exit(-1);
         //create message hash
         svid_.lock();
         last_svid_msgs.swap(svid_msgs_);
+        clean_last_svid_msgs(last_svid_msgs);
         svid_msgs_.clear();
         //svid_msha_set(last_svid_msgs); // this is not needed probably
         svid_.unlock();
@@ -3064,13 +3075,14 @@ exit(-1);
         candidates_.clear();
         cand_.unlock();
         message_shash(cand.hash,last_svid_msgs);
-          message_ptr put_msg(new message(1+SHA256_DIGEST_LENGTH));
+        { message_ptr put_msg(new message(1+SHA256_DIGEST_LENGTH));
           put_msg->data[0]=MSGTYPE_STP;
           memcpy(put_msg->data+1,cand.hash,SHA256_DIGEST_LENGTH);
           char hash[2*SHA256_DIGEST_LENGTH]; hash[2*SHA256_DIGEST_LENGTH-1]='?';
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
           LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
+        }
         std::map<uint16_t,msidhash_t> changed; // could be also svid_msha
         save_candidate(cand,changed,opts_.svid);
         prepare_poll(); // sets do_vote
