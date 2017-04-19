@@ -44,12 +44,12 @@ public:
     if(port||1){
       uint32_t ntime=time(NULL);
       LOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);}
-#if BLOCKSEC == 0x20
-    if(server_.known_elector(svid)){ //TEST connection death
-      //sleep(2);
-      //boost::this_thread::sleep(boost::posix_time::seconds(1));
-      exit(-1);}
-#endif
+//#if BLOCKSEC == 0x20
+//    if(server_.known_elector(svid)){ //TEST connection death
+//      //sleep(2);
+//      //boost::this_thread::sleep(boost::posix_time::seconds(1));
+//      exit(-1);}
+//#endif
   }
 
   void iostart()
@@ -1372,7 +1372,7 @@ Aborted
     uint16_t server_changed=0;
 
     LOG("%04X SYNC start (no UPDATE PEER SVID_MSID after this)\n",svid);
-    svid_msid_serv_changed.clear();
+    svmsha_serv_changed.clear();
     //assume svid_msid_new is the same for server and peer, send differnce between this and last_svid_msgs_ (server block state)
     for(auto st=server_.last_svid_msgs.begin();st!=server_.last_svid_msgs.end();++st){ //svid_msid_new and last_svid_msgs must not change after thread_clock entered block mode
       uint32_t msid=0;
@@ -1380,37 +1380,44 @@ Aborted
       if(pt!=svid_msid_new.end()){
         msid=pt->second;}
       if(st->second->msid!=msid || BLOCK_MODE_ERROR){
-        //if(st->second->msid==server_.last_srvs_.nodes[st->first].msid){ // server_.last_srvs_.nodes[it->first].msid may have changed, no big problem, just extra data to send
-        //  msid=0;}
-        //else
-        msid=st->second->msid;
-        data.append((const char*)&st->first,2);
-        data.append((const char*)&msid,4);
-        svidmsid_t svms;
-        svms.svid=st->first;
-        svms.msid=msid;
-        svid_msid_serv_changed.push_back(svms);
-        LOG("%04X SERV %04X:%08X changed\n",svid,st->first,msid);
+        svidmsidhash_t svmsha;
+        svmsha.svid=st->first;
+        svmsha.msid=st->second->msid;
+        memcpy(svmsha.sigh,st->second->sigh,sizeof(hash_t));
+        svmsha_serv_changed.push_back(svmsha);
+        data.append((const char*)&svmsha,sizeof(svidmsidhash_t));
+        //data.append((const char*)&st->first,2);
+        //data.append((const char*)&msid,4);
+        //svidmsidhash_t svmsha;
+        //svmsha.svid=st->first;
+        //svmsha.msid=msid;
+        //svmsha_serv_changed.push_back(svmsha);
+        char sigh[2*SHA256_DIGEST_LENGTH];
+        ed25519_key2text(sigh,svmsha.sigh,SHA256_DIGEST_LENGTH);
+        LOG("%04X SERV %04X:%08X->%08X %.*s\n",svid,st->first,msid,svmsha.msid,2*SHA256_DIGEST_LENGTH,sigh);
         server_changed++;}}
     for(auto it=svid_msid_new.begin();it!=svid_msid_new.end();++it){ //svid_msid_new and last_svid_msgs must not change after thread_clock entered block mode
       //assert(it->first<=server_.last_srvs_.nodes.size());
       if(server_.last_svid_msgs.find(it->first)!=server_.last_svid_msgs.end()){ //already processed
         continue;}
-      msid=0;
-      data.append((const char*)&it->first,2);
-      data.append((const char*)&msid,4);
-      svidmsid_t svms;
-      svms.svid=it->first;
-      svms.msid=msid;
-      svid_msid_serv_changed.push_back(svms);
-      LOG("%04X SERV %04X:%08X missed\n",svid,it->first,it->second);
+      svidmsidhash_t svmsha={it->first,0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}};
+      svmsha_serv_changed.push_back(svmsha);
+      data.append((const char*)&svmsha,sizeof(svidmsidhash_t));
+      //msid=0;
+      //data.append((const char*)&it->first,2);
+      //data.append((const char*)&msid,4);
+      //svidmsidhash_t svmsha;
+      //svmsha.svid=it->first;
+      //svmsha.msid=msid;
+      //svmsha_serv_changed.push_back(svmsha);
+      LOG("%04X SERV %04X:%08X->00000000 missed\n",svid,it->first,it->second);
       server_changed++;}
     LOG("%04X SERVER changed %d in total (from:%d|%d)\n",svid,
       (int)server_changed,(int)server_.last_svid_msgs.size(),(int)svid_msid_new.size());
-    message_ptr put_msg(new message(2+6*server_changed));
+    message_ptr put_msg(new message(2+sizeof(svidmsidhash_t)*server_changed));
     memcpy(put_msg->data,&server_changed,2);
     if(server_changed){
-      memcpy(put_msg->data+2,data.c_str(),6*server_changed);}
+      memcpy(put_msg->data+2,data.c_str(),sizeof(svidmsidhash_t)*server_changed);}
     put_msg->sent.insert(svid); //only to prevent assert(false)
     put_msg->busy.insert(svid); //only to prevent assert(false)
     mtx_.lock();
@@ -1430,13 +1437,14 @@ Aborted
     if(peer_changed){
       LOG("%04X PEER changed %d in total\n",svid,peer_changed);
       free(read_msg_->data);
-      read_msg_->data=(uint8_t*)malloc(6*peer_changed);
+      read_msg_->data=(uint8_t*)malloc(sizeof(svidmsidhash_t)*peer_changed);
+      read_msg_->len=sizeof(svidmsidhash_t)*peer_changed; //not used
       boost::asio::async_read(socket_,
-        boost::asio::buffer(read_msg_->data,6*peer_changed),
+        boost::asio::buffer(read_msg_->data,sizeof(svidmsidhash_t)*peer_changed),
         boost::bind(&peer::read_peer_missing_messages,shared_from_this(),boost::asio::placeholders::error));}
     else{
       LOG("%04X PEER changed none\n",svid);
-      svid_msid_peer_changed.clear();
+      svmsha_peer_changed.clear();
       write_peer_missing_hashes(error);}
   }
 
@@ -1447,19 +1455,24 @@ Aborted
       return;}
     LOG("%04X PEER read peer missing messages\n",svid);
     // create peer_missing list;
-    svid_msid_peer_changed.clear();
-    svid_msid_peer_changed.reserve(peer_changed);
+    svmsha_peer_changed.clear();
+    svmsha_peer_changed.reserve(peer_changed);
     assert(read_msg_->data!=NULL);
     for(int i=0;i<peer_changed;i++){
-      svidmsid_t svms;
-      memcpy(&svms.svid,read_msg_->data+6*i,2);
-      memcpy(&svms.msid,read_msg_->data+6*i+2,4);
-      if(svms.svid>=srvs_.nodes.size()){
+      svidmsidhash_t svmsha;
+      memcpy(&svmsha,read_msg_->data+sizeof(svidmsidhash_t)*i,sizeof(svidmsidhash_t));
+      svmsha_peer_changed.push_back(svmsha);
+      //svidmsid_t svms;
+      //memcpy(&svms.svid,read_msg_->data+6*i,2);
+      //memcpy(&svms.msid,read_msg_->data+6*i+2,4);
+      if(svmsha.svid>=srvs_.nodes.size()){
         LOG("%04X ERROR read_peer_missing_messages peersvid\n",svid);
         server_.leave(shared_from_this());
         return;}
-      LOG("%04X PEER changed %04X:%08X<-xxxxxxxx\n",svid,svms.svid,svms.msid);
-      svid_msid_peer_changed.push_back(svms);}
+      //LOG("%04X PEER changed %04X:%08X<-xxxxxxxx\n",svid,svmsha.svid,svmsha.msid);
+      char sigh[2*SHA256_DIGEST_LENGTH];
+      ed25519_key2text(sigh,svmsha.sigh,SHA256_DIGEST_LENGTH);
+      LOG("%04X PEER: %04X:xxxxxxxx->%08X %.*s\n",svid,svmsha.svid,svmsha.msid,2*SHA256_DIGEST_LENGTH,sigh);}
     write_peer_missing_hashes(error);
   }
 
@@ -1477,28 +1490,27 @@ Aborted
     write_msgs_.pop_front();
     mtx_.unlock();
     //LOG("%04X PEER write peer missing hashes run\n",svid);
-    // we have svid_msid_peer_changed defined, lets send missing hashes
+    // we have svmsha_peer_changed defined, lets send missing hashes
     // first let's check if the msids are correct (must be!) ... later we can consider not sending them, but we will need to make sure we know about all double spends
     if(peer_changed){ // TODO, send also server_changed
       int i=0;
-      message_ptr put_msg(new message((4+SHA256_DIGEST_LENGTH)*peer_changed));
+      message_ptr put_msg(new message(sizeof(svidmsidhash_t)*peer_changed));
       assert(put_msg->data!=NULL);
-      for(auto it=svid_msid_peer_changed.begin();it!=svid_msid_peer_changed.end();++it,i++){
+      for(auto it=svmsha_peer_changed.begin();it!=svmsha_peer_changed.end();++it,i++){
         auto mp=server_.last_svid_msgs.find(it->svid);
-        if(mp==server_.last_svid_msgs.end() || mp->second->msid==server_.last_srvs_.nodes[it->svid].msid){ //SERVER used hash from previous block
-          if(!it->msid){
-            LOG("%04X SEND: %04X:00000000<-00000000 [%08X@%08X]\n",svid,it->svid,
-              server_.last_srvs_.nodes[it->svid].msid,server_.last_srvs_.now);}
-          else{
-            LOG("%04X SEND: %04X:%08X<-00000000 [%08X@%08X], SERVER NO CHANGES!\n",svid,it->svid,it->msid,
-              server_.last_srvs_.nodes[it->svid].msid,server_.last_srvs_.now);}
-          bzero(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),4+SHA256_DIGEST_LENGTH); //send 0 to indicate hash from last block
+        if(mp==server_.last_svid_msgs.end()){
+          svidmsidhash_t svmsha={it->svid,0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}};
+          memcpy(put_msg->data+i*sizeof(svidmsidhash_t),(const char*)&svmsha,sizeof(svidmsidhash_t));
+          LOG("%04X SEND: %04X:%08X->00000000 missed\n",svid,it->svid,it->msid);
           continue;}
+        svidmsidhash_t svmsha;
+        svmsha.svid=mp->first;
+        svmsha.msid=mp->second->msid;
+        memcpy(svmsha.sigh,mp->second->sigh,sizeof(hash_t));
+        memcpy(put_msg->data+i*sizeof(svidmsidhash_t),(const char*)&svmsha,sizeof(svidmsidhash_t));
         char sigh[2*SHA256_DIGEST_LENGTH];
-        ed25519_key2text(sigh,mp->second->sigh,SHA256_DIGEST_LENGTH);
-        LOG("%04X SEND: %04X:%08X<-%08X %.*s\n",svid,(int)(it->svid),it->msid,(int)(mp->second->msid),2*SHA256_DIGEST_LENGTH,sigh);
-        memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH),&mp->second->msid,4);
-        memcpy(put_msg->data+i*(4+SHA256_DIGEST_LENGTH)+4,mp->second->sigh,SHA256_DIGEST_LENGTH);}
+        ed25519_key2text(sigh,svmsha.sigh,SHA256_DIGEST_LENGTH);
+        LOG("%04X SEND: %04X:%08X->%08X %.*s\n",svid,it->svid,it->msid,svmsha.msid,2*SHA256_DIGEST_LENGTH,sigh);}
       put_msg->sent.insert(svid);
       put_msg->busy.insert(svid);
       assert(i==peer_changed);
@@ -1511,13 +1523,13 @@ Aborted
         boost::bind(&peer::send_ok,shared_from_this(),boost::asio::placeholders::error));}
     else{
       BLOCK_MODE_SERVER=3;}
-    if(svid_msid_serv_changed.size()>0){
+    if(svmsha_serv_changed.size()>0){
       //BLOCK_MODE_SERVER=3;
       // prepera buffer to read missing 
       free(read_msg_->data);
-      read_msg_->len=(4+SHA256_DIGEST_LENGTH)*svid_msid_serv_changed.size();
+      read_msg_->len=sizeof(svidmsidhash_t)*svmsha_serv_changed.size();
       read_msg_->data=(uint8_t*)malloc(read_msg_->len);
-      LOG("%04X WAITING for %lu hashes from PEER [len: %d]\n",svid,svid_msid_serv_changed.size(),read_msg_->len);
+      LOG("%04X WAITING for %lu hashes from PEER [len: %d]\n",svid,svmsha_serv_changed.size(),read_msg_->len);
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,read_msg_->len),
         boost::bind(&peer::read_peer_missing_hashes,shared_from_this(),boost::asio::placeholders::error));}
@@ -1530,12 +1542,12 @@ Aborted
     SHA256_Init(&sha256);
     for(std::map<uint16_t,msidhash_t>::iterator it=map.begin();it!=map.end();++it){
       if(!it->second.msid){
-        LOG("%04X HASH: %04X:00000000<-[%08X@%08X] no change, ignore\n",svid,it->first,
+        LOG("%04X HASH %04X:00000000<-%08X@%08X no change, ignore\n",svid,it->first,
           server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now);
         continue;}
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second.sigh,SHA256_DIGEST_LENGTH);
-      LOG("%04X HASH: %04X:%08X<-[%08X@%08X] %.*s\n",svid,(int)(it->first),(int)(it->second.msid),
+      LOG("%04X HASH %04X:%08X<-%08X@%08X %.*s\n",svid,(int)(it->first),(int)(it->second.msid),
         server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now,2*SHA256_DIGEST_LENGTH,sigh);
       SHA256_Update(&sha256,it->second.sigh,sizeof(hash_t));}
     SHA256_Final(mhash, &sha256);
@@ -1547,22 +1559,26 @@ Aborted
       server_.leave(shared_from_this());
       return;}
     svid_msha.clear();
-    for(std::map<uint16_t,message_ptr>::iterator it=server_.last_svid_msgs.begin();it!=server_.last_svid_msgs.end();++it){
+    for(auto it=server_.last_svid_msgs.begin();it!=server_.last_svid_msgs.end();++it){
       msidhash_t msha;
       msha.msid=it->second->msid;
       memcpy(msha.sigh,it->second->sigh,sizeof(hash_t));
-      LOG("%04X SERV %04X:%08X<-[%08X@%08X] start\n",svid,it->first,it->second->msid,
+      LOG("%04X SERV %04X:%08X<-%08X@%08X start\n",svid,it->first,it->second->msid,
         server_.last_srvs_.nodes[it->first].msid,server_.last_srvs_.now);
       svid_msha[it->first]=msha;}
     //LOG("%04X PEER read peer missing hashes (svid_msha.size=%d)\n",svid,(int)svid_msha.size());
 
     // newer hashes from peer
-    assert(!svid_msid_serv_changed.size() || read_msg_->data!=NULL);
+    assert(!svmsha_serv_changed.size() || read_msg_->data!=NULL);
     int i=0;
-    for(auto it=svid_msid_serv_changed.begin();it!=svid_msid_serv_changed.end();++it,i++){
+    for(auto it=svmsha_serv_changed.begin();it!=svmsha_serv_changed.end();++it,i++){
+      svidmsidhash_t svmsha;
+      memcpy(&svmsha,read_msg_->data+sizeof(svidmsidhash_t)*i,sizeof(svidmsidhash_t));
       msidhash_t msha;
-      memcpy(&msha.msid,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH),4);
-      memcpy(msha.sigh,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH)+4,SHA256_DIGEST_LENGTH);
+      msha.msid=svmsha.msid;
+      memcpy(msha.sigh,svmsha.sigh,sizeof(hash_t));
+      //memcpy(&msha.msid,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH),4);
+      //memcpy(msha.sigh,read_msg_->data+i*(4+SHA256_DIGEST_LENGTH)+4,SHA256_DIGEST_LENGTH);
       svid_msha[it->svid]=msha;
       //if(msha.msid){
       //  svid_msha[it->svid]=msha;}
@@ -1573,21 +1589,21 @@ Aborted
       LOG("%04X SERV %04X:%08X<-%08X missed  %.*s\n",svid,it->svid,msha.msid,it->msid,2*SHA256_DIGEST_LENGTH,hash);}
 
     // other peer changes
-    for(auto it=svid_msid_peer_changed.begin();it!=svid_msid_peer_changed.end();++it){
+    for(auto it=svmsha_peer_changed.begin();it!=svmsha_peer_changed.end();++it){
       if(!it->msid){
         msidhash_t msha;
         bzero(&msha,sizeof(msidhash_t)); //send 0 to indicate hash from last block
         svid_msha[it->svid]=msha;
         LOG("%04X PEER %04X:00000000<-xxxxxxxx changed\n",svid,it->svid);
         continue;}
-      message_ptr pm=server_.message_svidmsid(it->svid,it->msid);
-      if(pm==NULL){
-        LOG("%04X PEER %04X:%08X<-xxxxxxxx changed, MISSING PEER HASH!\n",svid,it->svid,it->msid);
-        //server_.leave(shared_from_this()); // do not die yet
-        continue;}
+      //message_ptr pm=server_.message_svidmsid(it->svid,it->msid);
+      //if(pm==NULL){
+      //  LOG("%04X PEER %04X:%08X<-xxxxxxxx changed, MISSING PEER HASH!\n",svid,it->svid,it->msid);
+      //  //server_.leave(shared_from_this()); // do not die yet
+      //  continue;}
       msidhash_t msha;
-      msha.msid=pm->msid;
-      memcpy(msha.sigh,pm->sigh,sizeof(hash_t));
+      msha.msid=it->msid;
+      memcpy(msha.sigh,it->sigh,sizeof(hash_t));
       svid_msha[it->svid]=msha;
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,msha.sigh,SHA256_DIGEST_LENGTH);
@@ -1818,10 +1834,10 @@ private:
   //uint8_t oldhash[SHA256_DIGEST_LENGTH]; //used in authentication
   uint8_t last_message_hash[SHA256_DIGEST_LENGTH]; //used in block building
   // block hash of messages
-  uint16_t peer_changed;
-  std::vector<svidmsid_t> svid_msid_serv_changed;
-  std::vector<svidmsid_t> svid_msid_peer_changed;
   std::map<uint16_t,uint32_t> svid_msid_new; // highest msid for each svid known to peer or server
+  uint16_t peer_changed;
+  std::vector<svidmsidhash_t> svmsha_serv_changed;
+  std::vector<svidmsidhash_t> svmsha_peer_changed;
   std::map<uint16_t,msidhash_t> svid_msha; // peer last hash status
   hash_s peer_cand; // candidate by peer
   uint8_t BLOCK_MODE_ERROR;

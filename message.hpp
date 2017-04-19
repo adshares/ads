@@ -14,16 +14,20 @@ typedef struct handshake_s { //maybe this should be just header_t + peer_msid
 	uint32_t msid; // peer msid
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
 } handshake_t;
-#pragma pack()
-
-typedef struct svidmsid_s {
+//typedef struct svidmsid_s {
+//	uint16_t svid;
+//	uint32_t msid;
+//} svidmsid_t;
+typedef struct svidmsidhash_s {
 	uint16_t svid;
 	uint32_t msid;
-} svidmsid_t;
+	hash_t sigh;
+} svidmsidhash_t;
 typedef struct msidhash_s {
 	uint32_t msid;
 	hash_t sigh;
 } msidhash_t;
+#pragma pack()
 
 class message :
   public boost::enable_shared_from_this<message>

@@ -680,8 +680,8 @@ public:
     for(std::map<uint16_t,message_ptr>::iterator it=map.begin();it!=map.end();++it){
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second->sigh,SHA256_DIGEST_LENGTH);
-      LOG("SHASH: %04X:%08X<-[%08X] %.*s\n",it->first,it->second->msid,
-        last_srvs_.nodes[it->first].msid,2*SHA256_DIGEST_LENGTH,sigh);
+      LOG("____ HASH %04X:%08X<-%08X@%08X %.*s\n",it->first,it->second->msid,
+        last_srvs_.nodes[it->first].msid,last_srvs_.now,2*SHA256_DIGEST_LENGTH,sigh);
       // do not hash messages from ds_server
       SHA256_Update(&sha256,it->second->sigh,4*sizeof(uint64_t));}
     SHA256_Final(mhash, &sha256); // std::cerr << "message_shash\n";
