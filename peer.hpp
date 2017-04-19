@@ -1626,11 +1626,11 @@ Aborted
       return;}
     else{
       LOG("%04X HASH server check OK (%X)\n",svid,BLOCK_MODE_ERROR);
-#if BLOCKSEC == 0x20
-      if(opts_.svid==4 && !BLOCK_MODE_ERROR){ //check this backup protocoll
-        BLOCK_MODE_ERROR|=1;
-        LOG("%04X HASH server check overwrite to ERROR (%X)\n",svid,BLOCK_MODE_ERROR);}
-#endif
+//#if BLOCKSEC == 0x20
+//      if(opts_.svid==4 && !BLOCK_MODE_ERROR){ //check this backup protocoll
+//        BLOCK_MODE_ERROR|=1;
+//        LOG("%04X HASH server check overwrite to ERROR (%X)\n",svid,BLOCK_MODE_ERROR);}
+//#endif
       }
     message_ptr put_msg(new message());
     assert(put_msg->len==message::header_length);
