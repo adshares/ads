@@ -638,7 +638,8 @@ public:
       return(0);}
     uint32_t path;
     uint32_t svid;
-    fscanf(fp,"%X %X %X",&msid_,&path,&svid);
+    uint64_t *h=(uint64_t*)&msha_;
+    fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+0,h+1,h+2,h+3);
     fclose(fp);
     if(svid!=(uint32_t)opts_.svid){
       throw("FATAL ERROR: failed to read correct svid from msid.txt\n");}
@@ -650,19 +651,10 @@ public:
   { FILE* fp=fopen("msid.txt","w");
     if(fp==NULL){
       throw("FATAL ERROR: failed to write to msid.txt\n");}
-    fprintf(fp,"%08X %08X %04X\n",msid_,last_srvs_.now,opts_.svid);
+    uint64_t *h=(uint64_t*)&msha_;
+    fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[0],h[1],h[2],h[3]);
     fclose(fp);
   }
-
-  //move this to message
-  /*void svid_msha_set(std::map<uint16_t,message_ptr>& map) // not needed probably
-  { svid_msha.clear();
-    for(std::map<uint16_t,message_ptr>::iterator it=map.begin();it!=map.end();++it){
-      msidhash_t msha;
-      msha.msid=it->second->msid;
-      memcpy(msha.sigh,it->second->sigh,sizeof(hash_t));
-      svid_msha[it->first]=msha;}
-  }*/
 
   void clean_last_svid_msgs(std::map<uint16_t,message_ptr>& map)
   { for(std::map<uint16_t,message_ptr>::iterator jt=map.begin();jt!=map.end();){
@@ -766,6 +758,9 @@ public:
   void prepare_poll() // select CANDIDATE_MAX candidates and VOTES_MAX electors
   { 
     cand_.lock();
+    uint32_t electors_old=electors.size();
+    electors.clear(); // maybe remember old status
+    candidates_.clear();
     votes_max=0.0;
     do_vote=0;
     //FIXME, this should be moved to servers.hpp
@@ -777,8 +772,8 @@ public:
          (srvs_.nodes[it->second->svid].status & SERVER_DBL)){
         int a=(int)(!(it->second->status & MSGSTAT_VAL));
         int b=(int)(srvs_.nodes[it->second->svid].status & SERVER_DBL);
-        LOG("ELECTOR blk ignor %04X (%08X<>%08X||%d||%d)\n",
-          it->second->svid,it->second->msid,srvs_.now-BLOCKSEC,a,b);
+        LOG("ELECTOR blk ignor %04X (%08X<>%08X||%s||%s)\n",
+          it->second->svid,it->second->msid,srvs_.now-BLOCKSEC,(a?"invalid block":""),(b?"double spend":""));
         continue;}
       LOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
       svid_rset.insert(it->second->svid);}
@@ -797,6 +792,11 @@ public:
       votes_max+=srvs_.nodes[svid_rank[j]].weight;}
     winner=NULL;
     LOG("ELECTOR max:%016lX\n",votes_max);
+#if BLOCKSEC == 0x20
+    if(electors.size()<electors_old){
+      LOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
+      exit(-1);}
+#endif
     cand_.unlock();
   }
 
@@ -983,6 +983,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         osg->update(msg);
         osg->path=osg->msid; // this is the block time!!!
         cnd_.unlock();
+        if(osg->msid>srvs_.now){
+          LOG("ERROR, cnd message %04X:%08X to early :-(, keep in missing_msgs_\n",osg->svid,osg->msid);
+          return(0);}
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, do not exit !!! return fail
           std::cerr << "ERROR, message save failed, abort server\n";
@@ -1040,7 +1043,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         blk_.unlock();
         missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, save where ???, check legal time !!!
-          std::cerr << "ERROR, message save failed, abort server\n";
+          LOG("ERROR, message save failed, abort server\n");
           return(-1);}
         blk_.lock();
         if(it!=blk_msgs_.begin()){
@@ -1055,7 +1058,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(nxt!=NULL && nxt!=it->second && nxt->len>message::header_length && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(nxt,osg); // should copy messages from this server to ds_msgs_
           return(1);}
-        std::cerr << "DEBUG, storing blk message\n";
+        LOG("DEBUG, storing blk message from %04X\n",osg->svid);
         blk_validate(osg);
         return(1);}
       else{ // update info about peer inventory
@@ -1072,7 +1075,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       msg->path=msg->msid; // this is the block time!!!
       blk_.unlock();
       assert(msg->peer==msg->svid);
-      std::cerr << "DEBUG, storing own blk message\n";
+      LOG("DEBUG, storing own blk message\n");
       msg->save(); //FIXME, time !!!
       blk_validate(msg);
       return(1);}
@@ -1080,7 +1083,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
       blk_.unlock();
-      std::cerr << "DEBUG, storing peer's blk message\n";
+      LOG("DEBUG, storing peer's %04X blk message\n",msg->svid);
       msg->save(); //FIXME, time !!!
       blk_validate(msg);
       return(1);}
@@ -1189,9 +1192,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       return(-1);}
   }
 
-  void cnd_validate(message_ptr msg)
-  {
-    std::cerr << "CANDIDATE test\n";
+  void cnd_validate(message_ptr msg) //FIXME, check timing !!!
+  { if(msg->msid<srvs_.now){
+      LOG("ERROR dropping old candidate message %04X:%08X\n",msg->svid,msg->msid);
+      return;}
+    LOG("CANDIDATE test\n");
     msg->status=MSGSTAT_VAL; // all can vote
     cand_.lock();
     if(electors.find(msg->svid)==electors.end()){ //FIXME, electors should have assigned rank when building poll
@@ -1262,23 +1267,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   void validator(void)
   {
     while(do_validate){
-      //LOG("VALIDATOR\n");
       check_.lock(); //TODO this should be a lock for check_msgs_ only maybe
       if(check_msgs_.empty()){
         check_.unlock();
-        //look for missing messages
-        //std::cerr << "VALIDATOR housekeeping\n";
         uint32_t now=time(NULL);
 	message_queue tmp_msgs_;
 	missing_.lock();
 	for(auto mj=missing_msgs_.begin();mj!=missing_msgs_.end();){
           //FIXME, request _BLK messages if BLOCK ready 
           auto mi=mj++;
-          if(mi->second->hash.dat[1]==MSGTYPE_BLK){ //FIXME, consider checking mi->first
+          if(mi->second->hash.dat[1]==MSGTYPE_BLK || mi->second->hash.dat[1]==MSGTYPE_CND){ //FIXME, consider checking mi->first
             if(mi->second->msid<last_srvs_.now-BLOCKSEC){
+              LOG("DEBUG, ERASING MISSING MESSAGE %04X:%08X\n",mi->second->svid,mi->second->msid);
               missing_msgs_.erase(mi);
               continue;}
-            if(now>mi->second->got+MAX_MSGWAIT && mi->second->msid<=last_srvs_.now){
+            if(now>mi->second->got+MAX_MSGWAIT && mi->second->msid<=srvs_.now){
               tmp_msgs_.push_back(mi->second);}}
           else{
             if(mi->second->msid<srvs_.nodes[mi->second->svid].msid){
@@ -1343,9 +1346,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           msg->status=MSGSTAT_VAL;
           svid_.lock();
           node* nod=&srvs_.nodes[msg->svid];
-          nod->msid=msg->msid;
-          nod->mtim=msg->now;
-          memcpy(nod->msha,msg->sigh,sizeof(hash_t));
+          if(msg->svid!=opts_.svid){
+            nod->msid=msg->msid;
+            nod->mtim=msg->now;
+            memcpy(nod->msha,msg->sigh,sizeof(hash_t));}
+          else{
+            mtx_.lock();
+            nod->msid=msg->msid;
+            nod->mtim=msg->now;
+            memcpy(nod->msha,msg->sigh,sizeof(hash_t));
+            mtx_.unlock();}
           svid_msgs_[msg->svid]=msg;
           svid_.unlock();
           uint32_t now=time(NULL);
@@ -1360,6 +1370,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           //TODO, inform peer if peer==author;
           std::cerr<<"ERROR, have invalid message !!!\n";
           exit(-1);}
+        if(msg->path<srvs_.now){
+          LOG("MOVING message %04X:%08X to %08X/\n",msg->svid,msg->msid,srvs_.now);
+          msg->move(srvs_.now);}
         msg->unload(0);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
@@ -1551,9 +1564,16 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     uint32_t users=msg->load_undo(undo,csum,weight,fee,msha,mtim);
     srvs_.nodes[msg->svid].weight-=weight;
     bank_fee[msg->svid]-=fee;
-    srvs_.nodes[msg->svid].msid=msg->msid-1; //LESZEK ADDED assuming message exists
+    //FIXME, check write_message timing conflict if this is our own message
     srvs_.xor4(srvs_.nodes[msg->svid].hash,csum);
-    memcpy(srvs_.nodes[msg->svid].msha,msha,SHA256_DIGEST_LENGTH);
+    if(msg->svid!=opts_.svid){
+      srvs_.nodes[msg->svid].msid=msg->msid-1; //LESZEK ADDED assuming message exists
+      memcpy(srvs_.nodes[msg->svid].msha,msha,SHA256_DIGEST_LENGTH);}
+    else{
+      mtx_.lock();
+      srvs_.nodes[msg->svid].msid=msg->msid-1; //LESZEK ADDED assuming message exists
+      memcpy(srvs_.nodes[msg->svid].msha,msha,SHA256_DIGEST_LENGTH);
+      mtx_.unlock();}
     srvs_.nodes[msg->svid].mtim=mtim;
     //this could be a srvs_.function()
     LOG("UNDO USERS:%08X\n",users);
@@ -2659,7 +2679,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       //memcpy(nod->msha,it->second->sigh,sizeof(hash_t)); //TODO, it should be in the nodes already
       ////setting nod->hash is missing here
       ed25519_key2text(hash,it->second->sigh,sizeof(hash_t));
-      LOG("DELTA: %d %d %.*s\n",it->first,it->second->msid,(int)(2*sizeof(hash_t)),hash);
+      //LOG("DELTA: %04X:%08X %.*s\n",it->first,it->second->msid,(int)(2*sizeof(hash_t)),hash);
       fprintf(fp,"%d %d %.*s\n",it->first,it->second->msid,(int)(2*sizeof(hash_t)),hash);}
     // confirm hash;
     hash_s last_block_message;
@@ -2673,7 +2693,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         exit(-1);}
       cand_.unlock();}
     ed25519_key2text(hash,last_block_message.hash,sizeof(hash_t));
-    LOG("DELTA: 0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
+    LOG("____ HASH ....:........<-........@%08X %.*s\n",srvs_.now,(int)(2*sizeof(hash_t)),hash);
     fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fclose(fp); //TODO consider updating peers about correct block msgs hash
 
@@ -2691,16 +2711,6 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     txs_.lock();
     for(auto mj=txs_msgs_.begin();mj!=txs_msgs_.end();){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
       auto mi=mj++;
-      if(mi->second->path>0 && mi->second->path<srvs_.now){
-        LOG("ERASE message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
-        mi->second->remove_undo();
-        txs_msgs_.erase(mi); // forget old messages
-        continue;}
-      if(mi->second->path==0 && mi->second->len==message::header_length &&
-         mi->second->msid<last_srvs_.nodes[mi->second->svid].msid){
-        LOG("CLEAN JUNK message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
-        txs_msgs_.erase(mi); // forget old messages
-        continue;}
       if(nsvid!=mi->second->svid){
         remove=0;
         nsvid=mi->second->svid;
@@ -2713,8 +2723,22 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           maxmsid=0;}
         else{
           maxmsid=lbsm->second->msid;}
-        LOG("RANGE %d %d %d\n",nsvid,minmsid,maxmsid);
+        LOG("RANGE %04X %08X %08X\n",nsvid,minmsid,maxmsid);
         fprintf(fp,"RANGE %d %d %d\n",nsvid,minmsid,maxmsid);}
+      if(mi->second->path>0 && mi->second->path<srvs_.now){
+        if(mi->second->msid>=minmsid){
+          LOG("MOVING message %04X:%08X to %08X/ LATE !!!\n",mi->second->svid,mi->second->msid,srvs_.now);
+          mi->second->move(srvs_.now);} // oops we had this message in old block :-(
+        else{
+          LOG("ERASE message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
+          mi->second->remove_undo();
+          txs_msgs_.erase(mi); // forget old messages
+          continue;}}
+      if(mi->second->path==0 && mi->second->len==message::header_length &&
+         mi->second->msid<last_srvs_.nodes[mi->second->svid].msid){
+        LOG("CLEAN JUNK message %04X:%08X [len:%d]\n",mi->second->svid,mi->second->msid,mi->second->len);
+        txs_msgs_.erase(mi); // forget old messages
+        continue;}
       if(maxmsid==0xffffffff && mi->second->msid<0xffffffff){ // remove messages from dbl_spend server
         LOG("REMOVE message %04X:%08X later! (DBL-spend server)\n",nsvid,mi->second->msid);
         remove_msgs.push(mi->second);
@@ -2770,7 +2794,7 @@ exit(-1);
         commit_msgs.push_back(mi->second);
         last_block_all_msgs[txcount]=mi->second;
         ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-        LOG("BLOCK: %d %d %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+        LOG("BLOCK: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
         fprintf(fp,"%d %d %.*s\n",nsvid,mi->second->msid,(int)(2*sizeof(hash_t)),hash);}}
     txs_.unlock();
     srvs_.msg=last_block_all_msgs.size();
@@ -2857,21 +2881,28 @@ exit(-1);
   }
 
   uint32_t write_message(std::string line) // assume single threaded
-  { static boost::mutex mtx_;
-    mtx_.lock(); //FIXME, probably no lock needed
-    int msid=++msid_; // can be atomic
-    mtx_.unlock();
+  { //FIXME !!! wrong msha !!!
+    mtx_.lock();
+    if(srvs_.nodes[opts_.svid].msid!=msid_){
+      LOG("ERROR, wrong network msid, postponing message write\n");
+      mtx_.unlock();
+      return(0);}
+    memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
     // add location info. FIXME, set location to 0 before exit
     usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
     line.append((char*)txs.data,txs.size);
-    message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,srvs_.nodes[opts_.svid].msha));
+    int msid=++msid_; // can be atomic
+    message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
+    memcpy(msha_,msg->sigh,sizeof(hash_t));
     //if(!msg->save()){
     //  LOG("ERROR, failed to save own message %08X, fatal\n",msid);
     //  exit(-1);}
     if(!txs_insert(msg)){
-      std::cerr << "FATAL message insert error for own message, dying !!!\n";
+      mtx_.unlock();
+      LOG("FATAL message insert error for own message, dying !!!\n");
       exit(-1);}
     writemsid();
+    mtx_.unlock();
     return(msid_);
     //update(msg);
   }
@@ -3032,10 +3063,15 @@ exit(-1);
     //recycle office message queue
     std::string line;
     if(ofip_get_msg(msid_+1,line)){
-      LOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
-      write_message(line);
       while(msid_>srvs_.nodes[opts_.svid].msid){
         LOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+        boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      LOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
+      if(!write_message(line)){
+        LOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
+        exit(-1);}
+      while(msid_>srvs_.nodes[opts_.svid].msid){
+        LOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
         boost::this_thread::sleep(boost::posix_time::seconds(1));}
       ofip_del_msg(msid_);}
     //must do this after recycling messages !!!
@@ -3070,10 +3106,6 @@ exit(-1);
         svid_msgs_.clear();
         //svid_msha_set(last_svid_msgs); // this is not needed probably
         svid_.unlock();
-        cand_.lock();
-        electors.clear();
-        candidates_.clear();
-        cand_.unlock();
         message_shash(cand.hash,last_svid_msgs);
         { message_ptr put_msg(new message(1+SHA256_DIGEST_LENGTH));
           put_msg->data[0]=MSGTYPE_STP;
@@ -3083,9 +3115,9 @@ exit(-1);
           LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
         }
+        prepare_poll(); // sets do_vote, clears candidates and electors
         std::map<uint16_t,msidhash_t> changed; // could be also svid_msha
-        save_candidate(cand,changed,opts_.svid);
-        prepare_poll(); // sets do_vote
+        save_candidate(cand,changed,opts_.svid); // do after prepare_poll
         do_block=1;
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
@@ -3252,6 +3284,7 @@ private:
   boost::mutex cnd_;
   boost::mutex blk_;
   boost::mutex dbl_;
+  boost::mutex mtx_; //lock msid_ msha_ changes
   //boost::mutex gupstack_;
   // voting
   std::map<uint16_t,uint64_t> electors;
@@ -3274,6 +3307,7 @@ private:
   int64_t myusr_fee; // just to record the local TXS_DIV_FEE bank income
   int64_t myget_fee; // just to record the local TXS_DIV_FEE bank income
   uint32_t period_start; //start time of this period
+  hash_t msha_;
 };
 
 #endif // SERVER_HPP

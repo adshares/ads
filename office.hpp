@@ -316,8 +316,10 @@ public:
         continue;}
       message_.lock();
       uint32_t newmsid=srv_.msid_+1;
-      std::cerr<<"SENDING new message (old msid:"<<srv_.msid_<<")\n";
-      srv_.write_message(message);
+      LOG("SENDING message %08X\n",newmsid);
+      if(!srv_.write_message(message)){
+        LOG("ERROR sending message %08X\n",newmsid);
+        continue;}
       message.clear();
       message_.unlock();
       del_msg(newmsid);

@@ -14,10 +14,6 @@ typedef struct handshake_s { //maybe this should be just header_t + peer_msid
 	uint32_t msid; // peer msid
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
 } handshake_t;
-//typedef struct svidmsid_s {
-//	uint16_t svid;
-//	uint32_t msid;
-//} svidmsid_t;
 typedef struct svidmsidhash_s {
 	uint16_t svid;
 	uint32_t msid;
@@ -28,6 +24,10 @@ typedef struct msidhash_s {
 	hash_t sigh;
 } msidhash_t;
 #pragma pack()
+//typedef struct svidmsid_s {
+//	uint16_t svid;
+//	uint32_t msid;
+//} svidmsid_t;
 
 class message :
   public boost::enable_shared_from_this<message>
@@ -241,8 +241,8 @@ public:
   { hash.dat[1]=type;
   }
 
-  uint8_t hashtype(void)
-  { return hash.dat[1];
+  uint8_t hashtype()
+  { return((uint8_t)hash.dat[1]);
   }
 
   uint8_t hashval(uint16_t mysvid)
@@ -515,17 +515,11 @@ public:
     return(1); //return error
   }
 
-  void print_text(const char* suffix) const
+  void print_text(const char* suffix)
   { assert(data!=NULL);
-    char hash[16];
-    ed25519_key2text((char*)hash,sigh,8);
-    LOG("%04X [%04X:%08X] [l:%d] (%08X) %.16s %s\n",peer,svid,msid,len,now,hash,suffix);
-    //if(len>4+64+10){
-    //  if(data[4+64+10]==TXSTYPE_BRO){
-    //    uint32_t mlen;
-    //    memcpy(&mlen,data+4+64+10+1,3);
-    //    std::cerr.write((char*)data+4+64+10+4,mlen);}} //TODO, print more data
-    //std::cout << " " << suffix << "\n";
+    char text[16];
+    ed25519_key2text((char*)text,sigh,8);
+    LOG("%04X [%04X:%08X] [l:%d] (%08X) %.16s blk/%03X/%05X/%02x_%04x_%08x.msg %s\n",peer,svid,msid,len,now,text,path>>20,path&0xFFFFF,hashtype(),svid,msid,suffix);
   }
 
   void print(const char* suffix) const
