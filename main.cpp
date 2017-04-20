@@ -115,10 +115,10 @@ void server::leave(peer_ptr p)
 {	peer_.lock();
 	if(peers_.find(p)!=peers_.end()){
 		missing_sent_remove(p->svid);
-		p->stop();
 		peers_.erase(p);}
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
 	peer_.unlock();
+	p->stop();
 }
 void server::disconnect(uint16_t svid)
 {	peer_.lock();
