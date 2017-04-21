@@ -997,6 +997,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           it++;}
         if((++it)!=cnd_msgs_.end()){
           nxt=it->second;}
+        it--;
         cnd_.unlock();
         if(pre!=NULL && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
@@ -1052,6 +1053,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           it++;}
         if((++it)!=blk_msgs_.end()){
           nxt=it->second;}
+        it--;
         blk_.unlock();
         if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
           create_double_spend_proof(pre,osg); // should copy messages from this server to ds_msgs_
@@ -1128,6 +1130,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             it++;}
           if((++it)!=txs_msgs_.end()){
             nxt=it->second;}
+          it--;
           txs_.unlock();
           if(pre!=NULL && pre!=it->second && pre->len>message::header_length && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(osg->hash.num&0xFFFFFFFFFFFF0000L)){
             LOG("HASH insert:%016lX (TXS) [len:%d] DOUBLE SPEND!\n",osg->hash.num,osg->len);
