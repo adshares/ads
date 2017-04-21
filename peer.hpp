@@ -4,10 +4,10 @@
 class peer : public boost::enable_shared_from_this<peer>
 {
 public:
-  //peer(boost::asio::io_service& io_service,server& srv,bool in,servers& srvs,options& opts) :
   peer(server& srv,bool in,servers& srvs,options& opts) :
       svid(0),
       do_sync(1), //remove, use peer_hs.do_sync
+      killme(false),
       peer_io_service_(),
       work_(peer_io_service_),
       socket_(peer_io_service_),
@@ -23,74 +23,82 @@ public:
       bytes_in(0),
       BLOCK_MODE_ERROR(0),
       BLOCK_MODE_SERVER(0),
-      BLOCK_MODE_PEER(0),
-      io_on(false),
-      myself(NULL)
+      BLOCK_MODE_PEER(0)
   { read_msg_ = boost::make_shared<message>();
-    //std::cerr << "Client create\n";
-    //iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+    iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
 
   ~peer()
-  { if(io_on){
-      LOG("%04X PEER IO still on :-(\n",svid);
-      peer_io_service_.stop();
-      socket_.close();
-      //socket_.release(NULL);
-      //iothp_->interrupt();
-      //boost::this_thread::sleep(boost::posix_time::seconds(1));
-      //iothp_->join(); // try joining yourself error
-      }
-    if(port||1){
+  { if(port||1){
       uint32_t ntime=time(NULL);
-      //LOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
       fprintf(stderr,"%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
       }
-//#if BLOCKSEC == 0x20
-//    if(server_.known_elector(svid)){ //TEST connection death
-//      //sleep(2);
-//      //boost::this_thread::sleep(boost::posix_time::seconds(1));
-//      exit(-1);}
-//#endif
-  }
-
-  void iostart()
-  { myself=shared_from_this();
-    io_on=true;
-    iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
 
   void iorun()
   { LOG("%04X PEER IORUN START\n",svid);
     try{
-//    boost::this_thread::sleep(boost::posix_time::seconds(1));
-      //myself=shared_from_this(); //FIXME, this dies if peer_ptr not created yet :-(
-      //std::cerr << "Peer.Service.Run starting\n";
       peer_io_service_.run();
-      //std::cerr << "Peer.Service.Run finished\n\n\n";
       } //Now we know the server is down.
     catch (std::exception& e){
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
-      //std::cerr << "Peer.Service.Run error: " << e.what() << "\n";
-      LOG("%04X PERR Service.Run error:%s\n",svid,e.what());
-      server_.leave(myself);}
-    io_on=false;
+      LOG("%04X PERR IORUN Service.Run error:%s\n",svid,e.what());
+      killme=true;}
     LOG("%04X PEER IORUN END\n",svid);
-    if(myself!=NULL){
-      LOG("%04X PEER IORUN END, finish\n",svid);
-      myself.reset();}
   }
 
-  void stop()
-  { 
-    LOG("%04X PEER END\n",svid);
+  void stop() // by server only
+  { LOG("%04X PEER KILL\n",svid);
     peer_io_service_.stop();
+    //LOG("%04X PEER INTERRUPT\n",svid);
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    iothp_->interrupt();
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    //LOG("%04X PEER JOIN\n",svid);
+    iothp_->join(); //try joining yourself error
+    //LOG("%04X PEER CLOSE\n",svid);
     socket_.close();
     //socket_.release(NULL);
-    //iothp_->interrupt();
-    //boost::this_thread::sleep(boost::posix_time::seconds(1));
-    //iothp_->join(); try joining yourself error
+  }
+
+  void leave()
+  { LOG("%04X PEER LEAVING\n",svid);
+    killme=true;
+  }
+
+  void accept() //only incoming connections
+  { assert(incoming_);
+    addr = socket_.remote_endpoint().address().to_string();
+    port = socket_.remote_endpoint().port();
+    LOG("%04X PEER CONNECT OK %s:%d\n",svid,
+      socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
+    boost::asio::async_read(socket_,
+      boost::asio::buffer(read_msg_->data,message::header_length),
+      boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+  }
+
+  void connect(const boost::system::error_code& error) //only outgoing connection
+  { if(error){
+      LOG("%04X PEER ACCEPT ERROR\n",svid);
+      killme=true;
+      return;}
+    assert(!incoming_);
+    addr = socket_.remote_endpoint().address().to_string();
+    port = socket_.remote_endpoint().port();
+    LOG("%04X PEER ACCEPT OK %s:%d\n",svid,
+      socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
+    message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
+    msg->know.insert(svid);
+    msg->sent.insert(svid);
+    msg->busy.insert(svid);
+    msg->print(" HANDSHAKE");
+    write_msgs_.push_back(msg);
+    boost::asio::async_write(socket_,boost::asio::buffer(msg->data,msg->len),
+      boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
+    boost::asio::async_read(socket_,
+      boost::asio::buffer(read_msg_->data,message::header_length),
+      boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
   }
 
   boost::asio::ip::tcp::socket& socket()
@@ -102,40 +110,6 @@ public:
       LOG("%04X Client on     %s:%d\n",svid,addr.c_str(),port);} //LESZEK
     else{
       LOG("%04X Client available\n",svid);}
-  }
-
-  void accept(const boost::system::error_code& error)
-  { if(error){
-      LOG("%04X PEER ACCEPT ERROR\n",svid);
-      stop();
-      return;}
-    LOG("%04X PEER ACCEPT OK\n",svid);
-    start();
-  }
-
-  void start()
-  { 
-    LOG("%04X PEER START\n",svid);
-    //iothp_= new boost::thread(boost::bind(&peer::iorun,this));
-    addr = socket_.remote_endpoint().address().to_string();
-    //ipv4 = socket_.remote_endpoint().address().to_v4().to_ulong();
-    port = socket_.remote_endpoint().port();
-    server_.join(shared_from_this());
-    if(incoming_){
-      LOG("%04X Client joined %s:%d\n",svid,
-        socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());}
-    else{
-      LOG("%04X Joining server %s:%d\n",svid,
-        socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
-      //message_ptr msg=server_.write_handshake(ipv4,port,0,0);
-      // send naive handshake message
-      message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
-      msg->print("; start");
-      send_sync(msg);}
-    // read authentication data, maybe start with (synchronous?) authenticate()
-    boost::asio::async_read(socket_,
-        boost::asio::buffer(read_msg_->data,message::header_length),
-        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
   }
 
   void update(message_ptr msg)
@@ -368,18 +342,19 @@ Aborted
       mtx_.unlock(); }
     else {
       LOG("%04X WRITE error %d %s\n",svid,error.value(),error.message().c_str());
-      server_.leave(shared_from_this()); }
+      leave();
+      return;}
   }
 
   void handle_read_header(const boost::system::error_code& error)
   {
     if(error){
       LOG("%04X READ error %d %s (HEADER)\n",svid,error.value(),error.message().c_str());
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(!read_msg_->header(svid)){
       LOG("%04X READ header error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     bytes_in+=read_msg_->len;
     files_in++;
@@ -387,7 +362,7 @@ Aborted
     if(read_msg_->len==message::header_length){
       if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid){ //unknown svid
         LOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
         LOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
@@ -481,7 +456,7 @@ Aborted
         int n=read_msg_->data[0];
         //std::cerr << "ERROR message type " << std::to_string(n) << "received \n";
         LOG("%04X ERROR message type %02X received\n",svid,n);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
@@ -559,7 +534,7 @@ Aborted
       linkservers.now=from;
       if(!linkservers.header_get()){
 	LOG("%04X ERROR, failed to provide header links\n",svid);
-        server_.leave(shared_from_this()); // consider updating client
+        leave(); // consider updating client
         return;}
       put_msg->data[0]=MSGTYPE_NHD;
       memcpy(put_msg->data+1,&from,4);
@@ -572,7 +547,7 @@ Aborted
     if(num<=0){
       //std::cerr<<"ERROR, failed to provide correct request (from:"<<from<<" to:"<<to<<")\n";
       LOG("%04X ERROR, failed to provide correct request (from:%08X to:%08X)\n",svid,from,to);
-      server_.leave(shared_from_this()); // consider updateing client
+      leave(); // consider updateing client
       return;}
     //std::cerr<<"SENDING block headers starting after "<<from<<" and ending before "<<to<<" ("<<num<<")\n"; 
     LOG("%04X SENDING block headers starting after %08X and ending before %08X (num:%d)\n",svid,from,to,num); 
@@ -584,7 +559,7 @@ Aborted
       linkservers.now=now;
       if(!linkservers.header_get()){
 	LOG("%04X ERROR, failed to provide header links\n",svid);
-        server_.leave(shared_from_this()); // consider updateing client
+        leave(); // consider updateing client
         return;}
       if(now==from+BLOCKSEC){
 	memcpy(data,(const char*)linkservers.oldhash,SHA256_DIGEST_LENGTH);
@@ -624,11 +599,11 @@ Aborted
   void handle_next_header(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR reading next headers\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     //if(read_msg_->len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)+8)){
     //  std::cerr << "READ next headers error\n";
-    //  server_.leave(shared_from_this());
+    //  leave();
     //  return;}
     uint32_t from;
     memcpy(&from,read_msg_->data+1,4);
@@ -644,9 +619,9 @@ Aborted
       LOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,next_nowhash,SHA256_DIGEST_LENGTH);
       LOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-      server_.leave(shared_from_this());
+      leave();
       std::cerr << "\nMaybe start syncing from an older block (peer will disconnect)\n\n";
-      server_.leave(shared_from_this());
+      leave();
       return;}*/
     server_.peer_.lock();
     if(server_.headers.back().now==from-BLOCKSEC &&
@@ -691,7 +666,7 @@ Aborted
       if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1))){
         LOG("%04X READ headers error\n",svid);
         free(data);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       //if(memcmp(data,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
       //  std::cerr << "ERROR, initial oldhash mismatch :-(\n";
@@ -701,7 +676,7 @@ Aborted
       //  ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
       //  LOG("%04X OLDHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       //  free(data);
-      //  server_.leave(shared_from_this());
+      //  leave();
       //  return;}
       char* d=data+SHA256_DIGEST_LENGTH;
       //reed hashes and compare
@@ -722,12 +697,12 @@ Aborted
         LOG("%04X NOWHASH nowhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
         LOG("%04X NOWHASH oldhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-        server_.leave(shared_from_this());
+        leave();
         return;}}
     headers[num-1].loadhead(peer_hs.head);
     //if(memcmp(headers[num-1].nowhash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
     //  std::cerr << "ERROR, hashing header chain end :-(\n";
-    //  server_.leave(shared_from_this());
+    //  leave();
     //  return;}
     if(memcmp(headers[0].oldhash,sync_ls.nowhash,SHA256_DIGEST_LENGTH)){
       LOG("%04X ERROR, initial oldhash mismatch :-(\n",svid);
@@ -736,7 +711,7 @@ Aborted
       LOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,sync_ls.nowhash,SHA256_DIGEST_LENGTH);
       LOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-      server_.leave(shared_from_this());
+      leave();
       LOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
       return;}
     LOG("%04X HASHES loaded\n",svid);
@@ -778,7 +753,7 @@ Aborted
   void handle_read_msglist(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR reading msglist\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     servers header;
     assert(read_msg_->data!=NULL);
@@ -839,14 +814,14 @@ Aborted
 
     if(1+(srvs_.now-path)/BLOCKSEC>MAX_UNDO){
       LOG("%04X ERROR, too old sync point\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     //check the numer of users at block time
     servers s;
     s.get(path);
     if(bank>=s.nodes.size()){
       LOG("%04X ERROR, bad bank at sync point\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     std::vector<int> ud;
     uint32_t users=s.nodes[bank].users;
@@ -857,7 +832,7 @@ Aborted
     int ld=0;
     if(fd<0){
       LOG("%04X ERROR, failed to open bank, weird !!!\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     for(uint32_t block=path+BLOCKSEC;block<=srvs_.now;block++){
       sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,bank);
@@ -917,7 +892,7 @@ Aborted
             LOG("%04X ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",svid,user,
               *((uint32_t*)(n.csum)),*((uint32_t*)(u->csum)));
             //exit(-1);
-            server_.leave(shared_from_this());
+            leave();
             return;}
         }
         server_.last_srvs_.xor4(csum,u->csum);}
@@ -930,12 +905,12 @@ Aborted
         if(s.nodes[bank].weight!=weight){
           //unlink(filename); //TODO, enable this later
           LOG("%04X ERROR sending bank %04X bad sum %016lX<>%016lX\n",svid,bank,s.nodes[bank].weight,weight);
-          server_.leave(shared_from_this());
+          leave();
           return;}
         if(memcmp(s.nodes[bank].hash,csum,32)){
           //unlink(filename); //TODO, enable this later
           LOG("%04X ERROR sending bank %04X (bad hash)\n",svid,bank);
-          server_.leave(shared_from_this());
+          leave();
           return;}}}
   }
 
@@ -948,7 +923,7 @@ Aborted
     int fd;
     if(error){
       LOG("%04X ERROR reading message\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(!server_.do_sync){
       LOG("%04X DEBUG ignore usr message\n",svid);
@@ -962,16 +937,16 @@ Aborted
     if(!bank || bank>=server_.last_srvs_.nodes.size()){
       //std::cerr << "ERROR reading bank "<<bank<<" (bad svid)\n";
       LOG("%04X ERROR reading bank %04X (bad num)\n",svid,bank);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     //if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
     //  std::cerr << "ERROR reading bank "<<bank<<" (bad block)\n";
-    //  server_.leave(shared_from_this());
+    //  leave();
     //  return;}
     if(read_msg_->len+0x10000*read_msg_->msid>server_.last_srvs_.nodes[bank].users){
       //std::cerr << "ERROR reading bank "<<bank<<" (too many users)\n";
       LOG("%04X ERROR reading bank %04X (too many users)\n",svid,bank);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     //std::cerr << "NEED bank "<<bank<<" ?\n";
     //LOG("%04X NEED bank %04X ?\n",svid,bank);
@@ -1000,7 +975,7 @@ Aborted
         unlink(filename);
         //std::cerr << "ERROR reading bank "<<bank<<" (incorrect message order)\n";
         LOG("%04X ERROR reading bank %04X (incorrect message order)\n",svid,bank);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       last_msid=read_msg_->msid;
       fd=open(filename,O_WRONLY|O_APPEND,0644);}
@@ -1041,14 +1016,14 @@ Aborted
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad sum)\n";
       LOG("%04X ERROR reading bank %04X (bad sum)\n",svid,bank);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))){
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
       LOG("%04X ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",svid,bank,
         *((uint32_t*)server_.last_srvs_.nodes[bank].hash),*((uint32_t*)csum));
-      server_.leave(shared_from_this());
+      leave();
       return;}
     char new_name[64];
     sprintf(new_name,"usr/%04X.dat",bank);
@@ -1071,12 +1046,12 @@ Aborted
     if(server_.last_srvs_.now!=now){
       //FIXME, try getting data from repository
       LOG("%04X ERROR, bad time %08X<>%08X\n",svid,server_.last_srvs_.now,now);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     message_ptr put_msg(new message(server_.last_srvs_.nod*sizeof(node_t)));
     if(!server_.last_srvs_.copy_nodes((node_t*)put_msg->data,server_.last_srvs_.nod)){
       LOG("%04X ERROR, failed to copy nodes :-(\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     send_sync(put_msg);
   }
@@ -1097,7 +1072,7 @@ Aborted
       LOG("%04X READ servers error\n",svid);
       free(peer_svsi);
       free(peer_nods);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(server_.last_srvs_.check_nodes(peer_nods,peer_hs.head.nod,peer_hs.head.nodhash)){
       LOG("%04X SERVERS incompatible with hash\n",svid);
@@ -1106,7 +1081,7 @@ Aborted
       LOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       free(peer_svsi);
       free(peer_nods);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     LOG("%04X FINISH SYNC\n",svid);
     server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
@@ -1128,7 +1103,7 @@ Aborted
       return(0);}
     if(server_.duplicate(shared_from_this())){ LOG("%04X ERROR: server already connected\n",svid);
       return(0);}
-    if(peer_hs.head.nod>srvs_.nodes.size() && incoming_){ LOG("%04X ERROR: too high number of servers for incomming connection\n",svid);
+    if(peer_hs.head.nod>srvs_.nodes.size() && incoming_){ LOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
       return(0);}
     if(read_msg_->now>now+2 || read_msg_->now<now-2){
       LOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
@@ -1225,12 +1200,12 @@ Aborted
   {
     if(error){
       LOG("%04X ERROR reading message\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     read_msg_->read_head();
     if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
       LOG("%04X ERROR reading head\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
     if(read_msg_->data[0]==MSGTYPE_MSG){
@@ -1262,12 +1237,12 @@ Aborted
       LOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
         srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);
       //ed25519_printkey(srvs_.nodes[read_msg_->svid].pk,32);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(!svid){ // FIXME, move this to 'start()'
       if(!authenticate()){
         LOG("%04X NOT authenticated\n",svid);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       LOG("%04X CONTINUE after authentication\n",svid);
       read_msg_ = boost::make_shared<message>();
@@ -1281,13 +1256,13 @@ Aborted
 //FIXME, move this to handle_read_candidate
       if(!parse_vote()){
         LOG("%04X PARSE vote FAILED\n",svid);
-        server_.leave(shared_from_this());
+        leave();
         return;}}
     //TODO, check if correct server message number ! and update the server
     //std::cerr << "INSERT message\n";
     if(server_.message_insert(read_msg_)==-1){ //NEW, insert in correct containers
       LOG("%04X INSERT message FAILED\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     // consider waiting here if we have too many messages to process
     read_msg_ = boost::make_shared<message>();
@@ -1300,7 +1275,7 @@ Aborted
   { LOG("%04X BLOCK, got BLOCK\n",svid);
     if(error || !svid){
       LOG("%04X READ error %d %s (BLOCK)\n",svid,error.value(),error.message().c_str());
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(read_msg_->len==4+64+10){ //adding missing data
       if(server_.last_srvs_.now!=read_msg_->msid){
@@ -1317,15 +1292,15 @@ Aborted
     read_msg_->read_head();
     if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
       LOG("%04X ERROR reading head\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
       LOG("%04X BLOCK signature error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
       LOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     if(read_msg_->svid==svid){
       //std::cerr << "BLOCK from peer "<<svid<<"\n";
@@ -1339,7 +1314,7 @@ Aborted
     LOG("%04X INSERT BLOCK message\n",svid);
     if(server_.message_insert(read_msg_)==-1){ //NEW, insert in correct containers
       LOG("%04X INSERT BLOCK message FAILED\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
@@ -1352,7 +1327,7 @@ Aborted
     LOG("%04X PEER got STOP\n",svid);
     if(error){
       LOG("%04X READ error %d %s (STOP)\n",svid,error.value(),error.message().c_str());
-      server_.leave(shared_from_this());
+      leave();
       return;}
     assert(read_msg_->data!=NULL);
     memcpy(last_message_hash,read_msg_->data+1,SHA256_DIGEST_LENGTH);
@@ -1450,7 +1425,7 @@ Aborted
   void read_peer_missing_header(const boost::system::error_code& error)
   { if(error){
       LOG("%04X READ read_peer_missing_header error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     assert(read_msg_->data!=NULL);
     memcpy(&peer_changed,read_msg_->data,2);
@@ -1471,7 +1446,7 @@ Aborted
   void read_peer_missing_messages(const boost::system::error_code& error)
   { if(error){
       LOG("%04X READ read_peer_missing_messages error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     LOG("%04X PEER read peer missing messages\n",svid);
     // create peer_missing list;
@@ -1487,7 +1462,7 @@ Aborted
       //memcpy(&svms.msid,read_msg_->data+6*i+2,4);
       if(svmsha.svid>=srvs_.nodes.size()){
         LOG("%04X ERROR read_peer_missing_messages peersvid\n",svid);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       //LOG("%04X PEER changed %04X:%08X<-xxxxxxxx\n",svid,svmsha.svid,svmsha.msid);
       char sigh[2*SHA256_DIGEST_LENGTH];
@@ -1499,7 +1474,7 @@ Aborted
   void write_peer_missing_hashes(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR write_peer_missing_hashes error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     mtx_.lock();
     //LOG("%04X PEER write peer missing hashes\n",svid);
@@ -1576,7 +1551,7 @@ Aborted
   void read_peer_missing_hashes(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR read_peer_missing_hashes error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     svid_msha.clear();
     for(auto it=server_.last_svid_msgs.begin();it!=server_.last_svid_msgs.end();++it){
@@ -1619,7 +1594,7 @@ Aborted
       //message_ptr pm=server_.message_svidmsid(it->svid,it->msid);
       //if(pm==NULL){
       //  LOG("%04X PEER %04X:%08X<-xxxxxxxx changed, MISSING PEER HASH!\n",svid,it->svid,it->msid);
-      //  //server_.leave(shared_from_this()); // do not die yet
+      //  //leave(); // do not die yet
       //  continue;}
       msidhash_t msha;
       msha.msid=it->msid;
@@ -1640,7 +1615,7 @@ Aborted
       BLOCK_MODE_ERROR|=1;
       if(BLOCK_MODE_ERROR & 0xC){
         LOG("%04X HASH server check ERROR (%X) again, leaving\n",svid,BLOCK_MODE_ERROR);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       LOG("%04X HASH server check ERROR (%X)\n",svid,BLOCK_MODE_ERROR);
       return;}
@@ -1667,14 +1642,14 @@ Aborted
   void send_ok(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR send_ok error\n",svid);
-      server_.leave(shared_from_this());}
+      leave();}
     return;
   }
 
   void peer_block_check(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR peer_block_check error\n",svid);
-      server_.leave(shared_from_this());}
+      leave();}
     read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1684,13 +1659,13 @@ Aborted
   void peer_block_finish(const boost::system::error_code& error)
   { if(error){
       LOG("%04X ERROR peer_block_finish error\n",svid);
-      server_.leave(shared_from_this());
+      leave();
       return;}
     BLOCK_MODE_ERROR|=read_msg_->data[0];
     if(BLOCK_MODE_ERROR & 0x2){
       if(BLOCK_MODE_ERROR & 0xC){
         LOG("%04X HASH peer check ERROR (%X) again, leaving\n",svid,BLOCK_MODE_ERROR);
-        server_.leave(shared_from_this());
+        leave();
         return;}
       LOG("%04X HASH peer check ERROR (%X)\n",svid,BLOCK_MODE_ERROR);}
     else{
@@ -1813,6 +1788,7 @@ Aborted
 
   uint32_t svid;
   int do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
+  bool killme;
 private:
   boost::asio::io_service peer_io_service_;	//TH
   boost::asio::io_service::work work_;		//TH
@@ -1863,8 +1839,8 @@ private:
   uint8_t BLOCK_MODE_ERROR;
   uint8_t BLOCK_MODE_SERVER;
   uint8_t BLOCK_MODE_PEER;
-  bool io_on;
-  peer_ptr myself; // to block destructor
+  //bool io_on;
+  //peer_ptr myself; // to block destructor
 };
 
 #endif // PEER_HPP

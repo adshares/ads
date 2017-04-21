@@ -1260,7 +1260,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
       mi->second->mtx_.lock();
       mi->second->know.erase(svid);
-      mi->second->sent_erase(svid);
+      mi->second->sent.erase(svid);
       mi->second->mtx_.unlock();}
     missing_.unlock();
   }
@@ -3016,6 +3016,7 @@ exit(-1);
     //return;
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
+      disconnect(0); //cleans all peers with killme==true
       uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       now-=now%BLOCKSEC;
 #if BLOCKSEC == 0x20
@@ -3192,7 +3193,7 @@ exit(-1);
   }
 
   void join(peer_ptr participant);
-  void leave(peer_ptr participant);
+  //void leave(peer_ptr participant);
   void disconnect(uint16_t svid);
   const char* peers_list();
   bool connected(uint16_t svid);
@@ -3202,7 +3203,7 @@ exit(-1);
   void update(message_ptr msg);
   void svid_msid_rollback(message_ptr msg);
   void start_accept();
-  void handle_accept(peer_ptr new_peer,const boost::system::error_code& error);
+  void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
   void connect(std::string peer_address);
   void connect(uint16_t svid);
   void fillknown(message_ptr msg);

@@ -105,29 +105,35 @@ void server::ofip_delete_user(uint32_t auser)
 }
 
 // server <-> peer
-void server::join(peer_ptr p)
-{	peer_.lock();
-	peers_.insert(p);
-	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
-	peer_.unlock();
-}
-void server::leave(peer_ptr p)
-{	peer_.lock();
-	if(peers_.find(p)!=peers_.end()){
-		missing_sent_remove(p->svid);
-		peers_.erase(p);}
-	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
-	peer_.unlock();
-	p->stop();
-}
+//void server::join(peer_ptr p)
+//{	peer_.lock();
+//	peers_.insert(p);
+//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
+//	peer_.unlock();
+//}
+//void server::leave(peer_ptr p) // not used !
+//{	assert(0);
+//	peer_.lock();
+//	if(peers_.find(p)!=peers_.end()){
+//		missing_sent_remove(p->svid);
+//		peers_.erase(p);}
+//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
+//	peer_.unlock();
+//	p->stop();
+//}
 void server::disconnect(uint16_t svid)
 {	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		if((*pi)->svid==svid){
+	for(auto pj=peers_.begin();pj!=peers_.end();){
+                auto pi=pj++;
+		if((svid && (*pi)->svid==svid) || (*pi)->killme){
+			LOG("DISCONNECT PEER %04X\n",(*pi)->svid);
 			missing_sent_remove(svid);
+			//LOG("DISCONNECT PEER %04X stop\n",(*pi)->svid);
 			(*pi)->stop();
+			//LOG("DISCONNECT PEER %04X erase\n",(*pi)->svid);
 			peers_.erase(*pi);
-			break;}}
+			//LOG("DISCONNECT PEER %04X end\n",(*pi)->svid);
+			continue;}}
 	peer_.unlock();
 }
 const char* server::peers_list()
@@ -139,7 +145,9 @@ const char* server::peers_list()
 		return("");}
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		list+=",";
-		list+=std::to_string((*pi)->svid);}
+		list+=std::to_string((*pi)->svid);
+		if((*pi)->killme){
+			list+="*";}}
  	peer_.unlock();
 	return(list.c_str()+1);
 }
@@ -156,7 +164,6 @@ int server::duplicate(peer_ptr p)
 {	peer_.lock();
 	for(const peer_ptr r : peers_){
 		if(r!=p && r->svid==p->svid){
-			//peers_.erase(p);
 			peer_.unlock();
 			return 1;}}
 	peer_.unlock();
@@ -166,9 +173,6 @@ int server::deliver(message_ptr msg,uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->svid==svid){
-			//msg->mtx_.lock();
-			//msg->sent.insert(svid);
-			//msg->mtx_.unlock();
 			(*pi)->deliver(msg);
 			peer_.unlock();
 			return(1);}}
@@ -221,16 +225,20 @@ void server::svid_msid_rollback(message_ptr msg)
 }
 void server::start_accept()
 {	peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
- 	//peer_ptr new_peer(new peer(io_service_,*this,true,srvs_,opts_));
-        //http://www.boost.org/doc/libs/1_53_0/doc/html/boost_asio/example/http/server2/io_service_pool.cpp
-	new_peer->iostart();
-	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::handle_accept,this,new_peer,boost::asio::placeholders::error));
+	//new_peer->iostart();
+	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::peer_accept,this,new_peer,boost::asio::placeholders::error));
 }
-void server::handle_accept(peer_ptr new_peer,const boost::system::error_code& error)
+void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error)
 {	if (!error){
-		new_peer->start();}
+		peer_.lock();
+		peers_.insert(new_peer);
+		peer_.unlock();
+		new_peer->accept();}
 	else{
 		new_peer->stop();}
+		//peer_.lock();
+		//peers_.erase(new_peer);
+		//peer_.unlock();
 	start_accept();
 }
 void server::connect(std::string peer_address)
@@ -245,8 +253,11 @@ void server::connect(std::string peer_address)
 		boost::asio::ip::tcp::resolver::query query(peer_address.c_str(),port);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
-                new_peer->iostart();
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::accept,new_peer,boost::asio::placeholders::error));}
+		peer_.lock();
+		peers_.insert(new_peer);
+		peer_.unlock();
+                //new_peer->iostart();
+		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}
 }
@@ -263,8 +274,11 @@ void server::connect(uint16_t svid)
 		boost::asio::ip::tcp::resolver::query query(inet_ntoa(addr),portt);
 		boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
 		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
-                new_peer->iostart();
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::accept,new_peer,boost::asio::placeholders::error));}
+		peer_.lock();
+		peers_.insert(new_peer);
+		peer_.unlock();
+                //new_peer->iostart();
+		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
 		std::cerr << "Connection: " << e.what() << "\n";}
 }
