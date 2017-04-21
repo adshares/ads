@@ -318,6 +318,7 @@ public:
       uint32_t newmsid=srv_.msid_+1;
       LOG("SENDING message %08X\n",newmsid);
       if(!srv_.write_message(message)){
+        message_.unlock();
         LOG("ERROR sending message %08X\n",newmsid);
         continue;}
       message.clear();

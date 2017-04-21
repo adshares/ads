@@ -1232,17 +1232,32 @@ Aborted
       LOG("%04X ERROR reading head\n",svid);
       server_.leave(shared_from_this());
       return;}
+    uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
     if(read_msg_->data[0]==MSGTYPE_MSG){
-      if(srvs_.nodes[read_msg_->svid].msid+1!=read_msg_->msid){
-        //FIXME, this can be also a double spend, do not loose it
-        LOG("%04X \nIGNORE message with bad msid %04X:%08X<>%08X+1 //FIXME !!!\n\n",svid, //FIXME, DO NOT! need to detect double spend
+      if(srvs_.nodes[read_msg_->svid].msid<read_msg_->msid-1){
+        message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
+        if(prev!=NULL){
+          LOG("%04X \nLOADING future message %04X:%08X>%08X+1\n",svid,
+            read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
+          msha=prev->sigh;}
+        else{
+          LOG("%04X \nERROR LOADING future message %04X:%08X>%08X+1\n",svid,
+            read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
+          read_msg_ = boost::make_shared<message>();
+          boost::asio::async_read(socket_,
+            boost::asio::buffer(read_msg_->data,message::header_length),
+            boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+          return;}}
+      //FIXME, add detection of double spend messages
+      if(srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid){
+        LOG("%04X \nIGNORE message with old msid %04X:%08X<=%08X //FIXME !!!\n\n",svid, //FIXME, DO NOT! need to detect double spend
           read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
         read_msg_ = boost::make_shared<message>();
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data,message::header_length),
           boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         return;}}
-    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
+    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
       //FIXME, this can be also a double spend, do not loose it
       LOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
         srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);

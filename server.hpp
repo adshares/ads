@@ -793,7 +793,8 @@ public:
     winner=NULL;
     LOG("ELECTOR max:%016lX\n",votes_max);
 #if BLOCKSEC == 0x20
-    if(electors.size()<electors_old){
+    //if(electors.size()<electors_old){
+    if(electors.size()<electors_old && electors.size()<2){
       LOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
       exit(-1);}
 #endif
@@ -1303,7 +1304,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         wait_.lock();
 	for(auto wa=wait_msgs_.begin();wa!=wait_msgs_.end();){
           if((*wa)->now<srvs_.now+BLOCKSEC && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
-            //std::cerr << "QUEUING MESSAGE "<<(*wa)->svid<<":"<<(*wa)->msid<<"\n";
             LOG("QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
             tmp_msgs_.push_back(*wa);
             wa=wait_msgs_.erase(wa);}
@@ -2743,26 +2743,24 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         LOG("REMOVE message %04X:%08X later! (DBL-spend server)\n",nsvid,mi->second->msid);
         remove_msgs.push(mi->second);
         continue;}
+      if(mi->second->len==message::header_length){
+        ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
+        LOG("IGNORE: %04X:%08X %.16s %016lX (%016lX) (tag only)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
+        continue;}
       if(mi->second->msid>maxmsid){
         if(mi->second->now<last_srvs_.now){ // remove messages if failed to be included in 2 blocks
           //if(!remove){ //this couases errors, because of timing :-(
           //  svid_msid_rollback(mi->second);}
           remove=true;}
         if(remove){
-          if(mi->second->len>message::header_length){
-            LOG("\n\nREMOVE message %04X:%08X (msg.now:%08X<last.now:%08X) [len:%d]:-(\n\n\n",
-              nsvid,mi->second->msid,mi->second->now,last_srvs_.now,mi->second->len);
-            if(mi->second->svid==opts_.svid){
+          LOG("\n\nREMOVE message %04X:%08X (msg.now:%08X<last.now:%08X) [len:%d]:-(\n\n\n",
+            nsvid,mi->second->msid,mi->second->now,last_srvs_.now,mi->second->len);
+          if(mi->second->svid==opts_.svid){
 //FIXME, sign message with new time
 exit(-1);
 
-
-            }
-            remove_msgs.push(mi->second);}
-          else{
-            ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-            LOG("IGNOR: %04X:%08X %.16s %016lX (%016lX) ... INIT JUNK ...\n",
-              nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);}}
+          }
+          remove_msgs.push(mi->second);}
         else{
           if(mi->second->status&MSGSTAT_VAL){
             LOG("INVALIDATE message %04X:%08X later!\n",nsvid,mi->second->msid);
@@ -2770,10 +2768,6 @@ exit(-1);
           LOG("MOVING message %04X:%08X to %08X/\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
           mi->second->move(srvs_.now+BLOCKSEC);}}
       else{
-        if(mi->second->len==message::header_length){
-          ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
-          LOG("IGNOR: %04X:%08X %.16s %016lX (%016lX)\n",nsvid,mi->second->msid,hash,mi->second->hash.num,mi->first);
-          continue;}
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
 	if(mi->second->path!=srvs_.now){
           ed25519_key2text(hash,mi->second->sigh,sizeof(hash_t));
