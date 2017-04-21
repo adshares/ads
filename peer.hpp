@@ -52,9 +52,9 @@ public:
   { LOG("%04X PEER KILL\n",svid);
     peer_io_service_.stop();
     //LOG("%04X PEER INTERRUPT\n",svid);
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    iothp_->interrupt();
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    //iothp_->interrupt();
+    //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     //LOG("%04X PEER JOIN\n",svid);
     iothp_->join(); //try joining yourself error
     //LOG("%04X PEER CLOSE\n",svid);
@@ -113,7 +113,10 @@ public:
   }
 
   void update(message_ptr msg)
-  { 
+  { if(killme){
+      LOG("%04X KILL detected ! (UPDATE), leaving\n",svid);
+      leave();
+      return;}
     msg->print("; TRY UPDATE");
     if(do_sync){
       //LOG("%04X HASH %016lX [%016lX] (in sync mode) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
@@ -208,7 +211,11 @@ public:
   }*/
 
   void deliver(message_ptr msg)
-  { if(do_sync){
+  { if(killme){
+      LOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
+      leave();
+      return;}
+    if(do_sync){
       return;}
     //if(msg->status==MSGSTAT_SAV){
     //  if(!msg->load()){
@@ -348,6 +355,10 @@ Aborted
 
   void handle_read_header(const boost::system::error_code& error)
   {
+    if(killme){
+      LOG("%04X KILL detected ! (HEADER), leaving\n",svid);
+      leave();
+      return;}
     if(error){
       LOG("%04X READ error %d %s (HEADER)\n",svid,error.value(),error.message().c_str());
       leave();

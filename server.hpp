@@ -1224,7 +1224,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     update(msg); // update others
   }
 
-  void blk_validate(message_ptr msg)
+  void blk_validate(message_ptr msg) // WARNING, this is executed by peer io_service
   {
 
 //FIXME, check what block are we dealing with !!!
@@ -1251,7 +1251,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       exit(-1);}
     if(no){
       if(msg->peer==msg->svid){
-        LOG("\n\nBLOCK differs, disconnect from %04X!\n\n\n",msg->svid);
+        //FIXME, in the future, do not disconnect, peer will try syncing again
+        LOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
         disconnect(msg->svid);}}
   }
 
@@ -3016,7 +3017,7 @@ exit(-1);
     //return;
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
-      disconnect(0); //cleans all peers with killme==true
+      peer_clean(); //cleans all peers with killme==true
       uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       now-=now%BLOCKSEC;
 #if BLOCKSEC == 0x20
@@ -3194,6 +3195,7 @@ exit(-1);
 
   void join(peer_ptr participant);
   //void leave(peer_ptr participant);
+  void peer_clean();
   void disconnect(uint16_t svid);
   const char* peers_list();
   bool connected(uint16_t svid);

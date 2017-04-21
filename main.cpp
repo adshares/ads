@@ -121,18 +121,28 @@ void server::ofip_delete_user(uint32_t auser)
 //	peer_.unlock();
 //	p->stop();
 //}
-void server::disconnect(uint16_t svid)
+void server::peer_clean()
 {	peer_.lock();
 	for(auto pj=peers_.begin();pj!=peers_.end();){
                 auto pi=pj++;
-		if((svid && (*pi)->svid==svid) || (*pi)->killme){
-			LOG("DISCONNECT PEER %04X\n",(*pi)->svid);
-			missing_sent_remove(svid);
+		if((*pi)->killme){
+			LOG("KILL PEER %04X\n",(*pi)->svid);
+			missing_sent_remove((*pi)->svid);
 			//LOG("DISCONNECT PEER %04X stop\n",(*pi)->svid);
 			(*pi)->stop();
 			//LOG("DISCONNECT PEER %04X erase\n",(*pi)->svid);
 			peers_.erase(*pi);
 			//LOG("DISCONNECT PEER %04X end\n",(*pi)->svid);
+			continue;}}
+	peer_.unlock();
+}
+void server::disconnect(uint16_t svid)
+{	peer_.lock();
+	for(auto pj=peers_.begin();pj!=peers_.end();){
+                auto pi=pj++;
+		if((*pi)->svid==svid){
+			LOG("DISCONNECT PEER %04X\n",(*pi)->svid);
+			(*pi)->killme=true;
 			continue;}}
 	peer_.unlock();
 }
