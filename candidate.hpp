@@ -6,6 +6,7 @@ class candidate :
 {
 public:
   //hash_t shash; // hash of signature hashes, this is the key to this container
+  uint32_t now;
   uint16_t peer; // source of , probably not used
   //std::set<uint16_t> missed_peer; // hashes missed by peer
   std::map<uint16_t,msidhash_t> svid_have; // hashes missed by peer (processed first)
@@ -23,7 +24,8 @@ public:
   {
   }
 
-  candidate(std::map<uint16_t,msidhash_t>& miss,std::map<uint16_t,msidhash_t>& have,uint16_t svid,bool failed) :
+  candidate(uint32_t blk,std::map<uint16_t,msidhash_t>& miss,std::map<uint16_t,msidhash_t>& have,uint16_t svid,bool failed) :
+	now(blk),
 	peer(svid),
 	score(0),
 	failed_peer(failed)

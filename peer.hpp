@@ -23,7 +23,8 @@ public:
       bytes_in(0),
       BLOCK_MODE_ERROR(0),
       BLOCK_MODE_SERVER(0),
-      BLOCK_MODE_PEER(0)
+      BLOCK_MODE_PEER(0),
+      BLOCK_MODE_NOW(0)
   { read_msg_ = boost::make_shared<message>();
     iothp_= new boost::thread(boost::bind(&peer::iorun,this));
   }
@@ -243,6 +244,7 @@ public:
     assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_STP){
       LOG("%04X SERV in block mode\n",svid);
+      BLOCK_MODE_NOW=srvs_.now;
       BLOCK_MODE_SERVER=1;} // will wait for delivery and queue other messages to wait_msgs_
     //special handling of CND messages ... FIXME prevent slow search in candidates by each peer
     if(msg->data[0]==MSGTYPE_CND && msg->len>4+64+10+sizeof(hash_t)){
@@ -1698,7 +1700,7 @@ Aborted
       return;}
     LOG("%04X SYNC OK\n",svid);
     mtx_.lock();
-    server_.save_candidate(peer_cand,svid_msha,svid);
+    server_.save_candidate(BLOCK_MODE_NOW,peer_cand,svid_msha,svid);
     write_msgs_.clear(); //TODO, is this needed ???
     for(auto me=wait_msgs_.begin();me!=wait_msgs_.end();me++){
       //(*me)->sent.insert(svid); //just in case
@@ -1765,7 +1767,7 @@ Aborted
         return(0);}
       LOG("%04X OK candidate from peer\n",svid);
       //std::map<uint16_t,msidhash_t> have;
-      c_ptr=server_.save_candidate(cand,new_svid_msha,svid);} // only new_svid_msha needed
+      c_ptr=server_.save_candidate(read_msg_->msid,cand,new_svid_msha,svid);} // only new_svid_msha needed
     else{
       LOG("%04X PARSE vote for known candidate\n",svid);}
     //modify tail from message
@@ -1850,6 +1852,7 @@ private:
   uint8_t BLOCK_MODE_ERROR;
   uint8_t BLOCK_MODE_SERVER;
   uint8_t BLOCK_MODE_PEER;
+  uint32_t BLOCK_MODE_NOW;
   //bool io_on;
   //peer_ptr myself; // to block destructor
 };

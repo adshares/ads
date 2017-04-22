@@ -759,8 +759,11 @@ public:
   { 
     cand_.lock();
     uint32_t electors_old=electors.size();
-    electors.clear(); // maybe remember old status
-    candidates_.clear();
+    electors.clear();
+    for(auto it=candidates_.begin();it!=candidates_.end();){
+      auto jt=it++;
+      if(jt->second->now<srvs_.now){
+        candidates_.erase(jt);}}
     votes_max=0.0;
     do_vote=0;
     //FIXME, this should be moved to servers.hpp
@@ -2917,7 +2920,7 @@ exit(-1);
     update(msg); // update peers even if we are not an elector
   }
 
-  candidate_ptr save_candidate(const hash_s& h,std::map<uint16_t,msidhash_t>& changed,uint16_t svid)
+  candidate_ptr save_candidate(uint32_t blk,const hash_s& h,std::map<uint16_t,msidhash_t>& changed,uint16_t svid)
   { cand_.lock(); // lock only candidates
     auto it=candidates_.find(h);
     if(it==candidates_.end()){
@@ -2953,7 +2956,7 @@ exit(-1);
             new_svid_miss[ct->first]=ct->second;}}}
       LOG("%04X SAVE CANDIDATE changed:%d miss:%d have:%d failed:%d\n",
         svid,(int)changed.size(),(int)new_svid_miss.size(),(int)new_svid_have.size(),failed);
-      candidate_ptr c_ptr(new candidate(new_svid_miss,new_svid_have,svid,failed));
+      candidate_ptr c_ptr(new candidate(blk,new_svid_miss,new_svid_have,svid,failed));
       candidates_[h]=c_ptr;
       cand_.unlock();
       return(c_ptr);}
@@ -2962,17 +2965,6 @@ exit(-1);
     cand_.unlock();
     return(it->second);
   }
-
-  //void save_candidate(const hash_s& h,candidate_ptr c)
-  //{
-  //  cand_.lock(); // lock only candidates
-  //  auto it=candidates_.find(h);
-  //  if(it==candidates_.end()){
-  //    candidates_[h]=c;}
-  //  else if(c->peer){
-  //    it->second->peers.insert(c->peer);}
-  //  cand_.unlock();
-  //}
 
   candidate_ptr known_candidate(const hash_s& h,uint16_t peer)
   { 
@@ -3117,7 +3109,7 @@ exit(-1);
         prepare_poll(); // sets do_vote, clears candidates and electors
         do_block=1; //must be before save_candidate
         std::map<uint16_t,msidhash_t> changed; // could be also svid_msha
-        save_candidate(cand,changed,opts_.svid); // do after prepare_poll
+        save_candidate(srvs_.now,cand,changed,opts_.svid); // do after prepare_poll
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
