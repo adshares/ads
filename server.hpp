@@ -3115,9 +3115,9 @@ exit(-1);
           deliver(put_msg); // sets BLOCK_MODE for peers
         }
         prepare_poll(); // sets do_vote, clears candidates and electors
+        do_block=1; //must be before save_candidate
         std::map<uint16_t,msidhash_t> changed; // could be also svid_msha
         save_candidate(cand,changed,opts_.svid); // do after prepare_poll
-        do_block=1;
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}
