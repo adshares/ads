@@ -2566,7 +2566,6 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       close(fd);
       srvs_.save_undo(svid,undo,0);
       if(svid==opts_.svid){
-        uint64_t key=(uint64_t)svid<<32;
         log_t alog;
         alog.time=time(NULL);
         alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
@@ -2580,7 +2579,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
         memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
         memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
-        log[key]=alog;}}
+        log[0]=alog;}}
         //put_log(svid,0,alog);  //put_blklog
     bank_fee.clear();
     bank_fee.resize(srvs_.nodes.size());

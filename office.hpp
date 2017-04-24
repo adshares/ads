@@ -753,7 +753,6 @@ public:
 
   //bool get_lastlog(uint16_t svid,uint32_t user,log_t& slog)
 
-// move this to office !!!
   bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
   { char filename[64];
     struct stat sb;
