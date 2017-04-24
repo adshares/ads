@@ -1184,7 +1184,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         msg->unload(0);
         if(msg->now>=srvs_.now+BLOCKSEC){
           LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n", //FIXME, fatal in start !!!
-            msg->hash.num,msg->len,msg->now);
+            msg->hash.num,msg->len,srvs_.now+BLOCKSEC);
           wait_.lock();
           wait_msgs_.push_back(msg);
           wait_.unlock();}
@@ -1378,7 +1378,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           std::cerr<<"ERROR, have invalid message !!!\n";
           exit(-1);}
         if(msg->path<srvs_.now){
-          LOG("MOVING message %04X:%08X to %08X/\n",msg->svid,msg->msid,srvs_.now);
+          LOG("MOVING message %04X:%08X to %08X/ after validation\n",msg->svid,msg->msid,srvs_.now);
           msg->move(srvs_.now);}
         msg->unload(0);
         if(!do_sync){
@@ -2772,8 +2772,9 @@ exit(-1);
           if(mi->second->status&MSGSTAT_VAL){
             LOG("INVALIDATE message %04X:%08X later!\n",nsvid,mi->second->msid);
             invalidate_msgs.push(mi->second);}
-          LOG("MOVING message %04X:%08X to %08X/\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
-          mi->second->move(srvs_.now+BLOCKSEC);}}
+          if(mi->second->path<srvs_.now+BLOCKSEC){
+            LOG("MOVING message %04X:%08X to %08X/\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
+            mi->second->move(srvs_.now+BLOCKSEC);}}}
       else{
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet
 	if(mi->second->path!=srvs_.now){

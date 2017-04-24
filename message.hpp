@@ -678,6 +678,8 @@ public:
   int move(uint32_t nextpath) //TODO, consider locking
   { char oldname[64];
     char newname[64];
+    if(path==nextpath){
+      return(0);}
     int r=-1;
     sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.und",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
