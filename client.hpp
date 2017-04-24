@@ -451,8 +451,8 @@ public:
 	log[key]=tlog;}
       offi_.put_ulog(log);} // could be processed 
     else{
-      tlog.weight=-utxs.tmass;
-      //tlog.weight=-deduct;
+      //tlog.weight=-utxs.tmass;
+      tlog.weight=-deduct; // includes deducts in TXSTYPE_BNK TXSTYPE_USR
       offi_.put_ulog(utxs.auser,tlog);}
 
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
@@ -468,11 +468,11 @@ public:
           offi_.put_ulog(mpt_user[i],tlog);
           if(mpt_mass[i]>=0){
             offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}}
-    else if(utxs.abank==utxs.bbank && *buf==TXSTYPE_PUT){
+    else if(utxs.abank==utxs.bbank && (*buf==TXSTYPE_PUT || (*buf==TXSTYPE_USR && utxs.buser))){
       tlog.type=*buf|0x8000; //incoming
       tlog.node=utxs.abank;
       tlog.user=utxs.auser;
-      tlog.weight=utxs.tmass;
+      tlog.weight=deduct; //utxs.tmass;
       offi_.put_ulog(utxs.buser,tlog);
       if(*buf==TXSTYPE_PUT && deposit>=0){
         offi_.add_deposit(utxs);}}

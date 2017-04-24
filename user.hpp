@@ -452,7 +452,7 @@ public:
 	}
 
 	char* upkey(char* buf) //return new key in UOK message
-	{	return(buf+1+2+4+4+4+2);
+	{	return(buf+1+2+4+4+4+2+4);
 	}
 
 	void print_broadcast(char* buf)

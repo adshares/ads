@@ -25,7 +25,7 @@ public:
     clock_thread(NULL)
   { svid=opts_.svid;
     try{
-      std::cerr<<"OFFICE ("<<svid<<") open\n";
+      fprintf(stderr,"OFFICE %04X open\n",svid);
       // prapare local register [this could be in RAM later or be on a RAM disk]
       mkdir("ofi",0755);
       char filename[64];
@@ -218,7 +218,9 @@ public:
   { uint32_t lpos=0;
     const uint32_t maxl=0xffff;
     std::map<uint64_t,log_t> log;
-    mque.push_back(0); //add block message
+    mque.push_back(0); //FIXME, remove later
+    //uint64_t sv00=((uint64_t)opts_.svid)<<32;
+    //mque.push_back(sv00); //add block message
     char filename[64];
     sprintf(filename,"blk/%03X/%05X/log/time.bin",now>>20,now&0xFFFFF);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
@@ -252,7 +254,7 @@ public:
       sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,bank,msid);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
-        fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
+        fprintf(stderr,"OFFICE, failed to open log file %s\n",filename);
         continue;}
       while(1){
         uint32_t user;
@@ -414,7 +416,7 @@ public:
     if(luser){
       uint32_t msid;
       uint32_t mpos;
-      usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,0,(const char*)pkey));
+      usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
       add_msg(txs->data,txs->size,msid,mpos);
       add_key((hash_s*)pkey,luser);} //blacklist
   }

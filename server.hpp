@@ -225,11 +225,11 @@ public:
   void put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log) //message log, by server
   { char filename[64];
     int fd;
-    if(svid){
+    if(msid){
       sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
       fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);}
     else{
-      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,0,0);
+      sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,0);
       fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);}
     if(fd<0){
       std::cerr<<"ERROR, failed to open log file "<<filename<<"\n";
@@ -1321,7 +1321,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
         check_.unlock();
         //TODO, check if there are no forgotten messeges in the missing_msgs_ queue
-	boost::this_thread::sleep(boost::posix_time::milliseconds(100));} // adds latency but works
+	boost::this_thread::sleep(boost::posix_time::milliseconds(100));} // adds latency :-(
       else{
         message_ptr msg=check_msgs_.front();
 	check_msgs_.pop_front();
@@ -1740,7 +1740,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           changes[luser]=u;
           usera=&changes[luser];}
 	srvs_.xor4(csum,usera->csum);
-        srvs_.init_user(*usera,msg->svid,luser,(*p==TXSTYPE_USR?USER_MIN_MASS:0),(uint8_t*)lpkey,utxs.ttime,utxs.abank,utxs.auser);
+        if(*p==TXSTYPE_USR){
+          srvs_.init_user(*usera,msg->svid,luser,USER_MIN_MASS,(uint8_t*)lpkey,utxs.ttime,utxs.abank,utxs.auser);}
+        else{
+          srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)lpkey,utxs.ttime,utxs.bbank,utxs.buser);}
 	srvs_.xor4(csum,usera->csum);
         srvs_.put_user(*usera,msg->svid,luser);
         if(*p==TXSTYPE_USR){
@@ -2072,6 +2075,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           exit(-1);}}}
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
     blk_get.insert(txs_get.begin(),txs_get.end());
+    blk_usr.insert(txs_usr.begin(),txs_usr.end());
+    blk_uok.insert(txs_uok.begin(),txs_uok.end());
     blk_.unlock();
     //if(do_sync){ //FIXME, do not duplicate previous log data !!!
     //  put_log(msg->svid,log);} //put_blklog
@@ -2109,6 +2114,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
           tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
           tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
+        LOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
         uin[nuin]++;}}
     for(auto it=blk_uok.begin();it!=blk_uok.end();it++){ //send funds from matched transactions to new account
       uint16_t abank=ppi_abank(it->first);
@@ -2140,25 +2146,29 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             memcpy(alog.info,tx->pkey,32);
             log[key]=alog;}
             //put_log(tx->bbank,tx->buser,alog); //put_blklog
+          LOG("REMOTE user request %04X %08X %04X matched\n",abank,tx->bbank,tx->buser);
           uin[nuin]--;}
-        else if(tx->bbank==opts_.svid){ // no matching _USR transaction found
-          uint64_t key=(uint64_t)tx->buser<<32;
-          key|=lpos++;
-          log_t alog;
-          alog.time=time(NULL);
-          alog.type=TXSTYPE_UOK|0x8000; //incoming
-          alog.node=abank;
-          alog.user=tx->auser;
-          alog.umid=0; // 0 == no matching _USR transaction found
-          alog.nmid=0;
-          alog.mpos=srvs_.now;
-          alog.weight=0;
-          memcpy(alog.info,tx->pkey,32);
-          log[key]=alog;}}}
+        else{
+          LOG("REMOTE user request %04X %08X %04X not found\n",abank,tx->bbank,tx->buser);
+          if(tx->bbank==opts_.svid){ // no matching _USR transaction found
+            uint64_t key=(uint64_t)tx->buser<<32;
+            key|=lpos++;
+            log_t alog;
+            alog.time=time(NULL);
+            alog.type=TXSTYPE_UOK|0x8000; //incoming
+            alog.node=abank;
+            alog.user=tx->auser;
+            alog.umid=0; // 0 == no matching _USR transaction found
+            alog.nmid=0;
+            alog.mpos=srvs_.now;
+            alog.weight=0;
+            memcpy(alog.info,tx->pkey,32);
+            log[key]=alog;}}}}
           //put_log(tx->bbank,tx->buser,alog); //put_blklog
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
       for(;n>0;n--){
+        LOG("REMOTE user request %04X %08X %04X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
         union {uint64_t big;uint32_t small[2];} to;
         to.small[0]=it->first.auser;
         to.small[1]=it->first.abank;

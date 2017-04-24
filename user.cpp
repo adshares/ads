@@ -50,6 +50,8 @@
 #define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
 #define TXS_BNK_FEE      (0x10000000) /* 0x0.1 G */
 #define TXS_BKY_FEE      (0x10000000) /* 0x0.1 G */
+#define USER_MIN_MASS    (0x10000000) /* 0x0.1 G minimum user account mass to send transaction */
+#define BANK_MIN_TMASS   (0x1000000000) /* 0x10G, if bank total mass below this value, bank can be taken over */
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
 // the list must terminate with ';'
@@ -192,7 +194,7 @@ char* print_amount(int64_t amount)
 #error Unknown pointer size or missing size macros!
 #endif
 
-usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
+usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
    int64_t to_mass=0;
@@ -239,6 +241,8 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
   if(json_msid){
     sts.msid=json_msid.get();}
 
+  deduct=0;
+  fee=0;
   std::string run=pt.get<std::string>("run");
   if(!run.compare("get_me")){
     txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);}
@@ -275,7 +279,8 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
         return(NULL);}
       txs=boost::make_shared<usertxs>(data,len);
       //TODO, no fee calculation available without parsing the transaction
-      fee=0;
+      //deduct=0;
+      //fee=0;
       free(data);
       return(txs);}
     return(NULL);}
@@ -290,6 +295,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
         free(text);
         return(NULL);}
       txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,len,to_user,to_mass,to_info,(const char*)text);
+      //deduct=0;
       fee=TXS_BRO_FEE(len);
       free(text);}
     else{
@@ -297,12 +303,14 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
       if(json_text_asci){
         std::string text=json_text_asci.get();
         txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());
+        //deduct=0;
         fee=TXS_BRO_FEE(text.length());}
       else{
         return(NULL);}}}
   else if(!run.compare(txsname[TXSTYPE_MPT])){
     uint32_t to_num=0;
     std::string text;
+    //deduct=0;
     fee=TXS_MIN_FEE;
     for(boost::property_tree::ptree::value_type &wire : pt.get_child("wires")){
       uint16_t tbank;
@@ -318,6 +326,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
       memcpy(to_acct+2,&tuser,4);
       memcpy(to_acct+6,&tmass,8);
       text.append(to_acct,2+4+8);
+      deduct+=tmass;
       fee+=TXS_MPT_FEE(tmass);
       if(sts.bank!=tbank){
         fee+=TXS_LNG_FEE(tmass);}
@@ -330,26 +339,32 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& fee)
     if(json_info && !parse_key(to_info,json_info,32)){
       return(NULL);}
     txs=boost::make_shared<usertxs>(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+    deduct=to_mass;
     fee=TXS_PUT_FEE(to_mass);
     if(sts.bank!=to_bank){
       fee+=TXS_LNG_FEE(to_mass);}}
   else if(!run.compare(txsname[TXSTYPE_USR])){
     txs=boost::make_shared<usertxs>(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+    deduct=USER_MIN_MASS;
     if(sts.bank==to_bank){
       fee=TXS_MIN_FEE;}
     else{
       fee=TXS_USR_FEE;}}
   else if(!run.compare(txsname[TXSTYPE_BNK])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+    deduct=BANK_MIN_TMASS;
     fee=TXS_BNK_FEE;}
   else if(!run.compare(txsname[TXSTYPE_GET])){
     txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+    //deduct=0;
     fee=TXS_GET_FEE;}
   else if(!run.compare(txsname[TXSTYPE_KEY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
+    //deduct=0;
     fee=TXS_KEY_FEE;}
   else if(!run.compare(txsname[TXSTYPE_BKY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
+    //deduct=0;
     fee=TXS_BKY_FEE;}
   else{
     fprintf(stderr,"ERROR: run not defined or unknown\n");
@@ -439,6 +454,27 @@ usertxs_ptr run(settings& sts,const char* line,int len)
     return(NULL);}
 }
 
+static char* mydate(uint32_t now)
+{ time_t lnow=now;
+  static char text[64];
+  struct tm *tmp;
+  tmp=localtime(&lnow);
+  if(!strftime(text,64,"%F %T",tmp)){
+    text[0]='\0';}
+  return(text);
+}
+
+int check_csum(user_t& u,uint16_t peer,uint32_t uid)
+{ hash_t csum;
+  SHA256_CTX sha256;
+  SHA256_Init(&sha256);
+  SHA256_Update(&sha256,&u,sizeof(user_t)-4*sizeof(uint64_t));
+  SHA256_Update(&sha256,&peer,sizeof(uint16_t));
+  SHA256_Update(&sha256,&uid,sizeof(uint32_t));
+  SHA256_Final(csum,&sha256);
+  return(memcmp(csum,u.csum,sizeof(hash_t)));
+}
+
 void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,uint32_t bank,uint32_t user,settings& sts)
 { char pkey[65];
   char hash[65];
@@ -464,6 +500,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("account.id",user);
       pt.put("account.msid",u.msid);
       pt.put("account.time",u.time);
+      pt.put("account.date",mydate(u.time));
       pt.put("account.status",u.stat);
       pt.put("account.paired_node",u.node);
       pt.put("account.paired_id",u.user);
@@ -480,6 +517,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("network_account.id",user);
       pt.put("network_account.msid",u.msid);
       pt.put("network_account.time",u.time);
+      pt.put("network_account.date",mydate(u.time));
       pt.put("network_account.status",u.stat);
       pt.put("network_account.paired_node",u.node);
       pt.put("network_account.paired_id",u.user);
@@ -489,7 +527,11 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,u
       pt.put("network_account.remote_change",u.rpath);
       pt.put("network_account.balance",print_amount(u.weight));
       pt.put("network_account.public_key",pkey);
-      pt.put("network_account.hash",hash);}}
+      pt.put("network_account.hash",hash);
+      if(!check_csum(u,bank,user)){
+        pt.put("network_account.checksum","true");}
+      else{
+        pt.put("network_account.checksum","false");}}}
 }
 
 void print_log(boost::property_tree::ptree& pt,settings& sts)
@@ -529,6 +571,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       uint16_t txst=ulog.type&0xFF;
       sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
       logentry.put("time",ulog.time);
+      logentry.put("date",mydate(ulog.time));
       logentry.put("type_no",ulog.type);
       // FIXME: properly flag confirmed transactions, which will not be rolled back
       logentry.put("confirmed", 1);
@@ -538,7 +581,9 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         if(txst==TXSTYPE_STP){ //node start
           logentry.put("account.error","logerror");
           logentry.put("account.newtime",ulog.time);
+          logentry.put("account.newdate",mydate(ulog.time));
           logentry.put("account.badtime",ulog.nmid);
+          logentry.put("account.baddate",mydate(ulog.nmid));
           logentry.put("account.badblock",ulog.mpos);
           logtree.push_back(std::make_pair("",logentry));
           continue;}}
@@ -675,7 +720,11 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         logentry.put("sender_balance",print_amount(weight));
         logentry.put("sender_amount",print_amount(deduct));
         if(txst==TXSTYPE_MPT){
-          logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
+          if(ulog.node==sts.bank){
+            logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
+          else{
+            logentry.put("sender_fee",
+              print_amount(TXS_MPT_FEE(ulog.weight)+TXS_LNG_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
           logentry.put("sender_fee_total",print_amount(fee));
           key_hex[2*5]='\0';
           logentry.put("sender_public_key_prefix_5",key_hex);}
@@ -719,6 +768,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
   for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32+4+4){
     boost::property_tree::ptree blogentry;
     blogentry.put("block_time",path);
+    blogentry.put("block_date",mydate(path));
     if(!utxs.parse((char*)p) || *p!=TXSTYPE_BRO){
       std::cerr<<"ERROR: failed to parse broadcast transaction\n";
       blogentry.put("ERROR","failed to parse transaction");
@@ -732,6 +782,7 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     blogentry.put("address",acnt);
     blogentry.put("account_msid",utxs.amsid);
     blogentry.put("time",utxs.ttime);
+    blogentry.put("date",mydate(utxs.ttime));
     //blogentry.put("length",utxs.bbank);
     //transaction
     char* data=(char*)malloc(2*txslen[TXSTYPE_BRO]+1);
@@ -856,7 +907,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
   return(true);
 }
 
-void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t fee) //len can be deduced from txstype
+void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 { char buf[0xff];
   try{
     boost::property_tree::ptree pt;
@@ -893,7 +944,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       SHA256_Final(hashout,&sha256);
       ed25519_key2text(tx_user_hashout,hashout,32);
       pt.put("tx.account_hashout",tx_user_hashout);
-      //FIXME calculate fee
+      //FIXME calculate deduction and fee
+      pt.put("tx.deduct",print_amount(deduct));
       pt.put("tx.fee",print_amount(fee));
     }
     if(sts.msid==1){
@@ -1076,18 +1128,20 @@ int main(int argc, char* argv[])
 #endif
   try{
     if(!sts.exec.empty()){
+      int64_t deduct=0;
       int64_t fee=0;
       usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length()); //FIXME, use only run_json
       if(txs==NULL){
         std::cerr << "ERROR\n";}
-      talk(endpoint_iterator,socket,sts,txs,fee);
+      talk(endpoint_iterator,socket,sts,txs,deduct,fee);
       return(0);}
     //std::string line;
     char line[0x10000];line[0xffff]='\0';
     usertxs_ptr txs;
     //while (std::getline(std::cin,line)){
     while(NULL!=fgets(line,0xffff,stdin)){
-      int64_t fee;
+      int64_t deduct=0;
+      int64_t fee=0;
       if(line[0]=='\n' || line[0]=='#'){
         continue;}
       int len=strlen(line);
@@ -1105,10 +1159,10 @@ int main(int argc, char* argv[])
             //  line[len]=' ';
             //  break;}
             len+=strlen(line+len);}}
-        txs=run_json(sts,line,fee);}
+        txs=run_json(sts,line,deduct,fee);}
       if(txs==NULL){
         break;}
-      talk(endpoint_iterator,socket,sts,txs,fee);}}
+      talk(endpoint_iterator,socket,sts,txs,deduct,fee);}}
   catch (std::exception& e){
     std::cerr << "Main Exception: " << e.what() << "\n";}
   return 0;

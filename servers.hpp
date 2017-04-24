@@ -294,7 +294,14 @@ public:
         LOG("USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
           peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
 			xor4(csum,u.csum);
-			weight+=u.weight;}
+			weight+=u.weight;
+//FIXME, remove later
+			uint64_t usum[4]={0,0,0,0};
+			memcpy(usum,u.csum,sizeof(uint64_t)*4);
+			user_csum(u,peer,i);
+			if(memcmp(usum,u.csum,sizeof(uint64_t)*4)){
+				LOG("ERROR, checksum failed for %04X:%08X from %s\n",peer,i,filename);
+				exit(-1);}}
 		close(fd);
 		if(nodes[peer].weight!=weight){
 			LOG("ERROR: check_node: bad weight sum\n");
