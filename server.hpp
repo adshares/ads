@@ -711,10 +711,22 @@ public:
           num1->score,x,votes_max,votes_counted);}
       do_block=2;
       winner=num1;
-      winner->remove_missing_double_spend();
       char text[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(text,best.hash,SHA256_DIGEST_LENGTH);
       LOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
+      //winner->check_status();
+      //check again if we really miss messages
+      for(auto it=winner->svid_miss.begin();it!=winner->svid_miss.end();it++){
+        if(it->second.msid==0x00000000){
+          continue;}
+        if(it->second.msid==0xFFFFFFFF){
+          winner->waiting_server.erase(it->first);
+          continue;}
+        if(winner->waiting_server.find(it->first)!=winner->waiting_server.end()){
+          message_ptr pm=message_svidmsid(it->first,it->second.msid);
+          if(pm!=NULL && !memcmp(pm->sigh,it->second.sigh,sizeof(hash_t))){ //FIXME, detect mismatch in hash !!!
+            LOG("WARNING, found missing message after election ended :-(\n");
+            winner->waiting_server.erase(it->first);}}}
       if(winner->failed_peer){
         LOG("BAD CANDIDATE elected :-(\n");}} // FIXME, do not exit, initiate sync
     if(do_block==2 && winner->elected_accept()){
@@ -1588,12 +1600,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       if(srvs_.nodes[msg->svid].users!=users){
         LOG("WARNING undoing user additions (users back to:%08X)\n",users);}
       srvs_.nodes[msg->svid].users=users;}
-    char filename[64];
-    sprintf(filename,"usr/%04X.dat",msg->svid);
-    int fd=open(filename,O_RDWR|O_CREAT,0644);
-    if(fd<0){
-      LOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
-      exit(-1);}
+    int fd=open_bank(msg->svid);
+    //char filename[64];
+    //sprintf(filename,"usr/%04X.dat",msg->svid);
+    //int fd=open(filename,O_RDWR|O_CREAT,0644);
+    //if(fd<0){
+    //  LOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
+    //  exit(-1);}
     for(auto it=undo.begin();it!=undo.end();it++){
       user_t& u=it->second;
       LOG("UNDO:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
@@ -1637,12 +1650,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       return(false);}
     LOG("PROCESS MSG %04X:%08X\n",msg->svid,msg->msid);
     char* p=(char*)msg->data+4+64+10;
-    char filename[64];
-    sprintf(filename,"usr/%04X.dat",msg->svid);
-    int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
-    if(fd<0){
-      LOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
-      exit(-1);}
+    int fd=open_bank(msg->svid);
+    //char filename[64];
+    //sprintf(filename,"usr/%04X.dat",msg->svid);
+    //int fd=open(filename,O_RDWR|O_CREAT,0644); //use memmory mapped file due to unordered transactions
+    //if(fd<0){
+    //  LOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
+    //  exit(-1);}
     std::map<uint64_t,log_t> log;
     std::map<uint32_t,user_t> changes;
     std::map<uint32_t,user_t> undo;
@@ -2146,10 +2160,10 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             memcpy(alog.info,tx->pkey,32);
             log[key]=alog;}
             //put_log(tx->bbank,tx->buser,alog); //put_blklog
-          LOG("REMOTE user request %04X %08X %04X matched\n",abank,tx->bbank,tx->buser);
+          LOG("REMOTE user request %04X %04X %08X matched\n",abank,tx->bbank,tx->buser);
           uin[nuin]--;}
         else{
-          LOG("REMOTE user request %04X %08X %04X not found\n",abank,tx->bbank,tx->buser);
+          LOG("REMOTE user request %04X %04X %08X not found\n",abank,tx->bbank,tx->buser);
           if(tx->bbank==opts_.svid){ // no matching _USR transaction found
             uint64_t key=(uint64_t)tx->buser<<32;
             key|=lpos++;
@@ -2168,7 +2182,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
       for(;n>0;n--){
-        LOG("REMOTE user request %04X %08X %04X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
+        LOG("REMOTE user request %04X %04X %08X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
         union {uint64_t big;uint32_t small[2];} to;
         to.small[0]=it->first.auser;
         to.small[1]=it->first.abank;
@@ -2221,7 +2235,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             bank_fee.resize(srvs_.nodes.size());
             LOG("BANK, add new bank %04X\n",peer);}
           else{
-            close(fd);
+            //close(fd);
             LOG("BANK, can not create more banks\n");
             //goto BLK_END;
             union {uint64_t big;uint32_t small[2];} to;
@@ -2268,7 +2282,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
 
     //withdraw funds
     uint16_t svid=0;
-    int fd=0;
+    int fd=-1;
     std::map<uint32_t,user_t> undo;
     for(auto it=blk_get.begin();it!=blk_get.end();it++){
       uint16_t abank=ppi_abank(it->first);
@@ -2279,6 +2293,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         srvs_.save_undo(svid,undo,0);
         undo.clear();
         svid=bbank;
+        if(fd>=0){
+          close(fd);}
         fd=open_bank(svid);}
       union {uint64_t big;uint32_t small[2];} to;
       to.small[1]=abank; //assume big endian
@@ -2360,6 +2376,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             g.delta=delta;
             ofip_gup_push(g);}}}}
     if(svid){
+      if(fd>=0){
+        close(fd);}
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
     del_msglog(srvs_.now,0,0);
@@ -2395,7 +2413,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
       return;}
     //uint32_t now=time(NULL); //for the log
     //std::map<uint64_t,log_t> log;
-    char filename[64];
+    //char filename[64];
     user_t u,ou;
     const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
     assert((char*)&u.rpath<(char*)&u.weight);
@@ -2411,11 +2429,12 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
       if(user>=uend){
         continue;}
       LOG("DIVIDEND to usr/%04X.dat\n",svid);
-      sprintf(filename,"usr/%04X.dat",svid);
-      int fd=open(filename,O_RDWR,0644);
-      if(fd<0){
-        LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
-        exit(-1);}
+      int fd=open_bank(svid);
+      //sprintf(filename,"usr/%04X.dat",svid);
+      //int fd=open(filename,O_RDWR,0644);
+      //if(fd<0){
+      //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+      //  exit(-1);}
       for(;;user+=segment*(period-1)){
         lseek(fd,user*sizeof(user_t),SEEK_SET);
         for(int i=0;i<segment;i++,user++){
@@ -2467,7 +2486,7 @@ LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
   void commit_deposit(std::set<uint16_t>& update) //assume single thread, TODO change later !!!
   { //uint32_t now=time(NULL); //for the log
     //std::map<uint64_t,log_t> log;
-    char filename[64];
+    //char filename[64];
     uint16_t lastsvid=0;
     int /*ud=0,*/fd=-1;
     user_t u;
@@ -2492,11 +2511,12 @@ LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
         lastsvid=svid;
 	update.insert(svid);
         LOG("DEPOSIT to usr/%04X.dat\n",svid);
-        sprintf(filename,"usr/%04X.dat",svid);
-        fd=open(filename,O_RDWR,0644);
-        if(fd<0){
-          LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
-          exit(-1);}}
+        fd=open_bank(svid);}
+        //sprintf(filename,"usr/%04X.dat",svid);
+        //fd=open(filename,O_RDWR,0644);
+        //if(fd<0){
+        //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+        //  exit(-1);}
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
       undo.emplace(user,u);
@@ -2538,12 +2558,13 @@ LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->sec
     std::map<uint64_t,log_t> log;
 
     for(uint16_t svid=1;svid<max_svid;svid++){
-      char filename[64];
-      sprintf(filename,"usr/%04X.dat",svid);
-      int fd=open(filename,O_RDWR,0644);
-      if(fd<0){
-        LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
-        exit(-1);}
+      int fd=open_bank(svid);
+      //char filename[64];
+      //sprintf(filename,"usr/%04X.dat",svid);
+      //int fd=open(filename,O_RDWR,0644);
+      //if(fd<0){
+      //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+      //  exit(-1);}
       read(fd,&u,sizeof(user_t));
       std::map<uint32_t,user_t> undo;
       undo.emplace(0,u);
@@ -2938,6 +2959,7 @@ exit(-1);
       std::map<uint16_t,msidhash_t> new_svid_have;
       bool failed=false;
       for(auto ct=changed.begin();ct!=changed.end();ct++){
+        //compare with my candidate
         auto sm=last_svid_msgs.find(ct->first);
         if(sm!=last_svid_msgs.end()){
           if(sm->second->msid==ct->second.msid &&
@@ -2948,22 +2970,20 @@ exit(-1);
               LOG("%04X WARNING old message %04X:%08X missing\n",svid,ct->first,ct->second.msid);
               failed=true;}
             else{
-              if(sm->second->msid==0xffffffff){
+              if(sm->second->msid==0xFFFFFFFF){
                 LOG("%04X WARNING double spend message from %04X missing\n",svid,ct->first);
                 failed=true;}}
             if(!ct->second.msid){
               new_svid_have[ct->first]=ct->second;
-              continue;}
-            message_ptr pm=message_svidmsid(ct->first,ct->second.msid);
-            if(pm!=NULL && !memcmp(pm->sigh,ct->second.sigh,sizeof(hash_t))){
-              new_svid_have[ct->first]=ct->second;}
-            else{
-              new_svid_miss[ct->first]=ct->second;}}}
+              continue;}}}
+        //check missing messages
+        if(!ct->second.msid){
+          continue;}
+        message_ptr pm=message_svidmsid(ct->first,ct->second.msid);
+        if(pm!=NULL && !memcmp(pm->sigh,ct->second.sigh,sizeof(hash_t))){ //FIXME, detect mismatch in hash !!!
+          new_svid_have[ct->first]=ct->second;}
         else{
-          if(!ct->second.msid){
-            continue;}
-          else{
-            new_svid_miss[ct->first]=ct->second;}}}
+          new_svid_miss[ct->first]=ct->second;}}
       LOG("%04X SAVE CANDIDATE changed:%d miss:%d have:%d failed:%d\n",
         svid,(int)changed.size(),(int)new_svid_miss.size(),(int)new_svid_have.size(),failed);
       candidate_ptr c_ptr(new candidate(blk,new_svid_miss,new_svid_have,svid,failed));

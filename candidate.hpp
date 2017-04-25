@@ -50,11 +50,12 @@ public:
     return false;
   }
 
-  void remove_missing_double_spend() //ignore waiting double spend confirmations !!!
+  /*void check_status() //ignore waiting double spend confirmations !!!
   { for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
       if(it->second.msid==0xFFFFFFFF){
-        waiting_server.erase(it->first);}}
-  }
+        waiting_server.erase(it->first);
+        continue;}
+  }*/
 
   void update(message_ptr msg)
   { auto m=svid_miss.find(msg->svid); //FIXME, should use local lock
