@@ -105,8 +105,9 @@ public:
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
-	uint16_t vok;
-	uint16_t vno;
+	uint16_t vok; //votes in favor
+	uint16_t vno; //votes against
+        uint16_t vtot; //total eligible voters
 	std::vector<node> nodes; //FIXME, this vector can fail to allocate RAM, do tests with more than 32k nodes!
 	//std::vector<void*> users; // place holder for user accounts
 	servers():
@@ -121,7 +122,8 @@ public:
 		nodhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nowhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		vok(0),
-		vno(0) 
+		vno(0),
+		vtot(0xffff)
 	{}
 
 	int init(uint32_t newnow)
@@ -595,12 +597,9 @@ public:
 		sprintf(filename,"blk/%03X/%05X/signatures.txt",now>>20,now&0xFFFFF);
 		char hash[4*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
-		//mtx_.lock();
 		FILE *fp=fopen(filename,"a");
 		fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
 		fclose(fp);
-		//mtx_.unlock();
-		//assert(vok+vno<VIP_MAX-1);
 		if(ok){
 			std::cerr << "BLOCK ok\n";
 			vok++;
@@ -766,7 +765,8 @@ public:
 			nodes[i].ipv4=peer_node[i].ipv4;}
 	}
 
-	int update_vip()
+	//int update_vip()
+	void update_vip()
 	{	uint32_t i;
 		vok=0;
 		vno=0;
@@ -780,7 +780,8 @@ public:
 		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
 			nodes[svid_rank[i]].status |= SERVER_VIP;}
 		assert(i>0);
-		return(i<VIP_MAX?i:VIP_MAX);
+		//return(i<VIP_MAX?i:VIP_MAX);
+		vtot=(uint16_t)(i<VIP_MAX?i:VIP_MAX);
 	}
 
 	uint32_t nextblock() //returns period_start
@@ -813,6 +814,7 @@ public:
 			fprintf(stdlog,"START: %08X\n",ntime);
 			flog.unlock();
 		}
+		update_vip(); //FIXME, move this to a new location!
 		return(now-num*BLOCKSEC);
 	}
 
@@ -891,9 +893,10 @@ private:
 		if(version>0) ar & nowhash;
 		if(version>2) ar & vok;
 		if(version>2) ar & vno;
+		if(version>4) ar & vtot;
 		ar & nodes;
 	}
 };
-BOOST_CLASS_VERSION(servers, 4)
+BOOST_CLASS_VERSION(servers, 5)
 
 #endif // SERVERS_HPP

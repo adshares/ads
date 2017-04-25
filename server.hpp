@@ -84,7 +84,7 @@ public:
       period_start=srvs_.nextblock();} //changes now!
 
     LOG("START @ %08X with MSID: %08X\n",path,msid_);
-    vip_max=srvs_.update_vip(); //based on initial weights at start time
+    //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
       std::cerr << "ERROR: reading servers\n";
@@ -546,7 +546,7 @@ public:
           peer_.lock();}
         peer_.unlock();}}
     //TODO, add nodes if needed
-    vip_max=srvs_.update_vip();
+    //vip_max=srvs_.update_vip(); // move to nextblock()
     txs_.lock();
     txs_msgs_.clear();
     txs_.unlock();
@@ -617,8 +617,8 @@ public:
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
 	std::cerr<<"SYNC nextblock\n";
         period_start=srvs_.nextblock();
-	std::cerr<<"SYNC update vip\n";
-        vip_max=srvs_.update_vip(); //based on final weights
+	//std::cerr<<"SYNC update vip\n";
+        //vip_max=srvs_.update_vip(); //based on final weights, move to nextblock()
         do_fast=0;
         peer_.unlock();
         return(1);}
@@ -1262,9 +1262,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     blk_.lock();
     last_srvs_.save_signature(msg->svid,msg->data+4,!no);
     blk_.unlock();
-    LOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,vip_max);
+    LOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
     update(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
-    if(last_srvs_.vno>vip_max/2){
+    //if(last_srvs_.vno>vip_max/2){ // use last_srvs_.vip_max
+    if(last_srvs_.vno>last_srvs_.vtot/2){
       std::cerr << "BAD BLOCK consensus :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
       exit(-1);}
     if(no){
@@ -2875,7 +2876,7 @@ exit(-1);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
-    vip_max=srvs_.update_vip();
+    //vip_max=srvs_.update_vip(); // move to nextblock()
     if(!do_sync){
       ofip_update_block(period_start,srvs_.now,commit_msgs,srvs_.div);
       free(hash);
@@ -3260,7 +3261,7 @@ exit(-1);
   int do_check;
   //int get_headers; //TODO :-( reduce the number of flags
   uint32_t msid_; // change name to msid :-)
-  int vip_max;
+  //int vip_max; // user last_srvs_.vtot;
   boost::mutex peer_; //FIXME, make this private
   std::list<servers> headers; //FIXME, make this private
   uint32_t get_msglist; //block id of the requested msglist of messages
@@ -3310,23 +3311,17 @@ private:
   boost::mutex blk_;
   boost::mutex dbl_;
   boost::mutex mtx_; //lock msid_ msha_ changes
-  //boost::mutex gupstack_;
   // voting
   std::map<uint16_t,uint64_t> electors;
   uint64_t votes_max;
   int do_vote;
   int do_block;
-  //int vip_ok;
-  //int vip_no;
-  //std::map<uint16_t,uint32_t> svid_msid; //TODO, maybe not used
   std::map<uint64_t,int64_t> deposit;
   boost::mutex deposit_;
-  //std::map<uint64_t,hash_s> blk_bky; //change bank key
   std::map<uint64_t,std::vector<uint32_t>> blk_bnk; //create new bank
   std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
   std::map<uint64_t,std::vector<usr_t>> blk_usr; //remote account request
   std::map<uint64_t,std::vector<uok_t>> blk_uok; //remote account accept
-  //std::map<uint64_t,std::vector<uint32_t>> blk_put; //cancel lock
   std::vector<int64_t> bank_fee;
   int64_t mydiv_fee; // just to record the local TXS_DIV_FEE bank income
   int64_t myusr_fee; // just to record the local TXS_DIV_FEE bank income

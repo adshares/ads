@@ -1180,7 +1180,8 @@ Aborted
     if(peer_hs.head.now!=blocknow-BLOCKSEC || peer_hs.do_sync){
       LOG("%04X PEER not in sync\n",svid);
       return(0);}
-    if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+    //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins))
+    if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
       LOG("%04X PEER not enough signatures\n",svid);
       return(0);}
     LOG("%04X Authenticated, expecting sync data (%u bytes)\n",svid,
@@ -1193,7 +1194,8 @@ Aborted
       return(0);}
     LOG("%04X BLOCK sigatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
     server_.last_srvs_.check_signatures(peer_hs.head,peer_svsi);//TODO, check if server_.last_srvs_ has public keys
-    if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+    //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+    if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
       LOG("%04X READ not enough signatures after validaiton\n",svid);
       free(peer_svsi);
       return(0);}
