@@ -2130,6 +2130,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
         LOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
         uin[nuin]++;}}
+    blk_usr.clear();
     for(auto it=blk_uok.begin();it!=blk_uok.end();it++){ //send funds from matched transactions to new account
       uint16_t abank=ppi_abank(it->first);
       for(auto tx=it->second.begin();tx!=it->second.end();tx++){
@@ -2179,6 +2180,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             memcpy(alog.info,tx->pkey,32);
             log[key]=alog;}}}}
           //put_log(tx->bbank,tx->buser,alog); //put_blklog
+    blk_uok.clear();
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
       for(;n>0;n--){
@@ -2375,6 +2377,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             g.time=u.time;
             g.delta=delta;
             ofip_gup_push(g);}}}}
+    blk_get.clear();
     if(svid){
       if(fd>=0){
         close(fd);}
