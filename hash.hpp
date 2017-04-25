@@ -15,7 +15,7 @@ public:
 
 	~hashtree() {}
 
-	void addhash(uint8_t* hash,uint8_t* add) //hash(a,b)==hash(b,a)
+	void addhash(uint8_t* hash,const uint8_t* add) //hash(a,b)==hash(b,a)
 	{	SHA256_Init(&sha256);
 		for(int i=0;i<SHA256_DIGEST_LENGTH;i++){
 			if(hash[i]<add[i]){

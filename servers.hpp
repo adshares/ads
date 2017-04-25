@@ -104,6 +104,7 @@ public:
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+	uint8_t viphash[SHA256_DIGEST_LENGTH]; // hash of vip public keys
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
 	uint16_t vok; //votes in favor
 	uint16_t vno; //votes against
@@ -120,13 +121,15 @@ public:
 		msghash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		//txshash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nodhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		viphash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nowhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		vok(0),
 		vno(0),
 		vtot(0xffff)
 	{}
 
-	int init(uint32_t newnow)
+	//int init(uint32_t newnow)
+	void init(uint32_t newnow)
 	{	uint16_t num=0;
 		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
 		uint64_t sum=0;
@@ -158,8 +161,9 @@ public:
 		LOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
 		//nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
+		vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
 		finish();
-		return(num<VIP_MAX?num:VIP_MAX);
+		//return(num<VIP_MAX?num:VIP_MAX);
 	}
 
 	void xor4(uint64_t* to,uint64_t* from)
@@ -438,9 +442,34 @@ public:
 		return(1);
 	}
 
+	void update_vip()
+	{	uint32_t i;
+		vok=0;
+		vno=0;
+		std::vector<uint16_t> svid_rank;
+		for(i=0;i<nodes.size();i++){
+			if(nodes[i].status & SERVER_DBL){
+				continue;}
+			nodes[i].status &= ~SERVER_VIP;
+			svid_rank.push_back(i);}
+		std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->nodes[i].weight>this->nodes[j].weight);}); //fuck, lambda :-(
+		std::set<hash_s,hash_cmp> vipkeys;
+		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
+			uint16_t svid=svid_rank[i];
+			nodes[svid].status |= SERVER_VIP;
+			vipkeys.insert(*((hash_s*)nodes[svid].pk));}
+		assert(i>0);
+		hashtree tree(NULL); //FIXME, waste of space
+		bzero(viphash,sizeof(hash_t));
+		for(auto it=vipkeys.begin();it!=vipkeys.end();it++){
+			tree.addhash(viphash,(uint8_t*)it->hash);}
+		vtot=(uint16_t)(i<VIP_MAX?i:VIP_MAX);
+	}
+
 	void finish()
 	{	nod=nodes.size();
 		SHA256_CTX sha256;
+		update_vip();
 		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
 			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
@@ -483,6 +512,7 @@ public:
 		hashtree tree(NULL); //FIXME, waste of space
 		tree.addhash(nowhash,nodhash);
 		tree.addhash(nowhash,msghash);
+		tree.addhash(nowhash,viphash);
 		tree.addhash(nowhash,oldhash);
 	}
 	void loadlink(headlink_t& link,uint32_t path,char* oldh)
@@ -493,6 +523,7 @@ public:
 		memcpy(oldhash,oldh,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,link.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,link.nodhash,SHA256_DIGEST_LENGTH);
+		memcpy(viphash,link.viphash,SHA256_DIGEST_LENGTH);
 		hashnow();
 	}
 	void filllink(headlink_t& link)//write to link
@@ -501,6 +532,7 @@ public:
 		link.div=div;
 		memcpy(link.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(link.nodhash,nodhash,SHA256_DIGEST_LENGTH);
+		memcpy(link.viphash,viphash,SHA256_DIGEST_LENGTH);
 	}
 	void loadhead(header_t& head)
 	{	now=head.now;
@@ -510,6 +542,7 @@ public:
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
+		memcpy(viphash,head.viphash,SHA256_DIGEST_LENGTH);
 		hashnow();
 	}
 	void header(header_t& head)//change this to fill head
@@ -520,6 +553,7 @@ public:
 		memcpy(head.oldhash,oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(head.msghash,msghash,SHA256_DIGEST_LENGTH);
 		memcpy(head.nodhash,nodhash,SHA256_DIGEST_LENGTH);
+		memcpy(head.viphash,viphash,SHA256_DIGEST_LENGTH);
 		memcpy(head.nowhash,nowhash,SHA256_DIGEST_LENGTH);
 		head.vok=vok;
 		head.vno=vno;
@@ -538,6 +572,7 @@ public:
 			ia >> oldhash;
 			ia >> msghash;
 			ia >> nodhash;
+			ia >> viphash;
 			ia >> nowhash;
 			ia >> vok;
 			ia >> vno;}
@@ -562,6 +597,7 @@ public:
 			oa << oldhash;
 			oa << msghash;
 			oa << nodhash;
+			oa << viphash;
 			oa << nowhash;
 			oa << vok;
 			oa << vno;}
@@ -577,6 +613,8 @@ public:
 		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
 		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ed25519_key2text(hash,viphash,SHA256_DIGEST_LENGTH);
+		LOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nowhash,SHA256_DIGEST_LENGTH);
 		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
@@ -589,6 +627,8 @@ public:
 		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nodhash,SHA256_DIGEST_LENGTH);
 		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ed25519_key2text(hash,head.viphash,SHA256_DIGEST_LENGTH);
+		LOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nowhash,SHA256_DIGEST_LENGTH);
 		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
@@ -605,7 +645,7 @@ public:
 			vok++;
 			sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);}
 		else{
-//FIXME, no point to save no signatures without corresponding block
+//FIXME, no point to save "no-" signatures without corresponding block
 			std::cerr << "BLOCK differs\n";
 			vno++;
 			sprintf(filename,"blk/%03X/%05X/signatures.no",now>>20,now&0xFFFFF);}
@@ -655,6 +695,10 @@ public:
 			uint16_t svid;
 			memcpy(&svid,data,2);
 			if(svid>=nodes.size()){
+				LOG("ERROR, bad server %04X in signatures\n",svid);
+				continue;}
+			if(!(nodes[svid].status & SERVER_VIP)){
+				LOG("WARNING, signature from non VIP server %04X ignored\n",svid);
 				continue;}
 			int error=ed25519_sign_open((const unsigned char*)&head,sizeof(header_t)-4,nodes[svid].pk,data+2);
 			if(error){
@@ -682,7 +726,7 @@ public:
 				memcpy(svsi+j,svsi+i,sizeof(svsi_t));}
 			j++;}
 		head.vno=j-head.vok;
-          	std::cerr << "READ block signatures confirmed:"<<head.vok<<" failed:"<<head.vno<<"\n";
+          	LOG("READ block signatures confirmed:%d failed:%d\n",head.vok,head.vno);
 	}
 
 	bool copy_nodes(node_t* peer_node,uint16_t peer_srvn)
@@ -747,6 +791,7 @@ public:
 		memcpy(oldhash,head.oldhash,SHA256_DIGEST_LENGTH);
 		memcpy(msghash,head.msghash,SHA256_DIGEST_LENGTH);
 		memcpy(nodhash,head.nodhash,SHA256_DIGEST_LENGTH);
+		memcpy(viphash,head.viphash,SHA256_DIGEST_LENGTH);
 		memcpy(nowhash,head.nowhash,SHA256_DIGEST_LENGTH);
 		vok=head.vok;
 		vno=head.vno;
@@ -763,25 +808,6 @@ public:
 			nodes[i].users=peer_node[i].users;
 			nodes[i].port=peer_node[i].port;
 			nodes[i].ipv4=peer_node[i].ipv4;}
-	}
-
-	//int update_vip()
-	void update_vip()
-	{	uint32_t i;
-		vok=0;
-		vno=0;
-		std::vector<uint16_t> svid_rank;
-		for(i=0;i<nodes.size();i++){
-			if(nodes[i].status & SERVER_DBL){
-				continue;}
-			nodes[i].status &= ~SERVER_VIP;
-			svid_rank.push_back(i);}
-		std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->nodes[i].weight>this->nodes[j].weight);}); //fuck, lambda :-(
-		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
-			nodes[svid_rank[i]].status |= SERVER_VIP;}
-		assert(i>0);
-		//return(i<VIP_MAX?i:VIP_MAX);
-		vtot=(uint16_t)(i<VIP_MAX?i:VIP_MAX);
 	}
 
 	uint32_t nextblock() //returns period_start
@@ -814,7 +840,6 @@ public:
 			fprintf(stdlog,"START: %08X\n",ntime);
 			flog.unlock();
 		}
-		update_vip(); //FIXME, move this to a new location!
 		return(now-num*BLOCKSEC);
 	}
 
@@ -890,6 +915,7 @@ private:
 		if(version>0) ar & oldhash;
 		if(version>1) ar & msghash;
 		if(version>1) ar & nodhash;
+		if(version>4) ar & viphash;
 		if(version>0) ar & nowhash;
 		if(version>2) ar & vok;
 		if(version>2) ar & vno;

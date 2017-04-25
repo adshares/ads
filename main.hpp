@@ -147,6 +147,7 @@ typedef struct headlink_s { // header links sent when syncing
         uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
         //uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
         uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+        uint8_t viphash[SHA256_DIGEST_LENGTH]; // hash of vip public keys
 } headlink_t;
 typedef struct header_s {
 	uint32_t now; // start time of block, MUST BE FIRST ELEMENT
@@ -157,9 +158,11 @@ typedef struct header_s {
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of messages
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
+	uint8_t viphash[SHA256_DIGEST_LENGTH]; // hash of vip public keys
 	uint8_t nowhash[SHA256_DIGEST_LENGTH]; // current hash
-	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST
-	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST
+	uint16_t vok; // vip ok votes stored by server, not signed !!! MUST BE LAST FOR CORRECT SIGNATURE
+	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST FOR CORRECT SIGNATURE
+	//uint16_t vtot; // any use ???
 } header_t;
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
