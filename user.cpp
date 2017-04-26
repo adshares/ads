@@ -267,6 +267,15 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);}
   else if(!run.compare(txsname[TXSTYPE_BLG])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
+  else if(!run.compare(txsname[TXSTYPE_BLK])){
+    uint32_t to_to=to_from;
+    boost::optional<uint32_t> json_to=pt.get_optional<uint32_t>("to");
+    if(json_to){
+      to_to=json_to.get();}
+
+
+
+    }
   else if(!run.compare("send_again")){
     boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
     if(json_data){

@@ -628,7 +628,51 @@ public:
     // should set file attributes (time)
     //TODO, maybe change status to VAL here
     //status=MSGSTAT_VAL;
+    save_path();
     return(1);
+  }
+
+  int save_path()
+  { if(hashtype()!=MSGTYPE_MSG){
+      return(2);}
+    char filename[64];
+    sprintf(filename,"inx/%04X.inx",svid);
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      return(0);}
+    lseek(fd,msid*sizeof(uint32_t),SEEK_SET);
+    write(fd,&path,sizeof(uint32_t));
+    close(fd);
+    return(1);
+  }
+
+  int erase_path()
+  { if(hashtype()!=MSGTYPE_MSG){
+      return(2);}
+    char filename[64];
+    sprintf(filename,"inx/%04X.inx",svid);
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      return(0);}
+    uint32_t zero=0;
+    lseek(fd,msid*sizeof(uint32_t),SEEK_SET);
+    write(fd,&zero,sizeof(uint32_t));
+    close(fd);
+    return(1);
+  }
+
+  uint32_t load_path()
+  { if(path){
+      return(path);}
+    char filename[64];
+    sprintf(filename,"inx/%04X.inx",svid);
+    int fd=open(filename,O_RDONLY);
+    if(fd<0){
+      return(0);}
+    lseek(fd,msid*sizeof(uint32_t),SEEK_SET);
+    read(fd,&path,sizeof(uint32_t));
+    close(fd);
+    return(path);
   }
 
   void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim) // assume no errors :-) FIXME
@@ -693,6 +737,7 @@ public:
       LOG("FAILED to move %s to %s\n",oldname,newname);
       exit(-1);} //FIXME, do not exit later
     path=nextpath;
+    save_path();
     return(r);
   }
 

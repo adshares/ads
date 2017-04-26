@@ -447,7 +447,7 @@ public:
 		vok=0;
 		vno=0;
 		std::vector<uint16_t> svid_rank;
-		for(i=0;i<nodes.size();i++){
+		for(i=1;i<nodes.size();i++){ //FIXME, start this with 1, not with 0
 			if(nodes[i].status & SERVER_DBL){
 				continue;}
 			nodes[i].status &= ~SERVER_VIP;
@@ -461,8 +461,21 @@ public:
 		assert(i>0);
 		hashtree tree(NULL); //FIXME, waste of space
 		bzero(viphash,sizeof(hash_t));
+		std::string data;
 		for(auto it=vipkeys.begin();it!=vipkeys.end();it++){
+			data.append((char*)it->hash,32);
 			tree.addhash(viphash,(uint8_t*)it->hash);}
+		char hash[65];
+		hash[64]='\0';
+		ed25519_key2text(hash,viphash,32);
+		char filename[128];
+		sprintf(filename,"vip/%64s.vip",hash);
+		int fd=open(filename,O_WRONLY|O_CREAT,0644);
+		if(fd<0){
+			LOG("ERROR opening %s, fatal\n",filename);
+			exit(-1);}
+		write(fd,data.c_str(),data.length());
+		close(fd);
 		vtot=(uint16_t)(i<VIP_MAX?i:VIP_MAX);
 	}
 

@@ -35,7 +35,9 @@ public:
 
   void start()
   { mkdir("usr",0755); // create dir for bank accounts
+    mkdir("inx",0755); // create dir for bank message indeces
     mkdir("blk",0755); // create dir for blocks
+    mkdir("vip",0755); // create dir for blocks
     uint32_t path=readmsid()-opts_.back*BLOCKSEC; // reads msid_ and path, FIXME, do not read msid, read only path
     uint32_t lastpath=path;
     //remember start status
@@ -3174,7 +3176,7 @@ exit(-1);
     static uint32_t del=0;
 #if BLOCKSEC == 0x20
     //if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(del) && svid_msgs_.size()<MIN_MSGNUM){
-    if((!(opts_.svid%2) && !(rand()%4)) || del==srvs_.now+del){ // send message every 4s
+    if((!(opts_.svid%2) && !(rand()%4)) || now==srvs_.now+del){ // send message every 4s
 #else
     if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM){
 #endif
@@ -3182,11 +3184,11 @@ exit(-1);
       usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
       message.append((char*)txs.data,txs.size);
       do_hallo=srvs_.now;
-      del=rand()%BLOCKSEC;
+      del=rand()%(2*BLOCKSEC);
       return(true);}
     if(do_hallo<srvs_.now-BLOCKSEC){
       do_hallo=srvs_.now-BLOCKSEC;
-      del=rand()%BLOCKSEC;}
+      del=rand()%(2*BLOCKSEC);}
     return(false);
   }
 

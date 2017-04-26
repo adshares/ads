@@ -5,6 +5,8 @@
 #define TXSTYPE_STP 0	/* die/stop processing bank */	/* restart requires a new BKY transaction */
 #define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
 #define TXSTYPE_UOK 2	/* accept remote account request */
+			/* empty transaction */
+			/* input block hash for old transactions */
 			/* consider leaving space for more transactions */
 //bank & user
 #define TXSTYPE_BRO 3	/* broadcast */			/* send ads to network */
@@ -16,16 +18,20 @@
 #define TXSTYPE_KEY 9	/* change account key */
 #define TXSTYPE_BKY 10	/* change bank key */
 			/* consider leaving space for more transactions */
+//overwriting user only TX in log
+#define TXSTYPE_DIV 11	/* user dividend payment tx code */
+#define TXSTYPE_FEE 12	/* bank fee payment tx code */
 //user only
 #define TXSTYPE_INF 11	/* strating from this message only messages between wallet and client.hpp */
 #define TXSTYPE_LOG 12	/* return user status and log */
 #define TXSTYPE_BLG 13	/* return broadcast log */
+#define TXSTYPE_BLK 14	/* return block list */
+#define TXSTYPE_TXS 15	/* return transaction + hash path */
+#define TXSTYPE_VIP 16	/* return vip public keys */
+#define TXSTYPE_SIG 17	/* return block signatures */
 			/* request save status in log */
-//overwriting user only TX in log
-#define TXSTYPE_DIV 11	/* user dividend payment tx code */
-#define TXSTYPE_FEE 12	/* bank fee payment tx code */
 //end
-#define TXSTYPE_MAX 14
+#define TXSTYPE_MAX 18
 
 const char* txsname[TXSTYPE_MAX]={
 	"stop",			//0
@@ -41,7 +47,11 @@ const char* txsname[TXSTYPE_MAX]={
 	"change_node_key",	//10
 	"get_account",		//11 also 'get_me'
 	"get_log",		//12
-	"get_broadcast"};	//13
+	"get_broadcast",	//13
+	"get_blocks",		//14
+	"get_transaction",	//15
+	"get_vipkeys",		//16
+	"get_signatures"};	//17
 
 const char* logname[TXSTYPE_MAX]={
 	"node_started",		//0
@@ -57,7 +67,11 @@ const char* logname[TXSTYPE_MAX]={
 	"change_node_key",	//10
 	"dividend",		//11
 	"bank_profit",		//12
-	"unknown"};		//13
+	"unknown",		//13
+	"unknown",		//14
+	"unknown",		//15
+	"unknown",		//16
+	"unknown"};		//17
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	0,			//0:STP not defined yet
@@ -73,8 +87,12 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4+32,		//10:BKY, old key appended to undo message
 	1+2+4+2+4+4,		//11:INF
 	1+2+4+2+4+4,		//12:LOG
-	1+2+4+  4,		//13:BLG
-	1+2+4+4+4+2+4+8+32};	//14:MAX fixed buffer size
+	1+2+4+4,		//13:BLG /blk_number/
+	1+2+4+4+4,		//14:BLK /blk_from blk_to/
+	1+2+4+2+4+4,		//15:TXS /node_node-msid_position/
+	1+2+4+32,		//16:VIP /vip_hash/
+	1+2+4+4,		//17:SIG /blk_number/
+	1+2+4+4+4+2+4+8+32};	//18:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
 
