@@ -436,13 +436,28 @@ public:
 		return(1);
 	}
 
-	void update_vip() //FIXME, seperate vip hash calculation , do vip status update in next block
+	void update_vipstatus()
+	{	uint32_t i;
+		for(i=1;i<nodes.size();i++){
+			nodes[i].status &= ~SERVER_VIP;}
+		int len=0;
+		char* buf=NULL;
+		load_vip(len,buf,viphash);
+		for(int i=0;i<len;i+=2+32){
+			uint16_t svid=*((uint16_t*)(&buf[i+4]));
+			LOG("VIP: %04X\n",svid);
+			assert(svid>0 && svid<nodes.size());
+			nodes[svid].status |= SERVER_VIP;}
+		free(buf);
+	}
+
+	void update_viphash()
 	{	uint32_t i;
 		vok=0;
 		vno=0;
 		std::vector<uint16_t> svid_rank;
 		for(i=1;i<nodes.size();i++){ //FIXME, start this with 1, not with 0
-			nodes[i].status &= ~SERVER_VIP;
+			//nodes[i].status &= ~SERVER_VIP; // FIXME, postpone by 1 block
 			if(nodes[i].status & SERVER_DBL){
 				continue;}
 			if(i>1 && !nodes[i].msid){ // do not include nodes silent nodes
@@ -452,7 +467,7 @@ public:
 		std::map<uint16_t,hash_s> vipkeys;
 		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
 			uint16_t svid=svid_rank[i];
-			nodes[svid].status |= SERVER_VIP;
+			//nodes[svid].status |= SERVER_VIP; // FIXME, postpone by 1 block
 			vipkeys[svid]=(*((hash_s*)nodes[svid].pk));}
 		assert(i>0);
 		hashtree tree(NULL); //FIXME, waste of space
@@ -525,7 +540,7 @@ public:
 	void finish()
 	{	nod=nodes.size();
 		SHA256_CTX sha256;
-		update_vip();
+		update_viphash();
 		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
 			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
@@ -961,6 +976,7 @@ public:
 			flog.unlock();
 		}
 		//FIXME, update VIP status now
+		update_vipstatus();
 		return(now-num*BLOCKSEC);
 	}
 

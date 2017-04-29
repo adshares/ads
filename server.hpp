@@ -812,7 +812,8 @@ public:
     LOG("ELECTOR max:%016lX\n",votes_max);
 #if BLOCKSEC == 0x20
     //if(electors.size()<electors_old){
-    if(electors.size()<electors_old && electors.size()<2){
+    //if(electors.size()<electors_old && electors.size()<2){
+    if(electors.size()<electors_old && electors.size()<srvs_.vtot/2){
       LOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
       exit(-1);}
 #endif
