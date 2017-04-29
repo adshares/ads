@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <dirent.h>
 #include <forward_list>
 #include <fstream>
 #include <iostream>
@@ -32,26 +33,16 @@
 #include <sstream>
 #include <stack>
 #include <vector>
+#include "default.hpp"
 #include "ed25519/ed25519.h"
+#include "hash.hpp"
 #include "user.hpp"
 #include "settings.hpp"
+#include "message.hpp"
+#include "servers.hpp"
 
-/* !!! from main.hpp !!! */
-#define BLOCKSEC 0x20 /* block period in seconds */ 
-#define TXS_MIN_FEE      (0x1000) /* minimum fee per transaction */
-#define TXS_DIV_FEE      (0x100000)  /* dividend fee collected every BLOCKDIV blocks ( *8_years=MIN_MASS ) */
-#define TXS_KEY_FEE      (0x1000) /* */
-#define TXS_BRO_FEE(x)   (0x1000  +0x10000*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
-#define TXS_PUT_FEE(x)   (0x1000  +((x)>>13)) /* local wires fee (weight) (/8192) */
-#define TXS_LNG_FEE(x)   (         ((x)>>13)) /* additional remote wires fee (weight) */
-#define TXS_MPT_FEE(x)   (0x100   +((x)>>13)) /* + MIN_FEE !!! */
-#define TXS_GET_FEE      (0x100000) /* get initiation fee */
-#define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */
-#define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
-#define TXS_BNK_FEE      (0x10000000) /* 0x0.1 G */
-#define TXS_BKY_FEE      (0x10000000) /* 0x0.1 G */
-#define USER_MIN_MASS    (0x10000000) /* 0x0.1 G minimum user account mass to send transaction */
-#define BANK_MIN_TMASS   (0x1000000000) /* 0x10G, if bank total mass below this value, bank can be taken over */
+boost::mutex flog; //to compile LOG()
+FILE* stdlog=stderr; //to compile LOG()
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;
 // the list must terminate with ';'
@@ -98,8 +89,6 @@ bool parse_bank(uint16_t& to_bank,std::string str_bank)
   return(true);
 }
 
-//bool parse_user(uint32_t& to_user,boost::optional<std::string>& json_user)
-//{ std::string str_user=json_user.get();
 bool parse_user(uint32_t& to_user,std::string str_user)
 { char *endptr;
   if(str_user.length()!=8){
@@ -113,24 +102,6 @@ bool parse_user(uint32_t& to_user,std::string str_user)
     return(false);}
   return(true);
 }
-
-/*bool parse_sign(uint8_t* to_sign,boost::optional<std::string>& json_sign)
-{ std::string str_sign=json_sign.get();
-  if(str_sign.length()!=128){
-    fprintf(stderr,"ERROR: parse_sign(%s) bad length (required 128)\n",str_sign.c_str());
-    return(false);}
-  ed25519_text2key(to_sign,str_sign.c_str(),64);
-  return(true);
-}
-
-bool parse_pkey(uint8_t* to_pkey,boost::optional<std::string>& json_pkey)
-{ std::string str_pkey=json_pkey.get();
-  if(str_pkey.length()!=64){
-    fprintf(stderr,"ERROR: parse_pkey(%s) bad length (required 64)\n",str_pkey.c_str());
-    return(false);}
-  ed25519_text2key(to_pkey,str_pkey.c_str(),32);
-  return(true);
-}*/
 
 bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len)
 { std::string str_key=json_key.get();
@@ -268,14 +239,37 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   else if(!run.compare(txsname[TXSTYPE_BLG])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
   else if(!run.compare(txsname[TXSTYPE_BLK])){
-    uint32_t to_to=to_from;
+    if(!to_from){
+      servers block;
+      block.header_get();
+      to_from=block.now+BLOCKSEC;}
+    uint32_t to_to=0;
     boost::optional<uint32_t> json_to=pt.get_optional<uint32_t>("to");
     if(json_to){
-      to_to=json_to.get();}
-
-
-
-    }
+      to_to=json_to.get();} //                                    !!!!!!!             !!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_BLK,sts.bank,sts.user,to_from,now,to_bank,to_to,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_TXS])){
+    uint32_t node_msid=0;
+    uint32_t node_mpos=0;
+    boost::optional<std::string> json_txid=pt.get_optional<std::string>("txid");
+    if(json_txid && !sts.parse_txid(to_bank,node_msid,node_mpos,json_txid.get())){
+      return(NULL);} //                                           !!!!!!!!!     !!!!!!! !!!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_TXS,sts.bank,sts.user,node_mpos,now,to_bank,node_msid,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_VIP])){
+    boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
+    if(json_viphash && !parse_key(to_info,json_viphash,32)){
+      return(NULL);}
+    uint32_t to_block=0;
+    boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
+    if(json_block){
+      to_block=json_block.get();} //                              !!!!!!!!                             !!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_VIP,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_SIG])){
+    uint32_t to_block=0;
+    boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
+    if(json_block){
+      to_block=json_block.get();} //                              !!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_SIG,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
   else if(!run.compare("send_again")){
     boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
     if(json_data){
@@ -918,9 +912,9 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
 
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 { char buf[0xff];
+  boost::property_tree::ptree pt;
+  boost::property_tree::ptree logpt;
   try{
-    boost::property_tree::ptree pt;
-    boost::property_tree::ptree logpt;
     if(!sts.json){
       txs->print_head();
       txs->print();}
@@ -931,9 +925,6 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     pt.put("tx.data",tx_data);
     logpt.put("tx.data",tx_data);
     free(tx_data);
-    // account_msid
-    pt.put("tx.account_msid",sts.msid);
-    logpt.put("tx.account_msid",sts.msid);
     // tx_user_hashin
     // calculate tx_user_hashout
     uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -955,8 +946,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       pt.put("tx.account_hashout",tx_user_hashout);
       //FIXME calculate deduction and fee
       pt.put("tx.deduct",print_amount(deduct));
-      pt.put("tx.fee",print_amount(fee));
-    }
+      pt.put("tx.fee",print_amount(fee));}
+    else{
+      pt.put("tx.account_msid",sts.msid);
+      logpt.put("tx.account_msid",sts.msid);}
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
       ed25519_key2text(tx_user_public_key,sts.pk,32);
@@ -980,7 +973,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       pt.put("from_block",path);
       boost::property_tree::ptree blogtree;
       for(;path<=to;to-=BLOCKSEC){
-        if(txs->ttime!=to){ // straszny burdel :-( tu nie powinno byc tworzenia transakcji
+        if(txs->ttime!=to){
           txs->change_time(to);
           txs->sign(sts.ha,sts.sk,sts.pk);}
         char filename[64];
@@ -1033,82 +1026,278 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       if(!node_connect(endpoint_iterator,socket)){
         return;}
       boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
-      int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-      if(len!=sizeof(user_t)){
-        std::cerr<<"ERROR reading confirmation\n";}
-      else{
-        user_t myuser;
-        memcpy(&myuser,buf,sizeof(user_t));
-        if(txs->ttype==TXSTYPE_INF){
-          print_user(myuser,pt,sts.json,true,txs->bbank,txs->buser,sts);}
+
+      if(txs->ttype==TXSTYPE_BLK){
+        fprintf(stderr,"PROCESSING BLOCKS\n");
+        hash_t viphash;
+        hash_t oldhash;
+        servers block;
+        char* firstkeys=NULL; //FIXME, free !!!
+        int firstkeyslen=0;
+        //read first vipkeys if needed
+        if(!txs->amsid){
+          mkdir("blk",0755);
+          mkdir("vip",0755);
+          boost::asio::read(socket,boost::asio::buffer(&firstkeyslen,4));
+          if(firstkeyslen<=0){
+            fprintf(stderr,"ERROR, failed to read VIP keys for first hash\n");
+            socket.close();
+            return;}
+          else{
+            fprintf(stderr,"READ VIP keys for first hash (len:%d)\n",firstkeyslen);}
+          firstkeys=(char*)std::malloc(4+firstkeyslen);
+          memcpy(firstkeys,&firstkeyslen,4); //probably not needed
+          boost::asio::read(socket,boost::asio::buffer(firstkeys+4,firstkeyslen));}
+        //read headers
+        int num;
+        boost::asio::read(socket,boost::asio::buffer(&num,4));
+        if(num<=0){
+          fprintf(stderr,"ERROR, failed to read blocks since %08X\n",txs->amsid);
+          socket.close();
+          return;}
         else{
-          print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);}
-        if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
-          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
-            std::cerr<<"ERROR transaction failed (bad msid)\n";}
-          if(memcmp(sts.pk,myuser.pkey,32)){
-            if(txs->ttype==TXSTYPE_KEY){
-              std::cerr<<"PKEY changed\n";}
-            else{
-              char tx_user_public_key[65];tx_user_public_key[64]='\0';
-              ed25519_key2text(tx_user_public_key,myuser.pkey,32);
-              logpt.put("tx.account_public_key_new",tx_user_public_key);
-              std::cerr<<"PKEY differs\n";}}
-          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
-            //TODO, validate hashout, check if correct
-            char tx_user_hashout[65];tx_user_hashout[64]='\0';
-            ed25519_key2text(tx_user_hashout,myuser.hash,32);
-            logpt.put("tx.account_hashout",tx_user_hashout);
-            if(memcmp(myuser.hash,hashout,32)){
-              pt.put("error.text","hash mismatch");}}
-          sts.msid=myuser.msid;
-          memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
-      if(txs->ttype==TXSTYPE_INF){
-        len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+          fprintf(stderr,"READ %d blocks since %08X\n",num,txs->amsid);}
+        header_t* headers=(header_t*)std::malloc(num*sizeof(header_t)); //FIXME, free !!!
+        assert(headers!=NULL);
+        boost::asio::read(socket,boost::asio::buffer((char*)headers,num*sizeof(header_t)));
+        //load last header
+        if(firstkeys!=NULL){ //store first vip keys
+          memcpy(viphash,headers->viphash,32);
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,viphash,32);
+          if(!block.vip_check(viphash,(uint8_t*)firstkeys+4,firstkeyslen/(2+32))){
+            fprintf(stderr,"ERROR, failed to check %d VIP keys for hash %s\n",firstkeyslen/(2+32),hash);
+            socket.close();
+            return;}
+          char filename[128];
+          sprintf(filename,"vip/%64s.vip",hash);
+          int fd=open(filename,O_WRONLY|O_CREAT,0644);
+          if(fd<0){
+            fprintf(stderr,"ERROR opening %s, fatal\n",filename);
+            socket.close();
+            return;}
+          write(fd,firstkeys+4,firstkeyslen);
+          close(fd);
+          memcpy(oldhash,headers->nowhash,32);
+          block.loadhead(*headers);
+          if(memcmp(oldhash,block.nowhash,32)){
+            fprintf(stderr,"ERROR failed to confirm first header hash, fatal\n");
+            socket.close();
+            return;}
+          memcpy(oldhash,headers->oldhash,32);
+          block.write_start();}
+        else{
+          block.now=0;
+          block.header_get();
+          if(block.now+BLOCKSEC!=headers->now){ // do not accept download random blocks
+            fprintf(stderr,"ERROR failed to get correct block (%08X), fatal\n",block.now+BLOCKSEC);
+            socket.close();
+            return;}
+          memcpy(viphash,block.viphash,32);
+          memcpy(oldhash,block.nowhash,32);
+          block.load_vip(firstkeyslen,firstkeys,viphash);}
+        //read signatures
+        char* sigdata=NULL;
+        union {uint64_t big;uint32_t small[2];} inf;
+        uint32_t& signum=inf.small[1];
+        boost::asio::read(socket,boost::asio::buffer(&inf.big,8));
+        if(signum){
+          fprintf(stderr,"INFO get %d signatures for header %08X\n",signum,headers[num-1].now);
+          sigdata=(char*)std::malloc(8+signum*sizeof(svsi_t)); //FIXME, free
+          assert(sigdata!=NULL);
+          memcpy(sigdata,&inf.big,8);
+          boost::asio::read(socket,boost::asio::buffer(sigdata+8,signum*sizeof(svsi_t)));}
+        else{
+          fprintf(stderr,"ERROR, failed to get signatures for header %08X\n",headers[num-1].now);
+          socket.close();
+          return;}
+        //read new viphash if different from last
+        int lastkeyslen=0;
+        boost::asio::read(socket,boost::asio::buffer(&lastkeyslen,4));
+        if(lastkeyslen>0){
+          char* lastkeys=(char*)std::malloc(4+lastkeyslen);
+          boost::asio::read(socket,boost::asio::buffer(lastkeys+4,lastkeyslen));
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,headers[num-1].viphash,32);
+          if(!block.vip_check(headers[num-1].viphash,(uint8_t*)lastkeys+4,lastkeyslen/(2+32))){
+            fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
+            socket.close();
+            free(lastkeys);
+            return;}
+          char filename[128];
+          sprintf(filename,"vip/%64s.vip",hash);
+          int fd=open(filename,O_WRONLY|O_CREAT,0644);
+          if(fd<0){
+            fprintf(stderr,"ERROR opening %s, fatal\n",filename);
+            socket.close();
+            free(lastkeys);
+            return;}
+          write(fd,lastkeys+4,lastkeyslen);
+          close(fd);
+          free(lastkeys);}
+        socket.close();
+        //validate chain
+        for(int n=0;n<num;n++){
+          if(n<num-1 && memcmp(viphash,headers[n].viphash,32)){
+            fprintf(stderr,"ERROR failed to match viphash for header %08X, fatal\n",headers[n].now);
+            return;}
+          if(memcmp(oldhash,headers[n].oldhash,32)){
+            fprintf(stderr,"ERROR failed to match oldhash for header %08X, fatal\n",headers[n].now);
+            return;}
+          memcpy(oldhash,headers[n].nowhash,32);
+          block.loadhead(headers[n]);
+          if(memcmp(oldhash,block.nowhash,32)){
+            fprintf(stderr,"ERROR failed to confirm nowhash for header %08X, fatal\n",headers[n].now);
+            return;}}
+        //validate last block using firstkeys
+        std::map<uint16_t,hash_s> vipkeys;
+        for(int i=0;i<firstkeyslen;i+=2+32){
+          uint16_t svid=*((uint16_t*)(&firstkeys[i+4]));
+          vipkeys[svid]=*((hash_s*)(&firstkeys[i+2+4]));}
+        int vok=0;
+        for(int i=0;i<(int)signum;i++){
+          uint16_t svid=*((uint16_t*)(&sigdata[i*sizeof(svsi_t)+8]));
+          uint8_t* sig=(uint8_t*)sigdata+i*sizeof(svsi_t)+2+8;
+          auto it=vipkeys.find(svid);
+          if(it==vipkeys.end()){
+            char hash[65]; hash[64]='\0';
+            ed25519_key2text(hash,sig,32);
+            fprintf(stderr,"ERROR vipkey (%d) not found %s\n",svid,hash);
+            continue;}
+          if(!ed25519_sign_open((const unsigned char*)(&headers[num-1]),sizeof(header_t)-4,it->second.hash,sig)){
+            vok++;}
+          else{
+            char hash[65]; hash[64]='\0';
+            ed25519_key2text(hash,sig,32);
+            fprintf(stderr,"ERROR vipkey (%d) failed %s\n",svid,hash);}}
+        if(2*vok<(int)vipkeys.size()){
+          fprintf(stderr,"ERROR failed to confirm enough signature for header %08X (2*%d<%d)\n",
+            headers[num-1].now,vok,(int)vipkeys.size());
+          return;}
+        else{
+          fprintf(stderr,"CONFIRMED enough signature for header %08X (2*%d>=%d)\n",
+            headers[num-1].now,vok,(int)vipkeys.size());}
+        // save hashes
+        for(int n=0;n<num;n++){ //would be faster if avoiding open/close but who cares
+          block.save_nowhash(headers[n]);}
+        // update last confirmed header position
+        fprintf(stderr,"SAVED %d headers from %08X to %08X\n",num,headers[0].now,headers[num-1].now);
+        block.header_last();} //FIXME, check what needs to be freed
+
+      else if(txs->ttype==TXSTYPE_VIP){
+        char hash[65]; hash[64]='\0';
+        ed25519_key2text(hash,txs->tinfo,32);
+        int len;
+        boost::asio::read(socket,boost::asio::buffer(&len,4));
+        if(len<=0){
+          fprintf(stderr,"ERROR, failed to read VIP keys for hash %s\n",hash);
+          socket.close();
+          return;}
+        char* buf=(char*)std::malloc(len);
+        boost::asio::read(socket,boost::asio::buffer(buf,len));
+        servers block;
+        if(!block.vip_check(txs->tinfo,(uint8_t*)buf,len/(2+32))){
+          fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
+          socket.close();
+          return;}
+        char filename[128];
+        sprintf(filename,"vip/%64s.vip",hash);
+        mkdir("vip",0755);
+        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        if(fd<0){
+          fprintf(stderr,"ERROR opening %s, fatal\n",filename);
+          socket.close();
+          return;}
+        write(fd,buf,len);
+        close(fd);
+        fprintf(stderr,"INFO, stored VIP keys in %s\n",filename);
+        pt.put("viphash",hash);
+        boost::property_tree::ptree viptree;
+        for(char* p=buf;p<buf+len;p+=32){
+          ed25519_key2text(hash,(uint8_t*)p,32);
+          boost::property_tree::ptree vipkey;
+          vipkey.put("",hash);
+          viptree.push_back(std::make_pair("",vipkey));}
+        pt.add_child("vipkeys",viptree);
+        free(buf);}
+
+      else{
+        int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
         if(len!=sizeof(user_t)){
-          std::cerr<<"ERROR reading info\n";}
+          std::cerr<<"ERROR reading confirmation\n";}
         else{
           user_t myuser;
           memcpy(&myuser,buf,sizeof(user_t));
-          print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
-      else if(txs->ttype==TXSTYPE_LOG){
-        int len;
-        if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
-          std::cerr<<"ERROR reading log length\n";
-          socket.close();
-          return;}
-        if(!len){
-          fprintf(stderr,"No new log entries\n");}
-        else{
-          log_t* log=(log_t*)std::malloc(len);
-          if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
-            std::cerr<<"ERROR reading log\n";
-            free(log);
+          if(txs->ttype==TXSTYPE_INF){
+            print_user(myuser,pt,sts.json,true,txs->bbank,txs->buser,sts);}
+          else{
+            print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);}
+          if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
+            if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
+              std::cerr<<"ERROR transaction failed (bad msid)\n";}
+            if(memcmp(sts.pk,myuser.pkey,32)){
+              if(txs->ttype==TXSTYPE_KEY){
+                std::cerr<<"PKEY changed\n";}
+              else{
+                char tx_user_public_key[65];tx_user_public_key[64]='\0';
+                ed25519_key2text(tx_user_public_key,myuser.pkey,32);
+                logpt.put("tx.account_public_key_new",tx_user_public_key);
+                std::cerr<<"PKEY differs\n";}}
+            if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
+              //TODO, validate hashout, check if correct
+              char tx_user_hashout[65];tx_user_hashout[64]='\0';
+              ed25519_key2text(tx_user_hashout,myuser.hash,32);
+              logpt.put("tx.account_hashout",tx_user_hashout);
+              if(memcmp(myuser.hash,hashout,32)){
+                pt.put("error.text","hash mismatch");}}
+            sts.msid=myuser.msid;
+            memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+        if(txs->ttype==TXSTYPE_INF){
+          len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+          if(len!=sizeof(user_t)){
+            std::cerr<<"ERROR reading info\n";}
+          else{
+            user_t myuser;
+            memcpy(&myuser,buf,sizeof(user_t));
+            print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
+        else if(txs->ttype==TXSTYPE_LOG){
+          int len;
+          if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
+            std::cerr<<"ERROR reading log length\n";
             socket.close();
             return;}
-          save_log(log,len,txs->ttime,sts);
-          free(log);}
-        print_log(pt,sts);}
-      else{
-        struct {uint32_t msid;uint32_t mpos;} m;
-        if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
-          std::cerr<<"ERROR reading transaction confirmation\n";
-          socket.close();
-          return;}
-        else{
-          //sts.msid=m.msid;
-          // save outgoing message log
-          logpt.put("tx.node_msid",m.msid);
-          logpt.put("tx.node_mpos",m.mpos);
-          out_log(logpt,sts.bank,sts.user);
-          if(sts.json){
-            char tx_id[64];
-            sprintf(tx_id,"%04X%08X%08X",sts.bank,m.msid,m.mpos);
-            pt.put("tx.node_msid",m.msid);
-            pt.put("tx.node_mpos",m.mpos);
-            pt.put("tx.id",tx_id);}
+          if(!len){
+            fprintf(stderr,"No new log entries\n");}
           else{
-            fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}
+            log_t* log=(log_t*)std::malloc(len);
+            if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
+              std::cerr<<"ERROR reading log\n";
+              free(log);
+              socket.close();
+              return;}
+            save_log(log,len,txs->ttime,sts);
+            free(log);}
+          print_log(pt,sts);}
+        else{
+          struct {uint32_t msid;uint32_t mpos;} m;
+          if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
+            std::cerr<<"ERROR reading transaction confirmation\n";
+            socket.close();
+            return;}
+          else{
+            //sts.msid=m.msid;
+            // save outgoing message log
+            logpt.put("tx.node_msid",m.msid);
+            logpt.put("tx.node_mpos",m.mpos);
+            out_log(logpt,sts.bank,sts.user);
+            if(sts.json){
+              char tx_id[64];
+              sprintf(tx_id,"%04X%08X%08X",sts.bank,m.msid,m.mpos);
+              pt.put("tx.node_msid",m.msid);
+              pt.put("tx.node_mpos",m.mpos);
+              pt.put("tx.id",tx_id);}
+            else{
+              fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
       socket.close();}
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
@@ -1116,7 +1305,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     std::cerr << "Talk Exception: " << e.what() << "\n";
     // exit with error code to enable sane bash scripting
     if(!isatty(fileno(stdin))) {
-	    exit(1);
+      if(sts.json){
+        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      fprintf(stderr,"EXIT\n");
+      exit(-1);
     }
   }
 }

@@ -1,35 +1,6 @@
 #ifndef SERVERS_HPP
 #define SERVERS_HPP
 
-//FIXME, concider separating header and nodes into header.hpp and node.hpp
-#pragma pack(1)
-/*typedef struct headlink_s { // header links sent when syncing
-	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
-	uint32_t nod; // number of nodes in block, this could be uint16_t later, FIXME, should be uint16_t
-	uint32_t div; // dividend
-	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
-	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
-	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
-} headlink_t;*/
-typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
-typedef struct node_s {
-	ed25519_public_key pk; // public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts (XOR of checksums)
-	//uint8_t xash[SHA256_DIGEST_LENGTH]; // hash of additional data
-	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
-	uint32_t msid; // last message, server closed if msid==0xffffffff
-	uint32_t mtim; // time of last message
-	//uint32_t mtim; // block of last message, FIXME, consider adding
-	 int64_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
-	uint32_t status; // placeholder for future status settings, can include hash type
-	//uint32_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
-	uint32_t users; // placeholder for users (size)
-	uint32_t port;
-	uint32_t ipv4;
-	//char host[64];
-} node_t;
-#pragma pack()
-	
 class node
 {
 public:
@@ -133,7 +104,7 @@ public:
 	{	uint16_t num=0;
 		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
 		uint64_t sum=0;
-                now=newnow;
+		now=newnow;
 		blockdir();
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
 			memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
@@ -142,7 +113,8 @@ public:
 			it->mtim=now; // blockchain start time in nodes[0]
 			it->status=0;
 			if(num){
-				if(num<=VIP_MAX){
+				//if(num<=VIP_MAX){
+				if(num==1){
 					it->status|=SERVER_VIP;}
 				it->users=1;
 				// create the first user
@@ -161,9 +133,30 @@ public:
 		LOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
 		//nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
-		vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
+		//vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
+		vtot=1;
 		finish();
+		write_start();
 		//return(num<VIP_MAX?num:VIP_MAX);
+	}
+
+	void write_start()
+	{	FILE* fp=fopen("blk/start.txt","w");
+		if(fp==NULL){
+			throw("FATAL ERROR: failed to write to blk/start.txt\n");}
+		fprintf(fp,"%08X\n",now);
+		fclose(fp);
+	}
+
+	uint32_t read_start()
+	{	FILE* fp=fopen("blk/start.txt","r");
+		if(fp==NULL){
+			LOG("ERROR, failed to read blk/start.txt\n");
+			return(0);}
+		uint32_t start;
+		fscanf(fp,"%X",&start);
+		fclose(fp);
+		return(start);
 	}
 
 	void xor4(uint64_t* to,uint64_t* from)
@@ -376,6 +369,7 @@ public:
 			std::cerr<<"ERROR, failed to write servers to dir:"<<now<<"\n";}
 
 	}
+	//TODO, *msg* should go to message.hpp
 	void hashmsg(std::map<uint64_t,message_ptr>& map)
 	{	hashtree tree;
 		int i=0;
@@ -442,29 +436,33 @@ public:
 		return(1);
 	}
 
-	void update_vip()
+	void update_vip() //FIXME, seperate vip hash calculation , do vip status update in next block
 	{	uint32_t i;
 		vok=0;
 		vno=0;
 		std::vector<uint16_t> svid_rank;
 		for(i=1;i<nodes.size();i++){ //FIXME, start this with 1, not with 0
+			nodes[i].status &= ~SERVER_VIP;
 			if(nodes[i].status & SERVER_DBL){
 				continue;}
-			nodes[i].status &= ~SERVER_VIP;
+			if(i>1 && !nodes[i].msid){ // do not include nodes silent nodes
+				continue;}
 			svid_rank.push_back(i);}
 		std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->nodes[i].weight>this->nodes[j].weight);}); //fuck, lambda :-(
-		std::set<hash_s,hash_cmp> vipkeys;
+		std::map<uint16_t,hash_s> vipkeys;
 		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
 			uint16_t svid=svid_rank[i];
 			nodes[svid].status |= SERVER_VIP;
-			vipkeys.insert(*((hash_s*)nodes[svid].pk));}
+			vipkeys[svid]=(*((hash_s*)nodes[svid].pk));}
 		assert(i>0);
 		hashtree tree(NULL); //FIXME, waste of space
 		bzero(viphash,sizeof(hash_t));
 		std::string data;
 		for(auto it=vipkeys.begin();it!=vipkeys.end();it++){
-			data.append((char*)it->hash,32);
-			tree.addhash(viphash,(uint8_t*)it->hash);}
+			data.append((char*)&it->first,2);
+			data.append((char*)it->second.hash,32);
+			//fprintf(stderr,"...KEY:%016lX\n",*((uint64_t*)it->second.hash));
+			tree.addhash(viphash,(uint8_t*)it->second.hash);}
 		char hash[65];
 		hash[64]='\0';
 		ed25519_key2text(hash,viphash,32);
@@ -477,6 +475,51 @@ public:
 		write(fd,data.c_str(),data.length());
 		close(fd);
 		vtot=(uint16_t)(i<VIP_MAX?i:VIP_MAX);
+	}
+	bool vip_check(uint8_t* viphash,uint8_t* vipkeys,int num)
+	{	hash_t newhash={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+		hashtree tree(NULL); //FIXME, waste of space
+		vipkeys+=2;
+		for(int n=0;n<num;n++,vipkeys+=32+2){
+			//fprintf(stderr,"...KEY:%016lX (%d<%d)\n",*((uint64_t*)vipkeys),n,num);
+			tree.addhash(newhash,vipkeys);}
+		return(!memcmp(newhash,viphash,32));
+	}
+	int vip_size(uint8_t* viphash) //FIXME, add query cache
+	{	char hash[65];
+		hash[64]='\0';
+		ed25519_key2text(hash,viphash,32);
+		char filename[128];
+		sprintf(filename,"vip/%64s.vip",hash);
+		struct stat sb;
+		stat(filename,&sb);
+		return((int)sb.st_size/(2+32));
+	}
+	void load_vip(int& len,char* &buf,uint8_t* vhash)
+	{	char hash[65];
+		hash[64]='\0';
+		ed25519_key2text(hash,vhash,32);
+		char filename[128];
+		sprintf(filename,"vip/%64s.vip",hash);
+		int fd=open(filename,O_RDONLY,0644);
+		if(fd<0){
+			LOG("ERROR opening %s\n",filename);
+			return;}
+		struct stat sb;
+		fstat(fd,&sb);
+		len=sb.st_size;
+		if(!len){
+			LOG("ERROR empty %s\n",filename);
+			close(fd);
+			return;}
+		buf=(char*)malloc(4+len);
+		if(buf==NULL){
+			LOG("ERROR malloc %d bytes for %s\n",4+len,filename);
+			close(fd);
+			return;}
+		memcpy(buf,&len,4);
+		read(fd,buf+4,len);
+		close(fd);
 	}
 
 	void finish()
@@ -573,7 +616,10 @@ public:
 	}
 	int header_get()
 	{	char filename[64];
-		sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);
+		if(!now){
+			sprintf(filename,"blk/header.txt");}
+		else{
+			sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);}
 		std::ifstream ifs(filename);
 		uint32_t check=0;
 		if(ifs.is_open()){
@@ -590,17 +636,51 @@ public:
 			ia >> vok;
 			ia >> vno;}
 		else{
-			std::cerr<<"ERROR, failed to read header\n";
+			LOG("ERROR, failed to read header %08X\n",now);
 			return(0);}
-		if(check!=now){
-			std::cerr<<"ERROR, failed to check header\n";
+		if(!now){
+			now=check;}
+		else if(check!=now){
+			LOG("ERROR, failed to check header %08X\n",now);
 			return(0);}
 		return(1);
+	}
+	bool save_nowhash(header_t& head)
+	{	char filename[64];
+		sprintf(filename,"blk/%03X.now",head.now>>20);
+		int fd=open(filename,O_WRONLY|O_CREAT,0644);
+		if(fd<0){
+			fprintf(stderr,"ERROR writing to %s\n",filename);
+			return(false);}
+		lseek(fd,((head.now&0xFFFFF)/BLOCKSEC)*32,SEEK_SET);
+		if(write(fd,head.nowhash,32)!=32){
+			close(fd);
+			return(false);}
+		close(fd);
+		return(true);
 	}
 	void header_put()
 	{	char filename[64];
 		sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);
 		std::ofstream ofs(filename);
+		if(ofs.is_open()){
+			boost::archive::text_oarchive oa(ofs);
+			oa << now;
+			oa << msg;
+			oa << nod;
+			oa << div;
+			oa << oldhash;
+			oa << msghash;
+			oa << nodhash;
+			oa << viphash;
+			oa << nowhash;
+			oa << vok;
+			oa << vno;}
+		else{
+			std::cerr<<"ERROR, failed to write header\n";}
+	}
+	void header_last()
+	{	std::ofstream ofs("blk/header.txt");
 		if(ofs.is_open()){
 			boost::archive::text_oarchive oa(ofs);
 			oa << now;
@@ -669,7 +749,27 @@ public:
                 write(fd,da,sizeof(svsi_t));
 		close(fd);
 	}
-	void get_signatures(uint32_t path,uint8_t* data,int nok,int nno) // does not use any local data
+	bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok) // does not use any local data
+	{	int fd;
+		char filename[64];
+		sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
+		fd=open(filename,O_RDONLY);
+		if(fd>=0){
+			struct stat sb;
+			fstat(fd,&sb);
+			if(!sb.st_size){
+				return false;}
+			nok=sb.st_size/sizeof(svsi_t);
+			data=(uint8_t*)malloc(8+sb.st_size);
+			memcpy(data+0,&path,4);
+			memcpy(data+4,&nok,4);
+			read(fd,data+8,nok*sizeof(svsi_t));
+			close(fd);
+			return true;}
+		else{
+			return false;}
+	}
+	bool get_signatures(uint32_t path,uint8_t* data,int nok,int nno) // does not use any local data
 	{	int fd;
 		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
@@ -679,6 +779,10 @@ public:
 			//vok=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
 			//vok/=sizeof(svsi_t);
 			close(fd);}
+		else{
+			return false;}
+		if(!nno){
+			return true;}
 		sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
 		fd=open(filename,O_RDONLY);
 		if(fd>=0){
@@ -686,6 +790,9 @@ public:
 			//vno=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
 			//vno/=sizeof(svsi_t);
 			close(fd);}
+		else{
+			return false;}
+		return true;
 	}
 	void put_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash ".../sig_%.64s.dat"
 	{	int fd;
@@ -853,6 +960,7 @@ public:
 			fprintf(stdlog,"START: %08X\n",ntime);
 			flog.unlock();
 		}
+		//FIXME, update VIP status now
 		return(now-num*BLOCKSEC);
 	}
 

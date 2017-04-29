@@ -116,6 +116,39 @@ bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
   return(true);
 }
 
+bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::string str_txid)
+{ char *endptr;
+  if(str_txid.length()!=22){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 22)\n",str_txid.c_str());
+    return(false);}
+  if(str_txid[4]!='-' || str_txid[13]!='-'){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB-NNNNNNNN-PPPPPPPP)\n",str_txid.c_str());
+    return(false);}
+  str_txid[4]='\0';
+  str_txid[13]='\0';
+  errno=0;
+  to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
+  if(errno || endptr==str_txid.c_str()){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",str_txid.c_str());
+    perror("ERROR: strtol");
+    return(false);}
+  errno=0;
+  node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
+  if(errno || endptr==str_txid.c_str()+5){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",str_txid.c_str());
+    perror("ERROR: strtol");
+    return(false);}
+  errno=0;
+  node_mpos=(uint16_t)strtol(str_txid.c_str()+14,&endptr,16);
+  if(errno || endptr==str_txid.c_str()+14){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",str_txid.c_str());
+    perror("ERROR: strtol");
+    return(false);}
+  return(true);
+}
+
+
+
 	void get(int ac, char *av[])
 	{	 try{
 			char pktext[2*32+1]; pktext[2*32]='\0';

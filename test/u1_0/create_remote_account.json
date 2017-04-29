@@ -1,0 +1,4 @@
+{"run":"get_me"}
+{"run":"create_account","node":"0002"}
+{"run":"create_account","node":"0003"}
+{"run":"create_account","node":"0004"}

@@ -17,6 +17,7 @@
 #define TXSTYPE_GET 8	/* get funds */			/* retreive funds from remote/dead bank */
 #define TXSTYPE_KEY 9	/* change account key */
 #define TXSTYPE_BKY 10	/* change bank key */
+			/* confirm account status */
 			/* consider leaving space for more transactions */
 //overwriting user only TX in log
 #define TXSTYPE_DIV 11	/* user dividend payment tx code */
@@ -87,11 +88,11 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4+32,		//10:BKY, old key appended to undo message
 	1+2+4+2+4+4,		//11:INF
 	1+2+4+2+4+4,		//12:LOG
-	1+2+4+4,		//13:BLG /blk_number/
-	1+2+4+4+4,		//14:BLK /blk_from blk_to/
-	1+2+4+2+4+4,		//15:TXS /node_node-msid_position/
-	1+2+4+32,		//16:VIP /vip_hash/
-	1+2+4+4,		//17:SIG /blk_number/
+	1+2+4+4+4,		//13:BLG /amsid=blk_number/
+	1+2+4+4+4+4,		//14:BLK /amsid=blk_from blk_to/
+	1+2+4+4+4+4+2,		//15:TXS /bbank=node_ buser=node-msid_ amsid=position/
+	1+2+4+4+32,		//16:VIP /tinfo=vip_hash/
+	1+2+4+4+4,		//17:SIG /amsid=blk_number/
 	1+2+4+4+4+2+4+8+32};	//18:MAX fixed buffer size
 	
 #define USER_CLOSED 0x0001;
@@ -243,6 +244,48 @@ public:
 			size=0;
 			return;}
 		int len=txslen[ttype];
+		// to add new transaction set: size, data
+		if(ttype==TXSTYPE_BLK){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10,&amsid,4); // block number
+			memcpy(data+1+14,&buser,4); // block number to
+			return;}
+		if(ttype==TXSTYPE_TXS){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10,&amsid,4); // position
+			memcpy(data+1+14,&buser,4); // bank-msid
+			memcpy(data+1+20,&bbank,2); // 
+			return;}
+		if(ttype==TXSTYPE_VIP){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10, tinfo,32); // vip hash
+			return;}
+		if(ttype==TXSTYPE_SIG){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10,&amsid,4); // block number
+			return;}
+		//TODO, process other transactions as above
+
 		if(ttype==TXSTYPE_CON){
 			size=len;
 			data=(uint8_t*)std::malloc(size);
@@ -274,10 +317,6 @@ public:
 		if(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY){ // for BKY, office adds old key
 			memcpy(data+1+14,text,32);
 			return;}
-		//if(ttype==TXSTYPE_BKY){
-		//	memcpy(data+1+14,text,32);
-		//	memcpy(data+1+14+32,okey,32);
-		//	return;}
 		memcpy(data+1+14,&bbank,2);
 		if(ttype==TXSTYPE_BRO){
 			memcpy(data+1+16,text,bbank);
@@ -326,6 +365,34 @@ public:
 			fprintf(stderr,"ERROR, parsing message\n");
 			return(false);}
 		size=txslen[ttype]+64;
+		if(ttype==TXSTYPE_BLK){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy(&amsid,txs+1+10,4); // block number from
+			memcpy(&buser,txs+1+14,4); // block number to
+			return(true);}
+		if(ttype==TXSTYPE_TXS){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy(&amsid,txs+1+10,4); // position
+			memcpy(&buser,txs+1+14,4); // bank-msid
+			memcpy(&bbank,txs+1+20,2);
+			return(true);}
+		if(ttype==TXSTYPE_VIP){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy( tinfo,txs+1+10,32); // vip hash
+			return(true);}
+		if(ttype==TXSTYPE_SIG){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy(&amsid,txs+1+10,4); // block number
+			return(true);}
+		//TODO process other transactions as above
 		memcpy(&abank,txs+1+0 ,2);
 		memcpy(&auser,txs+1+2 ,4);
 		if(ttype==TXSTYPE_CON){
@@ -464,6 +531,10 @@ public:
 		return;
 	}
 
+
+	char* vip(char* buf) //return vip hash in message
+	{	return(buf+1+2+4+4);
+	}
 
 	char* key(char* buf) //return new key in message
 	{	return(buf+1+2+4+4+4);

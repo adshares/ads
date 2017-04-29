@@ -128,7 +128,8 @@ public:
         while(do_fast){ // fast_sync changes the status, FIXME use future/promis
           boost::this_thread::sleep(boost::posix_time::seconds(1));}
         //wait for all user files to arrive
-        load_banks();}
+        load_banks();
+	srvs_.write_start();}
       else{
         do_fast=0;}
       std::cerr<<"START syncing headers\n";
@@ -961,11 +962,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           return(0);}
         osg->update(msg);
         osg->path=srvs_.now;
-        dbl_.unlock();
-        missing_msgs_erase(msg);
         if(!osg->save()){
           std::cerr << "ERROR, message save failed, abort server\n";
           exit(-1);}
+        dbl_.unlock();
+        missing_msgs_erase(msg);
         double_spend(osg);
         return(1);}
       else{ // update info about peer inventory
@@ -979,10 +980,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       return(1);}
     if(msg->svid==opts_.svid){ // own message
       dbl_msgs_[msg->hash.num]=msg;
-      dbl_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own dbl message :-( [???]\n";
       msg->save();
+      dbl_.unlock();
       return(1);}
     dbl_.unlock();
     std::cerr << "ERROR, getting unexpected dbl message\n";
@@ -1004,11 +1005,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(osg->msid>srvs_.now){
           LOG("ERROR, cnd message %04X:%08X to early :-(, keep in missing_msgs_\n",osg->svid,osg->msid);
           return(0);}
-        missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, do not exit !!! return fail
           std::cerr << "ERROR, message save failed, abort server\n";
           return(-1);}
         cnd_.lock();
+        missing_msgs_erase(msg);
         if(it!=cnd_msgs_.begin()){
           pre=(--it)->second;
           it++;}
@@ -1037,10 +1038,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(msg->svid==opts_.svid){ // own message
       cnd_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
-      cnd_.unlock();
       assert(msg->peer==msg->svid);
       std::cerr << "DEBUG, storing own cnd message\n";
       msg->save();
+      cnd_.unlock();
       cnd_validate(msg);
       return(1);}
     cnd_.unlock();
@@ -1060,11 +1061,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         osg->update(msg);
         osg->path=osg->msid; // this is the block time!!!
         blk_.unlock();
-        missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, save where ???, check legal time !!!
           LOG("ERROR, message save failed, abort server\n");
           return(-1);}
         blk_.lock();
+        missing_msgs_erase(msg);
         if(it!=blk_msgs_.begin()){
           pre=(--it)->second;
           it++;}
@@ -1093,18 +1094,18 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(msg->svid==opts_.svid){ // own message
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
-      blk_.unlock();
       assert(msg->peer==msg->svid);
       LOG("DEBUG, storing own blk message\n");
       msg->save(); //FIXME, time !!!
+      blk_.unlock();
       blk_validate(msg);
       return(1);}
     if(msg->svid==msg->peer){ // peers message
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
-      blk_.unlock();
       LOG("DEBUG, storing peer's %04X blk message\n",msg->svid);
       msg->save(); //FIXME, time !!!
+      blk_.unlock();
       blk_validate(msg);
       return(1);}
     blk_.unlock();
@@ -1128,11 +1129,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           return(0);}
         osg->update(msg);
         osg->path=srvs_.now;
-        txs_.unlock();
-        missing_msgs_erase(msg);
         if(!osg->save()){ //FIXME, change path
           LOG("HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",osg->hash.num,osg->len);
           exit(-1);}
+        txs_.unlock();
+        missing_msgs_erase(msg);
         osg->unload(0);
         // process double spend
         //if(osg->hash.dat[1]==MSGTYPE_DBL){ // double spend proof
@@ -1189,12 +1190,12 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         //  exit(-1);}
         //assert(msg->path==srvs_.now || msg->path==srvs_.now+BLOCKSEC);
         msg->path=srvs_.now; // all messages must be in current block
-        txs_.unlock();
         LOG("HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
 	//saved before insertion
         if(!msg->save()){
           LOG("ERROR, failed to save own message %08X, fatal\n",msg->msid);
           exit(-1);}
+        txs_.unlock();
         msg->unload(0);
         if(msg->now>=srvs_.now+BLOCKSEC){
           LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n", //FIXME, fatal in start !!!
@@ -2809,7 +2810,7 @@ exit(-1);
             LOG("INVALIDATE message %04X:%08X later!\n",nsvid,mi->second->msid);
             invalidate_msgs.push(mi->second);}
           if(mi->second->path<srvs_.now+BLOCKSEC){
-            LOG("MOVING message %04X:%08X to %08X/\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
+            LOG("MOVING message %04X:%08X to %08X/ next block\n",nsvid,mi->second->msid,srvs_.now+BLOCKSEC);
             mi->second->move(srvs_.now+BLOCKSEC);}}}
       else{
         //assert(mi->second->path==srvs_.now); // check, maybe path is not assigned yet

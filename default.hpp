@@ -1,45 +1,5 @@
-#ifndef MAIN_HPP
-#define MAIN_HPP
-
-//#define _GNU_SOURCE
-#include <algorithm>
-#include <arpa/inet.h>
-#include <atomic>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/program_options.hpp>
-#include <boost/serialization/list.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/container/flat_set.hpp>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <deque>
-#include <dirent.h>
-#include <fcntl.h>
-#include <forward_list>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <list>
-#include <netinet/in.h>
-#include <openssl/sha.h>
-#include <set>
-#include <stack>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <vector>
-
+#ifndef DEFAULT_HPP
+#define DEFAULT_HPP
 
 #define BLOCKSEC 0x20 /* block period in seconds */
 #define BLOCKDIV 0x4 /* number of blocks for dividend update */
@@ -164,6 +124,19 @@ typedef struct header_s {
 	uint16_t vno; // vip no votes stored by server, not signed !!! MUST BE LAST FOR CORRECT SIGNATURE
 	//uint16_t vtot; // any use ???
 } header_t;
+typedef struct node_s {
+	uint8_t pk[SHA256_DIGEST_LENGTH]; // public key
+	uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of accounts (XOR of checksums)
+	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
+	uint32_t msid; // last message, server closed if msid==0xffffffff
+	uint32_t mtim; // time of last message
+	 int64_t weight; // weight in units of 8TonsOfMoon (-1%) (in MoonBlocks)
+	uint32_t status; // placeholder for future status settings, can include hash type
+	uint32_t users; // placeholder for users (size)
+	uint32_t port;
+	uint32_t ipv4;
+} node_t;
+typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
 typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
@@ -171,22 +144,17 @@ typedef struct {uint32_t auser;int64_t weight;} dep_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
-typedef struct uin_cmp {
-  bool operator()(const uin_t& i,const uin_t& j) const {int k=memcmp(&i,&j,sizeof(uin_t));return(k<0);}} uin_c;
+typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[2]
+typedef struct {hash_t hash;} hash_s;
 #pragma pack()
+
+typedef struct uin_cmp {
+  bool operator()(const uin_t& i,const uin_t& j) const {int k=memcmp(&i,&j,sizeof(uin_t));return(k<0);}
+} uin_c;
+typedef struct hash_cmp {
+  bool operator()(const hash_s& i,const hash_s& j) const {int k=memcmp(i.hash,j.hash,sizeof(hash_t));return(k<0);}
+} hash_cmp_t;
 
 #define LOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 
-#include "ed25519/ed25519.h"
-#include "hash.hpp"
-#include "user.hpp"
-#include "options.hpp"
-#include "message.hpp"
-#include "servers.hpp"
-#include "candidate.hpp"
-#include "server.hpp"
-#include "peer.hpp"
-#include "office.hpp"
-#include "client.hpp"
-
-#endif // MAIN_HPP
+#endif // DEFAULT_HPP

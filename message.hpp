@@ -722,7 +722,7 @@ public:
   int move(uint32_t nextpath) //TODO, consider locking
   { char oldname[64];
     char newname[64];
-    if(path==nextpath){
+    if(!path || path==nextpath){
       return(0);}
     int r=-1;
     sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
@@ -734,7 +734,7 @@ public:
     sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.msg",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     if((r=rename(oldname,newname))){
-      LOG("FAILED to move %s to %s\n",oldname,newname);
+      LOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
       exit(-1);} //FIXME, do not exit later
     path=nextpath;
     save_path();

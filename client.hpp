@@ -233,6 +233,153 @@ public:
       close(fd);
       offi_.unlock_user(utxs.auser);
       return;}
+
+    if(*buf==TXSTYPE_BLK){
+      offi_.unlock_user(utxs.auser); //FIXME, unlock before sending output (fix other commands)
+      servers block;
+      uint32_t from=utxs.amsid-utxs.amsid%BLOCKSEC; //TODO replace 0 by the available beginning or last checkpoint
+      uint32_t to=utxs.buser-utxs.buser%BLOCKSEC;
+      uint32_t start=block.read_start();
+      int vip_tot=0;
+      if(!start){
+        LOG("ERROR, failed to read block start\n");
+        return;}
+      header_t head;
+      bzero(head.viphash,32);
+      if(!from){
+        from=start;
+        block.now=from;
+        if(block.header_get()){
+          block.header(head);}
+        else{
+          LOG("ERROR, failed to read block at start %08X\n",start);
+          return;}
+        //start with first viphash
+        int len=0;
+        char* data=NULL;
+        block.load_vip(len,data,block.viphash);
+        if(!len){
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,block.viphash,32);
+          LOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
+          return;}
+        vip_tot=len/(2+32);
+        if(!block.vip_check(block.viphash,(uint8_t*)data+4,len/(2+32))){
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,block.viphash,32);
+          LOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
+          free(data);
+          return;}
+        else{
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,block.viphash,32);
+          LOG("INFO, sending vip keys for start viphash %.64s [len:%d]\n",hash,len);}
+        boost::asio::write(socket_,boost::asio::buffer(data,len+4));
+        free(data);}
+      else if(from<start){
+        LOG("ERROR, failed to read block %08X before start %08X\n",from,start);
+        return;}
+      else{
+        block.now=from-BLOCKSEC;
+        if(block.header_get()){
+          vip_tot=block.vip_size(block.viphash);
+          block.header(head);}}
+      if(!to){
+        to=time(NULL);
+        to-=to%BLOCKSEC-BLOCKSEC;}
+      if(from>to){
+        LOG("ERROR, no block between %08X and %08X\n",from,to);
+        return;}
+      std::string blocksstr;
+      uint32_t n=0;
+      blocksstr.append((const char*)&n,4);
+      bool newviphash=false;
+      uint32_t trystop=from+128;
+      for(block.now=from;block.now<=to;){
+        if(!block.header_get()){
+          //LOG("ERROR, failed to provide block %08X\n",block.now);
+          break;}
+        if(memcmp(head.viphash,block.viphash,32)){
+          newviphash=true;
+          to=block.now;}
+        block.header(head);
+        LOG("INFO, adding block %08X\n",block.now);
+        blocksstr.append((const char*)&head,sizeof(header_t));
+	block.now+=BLOCKSEC;
+        //FIXME, user different stop criterion !!! do not stop if there are not enough signatures
+        n++;
+        //if(!(block.now%(BLOCKDIV*BLOCKSEC))){
+        if(block.now>trystop && 2*block.vok>=vip_tot){
+          break;}}
+      block.now-=BLOCKSEC;
+      blocksstr.replace(0,4,(const char*)&n,4);
+      if(!n){
+        LOG("ERROR, failed to provide blocks from %08X to %08X\n",from,block.now);
+        return;}
+      else{
+        LOG("SEND %d blocks from %08X to %08X\n",(int)*((int*)blocksstr.c_str()),from,block.now);}
+      boost::asio::write(socket_,boost::asio::buffer(blocksstr.c_str(),4+n*sizeof(header_t)));
+      //always send signatures for last block
+      uint8_t *data=NULL;
+      uint32_t nok;
+      if(block.get_signatures(block.now,data,nok)){
+        LOG("INFO, sending %d signatures for block %08X\n",nok,block.now);
+        boost::asio::write(socket_,boost::asio::buffer(data,8+nok*sizeof(svsi_t)));}
+      else{ //else send 0
+        //FIXME, go back and find a block with enough signatures
+        LOG("ERROR, sending no signatures for block %08X\n",block.now);
+        uint64_t zero=0;
+        boost::asio::write(socket_,boost::asio::buffer(&zero,8));}
+      free(data);
+      //send new viphash if detected
+      if(newviphash){
+        int len=0;
+        char* data=NULL;
+        block.load_vip(len,data,block.viphash);
+        if(!len){
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,block.viphash,32);
+          LOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
+          return;}
+        if(!block.vip_check(block.viphash,(uint8_t*)data+4,len/(2+32))){
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,block.viphash,32);
+          LOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
+          free(data);
+          return;}
+        boost::asio::write(socket_,boost::asio::buffer(data,4+len));
+        free(data);}
+      else{ //else send 0
+        uint32_t zero=0;
+        boost::asio::write(socket_,boost::asio::buffer(&zero,4));}
+      return;}
+
+    if(*buf==TXSTYPE_TXS){
+
+      offi_.unlock_user(utxs.auser);
+      return;}
+
+    if(*buf==TXSTYPE_VIP){
+      int len=0;
+      char* buf=NULL;
+      servers srvs_;
+      srvs_.load_vip(len,buf,utxs.tinfo);
+      if(!len){
+        char hash[65]; hash[64]='\0';
+        ed25519_key2text(hash,srvs_.viphash,32);
+        LOG("ERROR, failed to provide vip keys %.64s\n",hash);
+        offi_.unlock_user(utxs.auser);
+        return;}
+      boost::asio::write(socket_,boost::asio::buffer(buf,len+4));
+      free(buf);
+      offi_.unlock_user(utxs.auser);
+      return;}
+
+    if(*buf==TXSTYPE_SIG){
+
+      offi_.unlock_user(utxs.auser);
+      return;}
+
     if(usera.msid!=utxs.amsid){
       std::cerr<<"ERROR: bad msid ("<<usera.msid<<"<>"<<utxs.amsid<<")\n";
       offi_.unlock_user(utxs.auser);
