@@ -754,7 +754,7 @@ Aborted
     put_msg->data[0]=MSGTYPE_MSP;
     memcpy(put_msg->data+1,&len,3); //bigendian
     memcpy(put_msg->data+4,&header.now,4);
-    if(header.msg_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
+    if(header.msgl_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
       //std::cerr<<"FAILED to read msglist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
       LOG("%04X FAILED to read msglist %08X\n",svid,header.now); //TODO, send error
       return;}
@@ -786,7 +786,6 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-//FIXME, validate list has correct hash !!! (calculate hash again)
     if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){
       LOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
       char hash[2*SHA256_DIGEST_LENGTH];
@@ -799,16 +798,20 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    std::map<uint64_t,message_ptr> map;
-    header.msg_map((char*)(read_msg_->data+8),map,opts_.svid);
-    if(!header.msg_check(map)){
-      LOG("%04X ERROR msghash check failed\n",svid); // consider updating server
-      read_msg_ = boost::make_shared<message>();
-      boost::asio::async_read(socket_,
-        boost::asio::buffer(read_msg_->data,message::header_length),
-        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
-      return;}
-    server_.put_msglist(header.now,map);
+    server_.msgl_process(header,read_msg_->data+8);
+    ////FIXME, process check and save in one function
+    //std::map<uint64_t,message_ptr> map;
+    //header.msgl_map((char*)(read_msg_->data+8),map,opts_.svid);
+    //header.msgl_hash(map);
+    ////if(!header.msg_check(map)){
+    //if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){ //check again after hash calculation
+    //  LOG("%04X ERROR msghash check failed\n",svid); // consider updating server
+    //  read_msg_ = boost::make_shared<message>();
+    //  boost::asio::async_read(socket_,
+    //    boost::asio::buffer(read_msg_->data,message::header_length),
+    //    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+    //  return;}
+    //server_.put_msglist(header.now,map, add message hashtree );
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1246,7 +1249,16 @@ Aborted
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data,message::header_length),
           boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        return;}
+      if(!read_msg_->hash_tree()){
+        LOG("%04X \nERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+        read_msg_ = boost::make_shared<message>();
+        boost::asio::async_read(socket_,
+          boost::asio::buffer(read_msg_->data,message::header_length),
+          boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         return;}}
+    else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND || read_msg_->data[0]==MSGTYPE_BLK){
+      read_msg_->hash_signature();}
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
       //FIXME, this can be also a double spend, do not loose it
       LOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,

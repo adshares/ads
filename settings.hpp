@@ -118,11 +118,11 @@ bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
 
 bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::string str_txid)
 { char *endptr;
-  if(str_txid.length()!=22){
-    fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 22)\n",str_txid.c_str());
+  if(str_txid.length()!=18){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 18)\n",str_txid.c_str());
     return(false);}
   if(str_txid[4]!='-' || str_txid[13]!='-'){
-    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB-NNNNNNNN-PPPPPPPP)\n",str_txid.c_str());
+    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB-NNNNNNNN-PPPP)\n",str_txid.c_str());
     return(false);}
   str_txid[4]='\0';
   str_txid[13]='\0';

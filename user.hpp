@@ -111,15 +111,15 @@ typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
 	 int64_t weight; // balance, MUST BE AFTER rpath !
 	uint64_t csum[4]; //sha256 hash of user account, MUST BE AFTER rpath !
 } user_t;
-typedef struct log_s {
+typedef struct log_s { //TODO, consider reducing the log to only txid (uint64_t)
 	uint32_t time;
 	uint16_t type;
 	uint16_t node;
 	uint32_t nmid; // peer msid, could overwrite this also with info
-	uint32_t mpos; // position in file or remote user in 'get', could overwrite this with info
+	uint32_t mpos; // changing to txs-num in file (previously: position in file or remote user in 'get')
 	uint32_t user;
 	uint32_t umid; // user msid
-	 int64_t weight; // value, or info (use type to determine)
+	 int64_t weight; //
 	uint8_t info[32];
 } log_t;
 #pragma pack()
@@ -264,7 +264,7 @@ public:
 			memcpy(data+1+6 ,&ttime,4);
 			memcpy(data+1+10,&amsid,4); // position
 			memcpy(data+1+14,&buser,4); // bank-msid
-			memcpy(data+1+20,&bbank,2); // 
+			memcpy(data+1+18,&bbank,2); // 
 			return;}
 		if(ttype==TXSTYPE_VIP){
 			size=len+64;
@@ -378,7 +378,7 @@ public:
 			memcpy(&ttime,txs+1+6 ,4);
 			memcpy(&amsid,txs+1+10,4); // position
 			memcpy(&buser,txs+1+14,4); // bank-msid
-			memcpy(&bbank,txs+1+20,2);
+			memcpy(&bbank,txs+1+18,2);
 			return(true);}
 		if(ttype==TXSTYPE_VIP){
 			memcpy(&abank,txs+1+0 ,2);

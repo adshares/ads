@@ -355,8 +355,39 @@ public:
       return;}
 
     if(*buf==TXSTYPE_TXS){
-
       offi_.unlock_user(utxs.auser);
+      message_ptr msg(new message());
+      msg->svid=utxs.bbank;
+      msg->msid=utxs.buser;
+      uint16_t tnum=utxs.amsid;
+      msg->load_path();
+      if(!msg->path || msg->path>offi_.last_path()){
+        LOG("ERROR, failed to provide txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
+        return;}
+      std::vector<hash_s> hashes;
+      uint32_t mnum;
+      if(!msg->hash_tree_get(tnum,hashes,mnum)){
+        LOG("ERROR, failed to read txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);}
+      servers srvs_;
+      srvs_.now=msg->path;
+      srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes);
+      txspath_t res;
+      res.path=msg->path;
+      res.msid=msg->msid;
+      res.node=msg->svid;
+      res.tnum=tnum;
+      res.len=msg->len; //will be 0 if message not found
+      res.hnum=(uint16_t)hashes.size();
+      boost::asio::write(socket_,boost::asio::buffer(&res,sizeof(txspath_t)));
+      if(res.len){
+        boost::asio::write(socket_,boost::asio::buffer(msg->data,msg->len));}
+      if(res.hnum){ //expect hashes to be correctly aligned and of size hash_s
+        char data[32*res.hnum];
+        for(int i=0;i<res.hnum;i++){
+          memcpy(data+32*i,hashes[i].hash,32);}
+        //boost::asio::write(socket_,boost::asio::buffer(hashes[0].hash,sizeof(hash_s)*res.hnum));
+        boost::asio::write(socket_,boost::asio::buffer(data,32*res.hnum));}
+      LOG("SENT path for %08X/%04X:%08X[%04X] len:%d hashes:%d\n",res.path,res.node,res.msid,res.tnum,res.len,res.hnum);
       return;}
 
     if(*buf==TXSTYPE_VIP){
@@ -370,9 +401,9 @@ public:
         LOG("ERROR, failed to provide vip keys %.64s\n",hash);
         offi_.unlock_user(utxs.auser);
         return;}
+      offi_.unlock_user(utxs.auser);
       boost::asio::write(socket_,boost::asio::buffer(buf,len+4));
       free(buf);
-      offi_.unlock_user(utxs.auser);
       return;}
 
     if(*buf==TXSTYPE_SIG){
@@ -546,7 +577,8 @@ public:
       memcpy(utxs.opkey(buf),offi_.pkey,32);
       memcpy(offi_.pkey,utxs.key(buf),32);}
     offi_.add_msg((uint8_t*)buf,utxs.size,msid,mpos);
-    if(!msid||!mpos){
+    //if(!msid||!mpos){
+    if(!msid){
       std::cerr<<"ERROR: message submission failed ("<<msid<<","<<mpos<<")\n";
       offi_.unlock_user(utxs.auser);
       return;}

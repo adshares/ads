@@ -242,7 +242,8 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     if(!to_from){
       servers block;
       block.header_get();
-      to_from=block.now+BLOCKSEC;}
+      if(block.now){
+        to_from=block.now+BLOCKSEC;}}
     uint32_t to_to=0;
     boost::optional<uint32_t> json_to=pt.get_optional<uint32_t>("to");
     if(json_to){
@@ -692,7 +693,8 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       logentry.put("node",ulog.node);
       logentry.put("account",ulog.user);
       logentry.put("address",acnt);
-      if(!ulog.nmid && !ulog.mpos){
+      //if(!ulog.nmid && !ulog.mpos){
+      if(!ulog.nmid){
         logentry.put("node_block",ulog.mpos);}
       else{
         logentry.put("node_msid",ulog.nmid);
@@ -738,10 +740,10 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       char tx_id[64];
       if(ulog.type & 0x8000){
         logentry.put("inout","in");
-        sprintf(tx_id,"%04X%08X%08X",ulog.node,ulog.nmid,ulog.mpos);}
+        sprintf(tx_id,"%04X%08X%04X",ulog.node,ulog.nmid,ulog.mpos);}
       else{
         logentry.put("inout","out");
-        sprintf(tx_id,"%04X%08X%08X",sts.bank,ulog.nmid,ulog.mpos);}
+        sprintf(tx_id,"%04X%08X%04X",sts.bank,ulog.nmid,ulog.mpos);}
       logentry.put("id",tx_id);
       logtree.push_back(std::make_pair("",logentry));}}
   if(sts.json){
@@ -823,9 +825,9 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     uint32_t nmid;
     uint32_t mpos;
     memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
-    memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t));
+    memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t)); //FIXME, this should be uint16_t
     char tx_id[64];
-    sprintf(tx_id,"%04X%08X%08X",utxs.abank,nmid,mpos);
+    sprintf(tx_id,"%04X%08X%04X",utxs.abank,nmid,mpos);
     blogentry.put("node_msid",nmid);
     blogentry.put("node_mpos",mpos);
     blogentry.put("id",tx_id);
@@ -910,6 +912,47 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
   return(true);
 }
 
+void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data)
+{ char txid[64];
+  sprintf(txid,"%04X%08X%04X",res.node,res.msid,res.tnum);
+  pt.put("network_tx.id",&txid[0]);
+  pt.put("network_tx.block_id",res.path);
+  pt.put("network_tx.node_id",res.node);
+  pt.put("network_tx.node_msid",res.msid);
+  pt.put("network_tx.position",res.tnum);
+  pt.put("network_tx.len",res.len);
+  pt.put("network_tx.hash_path_len",res.hnum);
+  char txstext[res.len*2+1]; txstext[res.len*2]='\0';
+  ed25519_key2text(txstext,data,res.len);
+  pt.put("network_tx.hexstring",&txstext[0]);
+  boost::property_tree::ptree hashpath;
+  for(int i=0;i<res.hnum;i++){
+    char hashtext[65]; hashtext[64]='\0';
+    ed25519_key2text(hashtext,data+res.len+32*i,32);
+    boost::property_tree::ptree hashstep;
+    hashstep.put("",&hashtext[0]);
+    hashpath.push_back(std::make_pair("",hashstep));}
+  pt.add_child("network_tx.hashpath",hashpath);
+  //parse transaction
+  usertxs utxs;
+  utxs.parse((char*)data);
+//FIXME, add more data and improve formating
+  pt.put("network_tx.ttype",utxs.ttype);
+  pt.put("network_tx.abank",utxs.abank);
+  pt.put("network_tx.auser",utxs.auser);
+  pt.put("network_tx.amsid",utxs.amsid);
+  pt.put("network_tx.ttime",utxs.ttime);
+  pt.put("network_tx.bbank",utxs.bbank);
+  pt.put("network_tx.buser",utxs.buser);
+  pt.put("network_tx.amount",utxs.tmass);
+  char infotext[65]; infotext[64]='\0';
+  ed25519_key2text(infotext,utxs.tinfo,32);
+  pt.put("network_tx.message",&infotext[0]);
+  char signtext[129]; signtext[128]='\0';
+  ed25519_key2text(signtext,utxs.get_sig((char*)data),64);
+  pt.put("network_tx.signature",&signtext[0]);
+}
+
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 { char buf[0xff];
   boost::property_tree::ptree pt;
@@ -957,6 +1000,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
+
     if(txs->ttype==TXSTYPE_BLG){
       uint32_t path=txs->ttime;
       uint32_t to=time(NULL)-2*BLOCKSEC;
@@ -1021,11 +1065,111 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           close(fd);}}
         //else{
         //  pt.put("ERROR","broadcast file missing");}
-      pt.add_child("broadcast",blogtree);}
-    else{
-      if(!node_connect(endpoint_iterator,socket)){
-        return;}
-      boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
+      pt.add_child("broadcast",blogtree);
+      if(sts.json){
+        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      return;}
+
+    if(txs->ttype==TXSTYPE_TXS){
+      uint16_t svid=txs->bbank;
+      uint32_t msid=txs->buser;
+      uint16_t tnum=txs->amsid; 
+      uint8_t dir[6];
+      memcpy(dir,&svid,2);
+      memcpy(dir+2,&msid,4);
+      char filename[128];
+      sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],tnum);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        //fprintf(stderr,"%s not found asking server\n",filename);
+        if(!node_connect(endpoint_iterator,socket)){
+          return;}
+        //fprintf(stderr,"sending request %s\n",filename);
+        boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
+        txspath_t res;
+        //fprintf(stderr,"read txspath for %s\n",filename);
+        boost::asio::read(socket,boost::asio::buffer(&res,sizeof(txspath_t)));
+        if(!res.len){
+          fprintf(stderr,"ERROR, failed to read transaction path for txid %04X%08X%04X\n",svid,msid,tnum);
+          socket.close();
+          return;}
+        uint8_t data[res.len+res.hnum*32];
+        //fprintf(stderr,"read data (%d) for %s\n",res.len,filename);
+        boost::asio::read(socket,boost::asio::buffer(data,res.len));
+        //fprintf(stderr,"read hashes (%d) for %s\n",res.hnum,filename);
+        boost::asio::read(socket,boost::asio::buffer(data+res.len,res.hnum*32));
+        //fprintf(stderr,"close socket for %s\n",filename);
+        socket.close();
+        if(!res.path){
+          fprintf(stderr,"ERROR, got empty block for txid %04X%08X%04X\n",svid,msid,tnum);
+          return;}
+        if(res.node!=svid || res.msid!=msid || res.tnum!=tnum){
+          fprintf(stderr,"ERROR, got wrong transaction %04X%08X%04X for txid %04X%08X%04X\n",
+            res.node,res.msid,res.tnum,svid,msid,tnum);
+          return;}
+        servers block;
+        block.now=res.path;
+        if(!block.load_nowhash()){
+          fprintf(stderr,"ERROR, failed to load hash for block %08X\n",res.path);
+          return;}
+        hash_t nhash;
+        uint16_t* hashsvid=(uint16_t*)nhash;
+        uint32_t* hashmsid=(uint32_t*)(&nhash[4]);
+        uint16_t* hashtnum=(uint16_t*)(&nhash[8]);
+        SHA256_CTX sha256;
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256,data,res.len);
+        SHA256_Final(nhash,&sha256);
+        *hashsvid^=svid;
+        *hashmsid^=msid;
+        *hashtnum^=tnum;
+        if(memcmp(nhash,data+res.len,32)){
+          fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X%08X%04X\n",svid,msid,tnum);
+          return;}
+        std::vector<hash_s> hashes(res.hnum);
+        for(int i=0;i<res.hnum;i++){
+          hashes[i]=*(hash_s*)(data+res.len+32*i);}
+        hashtree tree;
+        tree.hashpathrun(nhash,hashes);
+        if(memcmp(nhash,block.nowhash,32)){
+          fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X%08X%04X\n",svid,msid,tnum);
+          return;}
+	//store confirmation and transaction in repository
+//FIXME, create directories
+        sprintf(filename,"txs/%02X",dir[1]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X",dir[1],dir[0]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X/%02X",dir[1],dir[0],dir[5]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
+        mkdir(filename,0755);
+        sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],tnum);
+        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        if(fd<0){
+          fprintf(stderr,"ERROR opening %s\n",filename);}
+        else{
+          write(fd,&res,sizeof(txspath_t));
+          write(fd,data,res.len+res.hnum*32);
+          close(fd);}
+        print_txs(pt,res,data);}
+      else{
+        txspath_t res;
+        read(fd,&res,sizeof(txspath_t));
+        uint8_t data[res.len+res.hnum*32];
+        read(fd,data,res.len+res.hnum*32);
+        print_txs(pt,res,data);}
+      if(sts.json){
+        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      return;}
+
+    if(!node_connect(endpoint_iterator,socket)){
+      return;}
+    boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
 
       if(txs->ttype==TXSTYPE_BLK){
         fprintf(stderr,"PROCESSING BLOCKS\n");
@@ -1038,6 +1182,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         if(!txs->amsid){
           mkdir("blk",0755);
           mkdir("vip",0755);
+          mkdir("txs",0755);
           boost::asio::read(socket,boost::asio::buffer(&firstkeyslen,4));
           if(firstkeyslen<=0){
             fprintf(stderr,"ERROR, failed to read VIP keys for first hash\n");
@@ -1292,13 +1437,13 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             out_log(logpt,sts.bank,sts.user);
             if(sts.json){
               char tx_id[64];
-              sprintf(tx_id,"%04X%08X%08X",sts.bank,m.msid,m.mpos);
+              sprintf(tx_id,"%04X%08X%04X",sts.bank,m.msid,m.mpos);
               pt.put("tx.node_msid",m.msid);
               pt.put("tx.node_mpos",m.mpos);
               pt.put("tx.id",tx_id);}
             else{
-              fprintf(stderr,"MSID:%08X MPOS:%08X\n",m.msid,m.mpos);}}}}
-      socket.close();}
+              fprintf(stderr,"MSID:%08X MPOS:%04X\n",m.msid,m.mpos);}}}}
+    socket.close();
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){

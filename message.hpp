@@ -162,40 +162,175 @@ public:
       hash_signature();}
     else{
       assert(text_type==MSGTYPE_MSG);
-      if(!hash_tree(sigh)){
+      //if(!hash_tree(sigh)){
+      if(!hash_tree()){
         LOG("ERROR hash_tree error, FATAL\n");
         exit(-1);}
       ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);}
-      //ed25519_sign2(msha,32,data+4+64,10+text_len,mysk,mypk,data+4);
-      //hash_signature();}
     hash.num=dohash(mysvid);
   }
 
-  bool hash_tree(uint8_t* newsigh)
+  //bool hash_tree(uint8_t* newsigh)
+  bool hash_tree()
   { assert(data!=NULL);
     assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
+    assert(svid);
+    assert(msid);
     hash_t hash;
+    uint16_t* hashsvid=(uint16_t*)hash;
+    uint32_t* hashmsid=(uint32_t*)(&hash[4]);
+    uint16_t* hashtnum=(uint16_t*)(&hash[8]);
     hashtree tree;
     usertxs utxs;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256,data+4+64,10);
     SHA256_Final(hash,&sha256);
+    //std::vector<hash_s> hashes;
+    std::vector<uint32_t> tpos;
+    std::vector<hash_s> firsthashes;
+    tpos.push_back(4+64);
+    firsthashes.push_back(*(hash_s*)hash);
+    //hashes.push_back(*(hash_s*)hash);
     tree.update(hash);
-    uint8_t* p=data+data_offset;
+    uint8_t* p=data+data_offset; // data_offset = 4+64+10
     uint8_t* end=data+len;
     uint32_t l;
     assert(p<end);
-    for(;p<end;p+=l){
+    uint16_t tnum=1;
+    for(;p<end;p+=l,tnum++){
+      tpos.push_back(p-data);
       l=utxs.get_size((char*)p);
       if(l==0xFFFFFFFF){
         return(false);}
       SHA256_Init(&sha256);
       SHA256_Update(&sha256,p,l);
       SHA256_Final(hash,&sha256);
-      tree.update(hash);}
-    tree.finish(newsigh);
+      //xor with txid
+      *hashsvid^=svid;
+      *hashmsid^=msid;
+      *hashtnum^=tnum;
+      firsthashes.push_back(*(hash_s*)hash);
+      //hashes.push_back(*(hash_s*)hash);
+      tree.update(hash);
+      //int n=tree.update(hash);
+      //for(int i=0;i<n;i++){
+      //  hashes.push_back(*(hash_s*)(&tree.hash_[i][0]));}
+      }
+    if(!tnum){
+      LOG("ERROR empty hash_tree %04X:%08X\n",svid,msid);
+      return(false);}
     if(p!=end){
+      LOG("ERROR parsing transactions for hash_tree %04X:%08X\n",svid,msid);
+      return(false);}
+    //tree.finish(newsigh);
+    tree.finish(sigh);
+    //tree.save(hashes);
+    //assert(hashes.size()>=1);
+    //assert(tree.hashes.size()>=1);
+    //add position indices and hashtree to data
+    uint32_t tpos_size=tpos.size();
+    //uint32_t hashes_size=hashes.size()-1;
+    uint32_t hashes_size=tree.hashes.size()-1; // last is msghash
+    if(!tree.hashes.size()){
+      hashes_size=0;}
+    uint32_t total=len+32+4+4+4+(4+32)*tpos_size+32*hashes_size;
+    data=(uint8_t*)std::realloc(data,total);
+    memcpy(data+len,sigh,32);
+    bzero(data+len+32,4); //will be overwritten later with mnum (id of message in block)
+    memcpy(data+len+32+4,&total,4);
+    memcpy(data+len+32+4+4,&tpos_size,4);
+    for(uint32_t i=0;i<tpos_size;i++){
+      memcpy(data+len+32+4+4+4+(4+32)*i,&tpos[i],4);
+      memcpy(data+len+32+4+4+4+(4+32)*i+4,firsthashes[i].hash,32);}
+    for(uint32_t i=0;i<hashes_size;i++){
+      //memcpy(data+len+32+4+4*tpos_size+32*i,&hashes[i],32);
+      memcpy(data+len+32+4+4+4+(4+32)*tpos_size+32*i,&tree.hashes[i],32);}
+    return(true);
+  }
+
+  bool hash_tree_get(uint32_t tnum,std::vector<hash_s>& hashes,uint32_t& mnum)
+  {
+    char filename[64];
+    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
+    int fd=open(filename,O_RDONLY);
+    if(fd<0){
+      LOG("ERROR %s not found\n",filename);
+      return(false);}
+    uint32_t mlen;
+    read(fd,&mlen,4);
+    mlen>>=8;
+    if(!mlen){
+      LOG("ERROR %s failed to read message length\n",filename);
+      close(fd);
+      return(false);}
+    hash_t mhash;
+    uint32_t ttot;
+    uint32_t tmax;
+    lseek(fd,mlen,SEEK_SET);
+    read(fd,mhash,32);
+    read(fd,&mnum,4);
+    read(fd,&ttot,4); // not needed
+    read(fd,&tmax,4);
+    //struct stat sb;
+    //fstat(fd,&sb);
+    //assert(sb.st_size==ttot);
+    if(!tmax){
+      LOG("ERROR %s failed to read number of hashes\n",filename);
+      close(fd);
+      return(false);}
+    if(tnum>=tmax){
+      LOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
+      close(fd);
+      return(false);}
+    uint32_t pos;
+    if(tnum%2){
+      uint32_t tmp[8+1+8+1];
+      lseek(fd,mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
+      read(fd,tmp,32+4+32+4);
+      pos=tmp[8];
+      len=tmp[8+1+8]-pos;
+      hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
+      LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d]\n",tnum,tnum-1,tmax,mlen,ttot);
+      hashes.push_back(*(hash_s*)(&tmp[0]));}
+    else{
+      uint32_t tmp[1+8+1+8];
+      lseek(fd,mlen+32+4+4+4+(4+32)*tnum,SEEK_SET);
+      read(fd,tmp,4+32+4+32);
+      pos=tmp[0];
+      hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
+      if(tnum==tmax-1){
+        LOG("HASHTREE start %d [max:%d]\n",tnum,tmax);
+        len=mlen-pos;}
+      else{
+        len=tmp[1+8]-pos;
+        LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d]\n",tnum,tnum+1,tmax,mlen,ttot);
+        hashes.push_back(*(hash_s*)(&tmp[1+8+1]));}}
+    if(data!=NULL){
+      free(data);}
+    assert(len>0 && len<mlen);
+    data=(uint8_t*)std::malloc(len);
+    lseek(fd,pos,SEEK_SET);
+    read(fd,data,len); //read message
+    std::vector<uint32_t>add;
+    hashtree tree;
+    tree.hashpath(tnum/2,(tmax+1)/2,add);
+    for(auto n : add){
+      LOG("HASHTREE add %d\n",n);
+      if(n*2==tmax-1){ //special case for last uneven hash
+        lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);}
+      else{
+        assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
+        lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);}
+      hash_t phash;
+      read(fd,phash,32);
+      hashes.push_back(*(hash_s*)phash);}
+    close(fd);
+    //DEBUG only, confirm hash 
+    hash_t nhash;
+    tree.hashpathrun(nhash,hashes);
+    if(memcmp(mhash,nhash,32)){
+      LOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
       return(false);}
     return(true);
   }
@@ -204,7 +339,8 @@ public:
   { assert(data[0]==MSGTYPE_MSG);
     memcpy(data+4+64+6,&ntime,4);
     now=ntime;
-    if(!hash_tree(sigh)){
+    //if(!hash_tree(sigh)){
+    if(!hash_tree()){
       LOG("ERROR hash_tree error, FATAL\n");
       exit(-1);}
     ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);
@@ -220,6 +356,7 @@ public:
     hash.dat[1]=type;
     if(!load(0)){ //sets len ... assume this is invoked only by server during sync
       return;}
+    //load should get hash_tree
     memcpy(&now,data+4+64+6,4);
     got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
     assert(mmsid<=max_msid);
@@ -404,30 +541,32 @@ public:
   }
 
   int sigh_check() // check signature of loaded message
-  { uint64_t h[4];
-    if(hash.dat[1]==MSGTYPE_MSG){
+  { if(hash.dat[1]==MSGTYPE_MSG){
       assert(data[0]==MSGTYPE_MSG);
-      if(!hash_tree((uint8_t*)h)){
-        return(-1);}}
-    else{
-      uint64_t g[8];
-      assert(data!=NULL);
-      memcpy(g,data+4,8*sizeof(uint64_t));
-      h[0]=g[0]^g[4];
-      h[1]=g[1]^g[5];
-      h[2]=g[2]^g[6];
-      h[3]=g[3]^g[7];}
+      return(memcmp(sigh,data+len,SHA256_DIGEST_LENGTH));}
+      //if(!hash_tree((uint8_t*)h)){
+      //  return(-1);}}
+    uint64_t h[4];
+    uint64_t g[8];
+    assert(data!=NULL);
+    memcpy(g,data+4,8*sizeof(uint64_t));
+    h[0]=g[0]^g[4];
+    h[1]=g[1]^g[5];
+    h[2]=g[2]^g[6];
+    h[3]=g[3]^g[7];
     return(memcmp(sigh,h,SHA256_DIGEST_LENGTH));
   }
   void null_signature()
   { bzero(sigh,SHA256_DIGEST_LENGTH); 
   }
-  //void hash_signature(uint8_t* sig) // FIXME, do a different signature for _MSG
   void hash_signature() // FIXME, do a different signature for _MSG
   { uint64_t h[4];
     uint64_t g[8];
     //memcpy(g,sig,8*sizeof(uint64_t));
     assert(data!=NULL);
+    if(data[0]==MSGTYPE_DBL){
+      null_signature();
+      return;}
     memcpy(g,data+4,8*sizeof(uint64_t));
     h[0]=g[0]^g[4];
     h[1]=g[1]^g[5];
@@ -454,18 +593,17 @@ public:
   int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
   { assert(data!=NULL);
     //FIXME, should include previous hash in signed message
-    if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_BLK){
+    if(data[0]==MSGTYPE_MSG){
+      status=MSGSTAT_DAT; // have data
+      //if(!hash_tree(sigh)){
+      //  LOG("ERROR, hash_tree error\n");
+      //  return(-1);}
+      hash.num=dohash(mysvid);
+      return(ed25519_sign_open2(msha,32,sigh,32,svpk,data+4));}
+    if(data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_BLK){
       //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
       status=MSGSTAT_DAT; // have data
-      if(data[0]==MSGTYPE_MSG){
-        if(!hash_tree(sigh)){
-          LOG("ERROR, hash_tree error\n");
-          return(-1);}
-        hash.num=dohash(mysvid);
-        return(ed25519_sign_open2(msha,32,sigh,32,svpk,data+4));}
-        //hash_signature(); //FIXME, make this hash_tree();
-        //return(ed25519_sign_open2(msha,32,data+4+64,len-4-64,svpk,data+4));}
-      hash_signature();
+      //hash_signature();
       hash.num=dohash(mysvid); // remove from here !!!
       if(data[0]==MSGTYPE_BLK){ //this signature format is different because these signatures are stored later without the header
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
@@ -554,12 +692,35 @@ public:
       mtx_.unlock();
       LOG("blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
       return(1);}
-    uint32_t head;
     char filename[64];
       //std::cerr << "ERROR: loading message while data not empty\n";
       //return(0);}
     sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
-    std::ifstream myfile(filename,std::ifstream::binary);
+    int fd=open(filename,O_RDONLY);
+    if(fd<0){
+      mtx_.unlock();
+      return(0);}
+    if(data!=NULL){
+      free(data);
+      data=NULL;}
+    struct stat sb;
+    fstat(fd,&sb);
+    data=(uint8_t*)std::malloc(sb.st_size);
+    read(fd,data,sb.st_size);
+    close(fd);
+    if(len==header_length){
+      len=*((uint32_t*)data)>>8;
+      //if(hashtype()==MSGTYPE_MSG && !*((uint64_t*)sigh)){
+      if(hashtype()==MSGTYPE_MSG){
+        memcpy(sigh,data+len,SHA256_DIGEST_LENGTH);}
+      else{
+        hash_signature();}} //FIXME, check if message is not MSG,INI,CND,BLK (DBL for example)
+    mtx_.unlock();
+    LOG("blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    return(1);
+
+    /*std::ifstream myfile(filename,std::ifstream::binary);
+    uint32_t head;
     if(!myfile){
       //std::cerr << "ERROR: opening message failed\n";
       mtx_.unlock();
@@ -591,7 +752,7 @@ public:
     myfile.close();
     mtx_.unlock();
     LOG("blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    return(1);
+    return(1);*/
   }
 
   void unload(int16_t who)
@@ -611,12 +772,26 @@ public:
     mtx_.unlock();
   }
 
+  void save_mnum(uint32_t mnum)
+  { if(hashtype()!=MSGTYPE_MSG){
+      return;}
+    char filename[64];
+    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    int fd=open(filename,O_WRONLY);
+    if(fd<0){
+      LOG("ERROR, saving mnum %d in %s\n",mnum,filename);
+      return;}
+    lseek(fd,len+32,SEEK_SET);
+    write(fd,&mnum,4);
+    close(fd);
+  }
+
   //FIXME, check again the time of saving, consider free'ing data after save
   int save() //TODO, consider locking
   { assert(data!=NULL);
     char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
-    std::ofstream myfile(filename,std::ifstream::binary);
+    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    /*std::ofstream myfile(filename,std::ifstream::binary);
     if(!myfile){
       std::cerr << "ERROR: failed to open " << filename << "\n";
       return(0);}
@@ -624,12 +799,23 @@ public:
     if(!myfile){
       std::cerr << "ERROR: failed to write to " << filename << "\n";
       return(0);}
-    myfile.close();
+    myfile.close();*/
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      LOG("ERROR, saving %s\n",filename);
+      return(0);}
+    if(hashtype()==MSGTYPE_MSG){
+//FIXME, if MSGTYPE_MSG, write hashtree and index
+      uint32_t total=*((uint32_t*)(&data[len+32+4])); //FIXME, do not use length from data! (maybe missing !!!) 
+      assert(total);
+      write(fd,data,total);}
+    else{
+      write(fd,data,len);}
+    save_path();
+    return(1);
     // should set file attributes (time)
     //TODO, maybe change status to VAL here
     //status=MSGSTAT_VAL;
-    save_path();
-    return(1);
   }
 
   int save_path()

@@ -93,10 +93,12 @@
 #define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
 #define MESSAGE_TOO_LONG 0x800000
-#define MESSAGE_LEN_OK 0x10000
+#define MESSAGE_LEN_OK   0x10000
+#define MESSAGE_TNUM_OK  0x1000
+#define MESSAGE_TNUM_MAX 0xFFF0
 #define MESSAGE_WAIT 5
 #define MESSAGE_TOO_OLD (60*60*24*7)
-#define MESSAGE_CHUNK 0x100000
+#define MESSAGE_CHUNK    0x100000
 #define MESSAGE_FEE      (0x1000) /* fee for each bank message */
 
 #pragma pack(1)
@@ -136,6 +138,14 @@ typedef struct node_s {
 	uint32_t port;
 	uint32_t ipv4;
 } node_t;
+typedef struct txspath{
+	uint32_t path;
+	uint32_t msid;
+	uint16_t node;
+	uint16_t tnum;
+	uint16_t len; //64k lentgh limit !
+	uint16_t hnum;
+} txspath_t;
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;

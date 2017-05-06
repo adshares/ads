@@ -20,6 +20,7 @@ public:
     opts_(opts),
     offifd_(0),
     message_sent(0),
+    message_tnum(0),
     next_io_service_(0),
     ioth_(NULL),
     clock_thread(NULL)
@@ -309,7 +310,7 @@ public:
         srv_.break_silence(now,message);
         message_.unlock();
         continue;}
-      if(message.length()<MESSAGE_LEN_OK && message_sent+MESSAGE_WAIT>now){
+      if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
         continue;}
       //if(!srv_.accept_message(msid)){
@@ -324,6 +325,7 @@ public:
         LOG("ERROR sending message %08X\n",newmsid);
         continue;}
       message.clear();
+      message_tnum=0;
       message_.unlock();
       del_msg(newmsid);
       message_sent=now;}
@@ -418,7 +420,8 @@ public:
       uint32_t mpos;
       usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
       add_msg(txs->data,txs->size,msid,mpos);
-      add_key((hash_s*)pkey,luser);} //blacklist
+      if(msid){
+        add_key((hash_s*)pkey,luser);}} //blacklist
   }
 
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
@@ -510,7 +513,7 @@ public:
         auto jt=it++;
         user_t u;
         get_user(u,svid,jt->second); //watch out for deadlocks
-        //if(u.weight>=USER_MIN_MASS){
+        //if(u.weight>=USER_MIN_MASS)
         if(u.weight>0){
           accounts_.erase(jt);}}
       if(accounts_.size()>MAX_ACCOUNT){
@@ -546,6 +549,7 @@ public:
     char msg[sb.st_size];
     read(md,msg,sb.st_size);
     close(md);
+    //no need to set message_tnum, this message will be submitted now
     line.append((char*)msg,sb.st_size);
     //message.append((char*)msg,sb.st_size);
     //message_.unlock();
@@ -561,18 +565,27 @@ public:
   void add_msg(uint8_t* msg,int len,uint32_t& msid,uint32_t& mpos)
   { if(!run){ return;}
     message_.lock();
+    if(message_tnum>=MESSAGE_TNUM_MAX){
+      msid=0;
+      mpos=0;
+      message_.unlock();
+      LOG("ERROR, failed to append to message (%d>=%d)\n",message_tnum,MESSAGE_TNUM_MAX);
+      return;}
     msid=srv_.msid_+1; // check if no conflict !!!
-    mpos=message.length()+message::data_offset;
-    message.append((char*)msg,len);
     char filename[64];
     sprintf(filename,"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(md<0){
+      msid=0;
+      mpos=0;
       message_.unlock();
-      std::cerr<<"ERROR, failed to log message "<<filename<<"\n";
+      LOG("ERROR, failed to log message %s\n",filename);
       return;} // :-( maybe we should throw here something
     write(md,msg,len);
     close(md);
+    //mpos=message.length()+message::data_offset;
+    mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
+    message.append((char*)msg,len);
     message_.unlock();
   }
 
@@ -591,7 +604,7 @@ public:
   bool check_user(uint16_t peer,uint32_t uid)
   { if(peer!=svid){
       return(srv_.last_srvs_.check_user(peer,uid));} //use last_srvs_ for safety
-    return(uid<=users);
+    return(uid<users);
   }
 
   bool find_key(uint8_t* pkey,uint8_t* skey)
@@ -807,6 +820,7 @@ private:
   //uint32_t msid;
   //int64_t mfee;
   uint32_t message_sent;
+  uint32_t message_tnum; // last transaction number
   std::map<hash_s,uint32_t,hash_cmp> accounts_; // list of candidates
 
   //io_service_pool

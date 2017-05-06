@@ -72,6 +72,7 @@ public:
 	uint32_t nod; // number of nodes in block, FIXME, should be uint16_t
         uint32_t div; // dividend
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
+	uint8_t minhash[SHA256_DIGEST_LENGTH]; // hash input before msghash used only for hashtree reports
 	uint8_t msghash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	//uint8_t txshash[SHA256_DIGEST_LENGTH]; // hash of transactions
 	uint8_t nodhash[SHA256_DIGEST_LENGTH]; // hash of nodes
@@ -89,6 +90,7 @@ public:
 		nod(0),
 		div(0),
 		oldhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+		minhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		msghash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		//txshash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		nodhash{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -370,15 +372,7 @@ public:
 
 	}
 	//TODO, *msg* should go to message.hpp
-	void hashmsg(std::map<uint64_t,message_ptr>& map)
-	{	hashtree tree;
-		int i=0;
-		for(auto it=map.begin();it!=map.end();++it,i++){
-			tree.update(it->second->sigh);}
-		msg=i;
-		tree.finish(msghash);
-	}
-	bool msg_check(std::map<uint64_t,message_ptr>& map)
+	/*bool msg_check(std::map<uint64_t,message_ptr>& map)
 	{	hash_t hash;
 		hashtree tree;
 		uint32_t i=0;
@@ -392,22 +386,39 @@ public:
 			LOG("ERROR, bad message hash\n");
 			return(false);}
 		return(true);
-	}
-	void msg_put(std::map<uint64_t,message_ptr>& map) // FIXME, add this also for std::map<uint64_t,message_ptr>
-	{	hashmsg(map);
+	}*/
+	bool msgl_put(std::map<uint64_t,message_ptr>& map,char* cmphash)
+	{	hashtree tree;
+		int i=0;
+		for(auto it=map.begin();it!=map.end();++it,i++){
+			tree.update(it->second->sigh);}
+		msg=i;
+		tree.finish(msghash);
+		if(cmphash!=NULL && memcmp(cmphash,msghash,SHA256_DIGEST_LENGTH)){
+			return(false);}
 	 	char filename[64];
 		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){ //trow or something :-)
-			return;}
+			return(false);}
 		write(fd,msghash,SHA256_DIGEST_LENGTH);
+		int n=0;
 		for(auto it=map.begin();it!=map.end();it++){
 			write(fd,&it->second->svid,2); // we must later distinguish between double spend and normal messages ... maybe using msid==0xffffffff;
 			write(fd,&it->second->msid,4);
-			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH);} // maybe we have to set sigh=last_msg_sigh for double spend messages
+			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH); // maybe we have to set sigh=last_msg_sigh for double spend messages
+			it->second->save_mnum(++n);} //save index for future use
+		//FIXME, save the hashtree !!!
+		uint32_t hashes_size=tree.hashes.size()-1; // last is msghash
+		if(!tree.hashes.size()){
+			hashes_size=0;}
+		write(fd,&hashes_size,4); // needed only for debugging
+		for(uint32_t i=0;i<hashes_size;i++){
+			write(fd,tree.hashes[i].hash,32);}
 		close(fd);
+		return(true);
 	}
-	int msg_get(char* data)
+	int msgl_get(char* data) // load only message list without hashtree
 	{	char filename[64];
 		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
 		int fd=open(filename,O_RDONLY);
@@ -417,23 +428,93 @@ public:
 		close(fd);
 		return(len);
 	}
-	void msg_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	void msgl_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
 	{	char* d=data+SHA256_DIGEST_LENGTH;
 		for(uint16_t i=0;i<msg;i++,d+=2+4+SHA256_DIGEST_LENGTH){
-			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now)); // uint32_t alignment ???
+			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now));
 			map[msg->hash.num]=msg;}
 	}
-	int load_msglist(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
+	int msgl_load(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
 	{	char* data=(char*)malloc(SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
-		if(msg_get(data)!=(int)(SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH))){
+		//FIXME, do not use get to load messages and hashtree
+		if(msgl_get(data)!=(int)(SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH))){
 			free(data);
 			return(0);}
 		if(memcmp(data,msghash,SHA256_DIGEST_LENGTH)){
 			free(data);
 			return(0);}
-		msg_map(data,map,mysvid);
+		msgl_map(data,map,mysvid);
 		free(data);
 		return(1);
+	}
+	bool msgl_hash_tree_get(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes)
+	{	if(!mnum){ //refuse to provide hashpath without svid-msid index (mnum)
+			return(false);}
+		if(!msg && !header_get()){
+			return(false);}
+		char filename[64];
+		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
+		int fd=open(filename,O_RDONLY);
+		if(fd<0){
+			LOG("ERROR %s not found\n",filename);
+			return(false);}
+		if((--mnum)%2){
+			uint8_t tmp[32+2+4]; // do not read own hash
+			lseek(fd,32+(2+4+32)*(mnum)-32,SEEK_SET);
+			read(fd,tmp,32+2+4); // do not read own hash
+			if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid){
+				LOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+					*(uint16_t*)(&tmp[32]),*(uint32_t*)(&tmp[32+2]));
+				close(fd);
+				return(false);}
+			LOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
+			hashes.push_back(*(hash_s*)(&tmp[0]));}
+		else{
+			uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
+			lseek(fd,32+(2+4+32)*(mnum),SEEK_SET);
+			read(fd,tmp,2+4+32+2+4+32); // do not read own hash
+			if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid){
+				LOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+					*(uint16_t*)(&tmp[0]),*(uint32_t*)(&tmp[2]));
+				close(fd);
+				return(false);}
+			if(mnum<msg-1){
+				LOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
+				hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));}
+			else{
+				LOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
+		uint32_t htot;
+		lseek(fd,32+(2+4+32)*msg,SEEK_SET);
+		read(fd,&htot,4); //needed only for debugging
+		std::vector<uint32_t>add;
+		hashtree tree;
+		tree.hashpath(mnum/2,(msg+1)/2,add);
+		for(auto n : add){
+			LOG("HASHTREE add %d\n",n);
+			assert(n<htot);
+			lseek(fd,32+(2+4+32)*msg+4+32*n,SEEK_SET);
+			hash_t phash;
+			read(fd,phash,32);
+			hashes.push_back(*(hash_s*)phash);}
+		close(fd);
+		//DEBUG only, confirm hash 
+			hash_t nhash;
+			tree.hashpathrun(nhash,hashes);
+			if(memcmp(msghash,nhash,32)){
+				LOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
+				return(false);}
+		//add header hashes
+		hashes.push_back(*(hash_s*)minhash);
+		hashes.push_back(*(hash_s*)viphash);
+		hashes.push_back(*(hash_s*)oldhash);
+		//DEBUG only, confirm nowhash
+			tree.addhash(nhash,minhash);
+			tree.addhash(nhash,viphash);
+			tree.addhash(nhash,oldhash);
+			if(memcmp(nowhash,nhash,32)){
+				LOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
+				return(false);}
+		return(true);
 	}
 
 	void update_vipstatus()
@@ -582,6 +663,7 @@ public:
 		SHA256_Final(nowhash, &sha256);
 		hashtree tree(NULL); //FIXME, waste of space
 		tree.addhash(nowhash,nodhash);
+		memcpy(minhash,nowhash,32);
 		tree.addhash(nowhash,msghash);
 		tree.addhash(nowhash,viphash);
 		tree.addhash(nowhash,oldhash);
@@ -644,6 +726,7 @@ public:
 			ia >> nod;
 			ia >> div;
 			ia >> oldhash;
+			ia >> minhash; // only for hashtree reports
 			ia >> msghash;
 			ia >> nodhash;
 			ia >> viphash;
@@ -674,6 +757,21 @@ public:
 		close(fd);
 		return(true);
 	}
+	bool load_nowhash()
+	{	char filename[64];
+		sprintf(filename,"blk/%03X.now",now>>20);
+		int fd=open(filename,O_RDONLY);
+		if(fd<0){
+			fprintf(stderr,"ERROR opening %s\n",filename);
+			return(false);}
+		lseek(fd,((now&0xFFFFF)/BLOCKSEC)*32,SEEK_SET);
+		if(read(fd,nowhash,32)!=32){
+			close(fd);
+			fprintf(stderr,"ERROR reading %s hash %08X\n",filename,now);
+			return(false);}
+		close(fd);
+		return(true);
+	}
 	void header_put()
 	{	char filename[64];
 		sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);
@@ -685,6 +783,7 @@ public:
 			oa << nod;
 			oa << div;
 			oa << oldhash;
+			oa << minhash;
 			oa << msghash;
 			oa << nodhash;
 			oa << viphash;
@@ -703,6 +802,7 @@ public:
 			oa << nod;
 			oa << div;
 			oa << oldhash;
+			oa << minhash;
 			oa << msghash;
 			oa << nodhash;
 			oa << viphash;
@@ -1052,6 +1152,7 @@ private:
 		if(version>2) ar & nod;
 		if(version>3) ar & div;
 		if(version>0) ar & oldhash;
+		if(version>4) ar & minhash;
 		if(version>1) ar & msghash;
 		if(version>1) ar & nodhash;
 		if(version>4) ar & viphash;

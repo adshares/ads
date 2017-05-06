@@ -409,7 +409,7 @@ public:
           exit(-1);} //FIXME, prevent this
         //block->load_signatures(); //TODO should go through signatures and update vok, vno
         block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
-        if(!block->load_msglist(missing_msgs_,opts_.svid)){
+        if(!block->msgl_load(missing_msgs_,opts_.svid)){
           LOG("LOAD messages from peers\n");
           //request list of transactions from peers
           peer_.lock(); // consider changing this to missing_lock
@@ -430,8 +430,7 @@ public:
                 LOG("REQUESTING MSL from %04X\n",svid);
                 deliver(put_msg,svid);}}
             boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
-          srvs_.msg=block->msg; //check
-          srvs_.msg_put(missing_msgs_);}
+          srvs_.msg=block->msg;} //check
         else{
           srvs_.msg=block->msg; //check
           memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
@@ -567,9 +566,15 @@ public:
     deliver(put_msg);
   }
 
-  void put_msglist(uint32_t now,std::map<uint64_t,message_ptr>& map)
+  //void put_msglist(uint32_t now,std::map<uint64_t,message_ptr>& map)
+  void msgl_process(servers& header,uint8_t* data)
   { missing_.lock(); // consider changing this to missing_lock
-    if(get_msglist!=now){
+    if(get_msglist!=header.now){
+      missing_.unlock();
+      return;}
+    std::map<uint64_t,message_ptr> map;
+    header.msgl_map((char*)data,map,opts_.svid);
+    if(!header.msgl_put(map,(char*)data)){
       missing_.unlock();
       return;}
     missing_msgs_.swap(map);
@@ -1644,7 +1649,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     write(fd,hash,32);
     write(fd,pkey,32);
     write(fd,&msid,sizeof(uint32_t));
-    write(fd,&mpos,sizeof(uint32_t));
+    write(fd,&mpos,sizeof(uint32_t)); //FIXME, make this uint16_t
     log_.unlock();
   }
 
@@ -1688,13 +1693,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     int64_t local_fee=0;
     int64_t lodiv_fee=0;
     int64_t myput_fee=0; // remote bank_fee for local bank
-    while(p<(char*)msg->data+msg->len){
+    uint32_t tnum=0;
+    for(;p<(char*)msg->data+msg->len;tnum++){
       uint32_t luser=0;
       uint16_t lnode=0;
       int64_t deduct=0;
       int64_t fee=0;
       int64_t remote_fee=0;
-      uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data);
+//FIXME, save this at message end
+      //uint32_t mpos=((uint8_t*)p-(uint8_t*)msg->data); // should not be used;
       /************* START PROCESSING **************/
       user_t* usera=NULL;
       usertxs utxs;
@@ -1806,7 +1813,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
           return(false);}}
       else if(*p==TXSTYPE_BRO){
-        log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
+        //log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
+        log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,tnum);
         //utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank);}
       else if(*p==TXSTYPE_PUT){
@@ -1946,7 +1954,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
           blog.user=utxs.auser;
           blog.umid=utxs.amsid;
           blog.nmid=msg->msid; //can be overwritten with info
-          blog.mpos=mpos; //can be overwritten with info
+          //blog.mpos=mpos; //can be overwritten with info
+          blog.mpos=tnum; //can be overwritten with info
           blog.weight=utxs.tmass;
           if(*p==TXSTYPE_PUT){
             memcpy(blog.info,utxs.tinfo,32);}
@@ -1965,7 +1974,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
           blog.user=utxs.auser;
           blog.umid=utxs.amsid;
           blog.nmid=msg->msid; //can be overwritten with info
-          blog.mpos=mpos; //can be overwritten with info
+          //blog.mpos=mpos; //can be overwritten with info
+          blog.mpos=tnum; //can be overwritten with info
           memcpy(blog.info+ 0,&usera->weight,8);
           memcpy(blog.info+ 8,&deduct,8);
           memcpy(blog.info+16,&fee,8);
@@ -2107,7 +2117,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
 
   int open_bank(uint16_t svid) //
   { char filename[64];
-    LOG("OPEN usr/%04X.dat",svid);
+    LOG("OPEN usr/%04X.dat\n",svid);
     sprintf(filename,"usr/%04X.dat",svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
@@ -2838,7 +2848,9 @@ exit(-1);
         fprintf(fp,"%d %d %.*s\n",nsvid,mi->second->msid,(int)(2*sizeof(hash_t)),hash);}}
     txs_.unlock();
     srvs_.msg=last_block_all_msgs.size();
-    srvs_.msg_put(last_block_all_msgs); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
+fprintf(stderr,"MSGL_PUT, start\n");
+    srvs_.msgl_put(last_block_all_msgs,NULL); //FIXME, add dbl_ messages !!! FIXME FIXME !!!
+fprintf(stderr,"MSGL_PUT, end\n");
     ed25519_key2text(hash,srvs_.msghash,sizeof(hash_t));
     fprintf(fp,"0 0 %.*s\n",(int)(2*sizeof(hash_t)),hash);
     fclose(fp);
