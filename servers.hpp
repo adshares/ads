@@ -504,13 +504,13 @@ public:
 				LOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
 				return(false);}
 		//add header hashes
+		//hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
+		//hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
 		hashes.push_back(*(hash_s*)minhash);
-		hashes.push_back(*(hash_s*)viphash);
-		hashes.push_back(*(hash_s*)oldhash);
 		//DEBUG only, confirm nowhash
+			//tree.addhash(nhash,viphash); // removed to save on _TXS traffic
+			//tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
 			tree.addhash(nhash,minhash);
-			tree.addhash(nhash,viphash);
-			tree.addhash(nhash,oldhash);
 			if(memcmp(nowhash,nhash,32)){
 				LOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
 				return(false);}
@@ -663,10 +663,10 @@ public:
 		SHA256_Final(nowhash, &sha256);
 		hashtree tree(NULL); //FIXME, waste of space
 		tree.addhash(nowhash,nodhash);
-		memcpy(minhash,nowhash,32);
-		tree.addhash(nowhash,msghash);
 		tree.addhash(nowhash,viphash);
 		tree.addhash(nowhash,oldhash);
+		memcpy(minhash,nowhash,32); // add message hash as last hash to reduce hash path for transactions
+		tree.addhash(nowhash,msghash);
 	}
 	void loadlink(headlink_t& link,uint32_t path,char* oldh)
 	{	now=path;

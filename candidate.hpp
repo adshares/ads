@@ -11,6 +11,7 @@ public:
   //std::set<uint16_t> missed_peer; // hashes missed by peer
   std::map<uint16_t,msidhash_t> svid_have; // hashes missed by peer (processed first)
   std::map<uint16_t,msidhash_t> svid_miss; // hashes missed by server (processed second)
+  std::map<uint16_t,std::string> svid_dbl; // hash paths for double spend servers stored as string
   uint64_t score; // 
   std::set<message_ptr> votes; // messages with votes, probably not used, but could be used for reporting
   std::set<uint16_t> peers; // used by save_candidate
