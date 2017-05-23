@@ -1066,13 +1066,11 @@ public:
       if(last_srvs_.nodes[it->second->svid].status & SERVER_DBL){
         LOG("ELECTOR blk ignore %04X (DBL)\n",it->second->svid);
         continue;}
-      if((it->second->msid!=srvs_.now-BLOCKSEC) || 
-         !(it->second->status & MSGSTAT_VAL)){
-         //(srvs_.nodes[it->second->svid].status & SERVER_DBL)
-        int a=(int)(!(it->second->status & MSGSTAT_VAL));
-        //int b=(int)(srvs_.nodes[it->second->svid].status & SERVER_DBL);
-        LOG("ELECTOR blk ignore %04X (%08X<>%08X||%s)\n",
-          it->second->svid,it->second->msid,srvs_.now-BLOCKSEC,(a?"invalid block":""));
+      if(it->second->msid!=srvs_.now-BLOCKSEC){
+        LOG("ELECTOR blk ignore %04X (time %08X<>%08X)\n",it->second->svid,it->second->msid,srvs_.now-BLOCKSEC);
+        continue;}
+      if(!(it->second->status & MSGSTAT_VAL)){
+        LOG("ELECTOR blk ignore %04X (invalid)\n",it->second->svid);
         continue;}
       LOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
       svid_rset.insert(it->second->svid);}
@@ -1252,18 +1250,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     return(false);
   }
 
-  int check_dbl(boost::mutex& lock,message_map& msgs,message_map::iterator& it)
+  int check_dbl(boost::mutex& lock,message_map& msgs,message_map::iterator it)
   { message_ptr pre=NULL,nxt=NULL,msg=it->second; //probably not needed when syncing
+    assert(it!=msgs.end());
     lock.lock();
     if(it!=msgs.begin()){
       pre=(--it)->second;
       it++;}
-    if(it!=msgs.end() && (++it)!=msgs.end()){
+    if((++it)!=msgs.end()){
       nxt=it->second;}
     it--;
     lock.unlock();
-    if(pre!=NULL && pre!=it->second && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
-      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND!\n",msg->hash.num,msg->len);
+    assert(pre!=it->second);
+    assert(nxt!=it->second);
+    if(pre!=NULL && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
+      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,pre->hash.num,pre->len);
       if(pre->len>message::header_length && msg->len>message::header_length){
         create_double_spend_proof(pre,msg);
         bad_insert(msg);
@@ -1272,8 +1273,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         lock.unlock();
         return(-1);} // double spend
       return(1);} // possible double spend
-    if(nxt!=NULL && nxt!=it->second && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
-      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND!\n",msg->hash.num,msg->len);
+    if(nxt!=NULL && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
+      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,nxt->hash.num,nxt->len);
       if(nxt->len>message::header_length && msg->len>message::header_length){
         create_double_spend_proof(nxt,msg);
         bad_insert(msg);
@@ -1665,11 +1666,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
               LOG("DEBUG, ERASING MISSING MESSAGE %04X:%08X\n",mi->second->svid,mi->second->msid);
               missing_msgs_.erase(mi);
               continue;}
-            if(now>mi->second->got+MAX_MSGWAIT && mi->second->msid<=srvs_.now){
+            if(now>mi->second->got+MAX_MSGWAIT && (
+              (mi->second->hash.dat[1]==MSGTYPE_BLK && mi->second->msid<srvs_.now) ||
+              (mi->second->hash.dat[1]==MSGTYPE_CND && mi->second->msid<=srvs_.now))){
               tmp_msgs_.push_back(mi->second);}
             continue;}
           if(block_only){
-            if(mi->second->status & MSGSTAT_VAL){
+            if(mi->second->status & MSGSTAT_VAL && srvs_.nodes[mi->second->svid].msid==mi->second->msid-1){
               tmp_msgs_.push_back(mi->second);}
             continue;}
           if(mi->second->msid<srvs_.nodes[mi->second->svid].msid){
@@ -3021,10 +3024,10 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     return(msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
   }
 
-  void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,uint16_t peer_svid)
+  void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,std::vector<uint64_t>& blk,uint16_t peer_svid)
   { txs_.lock();
-    for(auto me=txs_msgs_.begin();me!=txs_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
-      if(me->second->status & MSGSTAT_COM && me->second->path==srvs_.now){
+    for(auto me=txs_msgs_.begin();me!=txs_msgs_.end();me++){
+      if((me->second->status & MSGSTAT_COM) && me->second->path==srvs_.now){
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
         h.dat[0]=MSGTYPE_PUT;
@@ -3033,8 +3036,8 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         txs.push_back(h.num);}}
     txs_.unlock();
     dbl_.lock();
-    for(auto me=dbl_msgs_.begin();me!=dbl_msgs_.end();me++){ // adding more messages, TODO this should not be needed ... all messages should have path=srvs_.now
-      if(me->second->status & MSGSTAT_COM && me->second->path==srvs_.now){
+    for(auto me=dbl_msgs_.begin();me!=dbl_msgs_.end();me++){
+      if((me->second->status & MSGSTAT_COM) && me->second->path==srvs_.now){
         union {uint64_t num; uint8_t dat[8];} h;
         h.num=me->first;
         h.dat[0]=MSGTYPE_DBP;
@@ -3042,6 +3045,16 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         me->second->sent_erase(peer_svid);
         dbl.push_back(h.num);}}
     dbl_.unlock();
+    blk_.lock();
+    for(auto me=blk_msgs_.begin();me!=blk_msgs_.end();me++){
+      if((me->second->status & MSGSTAT_VAL) && me->second->path==last_srvs_.now){
+        union {uint64_t num; uint8_t dat[8];} h;
+        h.num=me->first;
+        h.dat[0]=MSGTYPE_BLP;
+        h.dat[1]=me->second->hashval(peer_svid);
+        me->second->sent_erase(peer_svid);
+        blk.push_back(h.num);}}
+    blk_.unlock();
   }
 
   void finish_block()

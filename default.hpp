@@ -13,7 +13,7 @@
 #define VIP_MAX 127
 #define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
-#define MAX_MSGWAIT 8 /*wait no more than 8s for a message*/
+#define MAX_MSGWAIT 2 /* start with 2 and chenge to 8: wait no more than 8s for a message */
 #define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
 #define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */

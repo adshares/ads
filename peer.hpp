@@ -389,7 +389,7 @@ Aborted
         int ret=server_.message_insert(read_msg_);
         if(ret){ //NEW, make sure to insert in correct containers
           if((ret<0) || // && !(srvs_.nodes[read_msg_->svid].status & SERVER_DBL)  ||
-             read_msg_->data[0]==MSGTYPE_CNG ||
+             (read_msg_->data[0]==MSGTYPE_CNG && server_.last_srvs_.now+BLOCKSEC==read_msg_->msid ) ||
              (read_msg_->data[0]==MSGTYPE_BLG && server_.last_srvs_.now>=read_msg_->msid && (server_.last_srvs_.nodes[read_msg_->svid].status & SERVER_VIP)) ||
              read_msg_->data[0]==MSGTYPE_DBG ||
              (read_msg_->data[0]==MSGTYPE_GET && srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1 && server_.check_msgs_size()<MAX_CHECKQUE)){
@@ -508,12 +508,15 @@ Aborted
   void update_sync(void) // send current inventory (all msg and dbl messages)
   { std::vector<uint64_t>txs;
     std::vector<uint64_t>dbl;
-    server_.update_list(txs,dbl,svid);
+    std::vector<uint64_t>blk;
+    server_.update_list(txs,dbl,blk,svid);
     std::string data;
     for(auto it=txs.begin();it!=txs.end();it++){
       svid_msid_new[*(uint16_t*)(((char*)&(*it))+6)]=*(uint32_t*)(((char*)&(*it))+2); //assume txs sorted
       data.append((const char*)&(*it),sizeof(uint64_t));}
     for(auto it=dbl.begin();it!=dbl.end();it++){
+      data.append((const char*)&(*it),sizeof(uint64_t));}
+    for(auto it=blk.begin();it!=blk.end();it++){
       data.append((const char*)&(*it),sizeof(uint64_t));}
     message_ptr put_msg(new message(data.size()));
     memcpy(put_msg->data,data.c_str(),data.size());
