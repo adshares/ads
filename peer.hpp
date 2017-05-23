@@ -416,18 +416,9 @@ Aborted
           if(msg!=NULL){
             if(msg->len>message::header_length){
               if(msg->sent.find(svid)!=msg->sent.end()){
-                //if(peer_hs.head.now+BLOCKSEC < msg->path ){ //FIXME, check correct condition !
-                  //std::cerr << "REJECTING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";
-                  LOG("%04X REJECTING download request for %0X4:%08X\n",svid,msg->svid,msg->msid);
-                //}
-                //else{
-                //  std::cerr << "ACCEPTING download request for "<<msg->svid<<":"<<msg->msid<<" from "<<svid<<"\n";
-                //  deliver(msg);}
-                }
+                LOG("%04X REJECTING download request for %0X4:%08X\n",svid,msg->svid,msg->msid);}
               else{
-                //std::cerr << "PROVIDING MESSAGE\n";
                 LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
-                //msg->sent_insert(svid); // handle_write does this
 #ifdef DEBUG
                 boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
 #endif
@@ -1220,6 +1211,7 @@ Aborted
       LOG("%04X ERROR reading head\n",svid);
       leave();
       return;}
+    assert(read_msg_->data[0]!=MSGTYPE_BLK);
     uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
     if(read_msg_->data[0]==MSGTYPE_MSG){
       if(server_.last_srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid){
@@ -1251,8 +1243,10 @@ Aborted
           boost::asio::buffer(read_msg_->data,message::header_length),
           boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         return;}}
-    else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND || read_msg_->data[0]==MSGTYPE_BLK){
+    //else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND || read_msg_->data[0]==MSGTYPE_BLK)
+    else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND){
       read_msg_->hash_signature();}
+    //assert(read_msg_->hash.dat[1]!=MSGTYPE_BLK);
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
       //FIXME, this can be also a double spend, do not loose it
       LOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
@@ -1284,7 +1278,6 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    assert(read_msg_->hash.dat[1]!=MSGTYPE_BLK);
     //if this is a candidate vote
     if(read_msg_->hash.dat[1]==MSGTYPE_CND){
 //FIXME, move this to handle_read_candidate
@@ -1325,6 +1318,7 @@ Aborted
       read_msg_->len+=sizeof(header_t);
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
       server_.last_srvs_.header(*h);}
+    read_msg_->hash_signature();
     read_msg_->read_head();
     if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
       LOG("%04X ERROR reading head\n",svid);
