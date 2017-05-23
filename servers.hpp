@@ -408,7 +408,9 @@ public:
 			write(fd,&it->second->msid,4);
 			write(fd,it->second->sigh,SHA256_DIGEST_LENGTH); // maybe we have to set sigh=last_msg_sigh for double spend messages
 			it->second->save_mnum(++n);} //save index for future use
-		//FIXME, save the hashtree !!!
+
+//FIXME, remember to handle double spend messages !!!
+
 		uint32_t hashes_size=tree.hashes.size()-1; // last is msghash
 		if(!tree.hashes.size()){
 			hashes_size=0;}
@@ -432,6 +434,7 @@ public:
 	{	char* d=data+SHA256_DIGEST_LENGTH;
 		for(uint16_t i=0;i<msg;i++,d+=2+4+SHA256_DIGEST_LENGTH){
 			message_ptr msg(new message((uint16_t*)(d),(uint32_t*)(d+2),(char*)(d+6),mysvid,now));
+			msg->status |= MSGSTAT_VAL; //confirmed list of messages
 			map[msg->hash.num]=msg;}
 	}
 	int msgl_load(std::map<uint64_t,message_ptr>& map,uint16_t mysvid)
@@ -523,6 +526,7 @@ public:
 			nodes[i].status &= ~SERVER_VIP;}
 		int len=0;
 		char* buf=NULL;
+//FIXME, handle problems with load_vip
 		load_vip(len,buf,viphash);
 		for(int i=0;i<len;i+=2+32){
 			uint16_t svid=*((uint16_t*)(&buf[i+4]));
@@ -1103,7 +1107,7 @@ public:
 	{	char pat[8];
 		LOG("CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
-#if BLOCKSEC == 0x20
+#ifdef DEBUG
 		for(int i=30*24*2;i<10;i+=16){
 #else
 		for(int i=5;i<10;i++){

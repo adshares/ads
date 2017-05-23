@@ -201,9 +201,9 @@ public:
     unlink(filename);
   }
 
-  void update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv)
+  void update_block(uint32_t period_start,uint32_t now,message_map& commit_msgs,uint32_t newdiv)
   { for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
-      uint64_t svms=(uint64_t)((*mi)->svid)<<32|(*mi)->msid;
+      uint64_t svms=((uint64_t)(mi->second->svid)<<32)|mi->second->msid;
       mque.push_back(svms);}
     //fprintf(stderr,"UPDATE LOG processed queue\n");
     if(period_start==now){

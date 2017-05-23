@@ -1,8 +1,12 @@
 #ifndef DEFAULT_HPP
 #define DEFAULT_HPP
 
-#define BLOCKSEC 0x20 /* block period in seconds */
-#define BLOCKDIV 0x4 /* number of blocks for dividend update */
+#ifdef DEBUG
+# define BLOCKSEC 0x20 /* block period in seconds */
+# define BLOCKDIV 0x4 /* number of blocks for dividend update */
+#else
+# error define correct BLOCKSEC and BLOCKDIV
+#endif
 #define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define VOTES_MAX 127
@@ -37,10 +41,13 @@
 #define SERVER_VIP 0x2
 #define MESSAGE_MAXAGE 100
 
-#define MSGSTAT_INF 0
-#define MSGSTAT_DAT 1
-#define MSGSTAT_VAL 2
-#define MSGSTAT_SAV 4
+//#define MSGSTAT_INF 0x0
+#define MSGSTAT_DAT 0x1 /* downloaded */
+#define MSGSTAT_SAV 0x2 /* saved */
+#define MSGSTAT_COM 0x4 /* commited */
+#define MSGSTAT_VAL 0x8 /* validated */
+#define MSGSTAT_BAD 0x10 /* invalid */
+#define MSGSTAT_SIG 0x20 /* signature failure */
 
 #define MSGTYPE_DBL 0	/* double spend proof, maybe we should start with 1 */
 #define MSGTYPE_DBP 1
@@ -154,8 +161,34 @@ typedef struct {uint32_t auser;int64_t weight;} dep_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
-typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[2]
+typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[4]
 typedef struct {hash_t hash;} hash_s;
+typedef struct handshake_s { //maybe this should be just header_t + peer_msid
+	//uint16_t type; // version of server, not needed (is in servers.hpp)
+	//uint16_t srvn; // number of legal servers
+	//uint32_t ipv4; // ip of connecting server
+	//uint32_t port; // port of connecting server
+	//uint32_t path; // last block
+	//uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of last block
+	header_t head; // last header
+	int do_sync; // 0: in sync; 1: not in sync
+	uint32_t msid; // peer msid
+	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
+} handshake_t;
+//typedef struct svidmsidhash_s {
+//	uint16_t svid;
+//	uint32_t msid;
+//	hash_t sigh;
+//} svidmsidhash_t;
+typedef struct msidsvidhash_s {
+	uint32_t msid;
+	uint16_t svid;
+	hash_t sigh;
+} msidsvidhash_t;
+typedef struct msidhash_s {
+	uint32_t msid;
+	hash_t sigh;
+} msidhash_t;
 #pragma pack()
 
 typedef struct uin_cmp {

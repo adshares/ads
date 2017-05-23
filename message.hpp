@@ -1,34 +1,6 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
-#pragma pack(1)
-typedef struct handshake_s { //maybe this should be just header_t + peer_msid
-	//uint16_t type; // version of server, not needed (is in servers.hpp)
-	//uint16_t srvn; // number of legal servers
-	//uint32_t ipv4; // ip of connecting server
-	//uint32_t port; // port of connecting server
-	//uint32_t path; // last block
-	//uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of last block
-	header_t head; // last header
-	int do_sync; // 0: in sync; 1: not in sync
-	uint32_t msid; // peer msid
-	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
-} handshake_t;
-typedef struct svidmsidhash_s {
-	uint16_t svid;
-	uint32_t msid;
-	hash_t sigh;
-} svidmsidhash_t;
-typedef struct msidhash_s {
-	uint32_t msid;
-	hash_t sigh;
-} msidhash_t;
-#pragma pack()
-//typedef struct svidmsid_s {
-//	uint16_t svid;
-//	uint32_t msid;
-//} svidmsid_t;
-
 class message :
   public boost::enable_shared_from_this<message>
 {
@@ -49,7 +21,7 @@ public:
   uint16_t peer;	// server id of peer sending message
   uint8_t* data;	// data pointer
   union {uint64_t num; uint8_t dat[8];} hash; // header hash, TODO change this name to 'head'
-  uint8_t status; // 0:info 1:data 2:valid 3:invalid |0x4:saved
+  uint8_t status; // |0x1:data |0x2:saved |0x4:valid |0x8:invalid
   //std::set<uint16_t> know; // peers that know about this item
   boost::container::flat_set<uint16_t> know; // peers that know about this item, flat_set to enable random selection
   std::set<uint16_t> busy; // peers downloading this item
@@ -66,7 +38,7 @@ public:
 	path(0),
 	svid(0),
         peer(0),
-	status(MSGSTAT_INF)
+	status(0)
   { data=(uint8_t*)std::malloc(len); //len=8
     hash.num=0;
   }
@@ -79,7 +51,7 @@ public:
 	path(mypath),
 	svid(*svidp),
         peer(0),
-	status(MSGSTAT_INF)
+	status(0)
   { data=(uint8_t*)std::malloc(len); //len=8
     memcpy(sigh,sighp,SHA256_DIGEST_LENGTH);
     memcpy(hash.dat+2,&msid,4);
@@ -105,7 +77,7 @@ public:
 	path(0),
 	svid(0),
         peer(0),
-	status(MSGSTAT_DAT) // not VAL because not yet saved
+	status(MSGSTAT_DAT)
   { data=(uint8_t*)std::malloc(len);
     hash.num=0;
   }
@@ -118,7 +90,7 @@ public:
 	path(0),
 	svid(0),
         peer(0),
-	status(MSGSTAT_DAT) // not VAL because not yet saved
+	status(MSGSTAT_DAT)
   { data=(uint8_t*)std::malloc(len);
     memcpy(data,d,len);
     hash.num=0;
@@ -130,7 +102,7 @@ public:
 	path(0),
 	svid(mysvid),
 	peer(mysvid),
-	status(MSGSTAT_DAT) // not VAL because not yet saved
+	status(MSGSTAT_DAT)
   { data=(uint8_t*)std::malloc(len);
     now=time(NULL);
     path=now-(now%BLOCKSEC);
@@ -142,12 +114,12 @@ public:
     memcpy(data+1,&len,3); //assume bigendian :-)
     //this will be the signature
     memcpy(data+4+64+0,&mysvid,2);
-    memcpy(data+4+64+2,&mymsid,4); //FIXME, consider removing for _BLK and _CND
+    memcpy(data+4+64+2,&mymsid,4);
     memcpy(data+4+64+6,&now,4);
     memcpy(data+4+64+10,text,text_len);
     if(text_type==MSGTYPE_BLK){
-      if(mypk==NULL){ // creating message from network
-        memcpy(data+4,mysk,64);}
+      if(mysk==NULL){ // creating message from network
+        memcpy(data+4,mypk,64);}
       else{
         ed25519_sign(data+4+64+10,sizeof(header_t)-4,mysk,mypk,data+4);} // consider signing also svid,msid,0
       char hash[4*SHA256_DIGEST_LENGTH];
@@ -162,7 +134,6 @@ public:
       hash_signature();}
     else{
       assert(text_type==MSGTYPE_MSG);
-      //if(!hash_tree(sigh)){
       if(!hash_tree()){
         LOG("ERROR hash_tree error, FATAL\n");
         exit(-1);}
@@ -170,7 +141,6 @@ public:
     hash.num=dohash(mysvid);
   }
 
-  //bool hash_tree(uint8_t* newsigh)
   bool hash_tree()
   { assert(data!=NULL);
     assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
@@ -251,8 +221,10 @@ public:
 
   bool hash_tree_get(uint32_t tnum,std::vector<hash_s>& hashes,uint32_t& mnum)
   {
-    char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
+    char filename[128];
+    assert(hashtype()==MSGTYPE_MSG);
+    makefilename(filename,path,"msg");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       LOG("ERROR %s not found\n",filename);
@@ -344,6 +316,7 @@ public:
       LOG("ERROR hash_tree error, FATAL\n");
       exit(-1);}
     ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);
+    hash.num=dohash(svid); //assert svid==opts_.svid
   }
 
   message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
@@ -351,10 +324,12 @@ public:
 	msid(mmsid),
 	path(mpath),
 	svid(msvid),
-	peer(msvid)
+	peer(msvid),
+	status(0)
   { data=NULL;
     hash.dat[1]=type;
     if(!load(0)){ //sets len ... assume this is invoked only by server during sync
+      LOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
       return;}
     //load should get hash_tree
     memcpy(&now,data+4+64+6,4);
@@ -363,6 +338,7 @@ public:
     assert(len<=max_length);
     assert(data!=NULL);
     if(check_signature(svpk,msvid,msha)){
+      LOG("ERROR, failed to confirm signature of recycled message %04X:%08X [len:%d]\n",svid,msid,len);
       status=0;}
     //else{
     //  memcpy(msha,sigh,sizeof(hash_t));}
@@ -426,6 +402,18 @@ public:
     return(h.num);
   }
 
+  void dblhash(uint16_t mysvid)
+  { svid=mysvid;
+    msid=0xffffffff;
+    hash.num=0x0000FFFFFFFF0000L;
+    //hash.dat[0]=0;
+    //hash.dat[1]=0;
+    //memcpy(hash.dat+2,&msid,4);
+    memcpy(hash.dat+6,&svid,2);
+    bzero(sigh,32);
+    memcpy(sigh,hash.dat,8);
+  }
+
   // parse header, this should go to peer so that peer can react faster
   int header(uint32_t peer_svid)
   { 
@@ -465,7 +453,7 @@ public:
     if(data[0]==MSGTYPE_MSG||data[0]==MSGTYPE_DBL||data[0]==MSGTYPE_CND||data[0]==MSGTYPE_BLK){
       memcpy(&len,data+1,3);
       if((data[0]==MSGTYPE_MSG && len>max_length) || (data[0]==MSGTYPE_DBL && len>4+2*max_length) || len<=4+64+10){ // bad format
-        std::cerr<<"ERROR in message format\n";
+        LOG("ERROR in message format >>%016lX>>\n",*(uint64_t*)data);
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
       if(data==NULL){
@@ -564,6 +552,7 @@ public:
     uint64_t g[8];
     //memcpy(g,sig,8*sizeof(uint64_t));
     assert(data!=NULL);
+    assert(data[0]!=MSGTYPE_MSG);
     if(data[0]==MSGTYPE_DBL){
       null_signature();
       return;}
@@ -585,29 +574,24 @@ public:
     //  memcpy(&svid,data+4+0,2);
     //  memcpy(&msid,data+4+2,4);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
-      memcpy(&svid,data+4+4+64+0,2);
-      memcpy(&msid,data+4+4+64+2,4);
-      memcpy( &now,data+4+4+64+6,4);}
+      memcpy(&svid,data+4+32+4+64+0,2);
+      memcpy(&msid,data+4+32+4+64+2,4);
+      memcpy( &now,data+4+32+4+64+6,4);}
   }
 
   int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
   { assert(data!=NULL);
-    //FIXME, should include previous hash in signed message
+    status|=MSGSTAT_DAT; // have data
     if(data[0]==MSGTYPE_MSG){
-      status=MSGSTAT_DAT; // have data
-      //if(!hash_tree(sigh)){
-      //  LOG("ERROR, hash_tree error\n");
-      //  return(-1);}
+      //hash_tree() calculate in handle_read_body()
       hash.num=dohash(mysvid);
       return(ed25519_sign_open2(msha,32,sigh,32,svpk,data+4));}
     if(data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_BLK){
-      //std::cerr << "MSG LEN: " << len << " SVID: " << svid << " MSID: " << msid << "\n";
-      status=MSGSTAT_DAT; // have data
-      //hash_signature();
-      hash.num=dohash(mysvid); // remove from here !!!
-      if(data[0]==MSGTYPE_BLK){ //this signature format is different because these signatures are stored later without the header
+      //hash_signature(); calculated in handle_read_body()
+      hash.num=dohash(mysvid);
+      if(data[0]==MSGTYPE_BLK){
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
-	  std::cerr<<"ERROR, BLK message msid error\n";
+	  LOG("ERROR, BLK message %04X:%08X msid error\n",svid,msid);
 	  return(1);}
         return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,svpk,data+4));}
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
@@ -616,40 +600,79 @@ public:
         return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
       assert(0);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
-//FIXME, check time, if any of the 2 messages is too old ignore dbl spend and maybe react
-//FIXME, compare only same type of message, detect type based on length
-//FIXME, should provide previous hash (msha!!!), signature check will not work without this !!!
-      uint32_t len1,len2,msid2,now2;
-      uint16_t svid2;
+      hash.num=dohash();
+      null_signature();
+      uint32_t len1,len2,msid1,msid2,now1,now2;
+      uint16_t svid1,svid2;
       uint8_t *data1,*data2; 
-      data1=data+4;
+      hash_t msha;
+      memcpy(msha,data+4,32);
+      data1=data+4+32;
       memcpy(&len1,data1+1,3);
-      if(len<4+len1+4+64+10){ // bad format
+      if(len<4+32+len1+4){
+        LOG("DBL message short len\n");
         return(-1);}
       memcpy(&len2,data1+len1+1,3);
       data2=data1+len1;
-      if(4+len1+len2!=len){ // bad format
+      if(4+32+len1+len2!=len){
+        LOG("DBL message bad len\n");
         return(-1);}
-      if(*data1!=*data2){// different message types (useless test, this info is not signed)
+      if(*data1!=*data2){
+        LOG("DBL message type mismatch\n");
         return(-1);}
-      //FIXME, check message length to identify message type
+      memcpy(&svid1,data1+4+64+0,2); //was processed before by read_head()
+      memcpy(&msid1,data1+4+64+2,4); //was processed before by read_head()
+      memcpy( &now1,data1+4+64+6,4); //was processed before by read_head()
       memcpy(&svid2,data2+4+64+0,2);
       memcpy(&msid2,data2+4+64+2,4);
       memcpy( &now2,data2+4+64+6,4);
-      if((svid!=svid2)||(msid!=msid2)){ // bad format
+      if((svid1!=svid2)||(msid1!=msid2)){ // bad format
+        LOG("DBL message msid/svid mismatch\n");
         return(-1);}
-      if(len1==len2 && !memcmp(data1+4+64,data2+4+64,len1-4-64)){ // equal messages
+      if(!memcmp(data1+4,data2+4,64)){ // equal messages
+        LOG("DBL message equal signatures\n");
         return(-1);}
-      const uint8_t* m[2]={data1+4+64,data2+4+64};
-      size_t mlen[2]={len1,len2};
-      const uint8_t* pk[2]={svpk,svpk};
-      const uint8_t* rs[2]={data1+4,data2+4};
-      int valid[2];
-      hash.num=dohash();
-      status=MSGSTAT_DAT; // have data
-      null_signature();
-      //FIXME use ed25519_sign_open2_batch
-      return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
+      if(*data1==MSGTYPE_CND || *data1==MSGTYPE_BLK){
+        if(len1!=len2){
+          LOG("DBL message len mismatch\n");
+          return(-1);}
+        if(*data1==MSGTYPE_CND){
+          if(len1!=4+64+10+32){
+            LOG("DBL message bad CND len\n");
+            return(-1);}
+          const uint8_t* m[2]={data1+4+64,data2+4+64};
+          size_t mlen[2]={10+32,10+32};
+          const uint8_t* pk[2]={svpk,svpk};
+          const uint8_t* rs[2]={data1+4,data2+4};
+          int valid[2];
+          return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
+        if(*data1==MSGTYPE_BLK){
+          if(len1!=4+64+10+sizeof(header_t)-4){
+            LOG("DBL message bad BLK len\n");
+            return(-1);}
+          uint32_t hpath1=((header_t*)(data1+4+64+10))->now;
+          uint32_t hpath2=((header_t*)(data1+4+64+10))->now;
+          if(hpath1!=hpath2){
+            LOG("DBL message header mistamch\n");
+            return(-1);}
+          if(hpath1!=msid1){
+            LOG("DBL bad message header\n");
+            return(-1);}
+          const uint8_t* m[2]={data1+4+64+10,data2+4+64+10};
+          size_t mlen[2]={sizeof(header_t)-4,sizeof(header_t)-4};
+          const uint8_t* pk[2]={svpk,svpk};
+          const uint8_t* rs[2]={data1+4,data2+4};
+          int valid[2];
+          return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}}
+      if(*data1==MSGTYPE_MSG){
+        if((now1>now2+3*BLOCKSEC) || (now2>now1+3*BLOCKSEC)){ // time based protection for fixed messages
+          LOG("DBL bad message times %08X vs %08X\n",now1,now2);
+          return(-1);}
+        return(
+          ed25519_sign_open2(msha,32,data1+4+64,len1,svpk,data1+4) ||
+          ed25519_sign_open2(msha,32,data2+4+64,len2,svpk,data2+4));}
+      LOG("DBL message illegal type\n");
+      return(-1);}
     return(1); //return error
   }
 
@@ -686,19 +709,23 @@ public:
     if(!path){
       mtx_.unlock();
       if(data==NULL){
-        LOG("blk/%03X/%05X/%02x_%04x_%08x.msg lost [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);}
+        char filename[128];
+        makefilename(filename,path,"msg");
+        LOG("%s lost [len:%d]\n",filename,len);}
       return(data!=NULL);}
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
-      LOG("blk/%03X/%05X/%02x_%04x_%08x.msg full [len:%d]\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid,len);
+      char filename[128];
+      makefilename(filename,path,"msg");
+      LOG("%s full [len:%d]\n",filename,len);
       return(1);}
-    char filename[64];
-      //std::cerr << "ERROR: loading message while data not empty\n";
-      //return(0);}
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid); // size depends on the time_ shift and maximum number of banks (0xffff expected) !!
+    char filename[128];
+    makefilename(filename,path,"msg");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       mtx_.unlock();
+      LOG("%s open failed [len:%d]\n",filename,len);
       return(0);}
     if(data!=NULL){
       free(data);
@@ -715,48 +742,16 @@ public:
         memcpy(sigh,data+len,SHA256_DIGEST_LENGTH);}
       else{
         hash_signature();}} //FIXME, check if message is not MSG,INI,CND,BLK (DBL for example)
+    status|=MSGSTAT_DAT | MSGSTAT_SAV; //load() succeeded so massage is saved
     mtx_.unlock();
-    LOG("blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    LOG("%s loaded\n",filename);
     return(1);
-
-    /*std::ifstream myfile(filename,std::ifstream::binary);
-    uint32_t head;
-    if(!myfile){
-      //std::cerr << "ERROR: opening message failed\n";
-      mtx_.unlock();
-      return(0);}
-    myfile.read((char*)&head,4);
-    if(!myfile){
-      std::cerr << "ERROR: reading length\n";
-      mtx_.unlock();
-      return(0);}
-    if(len==header_length){
-      len=(head)>>8;}
-    else if(len!=((head)>>8)){
-      std::cerr << "ERROR: length mismatch\n";
-      mtx_.unlock();
-      return(0);}
-    assert(len>4+64 && len<=4+2*max_length); // accept DBL messages length
-    if(data!=NULL){
-      free(data);
-      data=NULL;}
-    data=(uint8_t*)std::malloc(len);
-    memcpy(data,&head,4);
-    myfile.read((char*)data+4,len-4); // TODO, consider loading more saved data (status?)
-    if(!myfile){
-      std::cerr << "ERROR: reading data\n";
-      free(data);
-      data=NULL;
-      mtx_.unlock();
-      return(0);}
-    myfile.close();
-    mtx_.unlock();
-    LOG("blk/%03X/%05X/%02x_%04x_%08x.msg loaded\n",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    return(1);*/
   }
 
   void unload(int16_t who)
-  { if(!path){
+  { if((status & (MSGSTAT_DAT|MSGSTAT_SAV)) != (MSGSTAT_DAT|MSGSTAT_SAV)){
+      return;}
+    if(!path){
       return;}
     mtx_.lock();
     //assert(busy.find(who)!=busy.end());
@@ -766,7 +761,7 @@ public:
         LOG("WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
           (uint32_t)hashtype(),svid,msid,len);}
       else{
-        if(data!=NULL){
+        if(data!=NULL && (status & MSGSTAT_SAV)){ //will only unload messages that are saved
           free(data);
           data=NULL;}}}
     mtx_.unlock();
@@ -775,8 +770,14 @@ public:
   void save_mnum(uint32_t mnum)
   { if(hashtype()!=MSGTYPE_MSG){
       return;}
-    char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+    char filename[128];
+    makefilename(filename,path,"msg");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+#ifdef DEBUG
+    if(!(status & MSGSTAT_VAL)){
+      LOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
+      assert(0);}
+#endif
     int fd=open(filename,O_WRONLY);
     if(fd<0){
       LOG("ERROR, saving mnum %d in %s\n",mnum,filename);
@@ -786,20 +787,28 @@ public:
     close(fd);
   }
 
+  void makefilename(char* filename,uint32_t where,const char* suffix)
+  { if(status & MSGSTAT_BAD){
+      char hash[2*SHA256_DIGEST_LENGTH+1]; hash[2*SHA256_DIGEST_LENGTH]='\0';
+      ed25519_key2text(hash,sigh,SHA256_DIGEST_LENGTH);
+      sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x_%s.%s",
+        where>>20,where&0xFFFFF,(uint32_t)hashtype(),svid,msid,hash,suffix);}
+    else{
+      sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.%s",
+        where>>20,where&0xFFFFF,(uint32_t)hashtype(),svid,msid,suffix);}
+  }
+
+
   //FIXME, check again the time of saving, consider free'ing data after save
   int save() //TODO, consider locking
-  { assert(data!=NULL);
-    char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    /*std::ofstream myfile(filename,std::ifstream::binary);
-    if(!myfile){
-      std::cerr << "ERROR: failed to open " << filename << "\n";
+  { if(!(status & MSGSTAT_DAT)){
       return(0);}
-    myfile.write((char*)data,len); // TODO, consider saving more data ... maybe the status too !!!
-    if(!myfile){
-      std::cerr << "ERROR: failed to write to " << filename << "\n";
-      return(0);}
-    myfile.close();*/
+    char filename[128];
+    makefilename(filename,path,"msg");
+    //assert(data!=NULL);
+    if(data==NULL){
+      LOG("ASSERT in save data==NULL: %04X:%08X %016lX\n",svid,msid,hash.num);
+      assert(0);}
     int fd=open(filename,O_WRONLY|O_CREAT,0644);
     if(fd<0){
       LOG("ERROR, saving %s\n",filename);
@@ -811,11 +820,10 @@ public:
       write(fd,data,total);}
     else{
       write(fd,data,len);}
-    save_path();
+    if(!(status & MSGSTAT_BAD)){
+      save_path();}
+    status|=MSGSTAT_SAV;
     return(1);
-    // should set file attributes (time)
-    //TODO, maybe change status to VAL here
-    //status=MSGSTAT_VAL;
   }
 
   int save_path()
@@ -862,8 +870,9 @@ public:
   }
 
   void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim) // assume no errors :-) FIXME
-  { char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+  { char filename[128];
+    makefilename(filename,path,"und");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
     if(fd<0){
       LOG("ERROR failed to open %s, fatal\n",filename);
@@ -881,8 +890,9 @@ public:
   }
 
   uint32_t load_undo(std::map<uint32_t,user_t>& undo,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim)
-  { char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+  { char filename[128];
+    makefilename(filename,path,"und");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       LOG("ERROR failed to open %s, fatal\n",filename);
@@ -906,38 +916,43 @@ public:
   }
 
   int move(uint32_t nextpath) //TODO, consider locking
-  { char oldname[64];
-    char newname[64];
+  { char oldname[128];
+    char newname[128];
     if(!path || path==nextpath){
       return(0);}
-    int r=-1;
-    sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.und",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    rename(oldname,newname); //does not exist before validation
-    //if(rename(oldname,newname)){
-    //  LOG("FAILED to move %s to %s\n",oldname,newname);
-    //  exit(-1);} //FIXME, do not exit later
-    sprintf(oldname,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    sprintf(newname,"blk/%03X/%05X/%02x_%04x_%08x.msg",nextpath>>20,nextpath&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-    if((r=rename(oldname,newname))){
-      LOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
-      exit(-1);} //FIXME, do not exit later
+    int r=0;
+    if(status & MSGSTAT_SAV){
+      r=-1;
+      makefilename(oldname,path,"und");
+      makefilename(newname,nextpath,"und");
+      rename(oldname,newname); //does not exist before validation
+      makefilename(oldname,path,"msg");
+      makefilename(newname,nextpath,"msg");
+      if((r=rename(oldname,newname))){
+        LOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
+        exit(-1);}} //FIXME, do not exit later
     path=nextpath;
     save_path();
     return(r);
   }
 
   void remove_undo() //TODO, consider locking
-  { char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+  { char filename[128];
+    if(!path || !(status & MSGSTAT_SAV)){
+      return;}
+    makefilename(filename,path,"und");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     unlink(filename);
     return;
   }
 
   void remove() //TODO, consider locking
-  { remove_undo();
-    char filename[64];
-    sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+  { char filename[128];
+    if(!path || !(status & MSGSTAT_SAV)){
+      return;}
+    remove_undo();
+    makefilename(filename,path,"msg");
+    //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     unlink(filename);
     return;
   }
@@ -955,8 +970,8 @@ public:
     peer=msg->peer;
     now=msg->now;
     got=msg->got;
-    if(len>header_length){
-      status=MSGSTAT_DAT;}
+    if(len>header_length){ //TODO, is this needed ?
+      status|=MSGSTAT_DAT;}
     mtx_.unlock();
   }
 
@@ -994,7 +1009,7 @@ public:
 
   uint16_t request() //find a peer from which we will request the message
   { assert(data!=NULL);
-    if(status>=MSGSTAT_DAT || len!=header_length){
+    if((status & MSGSTAT_DAT) || len!=header_length){
       std::cerr<<"IGNORING REQUEST for "<<svid<<":"<<msid<<"\n";
       return(0);}
     uint32_t mynow=time(NULL);
@@ -1020,5 +1035,6 @@ private:
 
 typedef boost::shared_ptr<message> message_ptr;
 typedef std::deque<message_ptr> message_queue;
+typedef std::map<uint64_t,message_ptr> message_map;
 
 #endif // MESSAGE_HPP

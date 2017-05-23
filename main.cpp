@@ -122,7 +122,7 @@ void office::leave(client_ptr c)
 }
 
 // server <-> office
-void server::ofip_update_block(uint32_t period_start,uint32_t now,message_queue& commit_msgs,uint32_t newdiv)
+void server::ofip_update_block(uint32_t period_start,uint32_t now,message_map& commit_msgs,uint32_t newdiv)
 {	ofip->update_block(period_start,now,commit_msgs,newdiv);
 }
 void server::ofip_process_log(uint32_t now)
@@ -277,12 +277,12 @@ void server::update(message_ptr msg)
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::update, _1, msg));
 	peer_.unlock();
 }
-void server::svid_msid_rollback(message_ptr msg)
-{	assert(0); //do not use this, this causes sync problems if peers is in different block
-	peer_.lock();
-	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::svid_msid_rollback, _1, msg));
-	peer_.unlock();
-}
+//void server::svid_msid_rollback(message_ptr msg)
+//{	assert(0); //do not use this, this causes sync problems if peers is in different block
+//	peer_.lock();
+//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::svid_msid_rollback, _1, msg));
+//	peer_.unlock();
+//}
 void server::start_accept()
 {	peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
 	//new_peer->iostart();
