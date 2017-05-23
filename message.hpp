@@ -770,6 +770,8 @@ public:
   void save_mnum(uint32_t mnum)
   { if(hashtype()!=MSGTYPE_MSG){
       return;}
+    if(!(status & MSGSTAT_SAV)){
+      return;}
     char filename[128];
     makefilename(filename,path,"msg");
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);

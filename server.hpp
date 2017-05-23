@@ -422,7 +422,8 @@ public:
                 LOG("REQUESTING MSL from %04X\n",svid);
                 deliver(put_msg,svid);}}
             boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
-          srvs_.msg=block->msg;} //check
+          srvs_.msg=block->msg; //check
+          memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
         else{
           srvs_.msg=block->msg; //check
           memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
@@ -489,15 +490,21 @@ public:
         ldc_.lock();
         while(ldc_msgs_.size()){
           ldc_.unlock();
-//boost::this_thread::sleep(boost::posix_time::seconds(1));
-//blk_.lock();
-//LOG("LEFT %d messages\n",(int)ldc_msgs_.size());
-//for(auto it=ldc_msgs_.begin();it!=ldc_msgs_.end();it++){
-//  LOG("MSG: %04X:%08X\n",it->second->svid,it->second->msid);}
-//blk_.unlock();
           boost::this_thread::sleep(boost::posix_time::milliseconds(50)); //yes, yes, use futur/promise instead
           ldc_.lock();}
         ldc_.unlock();
+        //run save_mnum for each message (msgl_put ...)
+        int n=0;
+        for(auto it=LAST_block_final_msgs.begin();it!=LAST_block_final_msgs.end();it++){
+          if(it->second->msid==0xFFFFFFFF){
+            continue;}
+          assert((it->second->status & MSGSTAT_SAV));
+          assert((it->second->status & MSGSTAT_COM));
+          assert((it->second->status & MSGSTAT_VAL));
+          it->second->save_mnum(++n);}
+
+//FIXME, txshash not calculated !!!
+
         //LOG("TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
         std::cerr << "COMMIT deposits\n";
         commit_block(update); // process bkn and get transactions
@@ -1604,7 +1611,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 //FIXME, check what block are we dealing with !!!
 //FIXME, if message too early, add anyway
 
-    std::cerr << "BLOCK test\n";
+    LOG("BLOCK test\n");
     if(msg->msid!=last_srvs_.now){
       LOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
       return;}
