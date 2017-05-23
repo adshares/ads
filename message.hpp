@@ -96,7 +96,7 @@ public:
     hash.num=0;
   }
 
-  message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,ed25519_public_key mypk,hash_t msha) : // create from terminal/rpc
+  message(uint8_t text_type,const uint8_t* text,int text_len,uint16_t mysvid,uint32_t mymsid,ed25519_secret_key mysk,uint8_t* mypk,hash_t msha) : // create from terminal/rpc
 	len(data_offset+text_len),
 	msid(mymsid),
 	path(0),

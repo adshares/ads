@@ -1040,6 +1040,7 @@ public:
       uint16_t svid;
       memcpy(&svid,data,2);
       message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),svid,head.now,NULL,data+2,empty));
+      msg->hash.num=msg->dohash(opts_.svid);
       msg->status|=MSGSTAT_VAL;
       msg->svid=svid;
       msg->peer=svid; //to allow insertion
