@@ -1557,7 +1557,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         txs_.unlock();
         msg->unload(0);
         if(msg->now>=srvs_.now+BLOCKSEC){
-          LOG("\nHASH insert:%016lX (TXS) [len:%d] delay to %08X/ OWN MESSAGE !!!\n\n", //FIXME, fatal in start !!!
+          LOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ own message\n", //FIXME, fatal in start !!!
             msg->hash.num,msg->len,srvs_.now+BLOCKSEC);
           wait_.lock();
           wait_msgs_.push_back(msg);
