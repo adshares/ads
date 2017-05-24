@@ -822,6 +822,7 @@ public:
       write(fd,data,total);}
     else{
       write(fd,data,len);}
+    close(fd);
     if(!(status & MSGSTAT_BAD)){
       save_path();}
     status|=MSGSTAT_SAV;
@@ -914,6 +915,7 @@ public:
         close(fd);
         return(i);}
       undo[i]=u;}
+    close(fd);
     return 0;
   }
 

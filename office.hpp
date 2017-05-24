@@ -700,8 +700,9 @@ public:
         }
       it->second.time=ntime;
       write(fd,&it->second,sizeof(log_t));}
-    purge_log(fd,luser);
-    close(fd);
+    if(fd>=0){
+      purge_log(fd,luser);
+      close(fd);}
     log.clear();
   }
 

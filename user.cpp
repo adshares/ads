@@ -235,6 +235,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
       if(to_from>0){
         to_from--;} // accept 1s overlap
       fprintf(stderr,"LOG: setting last time to %d (%08X)\n",to_from,to_from);}
+    close(fd);
     txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);}
   else if(!run.compare(txsname[TXSTYPE_BLG])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);}
@@ -746,6 +747,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
         sprintf(tx_id,"%04X%08X%04X",sts.bank,ulog.nmid,ulog.mpos);}
       logentry.put("id",tx_id);
       logtree.push_back(std::make_pair("",logentry));}}
+  close(fd);
   if(sts.json){
     pt.add_child("log",logtree);}
 }
@@ -1043,11 +1045,13 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
               if(blg==NULL){
                 fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+                close(fd);
                 socket.close();
                 break;}
               if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
                 std::cerr<<"ERROR reading broadcast log\n";
                 free(blg);
+                close(fd);
                 socket.close();
                 break;}
               write(fd,(char*)blg,len);
@@ -1057,6 +1061,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
             socket.close();}
           catch (std::exception& e){
+            if(fd>=0){
+              close(fd);}
             std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
             break;}}
         if(fd>=0){
@@ -1149,19 +1155,20 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
         mkdir(filename,0755);
         sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],tnum);
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
-        if(fd<0){
+        int ld=open(filename,O_WRONLY|O_CREAT,0644);
+        if(ld<0){
           fprintf(stderr,"ERROR opening %s\n",filename);}
         else{
-          write(fd,&res,sizeof(txspath_t));
-          write(fd,data,res.len+res.hnum*32);
-          close(fd);}
+          write(ld,&res,sizeof(txspath_t));
+          write(ld,data,res.len+res.hnum*32);
+          close(ld);}
         print_txs(pt,res,data);}
       else{
         txspath_t res;
         read(fd,&res,sizeof(txspath_t));
         uint8_t data[res.len+res.hnum*32];
         read(fd,data,res.len+res.hnum*32);
+        close(fd);
         print_txs(pt,res,data);}
       if(sts.json){
         boost::property_tree::write_json(std::cout,pt,sts.nice);}

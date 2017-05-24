@@ -290,6 +290,7 @@ public:
 			user_t u;
 			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
 				LOG("ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
+				close(fd);
 				exit(-1);}
 //FIXME, remove
         LOG("USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
@@ -302,6 +303,7 @@ public:
 			user_csum(u,peer,i);
 			if(memcmp(usum,u.csum,sizeof(uint64_t)*4)){
 				LOG("ERROR, checksum failed for %04X:%08X from %s\n",peer,i,filename);
+				close(fd);
 				exit(-1);}}
 		close(fd);
 		if(nodes[peer].weight!=weight){
@@ -327,6 +329,7 @@ public:
 			int i=(it->first)/64;
 			int j=1<<((it->first)%64);
 			if(nodes[svid].changed[i]&j){
+				close(fd);
 				return;}
 			nodes[svid].changed[i]|=j;
 			lseek(fd,(it->first)*sizeof(user_t),SEEK_SET);
@@ -770,8 +773,8 @@ public:
 			return(false);}
 		lseek(fd,((now&0xFFFFF)/BLOCKSEC)*32,SEEK_SET);
 		if(read(fd,nowhash,32)!=32){
-			close(fd);
 			fprintf(stderr,"ERROR reading %s hash %08X\n",filename,now);
+			close(fd);
 			return(false);}
 		close(fd);
 		return(true);

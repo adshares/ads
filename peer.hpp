@@ -841,11 +841,11 @@ Aborted
       return;}
     for(uint32_t block=path+BLOCKSEC;block<=srvs_.now;block++){
       sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,bank);
-      int fd=open(filename,O_RDONLY);
-      if(fd<0){
+      int uf=open(filename,O_RDONLY);
+      if(uf<0){
         continue;}
       LOG("%04X USING bank %04X block %08X undo %s\n",svid,bank,path,filename);
-      ud.push_back(fd);}
+      ud.push_back(uf);}
     if(ud.size()){
       ld=ud.back();}
     int msid=0;
@@ -911,12 +911,15 @@ Aborted
           //unlink(filename); //TODO, enable this later
           LOG("%04X ERROR sending bank %04X bad sum %016lX<>%016lX\n",svid,bank,s.nodes[bank].weight,weight);
           leave();
-          return;}
+          break;}
         if(memcmp(s.nodes[bank].hash,csum,32)){
           //unlink(filename); //TODO, enable this later
           LOG("%04X ERROR sending bank %04X (bad hash)\n",svid,bank);
           leave();
-          return;}}}
+          break;}}}
+    close(fd);
+    for(auto fu : ud){
+      close(fu);}
   }
 
   void handle_read_bank(const boost::system::error_code& error)

@@ -306,8 +306,8 @@ public:
 #endif
         last_srvs_.xor4(csum,u.csum);}
       close(fd);
-      for(auto it=ud.begin();it!=ud.end();it++){
-        close(*it);}
+      for(auto nd : ud){
+        close(nd);}
       if(last_srvs_.nodes[bank].weight!=weight){
         LOG("ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
           bank,last_srvs_.nodes[bank].weight,weight);
@@ -837,6 +837,7 @@ public:
             tm->second->save();
             tm->second->unload(0);}}
         tm++;}}
+    fclose(fp);
     if(LAST_block_final_msgs.size()>0){
       lm--;
       while(tm!=txs_msgs_.end()){
@@ -2097,6 +2098,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       usertxs utxs;
       if(!utxs.parse(p)){
         std::cerr<<"ERROR: failed to parse transaction\n";
+        close(fd);
         return(false);}
       utxs.print_head();
       if(*p==TXSTYPE_CON){
@@ -2107,15 +2109,18 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         continue;}
       if(*p>=TXSTYPE_INF){
         std::cerr<<"ERROR: unknown transaction\n";
+        close(fd);
         return(false);}
       if(utxs.ttime>lpath+BLOCKSEC+5){ // remember that values are unsigned !
         //std::cerr<<"ERROR: time in the future block\n";
 	LOG("ERROR: time in the future block time:%08X block:%08X limit %08X\n",
 	  utxs.ttime,lpath,lpath+BLOCKSEC+5);
+        close(fd);
         return(false);}
       if(utxs.abank!=msg->svid){
         std::cerr<<"ERROR: bad bank\n";
         utxs.print_head();
+        close(fd);
         return(false);}
       if((*p==TXSTYPE_USR && utxs.abank==utxs.bbank) || *p==TXSTYPE_UOK){ // check lock first
         char* lpkey;
@@ -2127,6 +2132,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           lpkey=utxs.upkey(p);}
         if(luser>users){
           LOG("ERROR: bad target user id %08X\n",luser);
+          close(fd);
           return(false);}
 	if(luser<users){ //1. check if overwriting was legal
           auto lu=changes.find(luser); // get user
@@ -2143,6 +2149,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           if(!(usera->stat&USER_STAT_DELETED)){
             LOG("ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
               utxs.bbank,luser,usera->weight);
+            close(fd);
             return(false);}
           local_fee+=delta;
           weight-=delta;}
@@ -2173,6 +2180,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       if(utxs.auser>=users){
         //std::cerr<<"ERROR, bad userid "<<utxs.abank<<":"<<utxs.auser<<"\n";
         LOG("ERROR, bad userid %04X:%08X\n",utxs.abank,utxs.auser);
+        close(fd);
         return(false);}
       auto au=changes.find(utxs.auser); // get user
       if(au==changes.end()){
@@ -2189,15 +2197,18 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
         //TODO postpone this and run this as batch verification
         std::cerr<<"ERROR: bad signature\n";
+        close(fd);
         return(false);}
       if(usera->msid!=utxs.amsid){
         //std::cerr<<"ERROR: bad msid ("<<usera->msid<<"<>"<<utxs.amsid<<")\n";
         LOG("ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
+        close(fd);
         return(false);}
       //process transactions
       if(usera->time+2*LOCK_TIME<lpath && usera->user && usera->node && (usera->user!=utxs.auser || usera->node!=utxs.abank)){//check account lock
         if(*p!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
           std::cerr<<"ERROR: account locked, send 0 to yourself and wait for unlock\n";
+          close(fd);
           return(false);}}
       else if(*p==TXSTYPE_BRO){
         //log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
@@ -2212,6 +2223,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           // does not check if account closed [consider adding this slow check]
           //std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
           LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          close(fd);
           return(false);}
         if(utxs.bbank==utxs.abank){
           local_deposit[utxs.buser]+=utxs.tmass;}
@@ -2249,12 +2261,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           memcpy(&tmass,tbuf+6,8);
           if(tmass<=0){ //only positive non-zero values allowed
             std::cerr<<"ERROR: only positive non-zero transactions allowed in MPT\n";
+            close(fd);
             return(false);}
           if(out.find(to.big)!=out.end()){
             LOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+            close(fd);
             return(false);}
           if(!srvs_.check_user((uint16_t)tbank,tuser)){
             LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+            close(fd);
             return(false);}
           out.insert(to.big);
           if((uint16_t)tbank==utxs.abank){
@@ -2299,6 +2314,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(utxs.abank==utxs.bbank){
           //std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
           LOG("ERROR: bad bank %04X, use PUT\n",utxs.bbank);
+          close(fd);
           return(false);}
         uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
         get_t get;
@@ -2313,9 +2329,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
           LOG("ERROR: bad user %04X for this bank changes\n",utxs.auser);
+          close(fd);
           return(false);}
         if(memcmp(srvs_.nodes[msg->svid].pk,utxs.opkey(p),32)){
           std::cerr<<"ERROR: bad current key\n";
+          close(fd);
           return(false);}
 	set_bky=true;
         memcpy(new_bky,utxs.key(p),sizeof(hash_t));
@@ -2328,6 +2346,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         //std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<USER_MIN_MASS<<">"<<usera->weight<<")\n";
         LOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
           deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight);
+        close(fd);
         return(false);}
       if(msg->svid!=opts_.svid){
         if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
@@ -2777,7 +2796,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             ofip_gup_push(g);}}}}
     blk_get.clear();
     if(svid){
-      if(fd>=0){
+      if(fd>=0){ // always true
         close(fd);}
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
@@ -2844,6 +2863,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
           read(fd,&u,sizeof(user_t));
           if(!u.msid){
             LOG("ERROR, failed to read user %04X:%08X, fatal\n",svid,user);
+            close(fd);
             exit(-1);}
           memcpy(&ou,&u,sizeof(user_t)); //to keep data for undo
           int64_t fee=0;
@@ -2944,7 +2964,8 @@ LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->sec
       lseek(fd,-offset,SEEK_CUR);
       write(fd,&u.rpath,offset);}
     if(lastsvid){
-      close(fd);
+      if(fd>=0){ // always true
+        close(fd);}
       srvs_.save_undo(lastsvid,undo,0);
       undo.clear();}
     deposit.clear(); //remove deposits after commiting
