@@ -530,7 +530,10 @@ public:
 		int len=0;
 		char* buf=NULL;
 //FIXME, handle problems with load_vip
-		load_vip(len,buf,viphash);
+		if(!load_vip(len,buf,viphash)){
+			update_viphash();
+			load_vip(len,buf,viphash);}
+		LOG("VIPS %d:\n",len);
 		for(int i=0;i<len;i+=2+32){
 			uint16_t svid=*((uint16_t*)(&buf[i+4]));
 			LOG("VIP: %04X\n",svid);
@@ -598,7 +601,7 @@ public:
 		stat(filename,&sb);
 		return((int)sb.st_size/(2+32));
 	}
-	void load_vip(int& len,char* &buf,uint8_t* vhash)
+	bool load_vip(int& len,char* &buf,uint8_t* vhash)
 	{	char hash[65];
 		hash[64]='\0';
 		ed25519_key2text(hash,vhash,32);
@@ -607,22 +610,23 @@ public:
 		int fd=open(filename,O_RDONLY,0644);
 		if(fd<0){
 			LOG("ERROR opening %s\n",filename);
-			return;}
+			return(false);}
 		struct stat sb;
 		fstat(fd,&sb);
 		len=sb.st_size;
 		if(!len){
 			LOG("ERROR empty %s\n",filename);
 			close(fd);
-			return;}
+			return(false);}
 		buf=(char*)malloc(4+len);
 		if(buf==NULL){
 			LOG("ERROR malloc %d bytes for %s\n",4+len,filename);
 			close(fd);
-			return;}
+			return(false);}
 		memcpy(buf,&len,4);
 		read(fd,buf+4,len);
 		close(fd);
+		return(true);
 	}
 
 	void finish()

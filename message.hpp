@@ -141,6 +141,47 @@ public:
     hash.num=dohash(mysvid);
   }
 
+  bool hash_tree_fast(uint8_t* outsigh,uint8_t* indata,uint32_t inlen,uint16_t insvid,uint32_t inmsid)
+  { assert(indata[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
+    assert(insvid);
+    assert(inmsid);
+    hash_t hash;
+    uint16_t* hashsvid=(uint16_t*)hash;
+    uint32_t* hashmsid=(uint32_t*)(&hash[4]);
+    uint16_t* hashtnum=(uint16_t*)(&hash[8]);
+    hashtree tree;
+    usertxs utxs;
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256,indata+4+64,10);
+    SHA256_Final(hash,&sha256);
+    tree.update(hash);
+    uint8_t* p=indata+data_offset;
+    uint8_t* end=indata+inlen;
+    uint32_t l;
+    assert(p<end);
+    uint16_t tnum=1;
+    for(;p<end;p+=l,tnum++){
+      l=utxs.get_size((char*)p);
+      if(l==0xFFFFFFFF){
+        return(false);}
+      SHA256_Init(&sha256);
+      SHA256_Update(&sha256,p,l);
+      SHA256_Final(hash,&sha256);
+      *hashsvid^=insvid;
+      *hashmsid^=inmsid;
+      *hashtnum^=tnum;
+      tree.update(hash);}
+    if(!tnum){
+      LOG("ERROR empty hash_tree %04X:%08X\n",insvid,inmsid);
+      return(false);}
+    if(p!=end){
+      LOG("ERROR parsing transactions for hash_tree %04X:%08X\n",insvid,inmsid);
+      return(false);}
+    tree.finish(outsigh);
+    return(true);
+  }
+
   bool hash_tree()
   { assert(data!=NULL);
     assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
@@ -423,6 +464,7 @@ public:
     got=time(NULL);
     assert(data!=NULL);
     if(data[0]==MSGTYPE_INI){
+      len=0;
       memcpy(&len,data+1,3);
       if(len!=4+64+10+sizeof(handshake_t)){
         std::cerr << "ERROR: no handshake \n"; // TODO, ban ip
@@ -451,6 +493,7 @@ public:
       len=header_length;
       return 1;} // short message
     if(data[0]==MSGTYPE_MSG||data[0]==MSGTYPE_DBL||data[0]==MSGTYPE_CND||data[0]==MSGTYPE_BLK){
+      len=0;
       memcpy(&len,data+1,3);
       if((data[0]==MSGTYPE_MSG && len>max_length) || (data[0]==MSGTYPE_DBL && len>4+2*max_length) || len<=4+64+10){ // bad format
         LOG("ERROR in message format >>%016lX>>\n",*(uint64_t*)data);
@@ -462,6 +505,7 @@ public:
       return 2;}
     if(data[0]==MSGTYPE_USR){
       msid=0;
+      len=0;
       memcpy(&len,data+1,3); // this is number of users (max 0x10000)
       memcpy(&msid,data+4,2); // this is the chunk id
       memcpy(&svid,data+6,2); // this is the bank id
@@ -504,6 +548,7 @@ public:
     if(data[0]==MSGTYPE_MSP){
       std::cerr << "TXSLIST data header received\n";
       svid=peer_svid;
+      len=0;
       memcpy(&len,data+1,3);
       data=(uint8_t*)std::realloc(data,len);
       return 1;}
@@ -602,20 +647,20 @@ public:
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
       hash.num=dohash();
       null_signature();
-      uint32_t len1,len2,msid1,msid2,now1,now2;
+      uint32_t len1=0,len2=0,msid1,msid2,now1,now2;
       uint16_t svid1,svid2;
       uint8_t *data1,*data2; 
-      hash_t msha;
-      memcpy(msha,data+4,32);
+      hash_t dblmsha;
+      memcpy(dblmsha,data+4,32);
       data1=data+4+32;
       memcpy(&len1,data1+1,3);
       if(len<4+32+len1+4){
         LOG("DBL message short len\n");
         return(-1);}
-      memcpy(&len2,data1+len1+1,3);
       data2=data1+len1;
+      memcpy(&len2,data2+1,3);
       if(4+32+len1+len2!=len){
-        LOG("DBL message bad len\n");
+        LOG("DBL message bad len 4+32+%d+%d!=%d\n",len1,len2,len);
         return(-1);}
       if(*data1!=*data2){
         LOG("DBL message type mismatch\n");
@@ -668,9 +713,17 @@ public:
         if((now1>now2+3*BLOCKSEC) || (now2>now1+3*BLOCKSEC)){ // time based protection for fixed messages
           LOG("DBL bad message times %08X vs %08X\n",now1,now2);
           return(-1);}
+        hash_t sigh1;
+        hash_t sigh2;
+        if(!hash_tree_fast(sigh1,data1,len1,svid1,msid1)){
+          LOG("DBL bad message hash_tree_fast 1 failed\n");
+          return(-1);}
+        if(!hash_tree_fast(sigh2,data2,len2,svid2,msid2)){
+          LOG("DBL bad message hash_tree_fast 1 failed\n");
+          return(-1);}
         return(
-          ed25519_sign_open2(msha,32,data1+4+64,len1,svpk,data1+4) ||
-          ed25519_sign_open2(msha,32,data2+4+64,len2,svpk,data2+4));}
+          ed25519_sign_open2(dblmsha,32,sigh1,32,svpk,data1+4) ||
+          ed25519_sign_open2(dblmsha,32,sigh2,32,svpk,data2+4));}
       LOG("DBL message illegal type\n");
       return(-1);}
     return(1); //return error
@@ -809,7 +862,7 @@ public:
     makefilename(filename,path,"msg");
     //assert(data!=NULL);
     if(data==NULL){
-      LOG("ASSERT in save data==NULL: %04X:%08X %016lX\n",svid,msid,hash.num);
+      LOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
       assert(0);}
     int fd=open(filename,O_WRONLY|O_CREAT,0644);
     if(fd<0){
@@ -939,6 +992,68 @@ public:
     save_path();
     return(r);
   }
+
+  bool bad_recover()
+  { assert((status & (MSGSTAT_SAV|MSGSTAT_BAD))==(MSGSTAT_SAV|MSGSTAT_BAD));
+    char moldname[128];
+    char mnewname[128];
+    char uoldname[128];
+    char unewname[128];
+    makefilename(moldname,path,"msg");
+    makefilename(uoldname,path,"und");
+    status &= ~MSGSTAT_BAD;
+    makefilename(mnewname,path,"msg");
+    makefilename(unewname,path,"und");
+    unlink(unewname);
+    if(rename(uoldname,unewname)){ //does not exist before validation
+      LOG("MOVE %s to %s failed\n",uoldname,unewname);}
+    else{
+      LOG("MOVE %s to %s succeeded\n",uoldname,unewname);}
+    unlink(mnewname);
+    if(rename(moldname,mnewname)){ //does not exist before validation
+      LOG("MOVE %s to %s failed\n",moldname,mnewname);
+      return(false);}
+    LOG("MOVE %s to %s succeeded\n",moldname,mnewname);
+    return(true);
+  }
+
+  bool bad_insert()
+  { assert((status & (MSGSTAT_SAV|MSGSTAT_BAD))==(MSGSTAT_SAV));
+    char moldname[128];
+    char mnewname[128];
+    char uoldname[128];
+    char unewname[128];
+    makefilename(moldname,path,"msg");
+    makefilename(uoldname,path,"und");
+    status |= MSGSTAT_BAD;
+    makefilename(mnewname,path,"msg");
+    makefilename(unewname,path,"und");
+    unlink(unewname);
+    if(rename(uoldname,unewname)){ //does not exist before validation
+      LOG("MOVE %s to %s failed\n",uoldname,unewname);}
+    else{
+      LOG("MOVE %s to %s succeeded\n",uoldname,unewname);}
+    unlink(mnewname);
+    if(rename(moldname,mnewname)){ //does not exist before validation
+      LOG("MOVE %s to %s failed\n",moldname,mnewname);
+      return(false);}
+    LOG("MOVE %s to %s succeeded\n",moldname,mnewname);
+    return(true);
+  }
+
+  /*bool move_undo_bad()
+  { assert((status & (MSGSTAT_COM|MSGSTAT_BAD))==MSGSTAT_COM);
+    char oldname[128];
+    char newname[128];
+    makefilename(oldname,path,"und");
+    status|=MSGSTAT_BAD;
+    makefilename(newname,path,"und");
+    if(rename(oldname,newname)){ //does not exist before validation
+      LOG("MOVE %s to %s failed\n",oldname,newname);
+      return(false);}
+    LOG("MOVE %s to %s succeeded\n",oldname,newname);
+    return(true);
+  }*/
 
   void remove_undo() //TODO, consider locking
   { char filename[128];

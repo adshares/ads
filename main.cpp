@@ -210,6 +210,13 @@ const char* server::peers_list()
  	peer_.unlock();
 	return(list.c_str()+1);
 }
+void server::connected(std::vector<uint16_t>& list)
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid){
+			list.push_back((*pi)->svid);}}
+	peer_.unlock();
+}
 bool server::connected(uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
@@ -227,17 +234,6 @@ int server::duplicate(peer_ptr p)
 			return 1;}}
 	peer_.unlock();
 	return 0;
-}
-int server::deliver(message_ptr msg,uint16_t svid)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		if((*pi)->svid==svid){
-			(*pi)->deliver(msg);
-			peer_.unlock();
-			return(1);}}
-	peer_.unlock();
-	msg->sent_erase(svid);
-	return(0);
 }
 void server::get_more_headers(uint32_t now) //use random order
 {	peer_.lock();
@@ -267,10 +263,32 @@ void server::fillknown(message_ptr msg) //use random order
 	peer_.unlock();
 	r++;
 }
+int server::deliver(message_ptr msg,uint16_t svid)
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid==svid){
+			(*pi)->deliver(msg);
+			peer_.unlock();
+			return(1);}}
+	peer_.unlock();
+	msg->sent_erase(svid);
+	return(0);
+}
 void server::deliver(message_ptr msg)
 {	peer_.lock();
 	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::deliver, _1, msg));
 	peer_.unlock();
+}
+int server::update(message_ptr msg,uint16_t svid)
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid==svid){
+			(*pi)->update(msg);
+			peer_.unlock();
+			return(1);}}
+	peer_.unlock();
+	msg->sent_erase(svid);
+	return(0);
 }
 void server::update(message_ptr msg)
 {	peer_.lock();

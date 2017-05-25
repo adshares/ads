@@ -320,6 +320,12 @@ public:
       message_.lock();
       uint32_t newmsid=srv_.msid_+1;
       LOG("SENDING message %08X\n",newmsid);
+#ifdef DOUBLE_SPEND
+      if(opts_.svid == 4 && !(newmsid%8) && !(rand()%2)){
+        LOG("\n\nNICE sending double spend message %08X\n\n\n",newmsid);
+        srv_.write_dblspend(message);}
+      else
+#endif
       if(!srv_.write_message(message)){
         message_.unlock();
         LOG("ERROR sending message %08X\n",newmsid);

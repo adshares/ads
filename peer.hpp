@@ -366,7 +366,8 @@ Aborted
     files_in++;
     read_msg_->know.insert(svid);
     if(read_msg_->len==message::header_length){
-      if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid){ //unknown svid
+      if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid ||
+          server_.last_srvs_.nodes.size()<=read_msg_->svid){
         LOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         leave();
         return;}
@@ -1231,9 +1232,9 @@ Aborted
       if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1){
         message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
         if(prev!=NULL){
-          LOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
-            read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
           msha=prev->sigh;}
+        else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
+          msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}
         else{
           LOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
             read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
@@ -1241,7 +1242,9 @@ Aborted
           boost::asio::async_read(socket_,
             boost::asio::buffer(read_msg_->data,message::header_length),
             boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
-          return;}}
+          return;}
+        LOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
+          read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);}
       if(!read_msg_->hash_tree()){
         LOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         read_msg_ = boost::make_shared<message>();
