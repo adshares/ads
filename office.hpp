@@ -94,7 +94,7 @@ public:
       exit(-1);}
     log_.lock();
     log_t alog;
-    alog.type=TXSTYPE_STP|0x8000; //incoming
+    alog.type=TXSTYPE_NON|0x8000; //incoming
     alog.time=time(NULL);
     alog.nmid=srv_.start_msid;
     alog.mpos=srv_.start_path;
@@ -239,7 +239,7 @@ public:
       read(fd,&otime,sizeof(uint32_t));
       log_t alog;
       bzero(&alog,sizeof(log_t));
-      alog.type=TXSTYPE_STP|0x4000;
+      alog.type=TXSTYPE_NON|0x4000;
       alog.time=ntime;
       alog.mpos=now;
       alog.nmid=otime;

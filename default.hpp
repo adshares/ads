@@ -37,8 +37,9 @@
 #define MAXCLIENTS 128
 #define CLIENT_POOL 2	/* do not offer more threads that are used for network message validation */
 
-#define SERVER_DBL 0x1
-#define SERVER_VIP 0x2
+#define SERVER_DBL 0x1 /* closed node */
+#define SERVER_VIP 0x2 /* VIP node */
+#define SERVER_UNO 0x4 /* single master node */
 #define MESSAGE_MAXAGE 100
 
 //#define MSGSTAT_INF 0x0
@@ -153,6 +154,30 @@ typedef struct txspath{
 	uint16_t len; //64k lentgh limit !
 	uint16_t hnum;
 } txspath_t;
+typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
+	uint32_t msid; // id of last transaction, id==1 is the creation.
+	uint32_t time; // original time of transaction (used as lock initiation)
+	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
+	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
+	uint16_t stat; // includes status and account type
+	uint16_t node; // target node, ==bank_id at creation
+	uint32_t user; // target user, ==user_id at creation
+	uint32_t lpath; // block time of local transaction, used for dividends and locks
+	uint32_t rpath; // block time of incomming transaction, used for dividends
+	 int64_t weight; // balance, MUST BE AFTER rpath !
+	uint64_t csum[4]; //sha256 hash of user account, MUST BE AFTER rpath !
+} user_t;
+typedef struct log_s { //TODO, consider reducing the log to only txid (uint64_t)
+	uint32_t time;
+	uint16_t type;
+	uint16_t node;
+	uint32_t nmid; // peer msid, could overwrite this also with info
+	uint32_t mpos; // changing to txs-num in file (previously: position in file or remote user in 'get')
+	uint32_t user;
+	uint32_t umid; // user msid
+	 int64_t weight; //
+	uint8_t info[32];
+} log_t;
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
 typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;

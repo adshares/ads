@@ -526,19 +526,21 @@ public:
 	void update_vipstatus()
 	{	uint32_t i;
 		for(i=1;i<nodes.size();i++){
-			nodes[i].status &= ~SERVER_VIP;}
+			nodes[i].status &= ~(SERVER_VIP|SERVER_UNO);}
 		int len=0;
 		char* buf=NULL;
 //FIXME, handle problems with load_vip
 		if(!load_vip(len,buf,viphash)){
 			update_viphash();
 			load_vip(len,buf,viphash);}
-		LOG("VIPS %d:\n",len);
+		LOG("VIPS %d:\n",(len/(2+32)));
 		for(int i=0;i<len;i+=2+32){
 			uint16_t svid=*((uint16_t*)(&buf[i+4]));
 			LOG("VIP: %04X\n",svid);
 			assert(svid>0 && svid<nodes.size());
-			nodes[svid].status |= SERVER_VIP;}
+			nodes[svid].status |= SERVER_VIP;
+			if(!i){
+				nodes[svid].status |= SERVER_UNO;}}
 		free(buf);
 	}
 
@@ -548,26 +550,27 @@ public:
 		vno=0;
 		std::vector<uint16_t> svid_rank;
 		for(i=1;i<nodes.size();i++){ //FIXME, start this with 1, not with 0
-			//nodes[i].status &= ~SERVER_VIP; // FIXME, postpone by 1 block
 			if(nodes[i].status & SERVER_DBL){
 				continue;}
 			if(i>1 && !nodes[i].msid){ // do not include nodes silent nodes
 				continue;}
 			svid_rank.push_back(i);}
 		std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->nodes[i].weight>this->nodes[j].weight);}); //fuck, lambda :-(
-		std::map<uint16_t,hash_s> vipkeys;
-		for(i=0;i<VIP_MAX&&i<svid_rank.size();i++){
-			uint16_t svid=svid_rank[i];
-			//nodes[svid].status |= SERVER_VIP; // FIXME, postpone by 1 block
-			vipkeys[svid]=(*((hash_s*)nodes[svid].pk));}
-		assert(i>0);
 		hashtree tree(NULL); //FIXME, waste of space
 		bzero(viphash,sizeof(hash_t));
-		std::string data;
+		std::string data; //first VIP is master (SERVER_UNO)
+                uint16_t svid=svid_rank[0];
+		data.append((char*)&svid,2);
+		data.append((char*)nodes[svid].pk,32);
+		tree.addhash(viphash,nodes[svid].pk);
+		std::map<uint16_t,hash_s> vipkeys;
+		for(i=1;i<VIP_MAX&&i<svid_rank.size();i++){ //other keys are sorted by svid
+			svid=svid_rank[i];
+			vipkeys[svid]=(*((hash_s*)nodes[svid].pk));}
+		assert(i>0);
 		for(auto it=vipkeys.begin();it!=vipkeys.end();it++){
 			data.append((char*)&it->first,2);
 			data.append((char*)it->second.hash,32);
-			//fprintf(stderr,"...KEY:%016lX\n",*((uint64_t*)it->second.hash));
 			tree.addhash(viphash,(uint8_t*)it->second.hash);}
 		char hash[65];
 		hash[64]='\0';

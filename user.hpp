@@ -1,13 +1,12 @@
 #ifndef USER_HPP
 #define USER_HPP
 
+//TODO, change the structure of this data and covert it to an array of structures or array of classes
+
 //bank only
-#define TXSTYPE_STP 0	/* die/stop processing bank */	/* restart requires a new BKY transaction */
+#define TXSTYPE_NON 0	/* placeholder for failed transactions */
 #define TXSTYPE_CON 1	/* connected */			/* inform peers about location */
 #define TXSTYPE_UOK 2	/* accept remote account request */
-			/* empty transaction */
-			/* input block hash for old transactions */
-			/* consider leaving space for more transactions */
 //bank & user
 #define TXSTYPE_BRO 3	/* broadcast */			/* send ads to network */
 #define TXSTYPE_PUT 4	/* send funds */	
@@ -17,25 +16,28 @@
 #define TXSTYPE_GET 8	/* get funds */			/* retreive funds from remote/dead bank */
 #define TXSTYPE_KEY 9	/* change account key */
 #define TXSTYPE_BKY 10	/* change bank key */
-			/* confirm account status */
-			/* consider leaving space for more transactions */
+#define TXSTYPE_SUS 11	/* NEW set user status bits (OR) */
+#define TXSTYPE_SBS 12	/* NEW set bank status bits (OR) */
+#define TXSTYPE_UUS 13	/* NEW unset user status bits (AND) */
+#define TXSTYPE_UBS 14	/* NEW unset bank status bits (AND) */
+#define TXSTYPE_SAV 15  /* NEW request account status confirmation in chain */
 //overwriting user only TX in log
-#define TXSTYPE_DIV 11	/* user dividend payment tx code */
-#define TXSTYPE_FEE 12	/* bank fee payment tx code */
+#define TXSTYPE_DIV 16	/* user dividend payment tx code */
+#define TXSTYPE_FEE 17	/* bank fee payment tx code */
 //user only
-#define TXSTYPE_INF 11	/* strating from this message only messages between wallet and client.hpp */
-#define TXSTYPE_LOG 12	/* return user status and log */
-#define TXSTYPE_BLG 13	/* return broadcast log */
-#define TXSTYPE_BLK 14	/* return block list */
-#define TXSTYPE_TXS 15	/* return transaction + hash path */
-#define TXSTYPE_VIP 16	/* return vip public keys */
-#define TXSTYPE_SIG 17	/* return block signatures */
-			/* request save status in log */
+#define TXSTYPE_INF 16	/* strating from this message only messages between wallet and client.hpp */
+#define TXSTYPE_LOG 17	/* return user status and log */
+#define TXSTYPE_BLG 18	/* return broadcast log */
+#define TXSTYPE_BLK 19	/* return block list */
+#define TXSTYPE_TXS 20	/* return transaction + hash path */
+#define TXSTYPE_VIP 21	/* return vip public keys */
+#define TXSTYPE_SIG 22	/* return block signatures */
+
 //end
-#define TXSTYPE_MAX 18
+#define TXSTYPE_MAX 23  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
 const char* txsname[TXSTYPE_MAX]={
-	"stop",			//0
+	"empty",		//0
 	"dividend",		//1
 	"account_created",	//2
 	"broadcast",		//3
@@ -46,13 +48,18 @@ const char* txsname[TXSTYPE_MAX]={
 	"retrieve_funds",	//8
 	"change_account_key",	//9
 	"change_node_key",	//10
-	"get_account",		//11 also 'get_me'
-	"get_log",		//12
-	"get_broadcast",	//13
-	"get_blocks",		//14
-	"get_transaction",	//15
-	"get_vipkeys",		//16
-	"get_signatures"};	//17
+	"set_account_status",	//11 NEW
+	"set_node_status",	//12 NEW
+	"unset_account_status",	//13 NEW
+	"unset_node_status",	//14 NEW
+	"log_account",		//15 NEW
+	"get_account",		//16 also 'get_me'
+	"get_log",		//17
+	"get_broadcast",	//18
+	"get_blocks",		//19
+	"get_transaction",	//20
+	"get_vipkeys",		//21
+	"get_signatures"};	//22
 
 const char* logname[TXSTYPE_MAX]={
 	"node_started",		//0
@@ -66,17 +73,22 @@ const char* logname[TXSTYPE_MAX]={
 	"retrieve_funds",	//8
 	"change_account_key",	//9
 	"change_node_key",	//10
-	"dividend",		//11
-	"bank_profit",		//12
-	"unknown",		//13
-	"unknown",		//14
-	"unknown",		//15
-	"unknown",		//16
-	"unknown"};		//17
+	"set_account_status",	//11 NEW
+	"set_node_status",	//12 NEW
+	"unset_account_status",	//13 NEW
+	"unset_node_status",	//14 NEW
+	"log_account",		//15 NEW
+	"dividend",		//16
+	"bank_profit",		//17
+	"unknown",		//18
+	"unknown",		//19
+	"unknown",		//20
+	"unknown",		//21
+	"unknown"};		//22
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
-	0,			//0:STP not defined yet
-	1+2+4,			//1:CON (port,ipv4)
+	1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
+	1+2+4,			//1:CON (port,ipv4), (port==0) => bank shutting down , should add office addr:port
 	1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
 	1+2+4+4+4+2,		//3:BRO 'bbank' is message length
 	1+2+4+4+4+2+4+8+32,	//4:PUT, extra parameter = official message (32 byte)
@@ -85,45 +97,21 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4,		//7:BNK
 	1+2+4+4+4+2+4,		//8:GET,
 	1+2+4+4+4+32,		//9:KEY
-	1+2+4+4+4+32,		//10:BKY, old key appended to undo message
-	1+2+4+2+4+4,		//11:INF
-	1+2+4+2+4+4,		//12:LOG
-	1+2+4+4+4,		//13:BLG /amsid=blk_number/
-	1+2+4+4+4+4,		//14:BLK /amsid=blk_from blk_to/
-	1+2+4+4+4+4+2,		//15:TXS /bbank=node_ buser=node-msid_ amsid=position/
-	1+2+4+4+32,		//16:VIP /tinfo=vip_hash/
-	1+2+4+4+4,		//17:SIG /amsid=blk_number/
-	1+2+4+4+4+2+4+8+32};	//18:MAX fixed buffer size
+	1+2+4+4+4+2+32,		//10:BKY CHANGED ! (added bank id), old key appended to undo message
+	1+2+4+4+4+2+4+2,	//11:SUS NEW
+	1+2+4+4+4+2+4,		//12:SBS NEW
+	1+2+4+4+4+2+4+2,	//13:UUS NEW
+	1+2+4+4+4+2+4,		//14:UBS NEW
+	1+2+4+4+4,		//15:SAV NEW
+	1+2+4+2+4+4,		//16:INF
+	1+2+4+2+4+4,		//17:LOG
+	1+2+4+4+4,		//18:BLG /amsid=blk_number/
+	1+2+4+4+4+4,		//19:BLK /amsid=blk_from blk_to/
+	1+2+4+4+4+4+2,		//20:TXS /bbank=node_ buser=node-msid_ amsid=position/
+	1+2+4+4+32,		//21:VIP /tinfo=vip_hash/
+	1+2+4+4+4,		//22:SIG /amsid=blk_number/
+	1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
 	
-#define USER_CLOSED 0x0001;
-
-#pragma pack(1)
-typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
-	uint32_t msid; // id of last transaction, id==1 is the creation.
-	uint32_t time; // original time of transaction (used as lock initiation)
-	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
-	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
-	uint16_t stat; // includes status and account type
-	uint16_t node; // target node, ==bank_id at creation
-	uint32_t user; // target user, ==user_id at creation
-	uint32_t lpath; // block time of local transaction, used for dividends and locks
-	uint32_t rpath; // block time of incomming transaction, used for dividends
-	 int64_t weight; // balance, MUST BE AFTER rpath !
-	uint64_t csum[4]; //sha256 hash of user account, MUST BE AFTER rpath !
-} user_t;
-typedef struct log_s { //TODO, consider reducing the log to only txid (uint64_t)
-	uint32_t time;
-	uint16_t type;
-	uint16_t node;
-	uint32_t nmid; // peer msid, could overwrite this also with info
-	uint32_t mpos; // changing to txs-num in file (previously: position in file or remote user in 'get')
-	uint32_t user;
-	uint32_t umid; // user msid
-	 int64_t weight; //
-	uint8_t info[32];
-} log_t;
-#pragma pack()
-
 class usertxs :
   public boost::enable_shared_from_this<usertxs>
 {
@@ -284,6 +272,17 @@ public:
 			memcpy(data+1+6 ,&ttime,4);
 			memcpy(data+1+10,&amsid,4); // block number
 			return;}
+		if(ttype==TXSTYPE_BKY){ // for BKY, office adds old key
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&amsid,4);
+			memcpy(data+1+10,&ttime,4);
+			memcpy(data+1+14,&bbank,2);
+			memcpy(data+1+16,text,32);
+			return;}
 		//TODO, process other transactions as above
 
 		if(ttype==TXSTYPE_CON){
@@ -302,8 +301,6 @@ public:
 			size=len+bbank*(6+8)+64;}
 	 	else if(ttype==TXSTYPE_KEY){ //user,newkey
 			size=len+64+64;} // size on the peer network is reduced back to len+64 !!!
-	 	//else if(ttype==TXSTYPE_BKY){ //user0,newkey,oldkey
-		//	size=len+64+64+64;}
 		else{
 			size=len+64;}
 		data=(uint8_t*)std::malloc(size);
@@ -314,7 +311,7 @@ public:
 		memcpy(data+1+10,&ttime,4);
 		if(len==1+2+4+4+4){
 			return;}
-		if(ttype==TXSTYPE_KEY || ttype==TXSTYPE_BKY){ // for BKY, office adds old key
+		if(ttype==TXSTYPE_KEY){
 			memcpy(data+1+14,text,32);
 			return;}
 		memcpy(data+1+14,&bbank,2);
@@ -343,7 +340,7 @@ public:
 		if(*txs==TXSTYPE_UOK){
 			return(txslen[TXSTYPE_UOK]);} // no signature
 	 	if(*txs==TXSTYPE_BKY){
-			return(txslen[TXSTYPE_BKY]+64+32);} // additional 4 bytes on network !!!
+			return(txslen[TXSTYPE_BKY]+64+32);} // additional 32 bytes on network !!!
 	 	if(*txs==TXSTYPE_USR){
 			return(txslen[TXSTYPE_USR]+64+4+32);} // additional 4+32 bytes on network !!!
 		if(*txs==TXSTYPE_BRO){
@@ -354,8 +351,6 @@ public:
 			uint16_t len;
 			memcpy(&len,txs+1+14,2);
 			return(txslen[TXSTYPE_MPT]+64+len*(6+8));}
-	 	//if(*txs==TXSTYPE_KEY || *txs==TXSTYPE_BKY){ //user,newkey
-		//	return(txslen[(int)*txs]+64+64);} // no need to send the second signature to the network
 		return(txslen[(int)*txs]+64);
 	}
 
@@ -396,7 +391,6 @@ public:
 		memcpy(&abank,txs+1+0 ,2);
 		memcpy(&auser,txs+1+2 ,4);
 		if(ttype==TXSTYPE_CON){
-			//memcpy(&ttime,txs+1+6,4);
 			size=txslen[TXSTYPE_CON]; // no signature !
 			return(true);}
 		if(ttype==TXSTYPE_BLG){
@@ -421,8 +415,6 @@ public:
 			memcpy(&buser,txs+1+16,4);
 			memcpy(&tmass,txs+1+20,8);
 			memcpy(tinfo,txs+1+28,32);}
-		//else{
-		//	bzero(tinfo,32);}
 		if(ttype==TXSTYPE_BKY){
 			size+=32;}
 		else if(ttype==TXSTYPE_USR){
@@ -431,8 +423,6 @@ public:
 			size+=bbank;}
 		else if(ttype==TXSTYPE_MPT){
 			size+=bbank*(6+8);}
-		//else if(ttype==TXSTYPE_BKY || ttype==TXSTYPE_KEY){ // not needed on the network !!!
-		//	size+=64;}
 		return(true);
 	}
 
@@ -442,7 +432,6 @@ public:
 	 	if(*buf==TXSTYPE_MPT){
 			return((uint8_t*)buf+txslen[TXSTYPE_MPT]+bbank*(6+8));}
 		return((uint8_t*)buf+txslen[(int)*buf]);
-		//return((uint8_t*)buf+txslen[TXSTYPE_BRO]);
 	}
 
 	void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk)
@@ -468,11 +457,6 @@ public:
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
 	}
 
-	//void sign2(uint8_t* hash,uint8_t* sk) // additional signature, no need to supply pk (is in data)
-	//{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
-	//	ed25519_sign2(hash,32,data,txslen[ttype],sk,data+1+2+4+4+4,data+txslen[ttype]+64);
-	//} // FIXME, sign A FIXED STRING with the second signature !!!
-
 	int sign2(uint8_t* sig) // additional signature to validate public key
 	{	assert(ttype==TXSTYPE_KEY);
 		memcpy(data+txslen[ttype]+64,sig,64);
@@ -497,13 +481,8 @@ public:
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
 	}
 
-	//int wrong_sig2(uint8_t* buf,uint8_t* hash) // additional signature with client
-	//{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
-	//	return(ed25519_sign_open2(hash,32,buf,txslen[ttype],buf+1+2+4+4+4,buf+txslen[ttype]+64));
-	//} // FIXME, sign only the new key with the second signature !!!
-
 	int wrong_sig2(uint8_t* buf) // additional signature to validate public key
-	{	assert(ttype==TXSTYPE_KEY); // || ttype==TXSTYPE_BKY
+	{	assert(ttype==TXSTYPE_KEY);
 		return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
 	}
 
@@ -537,8 +516,16 @@ public:
 	}
 
 	char* key(char* buf) //return new key in message
-	{	return(buf+1+2+4+4+4);
+	{	if(*buf==TXSTYPE_BKY){
+			return(buf+1+2+4+4+4+2);}
+		return(buf+1+2+4+4+4); // _KEY
 	}
+
+	char* opkey(char* buf) //return old bank key in message
+	{	assert(*buf==TXSTYPE_BKY);
+		return(buf+1+2+4+4+4+2+32+64);
+	}
+
 
 	char* upkey(char* buf) //return new key in UOK message
 	{	return(buf+1+2+4+4+4+2+4);
@@ -578,10 +565,6 @@ public:
 
 	char* npkey(char* buf) //return second user key in message
 	{	return(buf+1+2+4+4+4+2+64+4);
-	}
-
-	char* opkey(char* buf) //return old key in message
-	{	return(buf+1+2+4+4+4+32+64);
 	}
 
 private:

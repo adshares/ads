@@ -1006,14 +1006,14 @@ public:
     makefilename(unewname,path,"und");
     unlink(unewname);
     if(rename(uoldname,unewname)){ //does not exist before validation
-      LOG("MOVE %s to %s failed\n",uoldname,unewname);}
+      LOG("RECOVER %s to %s failed\n",uoldname,unewname);}
     else{
-      LOG("MOVE %s to %s succeeded\n",uoldname,unewname);}
+      LOG("RECOVER %s to %s succeeded\n",uoldname,unewname);}
     unlink(mnewname);
     if(rename(moldname,mnewname)){ //does not exist before validation
-      LOG("MOVE %s to %s failed\n",moldname,mnewname);
+      LOG("RECOVER %s to %s failed\n",moldname,mnewname);
       return(false);}
-    LOG("MOVE %s to %s succeeded\n",moldname,mnewname);
+    LOG("RECOVER %s to %s succeeded\n",moldname,mnewname);
     return(true);
   }
 
@@ -1030,30 +1030,16 @@ public:
     makefilename(unewname,path,"und");
     unlink(unewname);
     if(rename(uoldname,unewname)){ //does not exist before validation
-      LOG("MOVE %s to %s failed\n",uoldname,unewname);}
+      LOG("BAD insert %s to %s failed\n",uoldname,unewname);}
     else{
-      LOG("MOVE %s to %s succeeded\n",uoldname,unewname);}
+      LOG("BAD insert %s to %s succeeded\n",uoldname,unewname);}
     unlink(mnewname);
     if(rename(moldname,mnewname)){ //does not exist before validation
-      LOG("MOVE %s to %s failed\n",moldname,mnewname);
+      LOG("BAD insert %s to %s failed\n",moldname,mnewname);
       return(false);}
-    LOG("MOVE %s to %s succeeded\n",moldname,mnewname);
+    LOG("BAD insert %s to %s succeeded\n",moldname,mnewname);
     return(true);
   }
-
-  /*bool move_undo_bad()
-  { assert((status & (MSGSTAT_COM|MSGSTAT_BAD))==MSGSTAT_COM);
-    char oldname[128];
-    char newname[128];
-    makefilename(oldname,path,"und");
-    status|=MSGSTAT_BAD;
-    makefilename(newname,path,"und");
-    if(rename(oldname,newname)){ //does not exist before validation
-      LOG("MOVE %s to %s failed\n",oldname,newname);
-      return(false);}
-    LOG("MOVE %s to %s succeeded\n",oldname,newname);
-    return(true);
-  }*/
 
   void remove_undo() //TODO, consider locking
   { char filename[128];

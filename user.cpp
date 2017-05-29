@@ -583,7 +583,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       if(txst<TXSTYPE_MAX){
         logentry.put("type",logname[txst]);}
       if(ulog.type & 0x4000){ //errors
-        if(txst==TXSTYPE_STP){ //node start
+        if(txst==TXSTYPE_NON){ //node start
           logentry.put("account.error","logerror");
           logentry.put("account.newtime",ulog.time);
           logentry.put("account.newdate",mydate(ulog.time));
@@ -593,7 +593,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
           logtree.push_back(std::make_pair("",logentry));
           continue;}}
       if(ulog.type & 0x8000){ //incomming network transactions (responses) except _GET
-        if(txst==TXSTYPE_STP){ //node start
+        if(txst==TXSTYPE_NON){ //node start
           logentry.put("node_start_msid",ulog.nmid);
           logentry.put("node_start_block",ulog.mpos);
           int64_t weight;
