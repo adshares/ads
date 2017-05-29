@@ -78,7 +78,7 @@ bool parse_mpt(std::string& text,uint32_t& to_bank,const char* line,int end)
 bool parse_bank(uint16_t& to_bank,std::string str_bank)
 { char *endptr;
   if(str_bank.length()!=4){
-    fprintf(stderr,"ERROR: parse_user(%s) bad length (required 4)\n",str_bank.c_str());
+    fprintf(stderr,"ERROR: parse_bank(%s) bad length (required 4)\n",str_bank.c_str());
     return(false);}
   errno=0;
   to_bank=(uint16_t)strtol(str_bank.c_str(),&endptr,16);

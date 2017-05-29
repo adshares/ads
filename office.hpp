@@ -806,6 +806,12 @@ public:
     return(true);
   }
 
+  uint8_t* node_pkey(uint16_t node)
+  { if(node>=srv_.last_srvs_.nodes.size()){
+      return(NULL);}
+    return(srv_.last_srvs_.nodes[node].pk); // use an old key !!!
+  }
+
   uint16_t svid;
   hash_t pkey; // local copy for managing updates
   std::stack<gup_t> gup; // GET results

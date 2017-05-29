@@ -127,13 +127,13 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_BKY){
-      if(utxs.bbank){
-        std::cerr<<"ERROR: setting remote bank key not yet implemented\n";
-        offi_.unlock_user(utxs.auser);
-        return;}
+      //if(utxs.bbank){
+      //  std::cerr<<"ERROR: setting remote bank key not yet implemented\n";
+      //  offi_.unlock_user(utxs.auser);
+      //  return;}
       hash_t skey;
-      if(!offi_.find_key((uint8_t*)utxs.key(buf),skey)){
-        std::cerr<<"ERROR: bad second signature\n";
+      if(!utxs.bbank && !offi_.find_key((uint8_t*)utxs.key(buf),skey)){
+        std::cerr<<"ERROR: matching secret key not found\n";
         offi_.unlock_user(utxs.auser);
         return;}}
     if(*buf==TXSTYPE_INF){ // this is special, just local info
@@ -565,11 +565,11 @@ public:
 	std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      if(utxs.bbank){
-        LOG("ERROR: setting key for remote bank (%04X) not yet implemented\n",utxs.bbank);
-        offi_.unlock_user(utxs.auser);
-        return;}
-      //buf=(char*)std::realloc(buf,utxs.size);
+    //if(utxs.bbank){
+    //  LOG("ERROR: setting key for remote bank (%04X) not yet implemented\n",utxs.bbank);
+    //  offi_.unlock_user(utxs.auser);
+    //  return;}
+    //buf=(char*)std::realloc(buf,utxs.size);
       fee=TXS_BKY_FEE;}
     //else if(*buf==TXSTYPE_STP){ // we will get a confirmation from the network
     //  assert(0); //TODO, not implemented later
@@ -583,9 +583,12 @@ public:
     //commit bank key change
     if(*buf==TXSTYPE_BKY){ // commit key change
       if(utxs.bbank){
-        LOG("ERROR: setting key for remote bank (%04X) not yet implemented\n",utxs.bbank);
-        offi_.unlock_user(utxs.auser);
-        return;}
+        uint8_t* key=offi_.node_pkey(utxs.bbank);
+        if(key==NULL){
+          LOG("ERROR: setting key for remote bank (%04X) failed\n",utxs.bbank);
+          offi_.unlock_user(utxs.auser);
+          return;}
+        memcpy(utxs.opkey(buf),key,32);}
       else{
         memcpy(utxs.opkey(buf),offi_.pkey,32);
         memcpy(offi_.pkey,utxs.key(buf),32);}}

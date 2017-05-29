@@ -1042,7 +1042,7 @@ public:
     else{
       for(auto sv : svid_rset){
         svid_rank.push_back(sv);}
-      std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->srvs_.nodes[i].weight>this->srvs_.nodes[j].weight);});} //fuck, lambda :-/
+      std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->last_srvs_.nodes[i].weight>this->last_srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
     for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
@@ -2332,7 +2332,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             close(fd);
             return(false);}
           else{
-            LOG("WARNING, changing my node key !\n");
+            if(node==opts_.svid){
+              LOG("WARNING, changing my node key !\n");}
             new_bky[node]=*(hash_s*)utxs.key(p);}}
         //memcpy(new_bky,utxs.key(p),sizeof(hash_t));
         fee=TXS_BKY_FEE;}
@@ -2501,6 +2502,9 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     //store block transactions
     blk_.lock();
     for(auto it=new_bky.begin();it!=new_bky.end();it++){
+      if(srvs_.nodes[it->first].status & SERVER_DBL){
+        LOG("WARNING resetting DBL status for node %04X!\n",it->first);
+        srvs_.nodes[it->first].status &= ~SERVER_DBL;}
       memcpy(srvs_.nodes[it->first].pk,it->second.hash,32);
       if(it->first==opts_.svid){
         if(!srvs_.find_key(it->second.hash,skey)){
