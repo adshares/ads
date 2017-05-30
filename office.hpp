@@ -77,7 +77,6 @@ public:
     if(clock_thread!=NULL){
       clock_thread->interrupt();
       clock_thread->join();}
-    //submit message
   }
 
   void init(uint32_t myusers)
@@ -313,7 +312,6 @@ public:
       if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
         continue;}
-      //if(!srv_.accept_message(msid)){
       if(!srv_.accept_message()){
 	std::cerr<<"WARNING, server not ready for a new message ("<<srv_.msid_<<")\n";
         continue;}

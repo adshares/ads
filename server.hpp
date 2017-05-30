@@ -705,9 +705,6 @@ public:
         continue;}
       if(lastsvid!=me->second->svid){
         lastsvid=me->second->svid;
-        //if(last_srvs_.nodes[lastsvid].status&SERVER_DBL){
-        //  minmsid=0xFFFFFFFF;
-        //  continue;}
         minmsid=last_srvs_.nodes[lastsvid].msid+1;
         nowmsid=minmsid;} //test only
       if(me->second->msid<minmsid){
@@ -720,9 +717,7 @@ public:
     dbl_.lock();
     for(auto it=dbl_msgs_.begin();it!=dbl_msgs_.end();it++){
       uint16_t svid=it->second->svid;
-      //if(!(last_srvs_.nodes[svid].status &  SERVER_DBL) &&
-      //    (srvs_.nodes[svid].status &  SERVER_DBL))
-      if(!(srvs_.nodes[svid].status & SERVER_DBL) && known_dbl(svid)){
+      if(!(last_srvs_.nodes[svid].status & SERVER_DBL) && known_dbl(svid)){
         message_ptr msg(new message());
         msg->dblhash(svid);
         LAST_block_all_msgs[msg->hash.num]=msg;}}
@@ -1133,21 +1128,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 
   void double_spend(message_ptr msg)
   { LOG("WARNING, double spend maybe not yet fully implemented\n");
-    //svid_.lock();
     if(last_srvs_.nodes[msg->svid].msid>=msg->msid){ //check again correct message timing, probably not needed
       LOG("IGONRING old double spend message %04X:%08X\n",msg->svid,msg->msid);
-      //svid_.unlock();
       return;}
     dbls_.lock();
     dbl_srvs_.insert(msg->svid);
     dbls_.unlock();
-    //srvs_.nodes[msg->svid].status|=SERVER_DBL;
-    //srvs_.nodes[msg->svid].msid=msg->msid; //FIXME, this should be maybe(!) msid from last block + 1
-    //svid_msgs_[msg->svid]=msg; // msg->msid should be 0xFFFFFFFF
-    //svid_.unlock();
     update(msg);
-    //if(!do_sync){
-    //  update(msg);}
   }
 
   void create_double_spend_proof(message_ptr msg1,message_ptr msg2)
@@ -1158,7 +1145,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(msg2->svid==opts_.svid){
       LOG("FATAL, created own double spend !!!\n");
       exit(-1);}
-    //if(srvs_.nodes[msg2->svid].status & SERVER_DBL)
     if(known_dbl(msg2->svid)){
       LOG("DROP dbl spend message creation for DBL server (%04X)\n",msg1->svid);
       return;}
@@ -1324,7 +1310,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           exit(-1);}
         dbl_.unlock();
         missing_msgs_erase(msg);
-        //if(!(srvs_.nodes[osg->svid].status & SERVER_DBL))
         if(!known_dbl(osg->svid)){
           double_spend(osg);}
         osg->unload(0);
@@ -1457,7 +1442,6 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 
   int txs_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_MSG);
-    //if(srvs_.nodes[msg->svid].status & last_srvs_.nodes[msg->svid].status & SERVER_DBL)
     if(last_srvs_.nodes[msg->svid].status & SERVER_DBL){ // BKY can change current status (srvs_.nodes[].status)
       LOG("HASH insert:%016lX (TXS) [len:%d] DBLserver ignored\n",msg->hash.num,msg->len);
       return(0);}
@@ -1589,6 +1573,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 //FIXME, check what block are we dealing with !!!
 //FIXME, if message too early, add anyway
 
+    assert(msg->path==msg->msid);
     LOG("BLOCK test\n");
     if(msg->msid!=last_srvs_.now){
       LOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
@@ -1705,10 +1690,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(msg->status & MSGSTAT_COM){
           LOG("WARNING ignoring validation of committed message %04X:%08X\n",msg->svid,msg->msid);
           continue;}
-        //if(!(msg->status & MSGSTAT_VAL) && srvs_.nodes[msg->svid].status & SERVER_DBL) // ignore from DBL server
         if(!(msg->status & MSGSTAT_VAL) && dbl_srvs_.find(msg->svid)!=dbl_srvs_.end()){ // ignore from DBL server
           LOG("WARNING ignoring validation of invalid message %04X:%08X from DBL nodes (double?:%s)\n",
-            msg->svid,msg->msid,(srvs_.nodes[msg->svid].status&SERVER_DBL?"yes":"no"));
+            msg->svid,msg->msid,(last_srvs_.nodes[msg->svid].status&SERVER_DBL?"yes":"no"));
           continue;} //
         //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid)
         if(srvs_.nodes[msg->svid].msid>=msg->msid){
@@ -1750,7 +1734,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             nod->msid=msg->msid;
             nod->mtim=msg->now;
             memcpy(nod->msha,msg->sigh,sizeof(hash_t));
-            mtx_.unlock();}
+            mtx_.unlock();
+            if(msid_<nod->msid){
+              LOG("WARNING !!! increasing local msid by network !!!\n");
+              msid_=nod->msid;}}
           //svid_msgs_[msg->svid]=msg;
           //svid_.unlock();
           uint32_t now=time(NULL);
@@ -1954,6 +1941,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           memcpy(srvs_.nodes[node].pk,utxs.opkey(p),32);
           old_bky.insert(node);
           if(node==opts_.svid){
+            if(utxs.bbank){
+              ofip_change_pkey((uint8_t*)utxs.opkey(p));}
             LOG("WARNING undoing local bank key change\n");}}}
       p+=utxs.get_size(p);}
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
@@ -1961,6 +1950,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     blk_usr.erase(ppi);
     blk_uok.erase(ppi);
     blk_bnk.erase(ppi);
+    blk_bky.erase(ppi);
     for(auto it=txs_get.begin();it!=txs_get.end();it++){
       blk_get.erase(*it);}
     blk_.unlock();
@@ -2333,9 +2323,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             return(false);}
           else{
             if(node==opts_.svid){
+              ofip_change_pkey((uint8_t*)utxs.key(p));
               LOG("WARNING, changing my node key !\n");}
             new_bky[node]=*(hash_s*)utxs.key(p);}}
-        //memcpy(new_bky,utxs.key(p),sizeof(hash_t));
         fee=TXS_BKY_FEE;}
       int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
@@ -2502,9 +2492,9 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     //store block transactions
     blk_.lock();
     for(auto it=new_bky.begin();it!=new_bky.end();it++){
-      if(srvs_.nodes[it->first].status & SERVER_DBL){
-        LOG("WARNING resetting DBL status for node %04X!\n",it->first);
-        srvs_.nodes[it->first].status &= ~SERVER_DBL;}
+      if(last_srvs_.nodes[it->first].status & SERVER_DBL){
+        LOG("WARNING schedule resetting DBL status for node %04X!\n",it->first);
+        blk_bky[ppi].push_back(it->first);}
       memcpy(srvs_.nodes[it->first].pk,it->second.hash,32);
       if(it->first==opts_.svid){
         if(!srvs_.find_key(it->second.hash,skey)){
@@ -2626,6 +2616,13 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           memcpy(alog.info,it->first.pkey,32);
           log[key]=alog;}}}
           //put_log(it->first.abank,it->first.auser,alog); //put_blklog
+
+    //reset DBL status
+    if(!blk_bky.empty()){
+      for(auto it=blk_bky.begin();it!=blk_bky.end();it++){
+        for(auto sv : it->second){
+          srvs_.nodes[sv].status &= ~SERVER_DBL;}}
+      blk_bky.clear();}
 
     //create new banks
     if(!blk_bnk.empty()){
@@ -3045,8 +3042,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   //bool accept_message(uint32_t lastmsid)
   bool accept_message()
   { //FIXME, add check for vulnerable time
-    //return(lastmsid<=msid_ && msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
-    return(msid_==srvs_.nodes[opts_.svid].msid); //quick fix, in future lastmsid==msid_
+    dbls_.lock();
+    if(dbl_srvs_.find(opts_.svid)!=dbl_srvs_.end()){
+      dbls_.unlock();
+      return(false);}
+    dbls_.unlock();
+    return(msid_==srvs_.nodes[opts_.svid].msid && !(srvs_.nodes[opts_.svid].status & SERVER_DBL));
   }
 
   void update_list(std::vector<uint64_t>& txs,std::vector<uint64_t>& dbl,std::vector<uint64_t>& blk,uint16_t peer_svid)
@@ -3146,7 +3147,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
 
 #ifdef DOUBLE_SPEND
   uint32_t write_dblspend(std::string line)
-  { if(srvs_.nodes[opts_.svid].status & SERVER_DBL){
+  { if(last_srvs_.nodes[opts_.svid].status & SERVER_DBL){
       LOG("DEBUG, server marked as double spender\n");
       return(0);}
     if(dbl_srvs_.find(opts_.svid)!=dbl_srvs_.end()){
@@ -3537,6 +3538,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   void ofip_process_log(uint32_t now);
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
   void ofip_delete_user(uint32_t user);
+  void ofip_change_pkey(uint8_t* user);
 
   //FIXME, move this to servers.hpp
   //std::set<uint16_t> last_svid_dbl; //list of double spend servers in last block
@@ -3612,6 +3614,7 @@ private:
   int do_block;
   std::map<uint64_t,int64_t> deposit;
   boost::mutex deposit_;
+  std::map<uint64_t,std::vector<uint16_t>> blk_bky; //create new bank
   std::map<uint64_t,std::vector<uint32_t>> blk_bnk; //create new bank
   std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
   std::map<uint64_t,std::vector<usr_t>> blk_usr; //remote account request

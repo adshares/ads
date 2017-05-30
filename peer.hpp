@@ -217,12 +217,6 @@ public:
       return;}
     if(do_sync){
       return;}
-    //if(msg->status==MSGSTAT_SAV){
-    //  if(!msg->load()){
-    //    LOG("%04X DELIVER problem for %04X:%08X\n",svid,msg->svid,msg->msid);
-    //    msg->mtx_.unlock();
-    //    return;}}
-    //msg->busy.insert(svid);
     msg->mtx_.lock();//TODO, do this right before sending the message ?
     if(msg->sent.find(svid)!=msg->sent.end()){
       LOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
@@ -285,7 +279,6 @@ Aborted
     //assert(do_sync); //FIXME, failed !!!
 //FIXME, brakes after handle_read_headers() if there are more headers to load
     put_msg->load(svid);
-    //put_msg->busy_insert(svid);//TODO, do this right before sending the message ?
     mtx_.lock(); //most likely no lock needed
     boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
     mtx_.unlock();
@@ -300,12 +293,10 @@ Aborted
     if (!error) {
       mtx_.lock();
       message* msg=&(*(write_msgs_.front()));
-      //msg->busy.erase(svid); // will not work if same message queued 2 times
       msg->mtx_.lock();
-      assert(msg->sent.find(svid)!=msg->sent.end()); //WILL fail if we send the same message to 1 peer 2 times
+      //assert(msg->sent.find(svid)!=msg->sent.end()); //WILL fail if we send the same message to 1 peer 2 times
       assert(msg->busy.find(svid)!=msg->busy.end()); //WILL fail if we send the same message to 1 peer 2 times
       assert(msg->data!=NULL);
-      //msg->sent.insert(svid);
       uint32_t len=msg->len;
       if(msg->len>64){ //find length submitted to peer
         len=0;
@@ -389,14 +380,13 @@ Aborted
           mtx_.unlock();}
         int ret=server_.message_insert(read_msg_);
         if(ret){ //NEW, make sure to insert in correct containers
-          if((ret<0) || // && !(srvs_.nodes[read_msg_->svid].status & SERVER_DBL)  ||
+          if((ret<0) ||
              (read_msg_->data[0]==MSGTYPE_CNG && server_.last_srvs_.now+BLOCKSEC==read_msg_->msid ) ||
              (read_msg_->data[0]==MSGTYPE_BLG && server_.last_srvs_.now>=read_msg_->msid && (server_.last_srvs_.nodes[read_msg_->svid].status & SERVER_VIP)) ||
              read_msg_->data[0]==MSGTYPE_DBG ||
              (read_msg_->data[0]==MSGTYPE_GET && srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1 && server_.check_msgs_size()<MAX_CHECKQUE)){
             //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<read_msg_->svid<<":"<<read_msg_->msid<<")\n";
             LOG("%04X REQUESTING MESSAGE (%04X:%08X)\n",svid,read_msg_->svid,read_msg_->msid);
-            //read_msg_->busy_insert(svid);
 #ifdef DEBUG
             boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
 #endif
@@ -417,7 +407,8 @@ Aborted
           if(msg!=NULL){
             if(msg->len>message::header_length){
               if(msg->sent.find(svid)!=msg->sent.end()){
-                LOG("%04X REJECTING download request for %0X4:%08X\n",svid,msg->svid,msg->msid);}
+                //TODO, after reconnecting peer missed messages :-(
+                LOG("%04X REJECTING download request for %04X:%08X\n",svid,msg->svid,msg->msid);}
               else{
                 LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
 #ifdef DEBUG
@@ -1263,8 +1254,6 @@ Aborted
       if(read_msg_->data[0]!=MSGTYPE_MSG){
         leave();
         return;}
-      //ed25519_printkey(srvs_.nodes[read_msg_->svid].pk,32);
-      //if(!(srvs_.nodes[read_msg_->svid].status & SERVER_DBL) )...
       if(read_msg_->msid==server_.last_srvs_.nodes[read_msg_->svid].msid+1){
         leave();
         return;}

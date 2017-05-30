@@ -803,11 +803,12 @@ public:
 
   void unload(int16_t who)
   { if((status & (MSGSTAT_DAT|MSGSTAT_SAV)) != (MSGSTAT_DAT|MSGSTAT_SAV)){
+      busy_erase(who);
       return;}
     if(!path){
+      busy_erase(who);
       return;}
     mtx_.lock();
-    //assert(busy.find(who)!=busy.end());
     busy.erase(who);
     if(busy.empty()){
       if(len==header_length){
@@ -1107,8 +1108,8 @@ public:
 
   void sent_erase(uint16_t p)
   { mtx_.lock();
-    if(busy.find(p)==busy.end()){
-      sent.erase(p);}
+    //if(busy.find(p)==busy.end()) //why was this here ??? ... maybe to prevent assert failure ...
+    sent.erase(p);
     mtx_.unlock();
   }
 

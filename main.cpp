@@ -152,6 +152,9 @@ void server::ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey)
 void server::ofip_delete_user(uint32_t auser)
 {	ofip->delete_user(auser);
 }
+void server::ofip_change_pkey(uint8_t* pkey)
+{	memcpy(ofip->pkey,pkey,32);
+}
 
 // server <-> peer
 //void server::join(peer_ptr p)
