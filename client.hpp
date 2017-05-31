@@ -638,21 +638,7 @@ public:
         memcpy(utxs.opkey(buf),offi_.pkey,32);
         memcpy(offi_.pkey,utxs.key(buf),32);}}
 
-    offi_.add_msg((uint8_t*)buf,utxs,msid,mpos);
-
-    //if(!msid||!mpos){
-    if(!msid){
-      std::cerr<<"ERROR: message submission failed ("<<msid<<","<<mpos<<")\n";
-      offi_.unlock_user(utxs.auser);
-      return;}
     //commit changes
-    if(*buf!=TXSTYPE_PUT){ // store additional info in log
-      // this is ok for MPT
-      memcpy(utxs.tinfo+ 0,&usera.weight,8);
-      memcpy(utxs.tinfo+ 8,&deduct,8);
-      memcpy(utxs.tinfo+16,&fee,8);
-      memcpy(utxs.tinfo+24,&usera.stat,2);
-      memcpy(utxs.tinfo+26,&usera.pkey,6);}
     usera.msid++;
     usera.time=utxs.ttime;
     usera.node=lnode;
@@ -669,8 +655,25 @@ public:
     SHA256_Update(&sha256,usera.hash,32);
     SHA256_Update(&sha256,hash,32);
     SHA256_Final(usera.hash,&sha256);
-    offi_.set_user(utxs.auser,usera,deduct+fee);
+
+    offi_.add_msg((uint8_t*)buf,utxs,msid,mpos); // could add set_user here
+
+    //if(!msid||!mpos){
+    if(!msid){
+      std::cerr<<"ERROR: message submission failed ("<<msid<<","<<mpos<<")\n";
+      offi_.unlock_user(utxs.auser);
+      return;}
+
+    offi_.set_user(utxs.auser,usera,deduct+fee); //will fail if status changed !!!
+
     //log
+    if(*buf!=TXSTYPE_PUT){ // store additional info in log
+      // this is ok for MPT
+      memcpy(utxs.tinfo+ 0,&usera.weight,8);
+      memcpy(utxs.tinfo+ 8,&deduct,8);
+      memcpy(utxs.tinfo+16,&fee,8);
+      memcpy(utxs.tinfo+24,&usera.stat,2);
+      memcpy(utxs.tinfo+26,&usera.pkey,6);}
     log_t tlog;
     tlog.time=time(NULL);
     tlog.type=*buf;

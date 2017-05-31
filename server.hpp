@@ -2492,8 +2492,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
       p+=utxs.size;}
     //commit local changes
     user_t u;
-    //int offset=(char*)&u.weight-(char*)&u;
-    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
+    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.stat;
     //FIXME, lock here in case there is a bank read during sync, or accept errors when sending bank
     //for(auto it=local_deposit.begin();it!=local_deposit.end();it++)
     for(auto it=local_dsu.begin();it!=local_dsu.end();it++){
@@ -2523,12 +2522,12 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
 	//weight+=it->second;
         u.weight+=it->second.deposit;
 	weight+=it->second.deposit;
-        u.stat|=it->second.sus;
+        u.stat|=it->second.sus; 
         u.stat&=~it->second.uus;
 	srvs_.user_csum(u,msg->svid,it->first);
         srvs_.xor4(csum,u.csum);
         lseek(fd,-offset,SEEK_CUR);
-        write(fd,&u.rpath,offset);}}
+        write(fd,&u.stat,offset);}}
     //local_deposit.clear();
     local_dsu.clear();
     changes.clear();

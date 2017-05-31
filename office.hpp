@@ -83,7 +83,8 @@ public:
   { memcpy(pkey,srv_.pkey,32);
     users=myusers; //FIXME !!! this maybe incorrect !!!
     //msid=srv_.msid_;
-    deposit.resize(users); //a buffer to enable easy resizing of the account vector
+  //deposit.resize(users); //a buffer to enable easy resizing of the account vector
+  //ustatus.resize(users); //a buffer to enable easy resizing of the account vector
     //copy bank file
     char filename[64];
     sprintf(filename,"usr/%04X.dat",svid);
@@ -119,7 +120,7 @@ public:
       alog.weight=div;
       if(u.stat&USER_STAT_DELETED){
         deleted_users.push_back(user);}
-      write(offifd_,&u,sizeof(user_t));
+      write(offifd_,&u,sizeof(user_t)); // write all ok
       // check last log status
       //log_t llog;
       //srv_.get_lastlog(svid,user,llog);
@@ -362,10 +363,11 @@ public:
       u.user=cgup.user;
       u.time=cgup.time;
       u.rpath=now;
-      u.weight+=deposit[cgup.auser]-cgup.delta;
-      deposit[cgup.auser]=0;
+      u.weight-=cgup.delta;
+      //u.weight+=deposit[cgup.auser]-cgup.delta;
+      //deposit[cgup.auser]=0;
       lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-      write(offifd_,&u,sizeof(user_t));
+      write(offifd_,&u,sizeof(user_t)); // write node,user,time,rpath,weight
       file_.unlock();
       gup.pop();}
   }
@@ -379,10 +381,11 @@ public:
       lseek(offifd_,dep.auser*sizeof(user_t),SEEK_SET);
       read(offifd_,&u,sizeof(user_t));
       u.rpath=now;
-      u.weight+=deposit[dep.auser]+dep.weight;
-      deposit[dep.auser]=0;
+      u.weight+=dep.weight;
+      //u.weight+=deposit[dep.auser]+dep.weight;
+      //deposit[dep.auser]=0;
       lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-      write(offifd_,&u,sizeof(user_t));
+      write(offifd_,&u,sizeof(user_t)); // write rpath,weight
       file_.unlock();
       rdep.pop();}
   }
@@ -402,18 +405,20 @@ public:
       return(get_user_global(u,cbank,cuser));}
     if(cuser>=users){
       return(false);}
-    file_.lock();
+    file_.lock(); // could use read only access without lock
     lseek(offifd_,cuser*sizeof(user_t),SEEK_SET);
     read(offifd_,&u,sizeof(user_t));
     if(!u.msid){
       file_.unlock();
       return(false);}
-    if(deposit[cuser]){
-      u.weight+=deposit[cuser];
-      deposit[cuser]=0;
-      assert(u.weight>=0);
-      lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-      write(offifd_,&u,sizeof(user_t));}
+    //if(deposit[cuser] || ustatus[cuser]!=u.status)
+    //if(deposit[cuser]){
+    //  u.weight+=deposit[cuser];
+    //  deposit[cuser]=0;
+    //  //u.status=ustatus[cuser];
+    //  assert(u.weight>=0);
+    //  lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    //  write(offifd_,&u,sizeof(user_t));} // write weight
     file_.unlock();
     return(true);
   }
@@ -447,7 +452,7 @@ public:
         //FIXME !!!  wrong time !!! must use time from txs
         srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
         lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-        write(offifd_,&nu,sizeof(user_t));
+        write(offifd_,&nu,sizeof(user_t)); // write all ok
         file_.unlock();
         return(nuser);}}
     file_.unlock();
@@ -460,22 +465,35 @@ public:
     srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
     std::cerr<<"CREATING new account "<<nuser<<"\n";
     file_.lock();
-    deposit.push_back(0);
+  //deposit.push_back(0);
+  //ustatus.push_back(0);
     lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
-    write(offifd_,&nu,sizeof(user_t));
+    write(offifd_,&nu,sizeof(user_t)); // write all ok
     file_.unlock();
     return(nuser);
   }
 
-  void set_user(uint32_t user,user_t& u, int64_t deduct)
+  void set_user(uint32_t user,user_t& nu, int64_t deduct)
   { assert(user<users); // is this safe ???
+    user_t ou;
     file_.lock();
-    u.weight+=deposit[user]-deduct;
-    deposit[user]=0;
+    lseek(offifd_,user*sizeof(user_t),SEEK_SET);
+    read(offifd_,&ou,sizeof(user_t));
+    ou.weight-=deduct;
+    //ou.weight+=deposit[user]-deduct;
+    //deposit[user]=0;
+    ou.msid=nu.msid;
+    ou.time=nu.time;
+    ou.node=nu.node;
+    ou.user=nu.user;
+    ou.lpath=nu.lpath;
+    memcpy(ou.hash,nu.hash,32);
+    memcpy(ou.pkey,nu.pkey,32);
+  //u.status=ustatus[user];
     //assert(u.weight>=0);
 //fprintf(stderr,"\n\nSET USER WRITE\n\n");
-    lseek(offifd_,user*sizeof(user_t),SEEK_SET);
-    write(offifd_,&u,sizeof(user_t));
+    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    write(offifd_,&ou,sizeof(user_t)); // fix this !!!
     file_.unlock();
   }
 
@@ -490,7 +508,7 @@ public:
       fprintf(stderr,"WARNNG: network deleted active user %08X\n",user);}
 //fprintf(stderr,"\n\nSET USER WRITE\n\n");
     lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-    write(offifd_,&u,sizeof(user_t));
+    write(offifd_,&u,sizeof(user_t)); // write all ok
     deleted_users.push_back(user);
     file_.unlock();
   }
@@ -502,15 +520,29 @@ public:
   }
 
   void add_deposit(uint32_t buser,int64_t tmass)
-  { file_.lock();
-    deposit[buser]+=tmass;
+  { const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
+    int64_t w;
+    file_.lock();
+    lseek(offifd_,buser*sizeof(user_t)+dep_off,SEEK_SET);
+    read(offifd_,&w,sizeof(w));
+    w+=tmass;
+    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    write(offifd_,&w,sizeof(w));
+    //deposit[buser]+=tmass;
     file_.unlock();
 //fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
 
   void add_deposit(usertxs& utxs)
-  { file_.lock();
-    deposit[utxs.buser]+=utxs.tmass;
+  { const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
+    int64_t w;
+    file_.lock();
+    lseek(offifd_,utxs.buser*sizeof(user_t)+dep_off,SEEK_SET);
+    read(offifd_,&w,sizeof(w));
+    w+=utxs.tmass;
+    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    write(offifd_,&w,sizeof(w));
+    //deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
 //fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
@@ -607,7 +639,7 @@ public:
         u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);} // can not change USER_STAT_DELETED
       if(oldstatus!=u.stat){
         lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-        write(offifd_,&u,sizeof(user_t));}}
+        write(offifd_,&u,sizeof(user_t));}} // write only stat !!!
     //message_.unlock();
     file_.unlock();
     return(true);
@@ -834,12 +866,14 @@ public:
   hash_t pkey; // local copy for managing updates
   std::stack<gup_t> gup; // GET results
 private:
+  const user_t user_tmp={};
   bool run;
   uint32_t div_ready;
   uint32_t block_ready;
   uint32_t users; //number of users of the bank
   std::string message;
-  std::vector<int64_t> deposit; //resizing will require a stop of processing
+//std::vector<int64_t> deposit; //resizing will require a stop of processing
+//std::vector<int16_t> ustatus; //resizing will require a stop of processing
   boost::asio::ip::tcp::endpoint endpoint_;
   boost::asio::io_service io_service_;
   boost::asio::io_service::work work_;
