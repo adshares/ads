@@ -305,9 +305,11 @@ public:
         block_ready=0;
         div_ready=0;}
       if(message.empty()){
-        message_.lock();
+        //message_.lock();
+        file_.lock();
         srv_.break_silence(now,message);
-        message_.unlock();
+        //message_.unlock();
+        file_.unlock();
         continue;}
       if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
@@ -315,7 +317,8 @@ public:
       if(!srv_.accept_message()){
 	std::cerr<<"WARNING, server not ready for a new message ("<<srv_.msid_<<")\n";
         continue;}
-      message_.lock();
+      //message_.lock();
+      file_.lock();
       uint32_t newmsid=srv_.msid_+1;
       LOG("SENDING message %08X\n",newmsid);
 #ifdef DOUBLE_SPEND
@@ -325,12 +328,14 @@ public:
       else
 #endif
       if(!srv_.write_message(message)){
-        message_.unlock();
+        //message_.unlock();
+        file_.unlock();
         LOG("ERROR sending message %08X\n",newmsid);
         continue;}
       message.clear();
       message_tnum=0;
-      message_.unlock();
+      //message_.unlock();
+      file_.unlock();
       del_msg(newmsid);
       message_sent=now;}
   }
@@ -423,7 +428,7 @@ public:
       uint32_t msid;
       uint32_t mpos;
       usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
-      add_msg(txs->data,txs->size,msid,mpos);
+      add_msg(txs->data,*txs,msid,mpos);
       if(msid){
         add_key((hash_s*)pkey,luser);}} //blacklist
   }
@@ -537,26 +542,20 @@ public:
   }
 
   bool get_msg(uint32_t msid,std::string& line)
-  { //message_.lock();
-    char filename[64];
+  { char filename[64];
     sprintf(filename,"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_RDONLY);
     if(md<0){
-      //message_.unlock();
       return(false);} // :-( maybe we should throw here something
     struct stat sb;
     fstat(md,&sb);
     if(!sb.st_size){
       close(md);
-      //message_.unlock();
       return(false);}
     char msg[sb.st_size];
     read(md,msg,sb.st_size);
     close(md);
-    //no need to set message_tnum, this message will be submitted now
     line.append((char*)msg,sb.st_size);
-    //message.append((char*)msg,sb.st_size);
-    //message_.unlock();
     return(true);
   }
 
@@ -566,15 +565,18 @@ public:
     unlink(filename);
   }
 
-  void add_msg(uint8_t* msg,int len,uint32_t& msid,uint32_t& mpos)
-  { if(!run){ return;}
-    message_.lock();
+  bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
+  { if(!run){ return(false);}
+    int len=utxs.size;
+    //message_.lock();
+    file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX){
       msid=0;
       mpos=0;
-      message_.unlock();
+      //message_.unlock();
+      file_.unlock();
       LOG("ERROR, failed to append to message (%d>=%d)\n",message_tnum,MESSAGE_TNUM_MAX);
-      return;}
+      return(false);}
     msid=srv_.msid_+1; // check if no conflict !!!
     char filename[64];
     sprintf(filename,"ofi/msg_%08X.msd",msid);
@@ -582,15 +584,33 @@ public:
     if(md<0){
       msid=0;
       mpos=0;
-      message_.unlock();
+      //message_.unlock();
+      file_.unlock();
       LOG("ERROR, failed to log message %s\n",filename);
-      return;} // :-( maybe we should throw here something
+      return(false);} // :-( maybe we should throw here something
     write(md,msg,len);
     close(md);
     //mpos=message.length()+message::data_offset;
     mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
     message.append((char*)msg,len);
-    message_.unlock();
+    if(utxs.ttype==TXSTYPE_SUS || utxs.ttype==TXSTYPE_UUS){
+      user_t u;
+      lseek(offifd_,utxs.buser*sizeof(user_t),SEEK_SET);
+      read(offifd_,&u,sizeof(user_t));
+      if(!u.msid){
+        file_.unlock();
+        return(false);}
+      uint16_t oldstatus=u.stat;
+      if(utxs.ttype==TXSTYPE_SUS){
+        u.stat|=  (uint16_t)utxs.tmass & 0xFFFE ;} // can not change USER_STAT_DELETED
+      else if(utxs.ttype==TXSTYPE_UUS){
+        u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);} // can not change USER_STAT_DELETED
+      if(oldstatus!=u.stat){
+        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        write(offifd_,&u,sizeof(user_t));}}
+    //message_.unlock();
+    file_.unlock();
+    return(true);
   }
 
   void lock_user(uint32_t cuser)
@@ -851,7 +871,7 @@ private:
   boost::mutex client_;
   boost::mutex file_;
   boost::mutex account_;
-  boost::mutex message_;
+  //boost::mutex message_; requires file.lock too, to process status changes in correct order :-(
   boost::mutex users_[0x100];
   boost::mutex log_;
 };

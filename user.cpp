@@ -174,6 +174,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   uint8_t  to_info[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
+  uint32_t to_status;
   uint32_t now=time(NULL);
   usertxs_ptr txs=NULL;
   std::stringstream ss;
@@ -211,6 +212,9 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
   if(json_msid){
     sts.msid=json_msid.get();}
+  boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
+  if(json_status){
+    to_status=json_status.get();}
 
   deduct=0;
   fee=0;
@@ -361,16 +365,27 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     fee=TXS_BNK_FEE;}
   else if(!run.compare(txsname[TXSTYPE_GET])){
     txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
-    //deduct=0;
     fee=TXS_GET_FEE;}
   else if(!run.compare(txsname[TXSTYPE_KEY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
-    //deduct=0;
     fee=TXS_KEY_FEE;}
   else if(!run.compare(txsname[TXSTYPE_BKY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
-    //deduct=0;
     fee=TXS_BKY_FEE;}
+
+  else if(!run.compare(txsname[TXSTYPE_SUS])){
+    txs=boost::make_shared<usertxs>(TXSTYPE_SUS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+    fee=TXS_SUS_FEE;}
+  else if(!run.compare(txsname[TXSTYPE_SBS])){
+    txs=boost::make_shared<usertxs>(TXSTYPE_SBS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+    fee=TXS_SBS_FEE;}
+  else if(!run.compare(txsname[TXSTYPE_UUS])){
+    txs=boost::make_shared<usertxs>(TXSTYPE_UUS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+    fee=TXS_UUS_FEE;}
+  else if(!run.compare(txsname[TXSTYPE_UBS])){
+    txs=boost::make_shared<usertxs>(TXSTYPE_UBS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+    fee=TXS_UBS_FEE;}
+
   else{
     fprintf(stderr,"ERROR: run not defined or unknown\n");
     return(NULL);}

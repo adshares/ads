@@ -87,6 +87,11 @@
 #define TXS_GET_FEE      (0x100000) /* get initiation fee */
 #define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */
 #define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
+#define TXS_SUS_FEE      (0x10000) /* 0x0.0001G */
+#define TXS_SBS_FEE      (0x10000) /* 0x0.0001G */
+#define TXS_UUS_FEE      (0x10000) /* 0x0.0001G */
+#define TXS_UBS_FEE      (0x10000) /* 0x0.0001G */
+#define TXS_SAV_FEE      (0x100000) /* 0x0.0001G */
 #define TXS_BNK_FEE      (0x10000000) /* 0x0.1 G */
 #define TXS_BKY_FEE      (0x10000000) /* 0x0.1 G */
 #define USER_MIN_MASS    (0x10000000) /* 0x0.1 G minimum user account mass to send transaction */
@@ -183,6 +188,8 @@ typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
 typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
 typedef struct {uint32_t auser;int64_t weight;} dep_t;
+typedef struct {uint64_t deposit;int16_t sus;uint16_t uus;} dsu_t;
+//typedef struct {uint16_t bbank;uint32_t status} bst_t; // not needed, change to 
 typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;

@@ -1929,6 +1929,24 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 	p+=utxs.size;
         LOG("WARNING undoing get\n");
 	continue;}
+      if(*p==TXSTYPE_SBS){
+        utxs.parse(p);
+        uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
+        blk_.lock();
+        blk_sbs.erase(ppb);
+        blk_.unlock();
+	p+=utxs.size;
+        LOG("WARNING undoing sbs\n");
+	continue;}
+      if(*p==TXSTYPE_UBS){
+        utxs.parse(p);
+        uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
+        blk_.lock();
+        blk_ubs.erase(ppb);
+        blk_.unlock();
+	p+=utxs.size;
+        LOG("WARNING undoing ubs\n");
+	continue;}
       if(*p==TXSTYPE_BKY){ //reverse bank key change
         utxs.parse(p);
         uint16_t node=msg->svid;
@@ -1951,6 +1969,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     blk_uok.erase(ppi);
     blk_bnk.erase(ppi);
     blk_bky.erase(ppi);
+    //blk_sbs.erase(ppi);
+    //blk_ubs.erase(ppi);
     for(auto it=txs_get.begin();it!=txs_get.end();it++){
       blk_get.erase(*it);}
     blk_.unlock();
@@ -2041,12 +2061,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     std::map<uint64_t,log_t> log;
     std::map<uint32_t,user_t> changes;
     std::map<uint32_t,user_t> undo;
-    std::map<uint32_t,int64_t> local_deposit;
+    //std::map<uint32_t,uint64_t> local_deposit;
+    std::map<uint32_t,dsu_t> local_dsu;
     std::map<uint64_t,int64_t> txs_deposit;
     std::map<uint64_t,std::vector<uint32_t>> txs_bnk; //create new bank
     std::map<uint64_t,std::vector<get_t>> txs_get; //set lock / withdraw
     std::map<uint64_t,std::vector<usr_t>> txs_usr; //remote account request
     std::map<uint64_t,std::vector<uok_t>> txs_uok; //remote account accept
+    std::map<uint64_t,uint32_t> txs_sbs; //set node status bits
+    std::map<uint64_t,uint32_t> txs_ubs; //clear node status bits
     uint32_t users=srvs_.nodes[msg->svid].users;
     uint32_t ousers=users;
     uint32_t lpath=srvs_.now;
@@ -2205,7 +2228,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           close(fd);
           return(false);}
         if(utxs.bbank==utxs.abank){
-          local_deposit[utxs.buser]+=utxs.tmass;}
+          //local_deposit[utxs.buser]+=utxs.tmass;
+          local_dsu[utxs.buser].deposit+=utxs.tmass;}
         else{
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=utxs.buser; //assume big endian
@@ -2252,7 +2276,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             return(false);}
           out.insert(to.big);
           if((uint16_t)tbank==utxs.abank){
-            local_deposit[tuser]+=tmass;}
+            //local_deposit[tuser]+=tmass;
+            local_dsu[tuser].deposit+=tmass;}
           else{
             //union {uint64_t big;uint32_t small[2];} to;
             //to.small[0]=tuser; //assume big endian
@@ -2307,7 +2332,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         fee=TXS_KEY_FEE;}
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
-          LOG("ERROR: bad user %04X for this bank changes\n",utxs.auser);
+          LOG("ERROR: bad user %08X for node key changes\n",utxs.auser);
+          close(fd);
+          return(false);}
+        if(utxs.bbank>=last_srvs_.nodes.size()){
+          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
           close(fd);
           return(false);}
         uint16_t node=msg->svid;
@@ -2318,7 +2347,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             node=0;}}
         if(node){
           if(memcmp(srvs_.nodes[node].pk,utxs.opkey(p),32)){
-            LOG("ERROR: bad current bank key for %04X in %04X:%08X\n",node,msg->svid,msg->msid);
+            LOG("ERROR: bad current node key for %04X in %04X:%08X\n",node,msg->svid,msg->msid);
             close(fd);
             return(false);}
           else{
@@ -2327,6 +2356,54 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
               LOG("WARNING, changing my node key !\n");}
             new_bky[node]=*(hash_s*)utxs.key(p);}}
         fee=TXS_BKY_FEE;}
+      else if(*p==TXSTYPE_SBS){
+        if(utxs.auser){
+          LOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
+          close(fd);
+          return(false);}
+        if(utxs.bbank>=last_srvs_.nodes.size()){
+          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
+          close(fd);
+          return(false);}
+        if((last_srvs_.nodes[msg->svid].status & SERVER_VIP) || (utxs.abank==utxs.bbank)){ // only VIP nodes vote
+          uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
+          txs_sbs[ppb]|=(uint32_t)utxs.tmass;}
+        fee=TXS_SBS_FEE;}
+      else if(*p==TXSTYPE_UBS){
+        if(utxs.auser){
+          LOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
+          close(fd);
+          return(false);}
+        if(utxs.bbank>=last_srvs_.nodes.size()){
+          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
+          close(fd);
+          return(false);}
+        if((last_srvs_.nodes[msg->svid].status & SERVER_VIP) || (utxs.abank==utxs.bbank)){ // only VIP nodes vote
+          uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
+          txs_ubs[ppb]|=(uint32_t)utxs.tmass;}
+        fee=TXS_UBS_FEE;}
+      else if(*p==TXSTYPE_SUS){
+        if(!srvs_.check_user(utxs.bbank,utxs.buser)){
+          LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          close(fd);
+          return(false);}
+        if(utxs.bbank==utxs.abank){
+          uint16_t bits=(uint16_t)utxs.tmass & 0xFFFE; //can not change USER_STAT_DELETED
+          uint16_t mask=local_dsu[utxs.buser].uus & bits;
+          local_dsu[utxs.buser].uus&=~mask;
+          local_dsu[utxs.buser].sus|=bits & ~mask;}
+        fee=TXS_SUS_FEE;}
+      else if(*p==TXSTYPE_UUS){
+        if(!srvs_.check_user(utxs.bbank,utxs.buser)){
+          LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          close(fd);
+          return(false);}
+        if(utxs.bbank==utxs.abank){
+          uint16_t bits=(uint16_t)utxs.tmass & 0xFFFE; //can not change USER_STAT_DELETED
+          uint16_t mask=local_dsu[utxs.buser].sus & bits;
+          local_dsu[utxs.buser].sus&=~mask;
+          local_dsu[utxs.buser].uus|=bits & ~mask;}
+        fee=TXS_UUS_FEE;}
       int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
 LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
@@ -2338,7 +2415,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         close(fd);
         return(false);}
       if(msg->svid!=opts_.svid){
-        if((*p==TXSTYPE_PUT || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
+        if((*p==TXSTYPE_PUT || *p==TXSTYPE_SUS || *p==TXSTYPE_UUS || *p==TXSTYPE_GET) && utxs.bbank==opts_.svid){
           uint64_t key=(uint64_t)utxs.buser<<32;
           key|=lpos++;
           log_t blog;
@@ -2401,9 +2478,16 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
       SHA256_Update(&sha256,usera->hash,32);
       SHA256_Update(&sha256,hash,32);
       SHA256_Final(usera->hash,&sha256);
-      usera->weight+=local_deposit[utxs.auser]-deduct-fee;
-      weight+=local_deposit[utxs.auser]-deduct-fee;
-      local_deposit[utxs.auser]=0;//to find changes[utxs.auser]
+      //usera->weight+=local_deposit[utxs.auser]-deduct-fee;
+      //weight+=local_deposit[utxs.auser]-deduct-fee;
+      //local_deposit[utxs.auser]=0;//to find changes[utxs.auser]
+      usera->weight+=local_dsu[utxs.auser].deposit-deduct-fee;
+      usera->stat|=local_dsu[utxs.auser].sus;
+      usera->stat&=~local_dsu[utxs.auser].uus;
+      weight+=local_dsu[utxs.auser].deposit-deduct-fee;
+      local_dsu[utxs.auser].deposit=0;//to find changes[utxs.auser]
+      local_dsu[utxs.auser].sus=0;//to find changes[utxs.auser]
+      local_dsu[utxs.auser].uus=0;//to find changes[utxs.auser]
       local_fee+=fee-remote_fee;
       p+=utxs.size;}
     //commit local changes
@@ -2411,12 +2495,17 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
     //int offset=(char*)&u.weight-(char*)&u;
     const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
     //FIXME, lock here in case there is a bank read during sync, or accept errors when sending bank
-    for(auto it=local_deposit.begin();it!=local_deposit.end();it++){
+    //for(auto it=local_deposit.begin();it!=local_deposit.end();it++)
+    for(auto it=local_dsu.begin();it!=local_dsu.end();it++){
       auto jt=changes.find(it->first);
       if(jt!=changes.end()){
         srvs_.xor4(csum,jt->second.csum);
-        jt->second.weight+=it->second;
-	weight+=it->second;
+        //jt->second.weight+=it->second;
+	//weight+=it->second;
+        jt->second.weight+=it->second.deposit;
+	weight+=it->second.deposit;
+        jt->second.stat|=it->second.sus;
+        jt->second.stat&=~it->second.uus;
 	srvs_.user_csum(jt->second,msg->svid,it->first);
         srvs_.xor4(csum,jt->second.csum);
         lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
@@ -2430,13 +2519,18 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
 LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           weight+=div;}
-        u.weight+=it->second;
-	weight+=it->second;
+        //u.weight+=it->second;
+	//weight+=it->second;
+        u.weight+=it->second.deposit;
+	weight+=it->second.deposit;
+        u.stat|=it->second.sus;
+        u.stat&=~it->second.uus;
 	srvs_.user_csum(u,msg->svid,it->first);
         srvs_.xor4(csum,u.csum);
         lseek(fd,-offset,SEEK_CUR);
         write(fd,&u.rpath,offset);}}
-    local_deposit.clear();
+    //local_deposit.clear();
+    local_dsu.clear();
     changes.clear();
     close(fd);
     //log bank fees
@@ -2505,6 +2599,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     blk_get.insert(txs_get.begin(),txs_get.end());
     blk_usr.insert(txs_usr.begin(),txs_usr.end());
     blk_uok.insert(txs_uok.begin(),txs_uok.end());
+    blk_sbs.insert(txs_sbs.begin(),txs_sbs.end());
+    blk_ubs.insert(txs_ubs.begin(),txs_ubs.end());
     blk_.unlock();
     put_msglog(srvs_.now,msg->svid,msg->msid,log);
     return(true);
@@ -2519,6 +2615,19 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
       LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
       exit(-1);}
     return(fd);
+  }
+
+  uint8_t bitcount(std::vector<uint8_t>& bitvotes,uint8_t min)
+  { if(bitvotes.size()<=min){
+      return(0);}
+    uint8_t res=0,count[8]={0,0,0,0,0,0,0,0};
+    for(auto b : bitvotes){
+      for(int i=0;i<8;i++){
+        count[i]+=(b>>i) & 1;}}
+    for(int i=0;i<8;i++){
+      if(count[i]>min){
+        res|=1<<i;}}
+    return(res);
   }
 
   void commit_block(std::set<uint16_t>& update) //assume single thread
@@ -2623,6 +2732,58 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         for(auto sv : it->second){
           srvs_.nodes[sv].status &= ~SERVER_DBL;}}
       blk_bky.clear();}
+
+    //process status change requests
+    if(!blk_sbs.empty() || !blk_ubs.empty()){
+      uint16_t labank=0; //no need to set this
+      uint16_t lbbank=0;
+      std::vector<uint8_t> bitvotes;
+      for(auto it=blk_sbs.rbegin();it!=blk_sbs.rend();it++){ //most important nodes last
+        uint16_t abank=ppi_abank(it->first);
+        uint16_t bbank=ppi_bbank(it->first);
+        uint32_t status=it->second;
+        if(lbbank!=bbank){
+          srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+          labank=0;
+          bitvotes.clear();}
+        if(abank==bbank){
+          srvs_.nodes[bbank].status |= status & 0xFFF8;}// can change bits 4-16
+        if(last_srvs_.nodes[abank].status & SERVER_VIP){
+          srvs_.nodes[bbank].status |= status & 0xFF0000; // can change bits 17-24
+          if(abank==labank){
+            bitvotes.back() |= (uint8_t) (status>>24);}
+          else{
+            bitvotes.push_back((uint8_t) (status>>24));}}
+        labank=abank;
+        lbbank=bbank;}
+      if(lbbank){
+        srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+        lbbank=0;
+        bitvotes.clear();}
+      for(auto it=blk_ubs.rbegin();it!=blk_ubs.rend();it++){ //most important nodes last
+        uint16_t abank=ppi_abank(it->first);
+        uint16_t bbank=ppi_bbank(it->first);
+        uint32_t status=it->second;
+        if(lbbank!=bbank){
+          srvs_.nodes[lbbank].status &= ~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)));
+          labank=0;
+          bitvotes.clear();}
+        if(abank==bbank){
+          srvs_.nodes[bbank].status &= ~(status & 0xFFF8);}// can change bits 4-16
+        if(last_srvs_.nodes[abank].status & SERVER_VIP){
+          srvs_.nodes[bbank].status &= ~(status & 0xFF0000); // can change bits 17-24
+          if(abank==labank){
+            bitvotes.back() |= (uint8_t) (status>>24);}
+          else{
+            bitvotes.push_back((uint8_t) (status>>24));}}
+        labank=abank;
+        lbbank=bbank;}
+      if(lbbank){
+        srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+        lbbank=0;
+        bitvotes.clear();}
+      blk_sbs.clear();
+      blk_ubs.clear();}
 
     //create new banks
     if(!blk_bnk.empty()){
@@ -3619,6 +3780,8 @@ private:
   std::map<uint64_t,std::vector<get_t>> blk_get; //set lock / withdraw
   std::map<uint64_t,std::vector<usr_t>> blk_usr; //remote account request
   std::map<uint64_t,std::vector<uok_t>> blk_uok; //remote account accept
+  std::map<uint64_t,uint32_t> blk_sbs; //set node status bits
+  std::map<uint64_t,uint32_t> blk_ubs; //clear node status bits
   std::vector<int64_t> bank_fee;
   int64_t mydiv_fee; // just to record the local TXS_DIV_FEE bank income
   int64_t myusr_fee; // just to record the local TXS_DIV_FEE bank income

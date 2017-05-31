@@ -127,10 +127,6 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_BKY){
-      //if(utxs.bbank){
-      //  std::cerr<<"ERROR: setting remote bank key not yet implemented\n";
-      //  offi_.unlock_user(utxs.auser);
-      //  return;}
       hash_t skey;
       if(!utxs.bbank && !offi_.find_key((uint8_t*)utxs.key(buf),skey)){
         std::cerr<<"ERROR: matching secret key not found\n";
@@ -565,12 +561,61 @@ public:
 	std::cerr<<"ERROR: bad user ("<<utxs.auser<<") for this bank changes\n";
         offi_.unlock_user(utxs.auser);
         return;}
-    //if(utxs.bbank){
-    //  LOG("ERROR: setting key for remote bank (%04X) not yet implemented\n",utxs.bbank);
-    //  offi_.unlock_user(utxs.auser);
-    //  return;}
-    //buf=(char*)std::realloc(buf,utxs.size);
+      if(utxs.auser && utxs.bbank){
+        LOG("ERROR: only admin can change keys for DBL nodes (%04X) \n",utxs.bbank);
+        offi_.unlock_user(utxs.auser);
+        return;}
+      buf=(char*)std::realloc(buf,utxs.size);
       fee=TXS_BKY_FEE;}
+
+    else if(*buf==TXSTYPE_SUS){
+      if(!offi_.check_user(utxs.bbank,utxs.buser)){
+	std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      // add bank logic here
+      if(utxs.bbank == offi_.svid){
+        if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users can set only higher bits
+	  LOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
+          offi_.unlock_user(utxs.auser);
+          return;}}
+      fee=TXS_SUS_FEE;}
+
+    else if(*buf==TXSTYPE_UUS){
+      if(!offi_.check_user(utxs.bbank,utxs.buser)){
+	std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      // add bank logic here
+      if(utxs.bbank == offi_.svid){
+        if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users set only higher bits
+	  LOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
+          offi_.unlock_user(utxs.auser);
+          return;}}
+      fee=TXS_UUS_FEE;}
+
+    else if(*buf==TXSTYPE_SBS){
+      if(!offi_.check_user(utxs.bbank,0)){
+	std::cerr<<"ERROR: bad target node ("<<utxs.bbank<<")\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      if(utxs.auser){
+        LOG("ERROR: not authorized to change node status\n");
+        offi_.unlock_user(utxs.auser);
+        return;}
+      fee=TXS_SBS_FEE;}
+
+    else if(*buf==TXSTYPE_UBS){
+      if(!offi_.check_user(utxs.bbank,0)){
+	std::cerr<<"ERROR: bad target node ("<<utxs.bbank<<")\n";
+        offi_.unlock_user(utxs.auser);
+        return;}
+      if(utxs.auser){
+        LOG("ERROR: not authorized to change node status\n");
+        offi_.unlock_user(utxs.auser);
+        return;}
+      fee=TXS_UBS_FEE;}
+
     //else if(*buf==TXSTYPE_STP){ // we will get a confirmation from the network
     //  assert(0); //TODO, not implemented later
     //  fee=TXS_STP_FEE;}
@@ -592,7 +637,9 @@ public:
       else{
         memcpy(utxs.opkey(buf),offi_.pkey,32);
         memcpy(offi_.pkey,utxs.key(buf),32);}}
-    offi_.add_msg((uint8_t*)buf,utxs.size,msid,mpos);
+
+    offi_.add_msg((uint8_t*)buf,utxs,msid,mpos);
+
     //if(!msid||!mpos){
     if(!msid){
       std::cerr<<"ERROR: message submission failed ("<<msid<<","<<mpos<<")\n";
@@ -647,7 +694,10 @@ public:
       offi_.put_ulog(log);} // could be processed 
     else{
       //tlog.weight=-utxs.tmass;
-      tlog.weight=-deduct; // includes deducts in TXSTYPE_BNK TXSTYPE_USR
+      if(*buf==TXSTYPE_SUS || *buf==TXSTYPE_SBS || *buf==TXSTYPE_UUS || *buf==TXSTYPE_UBS){
+        tlog.weight=utxs.tmass;}
+      else{
+        tlog.weight=-deduct;} // includes deducts in TXSTYPE_BNK TXSTYPE_USR
       offi_.put_ulog(utxs.auser,tlog);}
 
     if(*buf==TXSTYPE_MPT && mpt_user.size()>0){
@@ -663,12 +713,19 @@ public:
           offi_.put_ulog(mpt_user[i],tlog);
           if(mpt_mass[i]>=0){
             offi_.add_deposit(mpt_user[i],mpt_mass[i]);}}}}
-    else if(utxs.abank==utxs.bbank && (*buf==TXSTYPE_PUT || (*buf==TXSTYPE_USR && utxs.buser))){
+
+    else if(utxs.abank==utxs.bbank && (*buf==TXSTYPE_PUT || (*buf==TXSTYPE_USR && utxs.buser) ||
+        *buf==TXSTYPE_SUS || *buf==TXSTYPE_UUS)){
       tlog.type=*buf|0x8000; //incoming
       tlog.node=utxs.abank;
       tlog.user=utxs.auser;
-      tlog.weight=deduct; //utxs.tmass;
+      if(*buf==TXSTYPE_SUS || *buf==TXSTYPE_UUS){
+        tlog.weight=utxs.tmass;}
+      else{
+        tlog.weight=deduct;}
       offi_.put_ulog(utxs.buser,tlog);
+      //if(*buf==TXSTYPE_SUS || *buf==TXSTYPE_UUS){
+      //  offi_.set_status(utxs);} //must be in add_msg to keep correct order
       if(*buf==TXSTYPE_PUT && deposit>=0){
         offi_.add_deposit(utxs);}}
     offi_.unlock_user(utxs.auser);

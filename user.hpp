@@ -283,6 +283,32 @@ public:
 			memcpy(data+1+14,&bbank,2);
 			memcpy(data+1+16,text,32);
 			return;}
+
+		if(ttype==TXSTYPE_SUS || ttype==TXSTYPE_UUS){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&amsid,4);
+			memcpy(data+1+10,&ttime,4);
+			memcpy(data+1+14,&bbank,2);
+			memcpy(data+1+16,&buser,4);
+			memcpy(data+1+20,&tmass,2); //only 2 bytes
+			return;}
+		if(ttype==TXSTYPE_SBS || ttype==TXSTYPE_UBS){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&amsid,4);
+			memcpy(data+1+10,&ttime,4);
+			memcpy(data+1+14,&bbank,2);
+			memcpy(data+1+16,&tmass,4); //only 4 bytes
+			return;}
+
+
 		//TODO, process other transactions as above
 
 		if(ttype==TXSTYPE_CON){
@@ -387,6 +413,25 @@ public:
 			memcpy(&ttime,txs+1+6 ,4);
 			memcpy(&amsid,txs+1+10,4); // block number
 			return(true);}
+
+		if(ttype==TXSTYPE_SUS || ttype==TXSTYPE_UUS){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&amsid,txs+1+6 ,4);
+			memcpy(&ttime,txs+1+10,4);
+			memcpy(&bbank,txs+1+14,2);
+			memcpy(&buser,txs+1+16,4);
+			memcpy(&tmass,txs+1+20,2); //2 bytes
+			return(true);}
+		if(ttype==TXSTYPE_SBS || ttype==TXSTYPE_UBS){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&amsid,txs+1+6 ,4);
+			memcpy(&ttime,txs+1+10,4);
+			memcpy(&bbank,txs+1+14,2);
+			memcpy(&tmass,txs+1+16,4); //2 bytes
+			return(true);}
+
 		//TODO process other transactions as above
 		memcpy(&abank,txs+1+0 ,2);
 		memcpy(&auser,txs+1+2 ,4);

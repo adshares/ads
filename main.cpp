@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
       //o.message.append((char*)txs.data,txs.size);
       uint32_t msid;
       uint32_t mpos;
-      o.add_msg(txs.data,txs.size,msid,mpos);}
+      o.add_msg(txs.data,txs,msid,mpos);}
     std::cerr << "Shutting down\n";
     o.stop();
     s.stop(); }
