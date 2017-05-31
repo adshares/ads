@@ -1,0 +1,2 @@
+{"run":"get_me"}
+{"run":"set_account_status","address":"0001-00000000-XXXX","status":"8"}

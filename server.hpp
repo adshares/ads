@@ -2742,7 +2742,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         uint16_t bbank=ppi_bbank(it->first);
         uint32_t status=it->second;
         if(lbbank!=bbank){
-          srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+          srvs_.nodes[lbbank].status |=
+              (uint32_t)(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)))<<24;
           labank=0;
           bitvotes.clear();}
         if(abank==bbank){
@@ -2756,7 +2757,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         labank=abank;
         lbbank=bbank;}
       if(lbbank){
-        srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+        srvs_.nodes[lbbank].status |=
+            (uint32_t)(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)))<<24;
         lbbank=0;
         bitvotes.clear();}
       for(auto it=blk_ubs.rbegin();it!=blk_ubs.rend();it++){ //most important nodes last
@@ -2764,7 +2766,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         uint16_t bbank=ppi_bbank(it->first);
         uint32_t status=it->second;
         if(lbbank!=bbank){
-          srvs_.nodes[lbbank].status &= ~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)));
+          srvs_.nodes[lbbank].status &=
+              (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))))<<24;
           labank=0;
           bitvotes.clear();}
         if(abank==bbank){
@@ -2778,7 +2781,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         labank=abank;
         lbbank=bbank;}
       if(lbbank){
-        srvs_.nodes[lbbank].status |= bitcount(bitvotes,(uint8_t)(srvs_.vtot/2));
+        srvs_.nodes[lbbank].status |=
+            (uint32_t)(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)))<<24;
         lbbank=0;
         bitvotes.clear();}
       blk_sbs.clear();
