@@ -2410,6 +2410,15 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           local_dsu[utxs.buser].sus&=~mask;
           local_dsu[utxs.buser].uus|=bits & ~mask;}
         fee=TXS_UUS_FEE;}
+      else if(*p==TXSTYPE_SAV){
+        if(!(msg->status & MSGSTAT_VAL) && iamvip && !do_sync && msg->path>=start_path){
+          user_t u;
+          msg->get_user(utxs.auser,u);
+          if(memcmp(&u,utxs.usr(p),sizeof(user_t))){ // can fail if we don't have data from this block :-(
+            LOG("ERROR: bad user data for %04X:%08X\n",utxs.abank,utxs.auser);
+            close(fd);
+            return(false);}}
+        fee=TXS_SAV_FEE;}
       int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
 LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
@@ -2498,8 +2507,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
       p+=utxs.size;}
     //commit local changes
     user_t u;
-    const int offset=(char*)&u+sizeof(user_t)-(char*)&u.stat;
-    //FIXME, lock here in case there is a bank read during sync, or accept errors when sending bank
+    //const int offset=(char*)&u+sizeof(user_t)-(char*)&u.stat;
     //for(auto it=local_deposit.begin();it!=local_deposit.end();it++)
     for(auto it=local_dsu.begin();it!=local_dsu.end();it++){
       auto jt=changes.find(it->first);
@@ -2512,9 +2520,9 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         jt->second.stat|=it->second.sus;
         jt->second.stat&=~it->second.uus;
 	srvs_.user_csum(jt->second,msg->svid,it->first);
-        srvs_.xor4(csum,jt->second.csum);
-        lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
-        write(fd,&jt->second,sizeof(user_t));}
+        srvs_.xor4(csum,jt->second.csum);}
+        //lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
+        //write(fd,&jt->second,sizeof(user_t));
       else{
         lseek(fd,it->first*sizeof(user_t),SEEK_SET);
         read(fd,&u,sizeof(user_t));
@@ -2532,14 +2540,28 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
         u.stat&=~it->second.uus;
 	srvs_.user_csum(u,msg->svid,it->first);
         srvs_.xor4(csum,u.csum);
-        lseek(fd,-offset,SEEK_CUR);
-        write(fd,&u.stat,offset);}}
+        changes[it->first]=u;}}
+        //lseek(fd,-offset,SEEK_CUR);
+        //write(fd,&u.stat,offset);
     //local_deposit.clear();
     local_dsu.clear();
+
+    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE(msg->len);
+    bank_fee[msg->svid]+=profit;
+    msg->save_undo(undo,ousers,csum,weight,profit,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim);
+    srvs_.nodes[msg->svid].weight+=weight;
+    srvs_.xor4(srvs_.nodes[msg->svid].hash,csum);
+    srvs_.save_undo(msg->svid,undo,ousers); //databank, will change srvs_.nodes[msg->svid].users
+
+    //save to /usr/ after writing undo file (requires second round of file seeks)
+    //TODO, consider crediting here remote deposits to reduce the size of "std::map<> deposit"
+    for(auto jt=changes.begin();jt!=changes.end();jt++){
+      lseek(fd,jt->first*sizeof(user_t),SEEK_SET);
+      write(fd,&jt->second,sizeof(user_t));}
     changes.clear();
     close(fd);
+
     //log bank fees
-    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE(msg->len);
     if(msg->svid==opts_.svid){
       local_fee=BANK_PROFIT(local_fee);
       lodiv_fee=BANK_PROFIT(lodiv_fee);
@@ -2576,11 +2598,8 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
       memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t));
       bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
       log[0]=alog;}
-    bank_fee[msg->svid]+=profit;
-    msg->save_undo(undo,ousers,csum,weight,profit,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim);
-    srvs_.nodes[msg->svid].weight+=weight;
-    srvs_.xor4(srvs_.nodes[msg->svid].hash,csum);
-    srvs_.save_undo(msg->svid,undo,ousers); //databank, will change srvs_.nodes[msg->svid].users
+
+
     //commit remote deposits
     deposit_.lock();
     for(auto it=txs_deposit.begin();it!=txs_deposit.end();it++){
@@ -2929,7 +2948,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
           srvs_.user_csum(u,bbank,tx->buser);
           srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
           lseek(fd,-sizeof(user_t),SEEK_CUR);
-          write(fd,&u,sizeof(user_t));
+          write(fd,&u,sizeof(user_t)); // write before undo ... not good for sync
           tlog.time=time(NULL);
           tlog.umid=0;
           tlog.nmid=0;
@@ -3066,7 +3085,7 @@ LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
             srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
             srvs_.nodes[svid].weight+=div;
             lseek(fd,-offset,SEEK_CUR);
-            write(fd,&u.rpath,offset);}}}
+            write(fd,&u.rpath,offset);}}} // write before undo ... not good for sync
       NEXTBANK:
       update.insert(svid);
       close(fd);
@@ -3132,7 +3151,7 @@ LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->sec
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
       srvs_.nodes[svid].weight+=it->second+div;
       lseek(fd,-offset,SEEK_CUR);
-      write(fd,&u.rpath,offset);}
+      write(fd,&u.rpath,offset);} // write before undo ... not good for sync
     if(lastsvid){
       if(fd>=0){ // always true
         close(fd);}
@@ -3185,7 +3204,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       srvs_.user_csum(u,svid,0);
       srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
       lseek(fd,-offset,SEEK_CUR);
-      write(fd,&u.rpath,offset);
+      write(fd,&u.rpath,offset); // write before undo ... not good for sync
       close(fd);
       srvs_.save_undo(svid,undo,0);
       if(svid==opts_.svid){

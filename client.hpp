@@ -357,6 +357,7 @@ public:
     if(*buf==TXSTYPE_TXS){
       offi_.unlock_user(utxs.auser);
       message_ptr msg(new message());
+      msg->hash.dat[1]=MSGTYPE_MSG; //prevent assert in hash_tree_get()
       msg->svid=utxs.bbank;
       msg->msid=utxs.buser;
       uint16_t tnum=utxs.amsid;
@@ -567,6 +568,9 @@ public:
         return;}
       buf=(char*)std::realloc(buf,utxs.size);
       fee=TXS_BKY_FEE;}
+    else if(*buf==TXSTYPE_SAV){ // we will get a confirmation from the network
+      buf=(char*)std::realloc(buf,utxs.size); // server will add user data
+      fee=TXS_SAV_FEE;}
 
     else if(*buf==TXSTYPE_SUS){
       if(!offi_.check_user(utxs.bbank,utxs.buser)){
@@ -633,7 +637,7 @@ public:
           LOG("ERROR: setting key for remote bank (%04X) failed\n",utxs.bbank);
           offi_.unlock_user(utxs.auser);
           return;}
-        memcpy(utxs.opkey(buf),key,32);}
+        memcpy(utxs.opkey(buf),key,32);} // should do this by server during message creation (as in _SAV)
       else{
         memcpy(utxs.opkey(buf),offi_.pkey,32);
         memcpy(offi_.pkey,utxs.key(buf),32);}}

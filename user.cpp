@@ -363,6 +363,9 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     txs=boost::make_shared<usertxs>(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     deduct=BANK_MIN_TMASS;
     fee=TXS_BNK_FEE;}
+  else if(!run.compare(txsname[TXSTYPE_SAV])){
+    txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+    fee=TXS_SAV_FEE;}
   else if(!run.compare(txsname[TXSTYPE_GET])){
     txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     fee=TXS_GET_FEE;}

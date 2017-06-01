@@ -134,6 +134,9 @@ public:
       hash_signature();}
     else{
       assert(text_type==MSGTYPE_MSG);
+      if(!insert_user()){
+        LOG("ERROR insert_user error, FATAL\n");
+        exit(-1);}
       if(!hash_tree()){
         LOG("ERROR hash_tree error, FATAL\n");
         exit(-1);}
@@ -179,6 +182,48 @@ public:
       LOG("ERROR parsing transactions for hash_tree %04X:%08X\n",insvid,inmsid);
       return(false);}
     tree.finish(outsigh);
+    return(true);
+  }
+
+  bool get_user(uint32_t user,user_t& u) //expected to be used rarely, not optimised (fd could be provided)
+  { char filename[64];
+    sprintf(filename,"usr/%04X.dat",svid);
+    int fd=open(filename,O_RDONLY);
+    if(fd<0){
+      return(false);}
+    lseek(fd,user*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
+    close(fd);
+    uint32_t block=now-now%BLOCKSEC;
+    for(;block<=path;block+=BLOCKSEC){
+      sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,svid);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        continue;}
+      user_t ou;
+      lseek(fd,user*sizeof(user_t),SEEK_SET);
+      read(fd,&ou,sizeof(user_t));
+      close(fd);
+      if(ou.msid){
+        memcpy(&u,&ou,sizeof(user_t));
+        break;}}
+    return((bool)u.msid);
+  }
+
+  bool insert_user()
+  { usertxs utxs;
+    uint8_t* p=data+data_offset; // data_offset = 4+64+10
+    uint8_t* end=data+len;
+    uint32_t l;
+    assert(p<end);
+    for(;p<end;p+=l){
+      l=utxs.get_size((char*)p);
+      if(*p==TXSTYPE_SAV){
+        uint32_t auser=*(uint32_t*)(p+3); // could be a user.hpp function
+        //if(!get_user(auser,*(user_t*)(p+txslen[TXSTYPE_SAV]+64)))
+        if(!get_user(auser,*(user_t*)utxs.usr((char*)p))){
+          return(false);}}}
+    assert(p==end);
     return(true);
   }
 
@@ -302,9 +347,12 @@ public:
       lseek(fd,mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
       read(fd,tmp,32+4+32+4);
       pos=tmp[8];
-      len=tmp[8+1+8]-pos;
+      if(tnum==tmax-1){
+        len=mlen-pos;}
+      else{
+        len=tmp[8+1+8]-pos;}
       hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
-      LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d]\n",tnum,tnum-1,tmax,mlen,ttot);
+      LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);
       hashes.push_back(*(hash_s*)(&tmp[0]));}
     else{
       uint32_t tmp[1+8+1+8];
@@ -313,11 +361,11 @@ public:
       pos=tmp[0];
       hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
       if(tnum==tmax-1){
-        LOG("HASHTREE start %d [max:%d]\n",tnum,tmax);
-        len=mlen-pos;}
+        len=mlen-pos;
+        LOG("HASHTREE start %d [max:%d len:%d]\n",tnum,tmax,len);}
       else{
         len=tmp[1+8]-pos;
-        LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d]\n",tnum,tnum+1,tmax,mlen,ttot);
+        LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,mlen,ttot,len);
         hashes.push_back(*(hash_s*)(&tmp[1+8+1]));}}
     if(data!=NULL){
       free(data);}
@@ -352,7 +400,9 @@ public:
   { assert(data[0]==MSGTYPE_MSG);
     memcpy(data+4+64+6,&ntime,4);
     now=ntime;
-    //if(!hash_tree(sigh)){
+    if(!insert_user()){
+      LOG("ERROR insert_user error, FATAL\n");
+      exit(-1);}
     if(!hash_tree()){
       LOG("ERROR hash_tree error, FATAL\n");
       exit(-1);}
