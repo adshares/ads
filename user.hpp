@@ -146,6 +146,23 @@ public:
 	{
 	}
 
+	usertxs(uint32_t len) :
+		ttype(TXSTYPE_NON),
+		abank(0),
+		auser(0),
+		amsid(0),
+		ttime(0),
+		bbank(0),
+		buser(0),
+		tmass(0),
+		size(len<4?4:len & 0xFFFFFF)
+	{	data=(uint8_t*)std::malloc(size);
+		data[0]=ttype;
+		memcpy(data+1,&size,3);
+		if(size>4){
+			bzero(data+4,size-4);}
+	}
+
 	usertxs(uint8_t* din,int len) :
 		ttype(*data),
 		bbank(0),
@@ -377,6 +394,10 @@ public:
 			uint16_t len;
 			memcpy(&len,txs+1+14,2);
 			return(txslen[TXSTYPE_MPT]+64+len*(6+8));}
+		if(*txs==TXSTYPE_NON){
+			uint32_t len=0;
+			memcpy(&len,txs+1,3);
+			return(len<4?4:len);}
 		return(txslen[(int)*txs]+64);
 	}
 
@@ -385,6 +406,12 @@ public:
 		if(ttype>=TXSTYPE_MAX){
 			fprintf(stderr,"ERROR, parsing message\n");
 			return(false);}
+		if(ttype==TXSTYPE_NON){
+			size=0;
+			memcpy(&size,txs+1,3);
+			if(size<4){
+				size=4;}
+			return(true);}
 		size=txslen[ttype]+64;
 		if(ttype==TXSTYPE_BLK){
 			memcpy(&abank,txs+1+0 ,2);
@@ -554,7 +581,6 @@ public:
 		memcpy(data+1+6,&ttime,4);
 		return;
 	}
-
 
 	char* vip(char* buf) //return vip hash in message
 	{	return(buf+1+2+4+4);

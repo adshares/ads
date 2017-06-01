@@ -2103,11 +2103,17 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         close(fd);
         return(false);}
       utxs.print_head();
+      if(*p==TXSTYPE_NON){
+        //std::cerr<<"INFO: parsed NON transaction\n";
+        p+=utxs.size;
+	//?? no fee :-(
+        continue;}
       if(*p==TXSTYPE_CON){
         //std::cerr<<"INFO: parsed CON transaction\n";
         srvs_.nodes[msg->svid].port=utxs.abank;
         srvs_.nodes[msg->svid].ipv4=utxs.auser;
         p+=utxs.size;
+	//?? no fee :-(
         continue;}
       if(*p>=TXSTYPE_INF){
         std::cerr<<"ERROR: unknown transaction\n";
@@ -2533,7 +2539,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     changes.clear();
     close(fd);
     //log bank fees
-    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE;
+    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE(msg->len);
     if(msg->svid==opts_.svid){
       local_fee=BANK_PROFIT(local_fee);
       lodiv_fee=BANK_PROFIT(lodiv_fee);
@@ -3619,7 +3625,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     }
   }
 
-  bool break_silence(uint32_t now,std::string& message) // will be obsolete if we start tolerating empty blocks
+  bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
 #ifdef DEBUG
@@ -3628,8 +3634,18 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM)
 #endif
     { LOG("SILENCE, sending void message due to silence\n");
+#ifdef DEBUG
+      if(rand()%2){
+        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+        message.append((char*)txs.data,txs.size);}
+      else{
+        usertxs txs((uint32_t)(rand()%32));
+        message.append((char*)txs.data,txs.size);}
+#else
       usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
       message.append((char*)txs.data,txs.size);
+#endif
+      tnum++;
       do_hallo=srvs_.now;
       del=rand()%(2*BLOCKSEC);
       return(true);}

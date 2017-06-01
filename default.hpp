@@ -112,7 +112,7 @@
 #define MESSAGE_WAIT 5
 #define MESSAGE_TOO_OLD (60*60*24*7)
 #define MESSAGE_CHUNK    0x100000
-#define MESSAGE_FEE      (0x1000) /* fee for each bank message */
+#define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */
 
 #pragma pack(1)
 typedef struct headlink_s { // header links sent when syncing

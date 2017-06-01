@@ -306,11 +306,13 @@ public:
         block_ready=0;
         div_ready=0;}
       if(message.empty()){
+#ifdef DEBUG
         //message_.lock();
         file_.lock();
-        srv_.break_silence(now,message);
+        srv_.break_silence(now,message,message_tnum);
         //message_.unlock();
         file_.unlock();
+#endif
         continue;}
       if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
 	std::cerr<<"WARNING, waiting for more messages\n";
