@@ -175,7 +175,7 @@ public:
         std::cerr<<"ERROR: get log failed\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      LOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,slog.size());
+      LOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,(long)slog.size());
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}

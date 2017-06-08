@@ -211,7 +211,8 @@ public:
   }*/
 
   void deliver(message_ptr msg)
-  { if(killme){
+  { extern candidate_ptr nullcnd;
+    if(killme){
       LOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
       leave();
       return;}
@@ -243,7 +244,7 @@ public:
       // this is very innefficient !!! server_.condidates_ should be a map of messages that have peers[] ...
       hash_s* cand=(hash_s*)(msg->data+4+64+10);
       candidate_ptr c_ptr=server_.known_candidate(*cand,0);
-      if(c_ptr!=NULL && c_ptr->peers.find(svid)!=c_ptr->peers.end()){
+      if(c_ptr!=nullcnd && c_ptr->peers.find(svid)!=c_ptr->peers.end()){
         // send only the hash, not the whole message
         LOG("%04X WARNING, truncating cnd message\n",svid);
         message_ptr put_msg(new message(4+64+10+sizeof(hash_t),msg->data));
@@ -340,7 +341,7 @@ Aborted
   }
 
   void handle_read_header(const boost::system::error_code& error)
-  {
+  { extern message_ptr nullmsg;
     if(killme){
       LOG("%04X KILL detected ! (HEADER), leaving\n",svid);
       leave();
@@ -404,7 +405,7 @@ Aborted
             LOG("%04X FAILED answering request for %04X:%08X (not found in %08X)\n",svid,read_msg_->svid,read_msg_->msid,peer_path);}}
         else{
           message_ptr msg=server_.message_find(read_msg_,svid);
-          if(msg!=NULL){
+          if(msg!=nullmsg){
             if(msg->len>message::header_length){
               if(msg->sent.find(svid)!=msg->sent.end()){
                 //TODO, after reconnecting peer missed messages :-(
@@ -1199,7 +1200,7 @@ Aborted
   }
 
   void handle_read_body(const boost::system::error_code& error)
-  {
+  { extern message_ptr nullmsg;
     if(error){
       LOG("%04X ERROR reading message\n",svid);
       leave();
@@ -1222,7 +1223,7 @@ Aborted
         return;}
       if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1){
         message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
-        if(prev!=NULL){
+        if(prev!=nullmsg){
           msha=prev->sigh;}
         else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
           msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}
@@ -1635,7 +1636,8 @@ Aborted
   }
 
   int parse_vote() //TODO, make this function similar to handle_read_block (make this handle_read_candidate)
-  { if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
+  { extern candidate_ptr nullcnd;
+    if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
       LOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       return(0);}
     hash_s cand;
@@ -1645,7 +1647,7 @@ Aborted
     char hash[2*SHA256_DIGEST_LENGTH];
     ed25519_key2text(hash,cand.hash,SHA256_DIGEST_LENGTH);
     LOG("%04X CAND %04X %.*s (len:%d)\n",svid,read_msg_->svid,2*SHA256_DIGEST_LENGTH,hash,read_msg_->len);
-    if(c_ptr==NULL){
+    if(c_ptr==nullcnd){
       LOG("%04X PARSE --NEW-- vote for --NEW-- candidate\n",svid);
       if(read_msg_->len<4+64+10+sizeof(hash_t)+4+2){
         LOG("%04X PARSE vote short message read FATAL\n",svid);
@@ -1701,7 +1703,7 @@ Aborted
         memcpy(d,((char*)&it->first)+2,6);
         memcpy(d+6,&it->second.hash,sizeof(hash_t));}
       LOG("%04X CHANGE CAND LENGTH! [len:%d->%d]\n",svid,oldlen,read_msg_->len);
-      assert(d-read_msg_->data==read_msg_->len);}
+      assert((uint32_t)(d-read_msg_->data)==read_msg_->len);}
     else{
       read_msg_->len=message::data_offset+sizeof(hash_t);
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len);}

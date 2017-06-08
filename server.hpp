@@ -928,29 +928,30 @@ public:
   }
 
   void count_votes(uint32_t now,hash_s& cand) // cand_.locked()
-  { candidate_ptr cnd1=NULL;
-    candidate_ptr cnd2=NULL;
+  { extern candidate_ptr nullcnd;
+    candidate_ptr cnd1=nullcnd;
+    candidate_ptr cnd2=nullcnd;
     uint64_t votes_counted=0;
     hash_s best;
     cand_.lock();
     for(auto it=candidates_.begin();it!=candidates_.end();it++){ // cand_ is locked
-      if(cnd1==NULL || it->second->score>cnd1->score){
+      if(cnd1==nullcnd || it->second->score>cnd1->score){
         cnd2=cnd1;
         memcpy(&best,&it->first,sizeof(hash_s));
         cnd1=it->second;}
-      else if(cnd2==NULL || it->second->score>cnd2->score){
+      else if(cnd2==nullcnd || it->second->score>cnd2->score){
         cnd2=it->second;}
       votes_counted+=it->second->score;}
     cand_.unlock();
-    if(cnd1==NULL){
+    if(cnd1==nullcnd){
       if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
         LOG("CANDIDATE proposing\n");
         write_candidate(cand);}
       return;}
     if(do_block<2 && (
-        (cnd1->score>(cnd2!=NULL?cnd2->score:0)+(votes_max-votes_counted))||
+        (cnd1->score>(cnd2!=nullcnd?cnd2->score:0)+(votes_max-votes_counted))||
         (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
-      uint64_t x=(cnd2!=NULL?cnd2->score:0);
+      uint64_t x=(cnd2!=nullcnd?cnd2->score:0);
       if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
         LOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
           cnd1->score,x,votes_max,votes_counted);}
@@ -1045,7 +1046,8 @@ public:
       LOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
       electors[svid_rank[j]]=srvs_.nodes[svid_rank[j]].weight;
       votes_max+=srvs_.nodes[svid_rank[j]].weight;}
-    winner=NULL;
+    extern candidate_ptr nullcnd;
+    winner=nullcnd;
     LOG("ELECTOR max:%016lX\n",votes_max);
 #ifdef DEBUG
     if(electors.size()<electors_old && electors.size()<srvs_.vtot/2){
@@ -1056,7 +1058,7 @@ public:
   }
 
   message_ptr message_svidmsid(uint16_t svid,uint32_t msid)
-  { 
+  { extern message_ptr nullmsg;
     union {uint64_t num; uint8_t dat[8];} h;
     h.dat[0]=0; // hash
     h.dat[1]=0; // message type
@@ -1064,7 +1066,7 @@ public:
     memcpy(h.dat+6,&svid,2);
     LOG("HASH find:%016lX (%04X:%08X) %d:%d\n",h.num,svid,msid,svid,msid);
     txs_.lock();
-    message_ptr me=NULL;
+    message_ptr me=nullmsg;
     auto mi=txs_msgs_.lower_bound(h.num);
     while(mi!=txs_msgs_.end() && mi->second->svid==svid && mi->second->msid==msid){
       if(mi->second->status & MSGSTAT_COM){
@@ -1078,7 +1080,8 @@ public:
   }
 
   message_ptr message_find(message_ptr msg,uint16_t svid)
-  { LOG("HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
+  { extern message_ptr nullmsg;
+    LOG("HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
     assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_GET){
       txs_.lock();
@@ -1089,7 +1092,7 @@ public:
           return it->second;}
         it++;}
       txs_.unlock();
-      return NULL;}
+      return nullmsg;}
     if(msg->data[0]==MSGTYPE_CNG){
       cnd_.lock();
       message_map::iterator it=cnd_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
@@ -1101,7 +1104,7 @@ public:
       cnd_.unlock();
 LOG("HASH find failed, CND db:\n");
 for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
-      return NULL;}
+      return nullmsg;}
     if(msg->data[0]==MSGTYPE_BLG){
       blk_.lock();
       message_map::iterator it=blk_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
@@ -1111,7 +1114,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           return it->second;}
         it++;}
       blk_.unlock();
-      return NULL;}
+      return nullmsg;}
     if(msg->data[0]==MSGTYPE_DBG){
       dbl_.lock();
       message_map::iterator it=dbl_msgs_.lower_bound(msg->hash.num & 0xFFFFFFFFFFFFFF00L);
@@ -1121,9 +1124,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           return it->second;}
         it++;}
       dbl_.unlock();
-      return NULL;}
+      return nullmsg;}
     LOG("UNKNOWN hashtype:%d %02X\n",(uint32_t)msg->data[0],(uint32_t)msg->data[0]);
-    return NULL;
+    return nullmsg;
   }
 
   void double_spend(message_ptr msg)
@@ -1138,7 +1141,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   }
 
   void create_double_spend_proof(message_ptr msg1,message_ptr msg2)
-  { assert(msg1->svid==msg2->svid);
+  { extern message_ptr nullmsg;
+    assert(msg1->svid==msg2->svid);
     assert(msg1->msid==msg2->msid);
     assert(memcmp(msg1->sigh,msg2->sigh,32));
     assert(!do_sync); // should never happen, should never get same msid from same server in a msg_list
@@ -1160,7 +1164,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         memcpy(msha,last_srvs_.nodes[msg2->svid].msha,32);}
       else{
         message_ptr pre=message_svidmsid(msg2->svid,msg2->msid-1);
-        if(pre==NULL){
+        if(pre==nullmsg){
           LOG("ERROR loading message %04X:%08X before double spend\n",msg2->svid,msg2->msid-1);
           msg1->unload(0xffff);
           msg2->unload(0xffff);
@@ -1203,7 +1207,8 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   }
 
   int check_dbl(boost::mutex& lock,message_map& msgs,message_map::iterator it)
-  { message_ptr pre=NULL,nxt=NULL,msg=it->second; //probably not needed when syncing
+  { extern message_ptr nullmsg;
+    message_ptr pre=nullmsg,nxt=nullmsg,msg=it->second; //probably not needed when syncing
     assert(msg->data!=NULL);
     assert(it!=msgs.end());
     lock.lock();
@@ -1216,7 +1221,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     lock.unlock();
     assert(pre!=it->second);
     assert(nxt!=it->second);
-    if(pre!=NULL && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
+    if(pre!=nullmsg && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
       LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,pre->hash.num,pre->len);
       if(pre->len>message::header_length && msg->len>message::header_length){
         bad_insert(msg);
@@ -1226,7 +1231,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         //lock.unlock();
         return(-1);} // double spend
       return(1);} // possible double spend
-    if(nxt!=NULL && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
+    if(nxt!=nullmsg && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
       LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,nxt->hash.num,nxt->len);
       if(nxt->len>message::header_length && msg->len>message::header_length){
         bad_insert(msg);
@@ -1343,7 +1348,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(it!=cnd_msgs_.end()){
       message_ptr osg=it->second;
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
-	message_ptr pre=NULL,nxt=NULL;
+	//message_ptr pre=nullmsg,nxt=nullmsg;
         osg->update(msg);
         osg->path=osg->msid; // this is the block time!!!
         cnd_.unlock();
@@ -1394,7 +1399,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(it!=blk_msgs_.end()){
       message_ptr osg=it->second;
       if(msg->len>message::header_length && osg->len==message::header_length){ // insert full message
-	message_ptr pre=NULL,nxt=NULL;
+	//message_ptr pre=nullmsg,nxt=nullmsg;
         osg->update(msg);
         osg->path=osg->msid; // this is the block time!!!
         blk_.unlock();
@@ -2667,10 +2672,10 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
       uint16_t abank=ppi_abank(it->first);
       for(auto tx=it->second.begin();tx!=it->second.end();tx++){
         uin_t nuin={tx->bbank,abank,tx->auser,
-          tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
+         {tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
           tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
           tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
-          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
+          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]}};
         LOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
         uin[nuin]++;}}
     blk_usr.clear();
@@ -2678,10 +2683,10 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
       uint16_t abank=ppi_abank(it->first);
       for(auto tx=it->second.begin();tx!=it->second.end();tx++){
         uin_t nuin={abank,tx->bbank,tx->buser,
-          tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
+         {tx->pkey[ 0],tx->pkey[ 1],tx->pkey[ 2],tx->pkey[ 3],tx->pkey[ 4],tx->pkey[ 5],tx->pkey[ 6],tx->pkey[ 7],
           tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
           tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
-          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]};
+          tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]}};
         if(uin.find(nuin)!=uin.end() && uin[nuin]>0){
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=tx->auser;
@@ -3412,7 +3417,8 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   }
 
   candidate_ptr save_candidate(uint32_t blk,const hash_s& h,std::map<uint64_t,hash_s>& add,std::set<uint64_t>& del,uint16_t peer)
-  { cand_.lock(); //lock only candidates
+  { extern message_ptr nullmsg;
+    cand_.lock(); //lock only candidates
     auto ca=candidates_.find(h);
     if(ca==candidates_.end()){
       bool failed=false;
@@ -3424,7 +3430,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           failed=true;
           break;}
         message_ptr pm=message_svidmsid(svid,msid);
-        if(pm!=NULL && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
+        if(pm!=nullmsg && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
           LOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
           failed=true;
           break;}}
@@ -3455,7 +3461,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           mis.insert(it->first);
           continue;}
         message_ptr pm=message_svidmsid(svid,msid);
-        if(pm==NULL || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
+        if(pm==nullmsg || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
           mis.insert(it->first);
           continue;}}
       LOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",
@@ -3471,12 +3477,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   }
 
   candidate_ptr known_candidate(const hash_s& h,uint16_t peer)
-  { 
+  { extern candidate_ptr nullcnd;
     cand_.lock(); // lock only candidates
     auto it=candidates_.find(h);
     if(it==candidates_.end()){
       cand_.unlock();
-      return(NULL);}
+      return(nullcnd);}
     if(peer){
       it->second->peers.insert(peer);}
     cand_.unlock();
