@@ -51,6 +51,8 @@
 
 boost::mutex flog;
 FILE* stdlog=NULL;
+const candidate_ptr nullcnd;
+const message_ptr nullmsg;
 
 int main(int argc, char* argv[])
 { stdlog=fopen("log.txt","a");

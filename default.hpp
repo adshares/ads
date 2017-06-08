@@ -18,14 +18,14 @@
 #define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
 #define SYNC_WAIT 4 /* wait before another attempt to download servers */
 #define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-#define TOTALMASS 0x4000000000000000 /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
-#define MAX_USERS 0x40000000
+#define TOTALMASS 0x4000000000000000L /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
+#define MAX_USERS 0x40000000L
 //#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define LOCK_TIME (0x2*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
 #define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
 #define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
-#define MAX_BLG_SIZE 0xFFFFFFF0 /* blog size larger than this will not be submitted to clients */
+#define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 32 /* keep not more than 16 peers connected */
 
@@ -92,12 +92,12 @@
 #define TXS_UUS_FEE      (0x10000) /* 0x0.0001G */
 #define TXS_UBS_FEE      (0x10000) /* 0x0.0001G */
 #define TXS_SAV_FEE      (0x100000) /* 0x0.0001G */
-#define TXS_BNK_FEE      (0x10000000) /* 0x0.1 G */
-#define TXS_BKY_FEE      (0x10000000) /* 0x0.1 G */
-#define USER_MIN_MASS    (0x10000000) /* 0x0.1 G minimum user account mass to send transaction */
+#define TXS_BNK_FEE      (0x10000000L) /* 0x0.1 G */
+#define TXS_BKY_FEE      (0x10000000L) /* 0x0.1 G */
+#define USER_MIN_MASS    (0x10000000L) /* 0x0.1 G minimum user account mass to send transaction */
 #define USER_MIN_AGE     (BLOCKSEC*4) /* wait at least 4 blocks before deleting an account */
-#define BANK_MIN_UMASS   (0x10000000) /* 0x0.1G, minimum admin account mass to send transaction */
-#define BANK_MIN_TMASS   (0x1000000000) /* 0x10G, if bank total mass below this value, bank can be taken over */
+#define BANK_MIN_UMASS   (0x10000000L) /* 0x0.1G, minimum admin account mass to send transaction */
+#define BANK_MIN_TMASS   (0x1000000000L) /* 0x10G, if bank total mass below this value, bank can be taken over */
 #define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
 #define BANK_MAX         (0xffff)
 #define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */

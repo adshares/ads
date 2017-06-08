@@ -699,6 +699,7 @@ public:
 
   // use (2) fallocate to remove beginning of files
   // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
+#ifdef FALLOC_FL_COLLAPSE_RANGE
   int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
   { log_t log;
     assert(!(4096%sizeof(log_t)));
@@ -725,6 +726,11 @@ public:
         return(-1);}}
     return(0);
   }
+#else
+  int purge_log(int fd,uint32_t user) // no purging on incompatible systems
+  { return(0);
+  }
+#endif
 
   void put_log(uint32_t user,log_t& log) //single user, called by office and client
   { char filename[64];
