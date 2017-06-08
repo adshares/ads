@@ -164,8 +164,8 @@ typedef struct user_s { // 4+4+32+32+2+2+4+4+4+8+32=96+32=128 bytes
 	uint32_t time; // original time of transaction (used as lock initiation)
 	uint8_t pkey[SHA256_DIGEST_LENGTH]; //public key
 	uint8_t hash[SHA256_DIGEST_LENGTH]; //users block hash
-	uint32_t user; // target user, ==user_id at creation
-	uint32_t lpath; // block time of local transaction, used for dividends and locks
+	uint32_t lpath; // block time of local transaction, used for dividends and locks // changed position !!!
+	uint32_t user; // target user, ==user_id at creation // changed position !!!
 	uint16_t node; // target node, ==bank_id at creation
 	uint16_t stat; // includes status and account type
 	uint32_t rpath; // block time of incomming transaction, used for dividends, MUST BE AFTER stat !
