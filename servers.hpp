@@ -68,7 +68,7 @@ class servers // also a block
 public:
 	uint32_t now; // start time of the block
 	//uint32_t old; // time of last block
-	uint32_t msg; // number of transactions in block, FIXME, should be uint16_t
+	uint32_t msg; // number of messages in block, FIXME, should be uint16_t [why???]
 	uint32_t nod; // number of nodes in block, FIXME, should be uint16_t
         uint32_t div; // dividend
 	uint8_t oldhash[SHA256_DIGEST_LENGTH]; // previous hash
@@ -81,6 +81,7 @@ public:
 	uint16_t vok; //votes in favor
 	uint16_t vno; //votes against
         uint16_t vtot; //total eligible voters
+	uint64_t txs; //number of transactions in block
 	std::vector<node> nodes; //FIXME, this vector can fail to allocate RAM, do tests with more than 32k nodes!
 	//std::vector<void*> users; // place holder for user accounts
 	servers():
@@ -843,7 +844,8 @@ public:
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
+	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
+			now,msg,nod,div,vok,vno,txs);
 		ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
 		ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
@@ -857,7 +859,8 @@ public:
 	}
 	void header_print(header_t& head)
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
+	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
+			head.now,head.msg,head.nod,head.div,head.vok,head.vno,txs);
 		ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
 		ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
@@ -1106,6 +1109,8 @@ public:
 		}
 		//FIXME, update VIP status now
 		update_vipstatus();
+		msg=0;
+		txs=0;
 		return(now-num*BLOCKSEC);
 	}
 

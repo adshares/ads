@@ -2603,6 +2603,8 @@ public:
     blk_uok.insert(txs_uok.begin(),txs_uok.end());
     blk_sbs.insert(txs_sbs.begin(),txs_sbs.end());
     blk_ubs.insert(txs_ubs.begin(),txs_ubs.end());
+    srvs_.msg++;
+    srvs_.txs+=tnum;
     blk_.unlock();
     put_msglog(srvs_.now,msg->svid,msg->msid,log);
     return(true);
@@ -3560,15 +3562,15 @@ public:
       uint32_t now=time(NULL);
       const char* plist=peers_list();
       if(missing_msgs_.size()){
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s] (miss:%d:%016lX)\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%08X txs:%016lX) [%s] (miss:%d:%016lX)\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,plist,
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
           (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
       else{
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s]\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%08X txs:%016lX) [%s]\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,plist);}
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         DLOG("STOPing validation to start block\n");
         do_validate=0;
