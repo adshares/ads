@@ -74,11 +74,11 @@ int main(int argc, char* argv[])
       uint32_t msid;
       uint32_t mpos;
       o.add_msg(txs.data,txs,msid,mpos);}
-    std::cerr << "Shutting down\n";
+    ELOG("Shutting down\n");
     o.stop();
     s.stop(); }
   catch (std::exception& e){
-    std::cerr << "Exception: " << e.what() << "\n";}
+    ELOG("Exception: %s\n",e.what());}
   fclose(stdlog);
   return 0;
 }
@@ -87,21 +87,17 @@ int main(int argc, char* argv[])
 void office::start_accept()
 { if(!run){ return;}
   client_ptr c(new client(*io_services_[next_io_service_++],*this));
-  std::cerr<<"OFFICE online ["<<next_io_service_<<"]\n";
+  DLOG("OFFICE online %d\n",next_io_service_);
   if(next_io_service_>=CLIENT_POOL){
     next_io_service_=0;}
-  //while(clients_.size()>=MAXCLIENTS || srv_.do_sync){
-  //  //crerate client timeout inside the client
-  //  std::cerr<<"OFFICE offline\n";
-  //  boost::this_thread::sleep(boost::posix_time::seconds(1));}
   acceptor_.async_accept(c->socket(),boost::bind(&office::handle_accept,this,c,boost::asio::placeholders::error));
 }
 void office::handle_accept(client_ptr c,const boost::system::error_code& error)
 { //uint32_t now=time(NULL);
   if(!run){ return;}
-  std::cerr<<"OFFICE new ticket (total open:"<<clients_.size()<<")\n";
+  DLOG("OFFICE new ticket (total open:%ld)\n",clients_.size());
   if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
-    std::cerr<<"OFFICE busy, dropping connection\n";}
+    DLOG("OFFICE busy, dropping connection\n");}
   else if (!error){
     client_.lock();
     clients_.insert(c);
@@ -109,13 +105,9 @@ void office::handle_accept(client_ptr c,const boost::system::error_code& error)
     try{
       c->start();}
     catch (std::exception& e){
-      std::cerr << "Client exception: " << e.what() << "\n";
+      DLOG("Client exception: %s\n",e.what());
       leave(c);}}
   start_accept(); //FIXME, change this to a non blocking office
-  //std::cerr<<"OFFICE rest\n";
-  //boost::this_thread::sleep(boost::posix_time::seconds(1));//do this to test if function is blocking
-  //std::cerr<<"OFFICE done\n";
-  //start_accept(); //FIXME, change this to a non blocking office
 }
 void office::leave(client_ptr c)
 { client_.lock();
@@ -340,9 +332,10 @@ void server::connect(std::string peer_address)
 		peers_.insert(new_peer);
 		peer_.unlock();
                 //new_peer->iostart();
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
+		boost::asio::async_connect(new_peer->socket(),iterator,
+			boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
-		std::cerr << "Connection: " << e.what() << "\n";}
+		DLOG("Connection: %s\n",e.what());}
 }
 void server::connect(uint16_t svid)
 {	try{
@@ -361,7 +354,8 @@ void server::connect(uint16_t svid)
 		peers_.insert(new_peer);
 		peer_.unlock();
                 //new_peer->iostart();
-		boost::asio::async_connect(new_peer->socket(),iterator,boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
+		boost::asio::async_connect(new_peer->socket(),iterator,
+			boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
-		std::cerr << "Connection: " << e.what() << "\n";}
+		DLOG("Connection: %s\n",e.what());}
 }

@@ -227,7 +227,7 @@ public:
 			memcpy(data+9,&auser,4);
 			memcpy(data+13,&ttime,4);
 			return;}
-		fprintf(stderr,"BAD MSG: %X\n",ttype);
+		DLOG("BAD MSG: %X\n",ttype);
 	}
 
 	//usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
@@ -245,7 +245,7 @@ public:
 	{	if(ntinfo!=NULL){
 			memcpy(tinfo,ntinfo,32);}
 		if(ttype>=TXSTYPE_MAX){
-			fprintf(stderr,"ERROR, creating message\n");
+			DLOG("ERROR, creating message\n");
 			size=0;
 			return;}
 		int len=txslen[ttype];
@@ -383,7 +383,7 @@ public:
 
 	uint32_t get_size(char* txs) // returns network size
 	{	if(*txs>=TXSTYPE_MAX){
-                        fprintf(stderr,"ERROR, parsing message type\n");
+                        DLOG("ERROR, parsing message type\n");
                         return(0xFFFFFFFF);}
 		if(*txs==TXSTYPE_CON){
 			return(txslen[TXSTYPE_CON]);} // no signature
@@ -413,7 +413,7 @@ public:
 	bool parse(char* txs) //TODO, should return parsed buffer length
 	{	ttype=*txs;
 		if(ttype>=TXSTYPE_MAX){
-			fprintf(stderr,"ERROR, parsing message\n");
+			DLOG("ERROR, parsing message\n");
 			return(false);}
 		if(ttype==TXSTYPE_NON){
 			size=0;
@@ -575,7 +575,7 @@ public:
 	}
 
 	void print_head()
-	{	fprintf(stderr,"MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
+	{	DLOG("MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
 			ttype,abank,auser,amsid,ttime,bbank,buser,tmass,size);
 	}
 
@@ -584,11 +584,11 @@ public:
 	 	if(ttype==TXSTYPE_KEY){
 			assert((txslen[ttype]+64+64)*2<0x200);
 			ed25519_key2text(msgtxt,data,txslen[ttype]+64+64); // do not send last hash
-			fprintf(stderr,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
+			DLOG("%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 		else{
 			assert((txslen[ttype]+64)*2<0x200);
 			ed25519_key2text(msgtxt,data,txslen[ttype]+64); // do not send last hash
-			fprintf(stderr,"%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
+			DLOG("%.*s\n",(txslen[ttype]+64)*2,msgtxt);}
 	}
 
 	void change_time(uint32_t nttime)
@@ -624,7 +624,7 @@ public:
 	}
 
 	void print_broadcast(char* buf)
-	{	fprintf(stderr,"BRO:%.*s\n",bbank,broadcast(buf));
+	{	DLOG("BRO:%.*s\n",bbank,broadcast(buf));
 	}
 
 	char* broadcast(char* buf) //return broadcast buffer in message
@@ -644,7 +644,7 @@ public:
 			memcpy(&tbank,tbuf+0,2);
 			memcpy(&tuser,tbuf+2,4);
 			memcpy(&tmass,tbuf+6,8);
-			fprintf(stderr,"MPT to %04X %08X %016lX\n",tbank,tuser,tmass);}
+			DLOG("MPT to %04X %08X %016lX\n",tbank,tuser,tmass);}
 	}
 
 	char* toaddresses(char* buf) //return to-addresses buffer in message

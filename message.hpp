@@ -500,15 +500,15 @@ public:
       len=0;
       memcpy(&len,data+1,3);
       if(len!=4+64+10+sizeof(handshake_t)){
-        std::cerr << "ERROR: no handshake \n"; // TODO, ban ip
+        DLOG("ERROR: no handshake \n"); // TODO, ban ip
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
       if(data==NULL){
-        std::cerr << "ERROR: realloc failed \n";
+        ELOG("ERROR: realloc failed \n");
         return 0;}
       return 2;}
     if(!peer_svid){ // peer not authenticated yet
-      std::cerr << "ERROR: peer not authenticated\n"; // TODO, ban ip
+      DLOG("ERROR: peer not authenticated\n"); // TODO, ban ip
       return 0;}
     peer=peer_svid; // set source of message
     if( data[0]==MSGTYPE_PUT||
@@ -533,7 +533,7 @@ public:
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
       if(data==NULL){
-        std::cerr << "ERROR: failed to allocate memory\n"; // TODO, ban ip
+        ELOG("ERROR: failed to allocate memory\n");
         return 0;}
       return 2;}
     if(data[0]==MSGTYPE_USR){
@@ -548,59 +548,58 @@ public:
         return 0;}
       data=(uint8_t*)std::realloc(data,8+len*sizeof(user_t));
       if(data==NULL){
-        std::cerr << "ERROR: failed to allocate memory\n"; // TODO, ban ip
+        DLOG("ERROR: failed to allocate memory\n");
         return 0;}
       return 2;}
     if(data[0]==MSGTYPE_STP){
-      std::cerr << "STOP header received\n";
+      DLOG("STOP header received\n");
       svid=peer_svid;
       len=SHA256_DIGEST_LENGTH+1;
       data=(uint8_t*)std::realloc(data,len);
       return 2;}
     if(data[0]==MSGTYPE_SER){
-      std::cerr << "SERVERS request header received\n";
+      DLOG("SERVERS request header received\n");
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_HEA){
-      std::cerr << "HEADERS request header received\n";
+      DLOG("HEADERS request header received\n");
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_PAT){
-      std::cerr << "SYNCBLOCK time received\n";
+      DLOG("SYNCBLOCK time received\n");
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_MSL){
-      std::cerr << "TXSLIST request header received\n";
+      DLOG("TXSLIST request header received\n");
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_MSP){
-      std::cerr << "TXSLIST data header received\n";
+      DLOG("TXSLIST data header received\n");
       svid=peer_svid;
       len=0;
       memcpy(&len,data+1,3);
       data=(uint8_t*)std::realloc(data,len);
       return 1;}
     if(data[0]==MSGTYPE_NHR){
-      std::cerr << "NEXT header request received\n";
+      DLOG("NEXT header request received\n");
       svid=peer_svid;
       len=header_length;
       return 1;}
     if(data[0]==MSGTYPE_NHD){
-      std::cerr << "NEXT header data received\n";
+      DLOG("NEXT header data received\n");
       svid=peer_svid;
       len=SHA256_DIGEST_LENGTH+sizeof(headlink_t)+8;
       data=(uint8_t*)std::realloc(data,len);
       return 1;}
     if(data[0]==MSGTYPE_SOK){
-      std::cerr << "SYNC OK received\n";
+      DLOG("SYNC OK received\n");
       svid=peer_svid;
       len=header_length;
       return 1;} // short message
-    //std::cerr << "ERROR: unknown message from peer: " << (int)((int)(data[0])+0) << "\n"; // TODO, ban ip
     ELOG("ERROR: unknown message header %016lX\n",(uint64_t)(*(uint64_t*)data));
     return 0;
   }
@@ -1153,7 +1152,7 @@ public:
   uint16_t request() //find a peer from which we will request the message
   { assert(data!=NULL);
     if((status & MSGSTAT_DAT) || len!=header_length){
-      std::cerr<<"IGNORING REQUEST for "<<svid<<":"<<msid<<"\n";
+      DLOG("IGNORING REQUEST for %04X:%08X\n",svid,msid);
       return(0);}
     uint32_t mynow=time(NULL);
     mtx_.lock();
@@ -1166,7 +1165,7 @@ public:
         got=mynow;
         //sent.insert(*k); //will be also inserted by peer::handle_write after message submitted + deliver(,)
         mtx_.unlock();
-        std::cerr<<"REQUEST for "<<svid<<":"<<msid<<" from:"<<*k<<"\n";
+        DLOG("REQUEST for %04X:%08X from %04X\n",svid,msid,*k);
         return(*k);}}
     mtx_.unlock();
     return(0);

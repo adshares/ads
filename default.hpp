@@ -195,7 +195,7 @@ typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
 typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[4]
-typedef struct {hash_t hash;uint32_t hxor[8];} hash_s;
+typedef union {hash_t hash;uint32_t hxor[8];} hash_s;
 typedef struct handshake_s { //maybe this should be just header_t + peer_msid
 	//uint16_t type; // version of server, not needed (is in servers.hpp)
 	//uint16_t srvn; // number of legal servers

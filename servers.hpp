@@ -227,7 +227,7 @@ public:
 	{	char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ ELOG("ERROR, failed to open account file %s, fatal\n",filename);
 			exit(-1);}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		write(fd,&u,sizeof(user_t));
@@ -241,7 +241,7 @@ public:
 	{	char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
-		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ ELOG("ERROR, failed to open account file %s, fatal\n",filename);
 			exit(-1);}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		read(fd,&u,sizeof(user_t));
@@ -281,7 +281,7 @@ public:
                 char filename[64];
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
-		if(fd<0){ std::cerr << "ERROR, failed to open account file "<<filename<<", fatal\n";
+		if(fd<0){ ELOG("ERROR, failed to open account file %s, fatal\n",filename);
 			exit(-1);}
 		uint64_t csum[4]={0,0,0,0};
 		uint32_t end=nodes[peer].users;
@@ -321,7 +321,7 @@ public:
 		sprintf(filename,"blk/%03X/%05X/und/%04X.dat",now>>20,now&0xFFFFF,svid);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){
-			std::cerr<<"ERROR, failed to open bank undo "<<svid<<", fatal\n";
+			ELOG("ERROR, failed to open bank undo %04X, fatal\n",svid);
 			exit(-1);}
 		if(nodes[svid].users<=users){ //consider locking
 			nodes[svid].users=users;
@@ -348,7 +348,6 @@ public:
 		if(ifs.is_open()){
 			boost::archive::text_iarchive ia(ifs);
 			ia >> (*this);}
-		std::cout << std::to_string((int)nodes.size()) << " servers loaded\n";
 	}
 	void get(uint32_t path)
 	{	char filename[64];
@@ -361,7 +360,6 @@ public:
 			boost::archive::text_iarchive ia(ifs);
 			ia >> (*this);}
 		assert(now==path);
-		std::cout << std::to_string((int)nodes.size()) << " servers loaded\n";
 	}
 	void put() //uint32_t path) //FIXME, not used
 	{	char filename[64]="servers.txt";
@@ -372,7 +370,7 @@ public:
 			boost::archive::text_oarchive oa(ofs);
 			oa << (*this);}
 		else{
-			std::cerr<<"ERROR, failed to write servers to dir:"<<now<<"\n";}
+			ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
 
 	}
 	//TODO, *msg* should go to message.hpp
@@ -822,7 +820,7 @@ public:
 			oa << vok;
 			oa << vno;}
 		else{
-			std::cerr<<"ERROR, failed to write header\n";}
+			ELOG("ERROR, failed to write header\n");}
 	}
 	void header_last()
 	{	std::ofstream ofs("blk/header.txt");
@@ -841,7 +839,7 @@ public:
 			oa << vok;
 			oa << vno;}
 		else{
-			std::cerr<<"ERROR, failed to write header\n";}
+			ELOG("ERROR, failed to write header\n");}
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
@@ -880,12 +878,12 @@ public:
 		fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
 		fclose(fp);
 		if(ok){
-			std::cerr << "BLOCK ok\n";
+			DLOG("BLOCK ok\n");
 			vok++;
 			sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);}
 		else{
 //FIXME, no point to save "no-" signatures without corresponding block
-			std::cerr << "BLOCK differs\n";
+			DLOG("BLOCK differs\n");
 			vno++;
 			sprintf(filename,"blk/%03X/%05X/signatures.no",now>>20,now&0xFFFFF);}
 		svsi_t da;
@@ -1022,7 +1020,7 @@ public:
 	{	int i=0;
 		for(auto no=nodes.begin();no!=nodes.end()&&i<peer_srvn;no++,i++){
 			if(memcmp(no->pk,peer_node[i].pk,sizeof(ed25519_public_key))){
-				std::cerr<<"WARNING key mismatch for peer "<<i<<"\n";}}
+				ELOG("WARNING key mismatch for peer %04X\n",i);}}
 		uint8_t tmphash[SHA256_DIGEST_LENGTH]; // hash of nodes
 		SHA256_CTX sha256;
 		hashtree tree;

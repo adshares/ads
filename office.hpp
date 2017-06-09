@@ -33,37 +33,37 @@ public:
       sprintf(filename,"ofi/%04X.dat",svid);
       offifd_=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
       if(offifd_<0){
-        std::cerr<<"ERROR, failed to open office register\n";}
+        ELOG("ERROR, failed to open office register\n");}
       mklogdir(opts_.svid);
       mklogfile(opts_.svid,0);}
     catch (std::exception& e){
-      std::cerr << "Office.Open error: " << e.what() << "\n";}
+      ELOG("Office.Open error: %s\n",e.what());}
   }
 
   ~office()
   { if(offifd_){
       close(offifd_);}
-    std::cerr<<"Office down\n";
+    ELOG("Office down\n");
   }
   void iorun_client(int i)
   { while(1){
       try{
-        std::cerr << "Client["<<i<<"].Run starting\n";
+        DLOG("Client[%d].Run starting\n",i);
         io_services_[i]->run();
-        std::cerr << "Client["<<i<<"].Run finished\n";
+        DLOG("Client[%d].Run finished\n",i);
         return;} //Now we know the server is down.
       catch (std::exception& e){
-        std::cerr << "Client["<<i<<"].Run error: " << e.what() << "\n";}}
+        DLOG("Client[%d].Run error: %s\n",i,e.what());}}
   }
   void iorun()
   { while(1){
       try{
-        std::cerr << "Office.Run starting\n";
+        DLOG("Office.Run starting\n");
         io_service_.run();
-        std::cerr << "Office.Run finished\n";
+        DLOG("Office.Run finished\n");
         return;} //Now we know the server is down.
       catch (std::exception& e){
-        std::cerr << "Office.Run error: " << e.what() << "\n";}}
+        DLOG("Office.Run error: %s\n",e.what());}}
   }
   void stop() // send and empty txs queue
   { run=false;
@@ -142,7 +142,7 @@ public:
       ioth_ = new boost::thread(boost::bind(&office::iorun, this));
       clock_thread = new boost::thread(boost::bind(&office::clock, this));}
     catch (std::exception& e){
-      std::cerr << "Office.Start error: " << e.what() << "\n";}
+      DLOG("Office.Start error: %s\n",e.what());}
   }
 
   void update_div(uint32_t now,uint32_t newdiv)
@@ -315,10 +315,10 @@ public:
 #endif
         continue;}
       if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
-	std::cerr<<"WARNING, waiting for more messages\n";
+	DLOG("WARNING, waiting for more messages\n");
         continue;}
       if(!srv_.accept_message()){
-	std::cerr<<"WARNING, server not ready for a new message ("<<srv_.msid_<<")\n";
+	DLOG("WARNING, server not ready for a new message (%d)\n",srv_.msid_);
         continue;}
       //message_.lock();
       file_.lock();
@@ -427,7 +427,7 @@ public:
 
   void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) //create account on remote request
   { if(!try_account((hash_s*)pkey)){
-      std::cerr<<"ERROR: failed to open account (pkey known)\n";
+      ELOG("ERROR: failed to open account (pkey known)\n");
       return;}
     uint32_t ltime=time(NULL);
     uint32_t luser=add_user(bbank,pkey,ltime,buser);
@@ -465,7 +465,7 @@ public:
     nuser=users++;
     mklogfile(svid,nuser);
     srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
-    std::cerr<<"CREATING new account "<<nuser<<"\n";
+    ELOG("CREATING new account %d\n",nuser);
     file_.lock();
   //deposit.push_back(0);
   //ustatus.push_back(0);
@@ -693,7 +693,7 @@ public:
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT,0644);
     if(fd<0){
-      std::cerr<<"ERROR, failed to create log directory "<<filename<<"\n";}
+      ELOG("ERROR, failed to create log directory %s\n",filename);}
     close(fd);
   }
 
@@ -705,23 +705,21 @@ public:
     assert(!(4096%sizeof(log_t)));
     int r,size=lseek(fd,0,SEEK_END); // maybe stat would be faster
     if(size%sizeof(log_t)){
-      std::cerr<<"ERROR, log corrupt register\n";
+      ELOG("ERROR, log corrupt register\n");
       return(-2);}
     if(size<LOG_PURGE_START){
       return(0);}
     size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
     for(;size>=LOG_PURGE_START;size-=4096){
       if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)){
-        std::cerr<<"ERROR, log lseek error\n";
+        ELOG("ERROR, log lseek error\n");
         return(-1);}
       if((r=read(fd,&log,sizeof(log_t)))!=sizeof(log_t)){
-        //std::cerr<<"ERROR, log read error\n";
         fprintf(stderr,"ERROR, log read error (%d,%s)\n",r,strerror(errno));
         return(-1);}
       if(log.time+MAX_LOG_AGE>=srv_.last_srvs_.now){ // purge first block
         return(0);}
       if((r=fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096))<0){
-        //std::cerr<<"ERROR, log purge failed\n";
         fprintf(stderr,"ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
         return(-1);}}
     return(0);
@@ -737,7 +735,7 @@ public:
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(fd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+      ELOG("ERROR, failed to open log register %s\n",filename);
       return;} // :-( maybe we should throw here something
     write(fd,&log,sizeof(log_t));
     close(fd);
@@ -759,7 +757,7 @@ public:
         sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
         fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
         if(fd<0){
-          std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+          ELOG("ERROR, failed to open log register %s\n",filename);
           return;} // :-( maybe we should throw here something
         }
       it->second.time=ntime;
@@ -790,7 +788,7 @@ public:
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(rd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for reading\n";
+      ELOG("ERROR, failed to open log register %s for reading\n",filename);
       return(false);}
     fstat(rd,&sb);
     if(!(sb.st_size%sizeof(log_t))){ // file is ok
@@ -799,7 +797,7 @@ public:
     int l=lseek(rd,sb.st_size%sizeof(log_t),SEEK_SET);
     int ad=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
     if(ad<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for appending\n";
+      ELOG("ERROR, failed to open log register %s for appending\n",filename);
       close(rd);
       return(false);}
     log_t log;
@@ -808,24 +806,24 @@ public:
     close(ad);
     int wd=open(filename,O_WRONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(wd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<" for writing\n";
+      ELOG("ERROR, failed to open log register %s for writing \n",filename);
       close(rd);
       return(false);}
     fstat(wd,&sb);
     if(sb.st_size%sizeof(log_t)){ // file is ok
-      std::cerr<<"ERROR, failed to append log register "<<filename<<", why ???\n";
+      ELOG("ERROR, failed to append log register %s, why ?\n",filename);
       close(rd);
       close(wd);
       return(false);}
     for(l=sizeof(log_t);l<sb.st_size;l+=sizeof(log_t)){
       if(read(rd,&log,sizeof(log_t))!=sizeof(log_t)){
-        std::cerr<<"ERROR, failed to read log register "<<filename<<" while fixing\n";
+        ELOG("ERROR, failed to read log register %s while fixing\n",filename);
         break;}
       if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
-        std::cerr<<"ERROR, failed to write log register "<<filename<<" while fixing\n";
+        ELOG("ERROR, failed to write log register %s while fixing\n",filename);
         break;}}
     if(write(wd,&log,sizeof(log_t))!=sizeof(log_t)){
-      std::cerr<<"ERROR, failed to write log register "<<filename<<" while duplicating last log\n";}
+      ELOG("ERROR, failed to write log register %s while duplicating last log",filename);}
     close(rd);
     close(wd);
     return(false);
@@ -841,13 +839,13 @@ public:
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_RDWR|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(fd<0){
-      std::cerr<<"ERROR, failed to open log register "<<filename<<"\n";
+      ELOG("ERROR, failed to open log register %s\n",filename);
       return(false);}
     fstat(fd,&sb);
     uint32_t len=sb.st_size;
     slog.append((char*)&len,4);
     if(len%sizeof(log_t)){
-      std::cerr<<"ERROR, log corrupt register "<<filename<<"\n";
+      ELOG("ERROR, log corrupt register %s\n",filename);
       from=0;} // ignore from 
     log_t log;
     int l,mis=0;
