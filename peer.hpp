@@ -36,34 +36,34 @@ public:
   }
 
   void iorun()
-  { LOG("%04X PEER IORUN START\n",svid);
+  { DLOG("%04X PEER IORUN START\n",svid);
     try{
       peer_io_service_.run();
       } //Now we know the server is down.
     catch (std::exception& e){
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
-      LOG("%04X PERR IORUN Service.Run error:%s\n",svid,e.what());
+      DLOG("%04X PERR IORUN Service.Run error:%s\n",svid,e.what());
       killme=true;}
-    LOG("%04X PEER IORUN END\n",svid);
+    DLOG("%04X PEER IORUN END\n",svid);
   }
 
   void stop() // by server only
-  { LOG("%04X PEER KILL\n",svid);
+  { DLOG("%04X PEER KILL\n",svid);
     peer_io_service_.stop();
-    //LOG("%04X PEER INTERRUPT\n",svid);
+    //DLOG("%04X PEER INTERRUPT\n",svid);
     //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     //iothp_->interrupt();
     //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    //LOG("%04X PEER JOIN\n",svid);
+    //DLOG("%04X PEER JOIN\n",svid);
     iothp_->join(); //try joining yourself error
-    //LOG("%04X PEER CLOSE\n",svid);
+    //DLOG("%04X PEER CLOSE\n",svid);
     socket_.close();
     //socket_.release(NULL);
   }
 
   void leave()
-  { LOG("%04X PEER LEAVING\n",svid);
+  { DLOG("%04X PEER LEAVING\n",svid);
     killme=true;
   }
 
@@ -71,7 +71,7 @@ public:
   { assert(incoming_);
     addr = socket_.remote_endpoint().address().to_string();
     port = socket_.remote_endpoint().port();
-    LOG("%04X PEER CONNECT OK %s:%d\n",svid,
+    DLOG("%04X PEER CONNECT OK %s:%d\n",svid,
       socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -80,13 +80,13 @@ public:
 
   void connect(const boost::system::error_code& error) //only outgoing connection
   { if(error){
-      LOG("%04X PEER ACCEPT ERROR\n",svid);
+      DLOG("%04X PEER ACCEPT ERROR\n",svid);
       killme=true;
       return;}
     assert(!incoming_);
     addr = socket_.remote_endpoint().address().to_string();
     port = socket_.remote_endpoint().port();
-    LOG("%04X PEER ACCEPT OK %s:%d\n",svid,
+    DLOG("%04X PEER ACCEPT OK %s:%d\n",svid,
       socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
     message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
     msg->know.insert(svid);
@@ -107,29 +107,29 @@ public:
 
   void print()
   { if(port){
-      LOG("%04X Client on     %s:%d\n",svid,addr.c_str(),port);} //LESZEK
+      DLOG("%04X Client on     %s:%d\n",svid,addr.c_str(),port);} //LESZEK
     else{
-      LOG("%04X Client available\n",svid);}
+      DLOG("%04X Client available\n",svid);}
   }
 
   void update(message_ptr msg)
   { if(killme){
-      LOG("%04X KILL detected ! (UPDATE), leaving\n",svid);
+      DLOG("%04X KILL detected ! (UPDATE), leaving\n",svid);
       leave();
       return;}
     msg->print("; TRY UPDATE");
     if(do_sync){
-      //LOG("%04X HASH %016lX [%016lX] (in sync mode) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
+      //DLOG("%04X HASH %016lX [%016lX] (in sync mode) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO SYNC");
       return;}
     assert(msg->len>4+64);
     if(msg->peer == svid){
-      //LOG("%04X HASH %016lX [%016lX] (noecho) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
+      //DLOG("%04X HASH %016lX [%016lX] (noecho) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO ECHO");
       return;}
     msg->mtx_.lock();
     if(msg->know.find(svid) != msg->know.end()){
-      //LOG("%04X HASH %016lX [%016lX] (known) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
+      //DLOG("%04X HASH %016lX [%016lX] (known) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO UPDATE");
       msg->mtx_.unlock();
       return;}
@@ -162,7 +162,7 @@ public:
         memcpy(put_msg->data+6,&msg->svid,2);
         break;
       default:
-        LOG("%04X FATAL ERROR: bad message type\n",svid);
+        ELOG("%04X FATAL ERROR: bad message type\n",svid);
         exit(-1);}
     mtx_.lock();
     put_msg->svid=msg->svid;
@@ -170,11 +170,11 @@ public:
     put_msg->hash.num=put_msg->dohash(put_msg->data);
     put_msg->sent.insert(svid);
     put_msg->busy.insert(svid);
-    LOG("%04X HASH %016lX [%016lX] (update) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid);
+    DLOG("%04X HASH %016lX [%016lX] (update) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid);
     if(BLOCK_MODE){
       write_msgs_.push_back(put_msg);
       mtx_.unlock();
-      LOG("%04X HASH %016lX [%016lX] (update in block mode, waiting) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
+      DLOG("%04X HASH %016lX [%016lX] (update in block mode, waiting) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       return;}
     bool no_write_in_progress = write_msgs_.empty();
     write_msgs_.push_back(put_msg);
@@ -199,13 +199,13 @@ public:
       candidate_ptr c_ptr=server_.known_candidate(*cand,0);
       if(c_ptr!=NULL && c_ptr->peers.find(svid)!=c_ptr->peers.end()){ // send only the hash, not the whole message
 //FIXME, is this ok ?
-	LOG("%04X WARNING, truncating cnd message\n",svid);
+	DLOG("%04X WARNING, truncating cnd message\n",svid);
         return(4+64+10+sizeof(hash_t));}}
     //if(msg->data[0]==MSGTYPE_BLK && msg->len>4+64+10){
     if(msg->data[0]==MSGTYPE_BLG && msg->len>4+64+10){ // probably only during sync
       header_t* h=(header_t*)(msg->data+4+64+10);
       if(peer_hs.head.now==h->now && !memcmp(peer_hs.head.nowhash,h->nowhash,SHA256_DIGEST_LENGTH)){
-	LOG("%04X WARNING, truncating blk message\n",svid);
+	DLOG("%04X WARNING, truncating blk message\n",svid);
         return(4+64+10);}}
     return(msg->len);
   }*/
@@ -213,14 +213,14 @@ public:
   void deliver(message_ptr msg)
   { extern candidate_ptr nullcnd;
     if(killme){
-      LOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
+      DLOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
       leave();
       return;}
     if(do_sync){
       return;}
     msg->mtx_.lock();//TODO, do this right before sending the message ?
     if(msg->sent.find(svid)!=msg->sent.end()){
-      LOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
+      DLOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
       msg->mtx_.unlock();
       return;}
     msg->know.insert(svid);
@@ -228,7 +228,7 @@ public:
     msg->busy.insert(svid);
     msg->mtx_.unlock();
     if(msg->len!=message::header_length && !msg->load(svid)){ // sets busy[svid]
-      LOG("%04X ERROR failed to load message %0X4:%08X\n",svid,msg->svid,msg->msid);
+      DLOG("%04X ERROR failed to load message %0X4:%08X\n",svid,msg->svid,msg->msid);
       return;}
     mtx_.lock();
     if(BLOCK_MODE){
@@ -237,7 +237,7 @@ public:
       return;}
     assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_STP){
-      LOG("%04X SERV in block mode\n",svid);
+      DLOG("%04X SERV in block mode\n",svid);
       BLOCK_MODE=srvs_.now;}
     //special handling of CND messages ... FIXME prevent slow search in candidates by each peer
     if(msg->data[0]==MSGTYPE_CND && msg->len>4+64+10+sizeof(hash_t)){
@@ -246,7 +246,7 @@ public:
       candidate_ptr c_ptr=server_.known_candidate(*cand,0);
       if(c_ptr!=nullcnd && c_ptr->peers.find(svid)!=c_ptr->peers.end()){
         // send only the hash, not the whole message
-        LOG("%04X WARNING, truncating cnd message\n",svid);
+        DLOG("%04X WARNING, truncating cnd message\n",svid);
         message_ptr put_msg(new message(4+64+10+sizeof(hash_t),msg->data));
         memcpy(put_msg->data+1,&put_msg->len,3); //FIXME, make this a change_length function in message.hpp
         put_msg->svid=msg->svid; //just for reporting
@@ -306,13 +306,13 @@ Aborted
       bytes_out+=msg->len;
       files_out++;
       if(msg->len>64 && len!=msg->len){
-        LOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d<>%d) [total %lub %uf] LENGTH DIFFERS!\n",svid,
+        DLOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d<>%d) [total %lub %uf] LENGTH DIFFERS!\n",svid,
           msg->svid,msg->msid,msg->data[0],msg->len,len,bytes_out,files_out);}
       else{
-        LOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d) [total %lub %uf]\n",svid,
+        DLOG("%04X DELIVERED MESSAGE %04X:%08X %02X (len:%d) [total %lub %uf]\n",svid,
           msg->svid,msg->msid,msg->data[0],msg->len,bytes_out,files_out);}
       if(msg->data[0]==MSGTYPE_STP){
-        LOG("%04X SERV sent STOP\n",svid);
+        DLOG("%04X SERV sent STOP\n",svid);
         write_msgs_.pop_front();
         mtx_.unlock();
         sync_start(true);
@@ -321,7 +321,7 @@ Aborted
 //FIXME, do not add messages that are in last block 
         if(svid_msid_new[msg->svid]<msg->msid){
           svid_msid_new[msg->svid]=msg->msid; // maybe a lock on svid_msid_new would help
-          LOG("%04X UPDATE PEER SVID_MSID: %04X:%08X\n",svid,msg->svid,msg->msid);}}
+          DLOG("%04X UPDATE PEER SVID_MSID: %04X:%08X\n",svid,msg->svid,msg->msid);}}
       if(msg->len!=message::header_length){
         msg->unload(svid);}
       else{
@@ -335,7 +335,7 @@ Aborted
           boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error)); }
       mtx_.unlock(); }
     else {
-      LOG("%04X WRITE error %d %s\n",svid,error.value(),error.message().c_str());
+      ELOG("%04X WRITE error %d %s\n",svid,error.value(),error.message().c_str());
       leave();
       return;}
   }
@@ -343,15 +343,15 @@ Aborted
   void handle_read_header(const boost::system::error_code& error)
   { extern message_ptr nullmsg;
     if(killme){
-      LOG("%04X KILL detected ! (HEADER), leaving\n",svid);
+      ELOG("%04X KILL detected ! (HEADER), leaving\n",svid);
       leave();
       return;}
     if(error){
-      LOG("%04X READ error %d %s (HEADER)\n",svid,error.value(),error.message().c_str());
+      ELOG("%04X READ error %d %s (HEADER)\n",svid,error.value(),error.message().c_str());
       leave();
       return;}
     if(!read_msg_->header(svid)){
-      LOG("%04X READ header error\n",svid);
+      ELOG("%04X READ header error\n",svid);
       leave();
       return;}
     bytes_in+=read_msg_->len;
@@ -360,11 +360,11 @@ Aborted
     if(read_msg_->len==message::header_length){
       if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid ||
           server_.last_srvs_.nodes.size()<=read_msg_->svid){
-        LOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+        ELOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         leave();
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
-        LOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
+        DLOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
         if(read_msg_->data[0]==MSGTYPE_PUT){
           read_msg_->data[0]=MSGTYPE_GET;}
         if(read_msg_->data[0]==MSGTYPE_CNP){
@@ -377,7 +377,7 @@ Aborted
           mtx_.lock(); //concider locking svid_msid_new
           if(svid_msid_new[read_msg_->svid]<read_msg_->msid){
             svid_msid_new[read_msg_->svid]=read_msg_->msid;
-            LOG("%04X UPDATE PEER SVID_MSID: %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);}
+            DLOG("%04X UPDATE PEER SVID_MSID: %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);}
           mtx_.unlock();}
         int ret=server_.message_insert(read_msg_);
         if(ret){ //NEW, make sure to insert in correct containers
@@ -387,41 +387,41 @@ Aborted
              read_msg_->data[0]==MSGTYPE_DBG ||
              (read_msg_->data[0]==MSGTYPE_GET && srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1 && server_.check_msgs_size()<MAX_CHECKQUE)){
             //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<read_msg_->svid<<":"<<read_msg_->msid<<")\n";
-            LOG("%04X REQUESTING MESSAGE (%04X:%08X)\n",svid,read_msg_->svid,read_msg_->msid);
+            DLOG("%04X REQUESTING MESSAGE (%04X:%08X)\n",svid,read_msg_->svid,read_msg_->msid);
 #ifdef DEBUG
             boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
 #endif
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
-        LOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
+        DLOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
           if(read_msg_->load(svid)){
             //std::cerr << "PROVIDING MESSAGE (in sync)\n";
-            LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d) (in sync)\n",svid,read_msg_->svid,read_msg_->msid,read_msg_->hash.dat[1],read_msg_->len);
+            DLOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d) (in sync)\n",svid,read_msg_->svid,read_msg_->msid,read_msg_->hash.dat[1],read_msg_->len);
             send_sync(read_msg_);} //deliver will not work in do_sync mode
           else{
             //std::cerr << "FAILED answering request for "<<read_msg_->svid<<":"<<read_msg_->msid<<" from "<<svid<<" (message not found in:"<<peer_path<<")\n";
-            LOG("%04X FAILED answering request for %04X:%08X (not found in %08X)\n",svid,read_msg_->svid,read_msg_->msid,peer_path);}}
+            DLOG("%04X FAILED answering request for %04X:%08X (not found in %08X)\n",svid,read_msg_->svid,read_msg_->msid,peer_path);}}
         else{
           message_ptr msg=server_.message_find(read_msg_,svid);
           if(msg!=nullmsg){
             if(msg->len>message::header_length){
               if(msg->sent.find(svid)!=msg->sent.end()){
                 //TODO, after reconnecting peer missed messages :-(
-                LOG("%04X REJECTING download request for %04X:%08X\n",svid,msg->svid,msg->msid);}
+                DLOG("%04X REJECTING download request for %04X:%08X\n",svid,msg->svid,msg->msid);}
               else{
-                LOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
+                DLOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
 #ifdef DEBUG
                 boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
 #endif
                 deliver(msg);}} // must force deliver without checks
             else{ // no real message available
               //std::cerr << "BAD get request from " << std::to_string(svid) << "\n";
-              LOG("%04X BAD get request\n",svid);}}
+              DLOG("%04X BAD get request\n",svid);}}
           else{// concider loading from db if available
             //std::cerr <<"MESSAGE "<< read_msg_->svid <<":"<< read_msg_->msid <<" not found, concider loading from db\n\n\n";
-            LOG("%04X MESSAGE %04X:%08X not found, concider loading from db\n\n\n",svid,
+            DLOG("%04X MESSAGE %04X:%08X not found, concider loading from db\n\n\n",svid,
               read_msg_->svid,read_msg_->msid);}}}
       else if(read_msg_->data[0]==MSGTYPE_HEA){
 	write_headers();}
@@ -436,18 +436,18 @@ Aborted
       else if(read_msg_->data[0]==MSGTYPE_PAT){ //set current sync block
         memcpy(&peer_path,read_msg_->data+1,4);
 	//std::cerr<<"DEBUG, got sync path "<<peer_path<<"\n";
-	LOG("%04X DEBUG, got sync path %08X\n",svid,peer_path);}
+	DLOG("%04X DEBUG, got sync path %08X\n",svid,peer_path);}
       else if(read_msg_->data[0]==MSGTYPE_SOK){
         uint32_t now;
         memcpy(&now,read_msg_->data+1,4);
         //std::cerr << "Authenticated, peer in sync at "<<now<<"\n";
-        LOG("%04X Authenticated, peer in sync at %08X\n",svid,now);
+        ELOG("%04X Authenticated, peer in sync at %08X\n",svid,now);
         update_sync();
         do_sync=0;}
       else{
         int n=read_msg_->data[0];
         //std::cerr << "ERROR message type " << std::to_string(n) << "received \n";
-        LOG("%04X ERROR message type %02X received\n",svid,n);
+        ELOG("%04X ERROR message type %02X received\n",svid,n);
         leave();
         return;}
       read_msg_ = boost::make_shared<message>();
@@ -456,7 +456,7 @@ Aborted
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));}
     else{
       if(read_msg_->data[0]==MSGTYPE_STP){
-        LOG("%04X PEER in block mode\n",svid);
+        DLOG("%04X PEER in block mode\n",svid);
         //could enter a different (sync) read sequence here;
         //read_msg_->data=(uint8_t*)std::realloc(read_msg_->data,read_msg_->len);
         assert(read_msg_->len==1+SHA256_DIGEST_LENGTH);
@@ -465,7 +465,7 @@ Aborted
           boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_MSP){
-        LOG("%04X READ msglist header\n",svid);
+        DLOG("%04X READ msglist header\n",svid);
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_msglist,shared_from_this(),boost::asio::placeholders::error));
@@ -473,20 +473,20 @@ Aborted
       if(read_msg_->data[0]==MSGTYPE_USR){
         //FIXME, accept only if needed !!
         //std::cerr << "READ bank "<<read_msg_->svid<<"["<<read_msg_->len<<"] \n";
-        LOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
+        DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
           boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_BLK){
-        LOG("%04X READ block header\n",svid);
+        DLOG("%04X READ block header\n",svid);
         assert(read_msg_->len==4+64+10+sizeof(header_t) || read_msg_->len==4+64+10);
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_block,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_NHD){
-        LOG("%04X READ next header\n",svid);
+        DLOG("%04X READ next header\n",svid);
         assert(read_msg_->len==8+SHA256_DIGEST_LENGTH+sizeof(headlink_t));
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
@@ -513,7 +513,7 @@ Aborted
       data.append((const char*)&(*it),sizeof(uint64_t));}
     message_ptr put_msg(new message(data.size()));
     memcpy(put_msg->data,data.c_str(),data.size());
-    LOG("%04X SENDING update with %d bytes\n",svid,(int)data.size());
+    DLOG("%04X SENDING update with %d bytes\n",svid,(int)data.size());
     send_sync(put_msg);
   }
 
@@ -522,13 +522,13 @@ Aborted
     memcpy(&from,read_msg_->data+1,4);
     uint32_t to=sync_hs.head.now;
     if(from>to){ // expect _NHR
-      LOG("%04X SENDING block header %08X\n",svid,from); 
+      DLOG("%04X SENDING block header %08X\n",svid,from); 
       message_ptr put_msg(new message(8+SHA256_DIGEST_LENGTH+sizeof(headlink_t)));
       headlink_t link;
       servers linkservers;
       linkservers.now=from;
       if(!linkservers.header_get()){
-	LOG("%04X ERROR, failed to provide header links\n",svid);
+	ELOG("%04X ERROR, failed to provide header links\n",svid);
         leave(); // consider updating client
         return;}
       put_msg->data[0]=MSGTYPE_NHD;
@@ -541,11 +541,11 @@ Aborted
     uint32_t num=((to-from)/BLOCKSEC)-1;
     if(num<=0){
       //std::cerr<<"ERROR, failed to provide correct request (from:"<<from<<" to:"<<to<<")\n";
-      LOG("%04X ERROR, failed to provide correct request (from:%08X to:%08X)\n",svid,from,to);
+      ELOG("%04X ERROR, failed to provide correct request (from:%08X to:%08X)\n",svid,from,to);
       leave(); // consider updateing client
       return;}
     //std::cerr<<"SENDING block headers starting after "<<from<<" and ending before "<<to<<" ("<<num<<")\n"; 
-    LOG("%04X SENDING block headers starting after %08X and ending before %08X (num:%d)\n",svid,from,to,num); 
+    DLOG("%04X SENDING block headers starting after %08X and ending before %08X (num:%d)\n",svid,from,to,num); 
     message_ptr put_msg(new message(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*num));
     char* data=(char*)put_msg->data;
     for(uint32_t now=from+BLOCKSEC;now<to;now+=BLOCKSEC){
@@ -553,7 +553,7 @@ Aborted
       servers linkservers;
       linkservers.now=now;
       if(!linkservers.header_get()){
-	LOG("%04X ERROR, failed to provide header links\n",svid);
+	ELOG("%04X ERROR, failed to provide header links\n",svid);
         leave(); // consider updateing client
         return;}
       if(now==from+BLOCKSEC){
@@ -569,7 +569,7 @@ Aborted
   void request_next_headers(uint32_t now) //WARNING, this requests a not validated header
   { if(peer_hs.head.now>=now){ // this peer should send this header anytime soon
       return;}
-    LOG("%04X SENDING block header request for %08X\n",svid,now);
+    DLOG("%04X SENDING block header request for %08X\n",svid,now);
     message_ptr put_msg(new message());
     put_msg->data[0]=MSGTYPE_NHR;
     memcpy(put_msg->data+1,&now,4);
@@ -593,7 +593,7 @@ Aborted
   //void handle_next_headers(const boost::system::error_code& error,uint32_t next_now,uint8_t* next_nowhash)
   void handle_next_header(const boost::system::error_code& error)
   { if(error){
-      LOG("%04X ERROR reading next headers\n",svid);
+      ELOG("%04X ERROR reading next headers\n",svid);
       leave();
       return;}
     //if(read_msg_->len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)+8)){
@@ -603,7 +603,7 @@ Aborted
     uint32_t from;
     memcpy(&from,read_msg_->data+1,4);
     char* data=(char*)read_msg_->data+8;
-    LOG("%04X PROCESSING block header request\n",svid);
+    DLOG("%04X PROCESSING block header request\n",svid);
     servers peer_ls;
     headlink_t* link=(headlink_t*)(data+SHA256_DIGEST_LENGTH);
     peer_ls.loadlink(*link,from,data);
@@ -611,9 +611,9 @@ Aborted
       std::cerr << "ERROR, initial oldhash mismatch :-(\n";
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,peer_ls.oldhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      DLOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,next_nowhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      DLOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       leave();
       std::cerr << "\nMaybe start syncing from an older block (peer will disconnect)\n\n";
       leave();
@@ -632,12 +632,12 @@ Aborted
 
   void handle_read_headers()
   { uint32_t to=peer_hs.head.now;
-    LOG("%04X READ HEADERS\n",svid);
+    DLOG("%04X READ HEADERS\n",svid);
     servers sync_ls; //FIXME, use only the header data not "servers"
     sync_ls.loadhead(sync_hs.head);
     server_.peer_.lock();
     if(server_.headers.size()){
-      LOG("%04X USE last header\n",svid);
+      DLOG("%04X USE last header\n",svid);
       sync_ls=server_.headers.back();} // FIXME, use pointers/references maybe
     server_.peer_.unlock();
     uint32_t from=sync_ls.now;
@@ -649,17 +649,17 @@ Aborted
     if(num>1){
       //if(server_.slow_sync(false,headers)<0){
       //  return;}
-      LOG("%04X SENDING block headers request\n",svid);
+      DLOG("%04X SENDING block headers request\n",svid);
       message_ptr put_msg(new message());
       put_msg->data[0]=MSGTYPE_HEA;
       memcpy(put_msg->data+1,&from,4);
       send_sync(put_msg);
       //std::cerr<<"READING block headers starting after "<<from<<" and ending before "<<to<<" ("<<(num-1)<<")\n"; 
-      LOG("%04X READING block headers starting after %08X and ending before %08X (num:%d)\n",svid,from,to,num-1); 
+      DLOG("%04X READING block headers starting after %08X and ending before %08X (num:%d)\n",svid,from,to,num-1); 
       char* data=(char*)malloc(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)); assert(data!=NULL);
       int len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));
       if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1))){
-        LOG("%04X READ headers error\n",svid);
+        ELOG("%04X READ headers error\n",svid);
         free(data);
         leave();
         return;}
@@ -667,9 +667,9 @@ Aborted
       //  std::cerr << "ERROR, initial oldhash mismatch :-(\n";
       //  char hash[2*SHA256_DIGEST_LENGTH];
       //  ed25519_key2text(hash,data,SHA256_DIGEST_LENGTH);
-      //  LOG("%04X OLDHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      //  DLOG("%04X OLDHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       //  ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-      //  LOG("%04X OLDHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      //  DLOG("%04X OLDHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       //  free(data);
       //  leave();
       //  return;}
@@ -686,12 +686,12 @@ Aborted
         } //assert(i==num-1);
       free(data);
       if(memcmp(headers[num-2].nowhash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
-        LOG("%04X ERROR, hashing header chain :-(\n",svid);
+        ELOG("%04X ERROR, hashing header chain :-(\n",svid);
         char hash[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(hash,headers[num-2].nowhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X NOWHASH nowhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X NOWHASH nowhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X NOWHASH oldhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X NOWHASH oldhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         leave();
         return;}}
     headers[num-1].loadhead(peer_hs.head);
@@ -700,16 +700,16 @@ Aborted
     //  leave();
     //  return;}
     if(memcmp(headers[0].oldhash,sync_ls.nowhash,SHA256_DIGEST_LENGTH)){
-      LOG("%04X ERROR, initial oldhash mismatch :-(\n",svid);
+      ELOG("%04X ERROR, initial oldhash mismatch :-(\n",svid);
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,headers[0].oldhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,sync_ls.nowhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       leave();
-      LOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
+      ELOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
       return;}
-    LOG("%04X HASHES loaded\n",svid);
+    DLOG("%04X HASHES loaded\n",svid);
     //server_.slow_sync(true,headers);
     server_.add_headers(headers);
     // send current sync path
@@ -729,7 +729,7 @@ Aborted
     memcpy(&header.now,read_msg_->data+1,4);
     if(!header.header_get()){
       //std::cerr<<"FAILED to read header "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
-      LOG("%04X FAILED to read header %08X for svid: %04X\n",svid,header.now,svid); //TODO, send error
+      DLOG("%04X FAILED to read header %08X for svid: %04X\n",svid,header.now,svid); //TODO, send error
       return;}
     int len=8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH);
     message_ptr put_msg(new message(len));
@@ -738,23 +738,23 @@ Aborted
     memcpy(put_msg->data+4,&header.now,4);
     if(header.msgl_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
       //std::cerr<<"FAILED to read msglist "<<header.now<<" for svid:"<<svid<<"\n"; //TODO, send error
-      LOG("%04X FAILED to read msglist %08X\n",svid,header.now); //TODO, send error
+      DLOG("%04X FAILED to read msglist %08X\n",svid,header.now); //TODO, send error
       return;}
     //std::cerr<<"SENDING block msglist for block "<<header.now<<" to svid:"<<svid<<"\n";
-    LOG("%04X SENDING block msglist %08X\n",svid,header.now); //TODO, send error
+    DLOG("%04X SENDING block msglist %08X\n",svid,header.now); //TODO, send error
     send_sync(put_msg);
   }
 
   void handle_read_msglist(const boost::system::error_code& error)
   { if(error){
-      LOG("%04X ERROR reading msglist\n",svid);
+      ELOG("%04X ERROR reading msglist\n",svid);
       leave();
       return;}
     servers header;
     assert(read_msg_->data!=NULL);
     memcpy(&header.now,read_msg_->data+4,4);
     if(server_.get_msglist!=header.now){
-      LOG("%04X ERROR got wrong msglist id\n",svid); // consider updating server
+      ELOG("%04X ERROR got wrong msglist id\n",svid); // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
@@ -762,19 +762,19 @@ Aborted
       return;}
     header.header_get();
     if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
-      LOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
+      ELOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
     if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){
-      LOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
+      ELOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,read_msg_->data+8,SHA256_DIGEST_LENGTH);
-      LOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,header.msghash,SHA256_DIGEST_LENGTH);
-      LOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
@@ -787,7 +787,7 @@ Aborted
     //header.msgl_hash(map);
     ////if(!header.msg_check(map)){
     //if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)){ //check again after hash calculation
-    //  LOG("%04X ERROR msghash check failed\n",svid); // consider updating server
+    //  ELOG("%04X ERROR msghash check failed\n",svid); // consider updating server
     //  read_msg_ = boost::make_shared<message>();
     //  boost::asio::async_read(socket_,
     //    boost::asio::buffer(read_msg_->data,message::header_length),
@@ -811,14 +811,14 @@ Aborted
 //FIXME !!!
 
     if(1+(srvs_.now-path)/BLOCKSEC>MAX_UNDO){
-      LOG("%04X ERROR, too old sync point\n",svid);
+      ELOG("%04X ERROR, too old sync point\n",svid);
       leave();
       return;}
     //check the numer of users at block time
     servers s;
     s.get(path);
     if(bank>=s.nodes.size()){
-      LOG("%04X ERROR, bad bank at sync point\n",svid);
+      ELOG("%04X ERROR, bad bank at sync point\n",svid);
       leave();
       return;}
     std::vector<int> ud;
@@ -829,7 +829,7 @@ Aborted
     int fd=open(filename,O_RDONLY);
     int ld=0;
     if(fd<0){
-      LOG("%04X ERROR, failed to open bank, weird !!!\n",svid);
+      ELOG("%04X ERROR, failed to open bank, weird !!!\n",svid);
       leave();
       return;}
     for(uint32_t block=path+BLOCKSEC;block<=srvs_.now;block++){
@@ -837,7 +837,7 @@ Aborted
       int uf=open(filename,O_RDONLY);
       if(uf<0){
         continue;}
-      LOG("%04X USING bank %04X block %08X undo %s\n",svid,bank,path,filename);
+      DLOG("%04X USING bank %04X block %08X undo %s\n",svid,bank,path,filename);
       ud.push_back(uf);}
     if(ud.size()){
       ld=ud.back();}
@@ -863,7 +863,7 @@ Aborted
         for(auto it=ud.begin();it!=ud.end();it++,junk++){
           read(*it,(char*)u,sizeof(user_t));
           if(u->msid){
-            LOG("%04X USING bank %04X undo user %08X file %d\n",svid,bank,user,junk);
+            DLOG("%04X USING bank %04X undo user %08X file %d\n",svid,bank,user,junk);
             lseek(fd,sizeof(user_t),SEEK_CUR);
             for(it++;it!=ud.end();it++){
               lseek(*it,sizeof(user_t),SEEK_CUR);}
@@ -878,23 +878,25 @@ Aborted
             memcpy((char*)u,&v,sizeof(user_t));}}
         NEXTUSER:;
         //print user
-        LOG("%04X USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",svid,
+        DLOG("%04X USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",svid,
           user,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight,*((uint32_t*)(u->csum)));
         weight+=u->weight;
         //SHA256_Update(&sha256,u,sizeof(user_t));
         //FIXME, debug only !!!
+#ifndef NDEBUG
         { user_t n;
           memcpy(&n,u,sizeof(user_t));
           server_.last_srvs_.user_csum(n,bank,user);
           if(memcmp(n.csum,u->csum,32)){
-            LOG("%04X ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",svid,user,
+            ELOG("%04X ERROR !!!, checksum mismatch for user %08X [%08X<>%08X]\n",svid,user,
               *((uint32_t*)(n.csum)),*((uint32_t*)(u->csum)));
             //exit(-1);
             leave();
             return;}
         }
+#endif
         server_.last_srvs_.xor4(csum,u->csum);}
-      LOG("%04X SENDING bank %04X block %08X chunk %08X max user %08X sum %016lX hash %08X\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum));
+      DLOG("%04X SENDING bank %04X block %08X chunk %08X max user %08X sum %016lX hash %08X\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum));
       send_sync(put_msg); // send even if we have errors
       if(user==users){
         //uint8_t hash[32];
@@ -902,12 +904,12 @@ Aborted
 //FIXME, should compare with previous hash !!!
         if(s.nodes[bank].weight!=weight){
           //unlink(filename); //TODO, enable this later
-          LOG("%04X ERROR sending bank %04X bad sum %016lX<>%016lX\n",svid,bank,s.nodes[bank].weight,weight);
+          ELOG("%04X ERROR sending bank %04X bad sum %016lX<>%016lX\n",svid,bank,s.nodes[bank].weight,weight);
           leave();
           break;}
         if(memcmp(s.nodes[bank].hash,csum,32)){
           //unlink(filename); //TODO, enable this later
-          LOG("%04X ERROR sending bank %04X (bad hash)\n",svid,bank);
+          ELOG("%04X ERROR sending bank %04X (bad hash)\n",svid,bank);
           leave();
           break;}}}
     close(fd);
@@ -923,11 +925,11 @@ Aborted
     static uint64_t csum[4]={0,0,0,0};
     int fd;
     if(error){
-      LOG("%04X ERROR reading message\n",svid);
+      ELOG("%04X ERROR reading message\n",svid);
       leave();
       return;}
     if(!server_.do_sync){
-      LOG("%04X DEBUG ignore usr message\n",svid);
+      DLOG("%04X DEBUG ignore usr message\n",svid);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
@@ -937,7 +939,7 @@ Aborted
     uint16_t bank=read_msg_->svid;
     if(!bank || bank>=server_.last_srvs_.nodes.size()){
       //std::cerr << "ERROR reading bank "<<bank<<" (bad svid)\n";
-      LOG("%04X ERROR reading bank %04X (bad num)\n",svid,bank);
+      ELOG("%04X ERROR reading bank %04X (bad num)\n",svid,bank);
       leave();
       return;}
     //if(!read_msg_->msid || read_msg_->msid>=server_.last_srvs_.now){
@@ -946,22 +948,22 @@ Aborted
     //  return;}
     if(read_msg_->len+0x10000*read_msg_->msid>server_.last_srvs_.nodes[bank].users){
       //std::cerr << "ERROR reading bank "<<bank<<" (too many users)\n";
-      LOG("%04X ERROR reading bank %04X (too many users)\n",svid,bank);
+      ELOG("%04X ERROR reading bank %04X (too many users)\n",svid,bank);
       leave();
       return;}
     //std::cerr << "NEED bank "<<bank<<" ?\n";
-    //LOG("%04X NEED bank %04X ?\n",svid,bank);
+    //DLOG("%04X NEED bank %04X ?\n",svid,bank);
     uint64_t hnum=server_.need_bank(bank);
     if(!hnum){
       //std::cerr << "NEED bank "<<bank<<" NO\n";
-      LOG("%04X NO NEED for bank %04X\n",svid,bank);
+      DLOG("%04X NO NEED for bank %04X\n",svid,bank);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
     //std::cerr << "PROCESSING bank "<<bank<<"\n";
-    LOG("%04X PROCESSING bank %04X\n",svid,bank);
+    DLOG("%04X PROCESSING bank %04X\n",svid,bank);
     char filename[64];
     sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
     if(!read_msg_->msid){
@@ -975,29 +977,29 @@ Aborted
       if(last_bank!=bank||last_msid!=read_msg_->msid-1){
         unlink(filename);
         //std::cerr << "ERROR reading bank "<<bank<<" (incorrect message order)\n";
-        LOG("%04X ERROR reading bank %04X (incorrect message order)\n",svid,bank);
+        ELOG("%04X ERROR reading bank %04X (incorrect message order)\n",svid,bank);
         leave();
         return;}
       last_msid=read_msg_->msid;
       fd=open(filename,O_WRONLY|O_APPEND,0644);}
     if(fd<0){ //trow or something :-)
       //std::cerr << "ERROR creating bank "<<bank<<" file\n";
-      LOG("%04X ERROR creating bank %04X file\n",svid,bank);
+      ELOG("%04X ERROR creating bank %04X file\n",svid,bank);
       exit(-1);}
     //if sending user_t without csum, must split this into individual writes
     if((int)(read_msg_->len*sizeof(user_t))!=write(fd,read_msg_->data+8,read_msg_->len*sizeof(user_t))){
       close(fd);
       unlink(filename);
       //std::cerr << "ERROR writing bank "<<bank<<" file\n";
-      LOG("%04X ERROR writing bank %04X file\n",svid,bank);
+      ELOG("%04X ERROR writing bank %04X file\n",svid,bank);
       exit(-1);}
     close(fd);
     user_t* u=(user_t*)(read_msg_->data+8);
     uint32_t uid=0x10000*read_msg_->msid;
     for(uint32_t i=0;i<read_msg_->len;i++,u++,uid++){
-      //LOG("%04X USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",svid,
+      //DLOG("%04X USER:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",svid,
       //  uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
-      LOG("%04X USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",svid,
+      DLOG("%04X USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",svid,
         uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight,*((uint32_t*)(u->csum)));
       weight+=u->weight;
       //SHA256_Update(&sha256,u,sizeof(user_t));
@@ -1009,30 +1011,30 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    LOG("%04X GOT bank %04X users %08X sum %016lX hash %08X\n",svid,bank,uid,weight,*((uint32_t*)csum));
+    DLOG("%04X GOT bank %04X users %08X sum %016lX hash %08X\n",svid,bank,uid,weight,csum[0]&0xFFFFFFFF);
     //uint8_t hash[32];
     //SHA256_Final(hash,&sha256);
     //if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32))
     if(server_.last_srvs_.nodes[bank].weight!=weight){
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad sum)\n";
-      LOG("%04X ERROR reading bank %04X (bad sum)\n",svid,bank);
+      ELOG("%04X ERROR reading bank %04X (bad sum)\n",svid,bank);
       leave();
       return;}
     if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))){
       //unlink(filename); //TODO, enable this later
       //std::cerr << "ERROR reading bank "<<bank<<" (bad hash)\n";
-      LOG("%04X ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",svid,bank,
-        *((uint32_t*)server_.last_srvs_.nodes[bank].hash),*((uint32_t*)csum));
+      uint32_t* h=(uint32_t*)server_.last_srvs_.nodes[bank].hash;
+      ELOG("%04X ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",svid,bank,*h,(uint32_t)(csum[0]&0xFFFFFFFF));
       leave();
       return;}
     char new_name[64];
     sprintf(new_name,"usr/%04X.dat",bank);
     rename(filename,new_name);
     //std::cerr << "PROCESSED bank "<<bank<<"\n";
-    LOG("%04X PROCESSED bank %04X\n",svid,bank);
+    DLOG("%04X PROCESSED bank %04X\n",svid,bank);
     server_.have_bank(hnum);
-    LOG("%04X CONTINUE after bank processing\n",svid);
+    DLOG("%04X CONTINUE after bank processing\n",svid);
     read_msg_ = boost::make_shared<message>();
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1043,15 +1045,15 @@ Aborted
   { uint32_t now;
     assert(read_msg_->data!=NULL);
     memcpy(&now,read_msg_->data+1,4);
-    LOG("%04X SENDING block servers for block %08X\n",svid,now);
+    DLOG("%04X SENDING block servers for block %08X\n",svid,now);
     if(server_.last_srvs_.now!=now){
       //FIXME, try getting data from repository
-      LOG("%04X ERROR, bad time %08X<>%08X\n",svid,server_.last_srvs_.now,now);
+      ELOG("%04X ERROR, bad time %08X<>%08X\n",svid,server_.last_srvs_.now,now);
       leave();
       return;}
     message_ptr put_msg(new message(server_.last_srvs_.nod*sizeof(node_t)));
     if(!server_.last_srvs_.copy_nodes((node_t*)put_msg->data,server_.last_srvs_.nod)){
-      LOG("%04X ERROR, failed to copy nodes :-(\n",svid);
+      ELOG("%04X ERROR, failed to copy nodes :-(\n",svid);
       leave();
       return;}
     send_sync(put_msg);
@@ -1062,7 +1064,7 @@ Aborted
     if(server_.fast_sync(false,peer_hs.head,peer_nods,peer_svsi)<0){
       return;}
     //send 
-    LOG("%04X SENDING block servers request\n",svid);
+    DLOG("%04X SENDING block servers request\n",svid);
     message_ptr put_msg(new message());
     put_msg->data[0]=MSGTYPE_SER;
     memcpy(put_msg->data+1,&peer_hs.head.now,4);
@@ -1070,21 +1072,21 @@ Aborted
     peer_nods=(node_t*)malloc(peer_hs.head.nod*sizeof(node_t)); assert(peer_nods!=NULL);
     int len=boost::asio::read(socket_,boost::asio::buffer(peer_nods,peer_hs.head.nod*sizeof(node_t)));
     if(len!=(int)(peer_hs.head.nod*sizeof(node_t))){
-      LOG("%04X READ servers error\n",svid);
+      ELOG("%04X READ servers error\n",svid);
       free(peer_svsi);
       free(peer_nods);
       leave();
       return;}
     if(server_.last_srvs_.check_nodes(peer_nods,peer_hs.head.nod,peer_hs.head.nodhash)){
-      LOG("%04X SERVERS incompatible with hash\n",svid);
+      ELOG("%04X SERVERS incompatible with hash\n",svid);
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,sync_hs.head.nodhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       free(peer_svsi);
       free(peer_nods);
       leave();
       return;}
-    LOG("%04X FINISH SYNC\n",svid);
+    DLOG("%04X FINISH SYNC\n",svid);
     server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
     free(peer_svsi);
     free(peer_nods);
@@ -1095,31 +1097,31 @@ Aborted
     uint32_t blocknow=now-(now%BLOCKSEC);
     msid=read_msg_->msid;
     svid=read_msg_->svid;
-    LOG("%04X PEER HEADER %04X:\n",svid,svid);
+    DLOG("%04X PEER HEADER %04X:\n",svid,svid);
     assert(read_msg_->data!=NULL);
     memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
     srvs_.header_print(peer_hs.head);
     //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
-    if(read_msg_->svid==opts_.svid){ LOG("%04X ERROR: connecting to myself\n",svid);
+    if(read_msg_->svid==opts_.svid){ DLOG("%04X ERROR: connecting to myself\n",svid);
       return(0);}
-    if(server_.duplicate(shared_from_this())){ LOG("%04X ERROR: server already connected\n",svid);
+    if(server_.duplicate(shared_from_this())){ DLOG("%04X ERROR: server already connected\n",svid);
       return(0);}
-    if(peer_hs.head.nod>srvs_.nodes.size() && incoming_){ LOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
+    if(peer_hs.head.nod>srvs_.nodes.size() && incoming_){ DLOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
       return(0);}
     if(read_msg_->now>now+2 || read_msg_->now<now-2){
-      LOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
+      ELOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
       return(0);}
     if(peer_hs.msid>server_.msid_){ //FIXME, we will check this later, maybe not needed here
       //std::cerr<<"WARNING, possible message loss, run full resync ("<<peer_hs.msid<<">"<<server_.msid_<<")\n";
-      LOG("%04X WARNING, possible message loss (my msid peer:%08X>me:%08X)\n",svid,peer_hs.msid,server_.msid_);}
+      ELOG("%04X WARNING, possible message loss (my msid peer:%08X>me:%08X)\n",svid,peer_hs.msid,server_.msid_);}
     if(peer_hs.msid && peer_hs.msid==server_.msid_ && server_.msid_==srvs_.nodes[opts_.svid].msid &&
        memcmp(peer_hs.msha,srvs_.nodes[opts_.svid].msha,SHA256_DIGEST_LENGTH)){ //FIXME, we should check this later, maybe not needed
       char hash[2*SHA256_DIGEST_LENGTH];
-      LOG("%04X WARNING, last message hash mismatch, should run full resync\n",svid);
+      ELOG("%04X WARNING, last message hash mismatch, should run full resync\n",svid);
       ed25519_key2text(hash,srvs_.nodes[opts_.svid].msha,SHA256_DIGEST_LENGTH);
-      LOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,peer_hs.msha,SHA256_DIGEST_LENGTH);
-      LOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);}
+      ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);}
     if(incoming_){
       message_ptr sync_msg=server_.write_handshake(svid,sync_hs); // sets sync_hs
       sync_msg->print("; send welcome");
@@ -1127,64 +1129,64 @@ Aborted
     if(peer_hs.head.now==sync_hs.head.now){
       if(memcmp(peer_hs.head.oldhash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
         char hash[2*SHA256_DIGEST_LENGTH];
-        LOG("%04X ERROR oldhash mismatch, FIXME, move back more blocks to sync\n",svid);
+        ELOG("%04X ERROR oldhash mismatch, FIXME, move back more blocks to sync\n",svid);
         ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         return(0);}
       if(memcmp(peer_hs.head.nowhash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH)){
         char hash[2*SHA256_DIGEST_LENGTH];
-        LOG("%04X WARNING nowhash mismatch, not tested :-( move back one block to sync\n",svid);
+        ELOG("%04X WARNING nowhash mismatch, not tested :-( move back one block to sync\n",svid);
         ed25519_key2text(hash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-        LOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+        ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         return(0);}}
     //if(!server_.do_sync){ //we are in sync
     if(!sync_hs.do_sync){ //we are in sync
       if(peer_hs.head.now>sync_hs.head.now){
-        LOG("%04X ERROR not ready to connect with this server\n",svid);
+        ELOG("%04X ERROR not ready to connect with this server\n",svid);
         return(0);}
       //if(peer_hs.head.now<sync_hs.head.now){
       if(peer_hs.do_sync){
-        LOG("%04X Authenticated, provide sync data\n",svid);
+        ELOG("%04X Authenticated, provide sync data\n",svid);
         //write_sync(); // peer will disconnect if peer does not want the data
 	int vok=sync_hs.head.vok;
 	int vno=sync_hs.head.vno;
         int size=sizeof(svsi_t)*(vok+vno);
         message_ptr put_msg(new message(size));
         server_.last_srvs_.get_signatures(sync_hs.head.now,put_msg->data,vok,vno);//TODO, check if server_.last_srvs_ has public keys
-        LOG("%04X SENDING last block signatures ok:%d+no:%d (%d bytes)\n",svid,vok,vno,size);
+        DLOG("%04X SENDING last block signatures ok:%d+no:%d (%d bytes)\n",svid,vok,vno,size);
         send_sync(put_msg);
         return(1);}
       else{
-        LOG("%04X Authenticated, peer in sync\n",svid);
+        ELOG("%04X Authenticated, peer in sync\n",svid);
         update_sync();
         do_sync=0;}
       return(1);}
     // try syncing from this server
     //if(peer_hs.head.now!=srvs_.now-BLOCKSEC)
     if(peer_hs.head.now!=blocknow-BLOCKSEC || peer_hs.do_sync){
-      LOG("%04X PEER not in sync\n",svid);
+      ELOG("%04X PEER not in sync\n",svid);
       return(0);}
     //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins))
     if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
-      LOG("%04X PEER not enough signatures\n",svid);
+      ELOG("%04X PEER not enough signatures\n",svid);
       return(0);}
-    LOG("%04X Authenticated, expecting sync data (%u bytes)\n",svid,
+    DLOG("%04X Authenticated, expecting sync data (%u bytes)\n",svid,
       (uint32_t)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));
     peer_svsi=(svsi_t*)malloc((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)); //FIXME, send only vok
     int len=boost::asio::read(socket_,boost::asio::buffer(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));
     if(len!=(int)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))){
-      LOG("%04X READ block signatures error\n",svid);
+      ELOG("%04X READ block signatures error\n",svid);
       free(peer_svsi);
       return(0);}
-    LOG("%04X BLOCK sigatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
+    DLOG("%04X BLOCK sigatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
     server_.last_srvs_.check_signatures(peer_hs.head,peer_svsi);//TODO, check if server_.last_srvs_ has public keys
     //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
     if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
-      LOG("%04X READ not enough signatures after validaiton\n",svid);
+      ELOG("%04X READ not enough signatures after validaiton\n",svid);
       free(peer_svsi);
       return(0);}
     //now decide if You want to sync to last stage first ; or load missing blocks and messages first, You can decide based on size of databases and time to next block
@@ -1202,19 +1204,19 @@ Aborted
   void handle_read_body(const boost::system::error_code& error)
   { extern message_ptr nullmsg;
     if(error){
-      LOG("%04X ERROR reading message\n",svid);
+      ELOG("%04X ERROR reading message\n",svid);
       leave();
       return;}
     read_msg_->read_head();
     if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
-      LOG("%04X ERROR reading head\n",svid);
+      ELOG("%04X ERROR reading head\n",svid);
       leave();
       return;}
     assert(read_msg_->data[0]!=MSGTYPE_BLK);
     uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
     if(read_msg_->data[0]==MSGTYPE_MSG){
       if(server_.last_srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid){
-        LOG("%04X IGNORE message with too old msid %04X:%08X<=%08X\n",svid,
+        DLOG("%04X IGNORE message with too old msid %04X:%08X<=%08X\n",svid,
           read_msg_->svid,read_msg_->msid,server_.last_srvs_.nodes[read_msg_->svid].msid);
         read_msg_ = boost::make_shared<message>();
         boost::asio::async_read(socket_,
@@ -1228,17 +1230,17 @@ Aborted
         else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
           msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}
         else{
-          LOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
+          DLOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
             read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
           read_msg_ = boost::make_shared<message>();
           boost::asio::async_read(socket_,
             boost::asio::buffer(read_msg_->data,message::header_length),
             boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
           return;}
-        LOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
+        DLOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
           read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);}
       if(!read_msg_->hash_tree()){
-        LOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+        DLOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         read_msg_ = boost::make_shared<message>();
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1250,7 +1252,7 @@ Aborted
     //assert(read_msg_->hash.dat[1]!=MSGTYPE_BLK);
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
       //FIXME, this can be also a double spend, do not loose it
-      LOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
+      ELOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
         srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);
       if(read_msg_->data[0]!=MSGTYPE_MSG){
         leave();
@@ -1258,7 +1260,7 @@ Aborted
       if(read_msg_->msid==server_.last_srvs_.nodes[read_msg_->svid].msid+1){
         leave();
         return;}
-      LOG("%04X store message %04X:%08X with bad signature (dbl?)\n",svid,read_msg_->svid,read_msg_->msid);
+      DLOG("%04X store message %04X:%08X with bad signature (dbl?)\n",svid,read_msg_->svid,read_msg_->msid);
       read_msg_->status|=MSGSTAT_SIG;
       server_.bad_insert(read_msg_);
       read_msg_ = boost::make_shared<message>();
@@ -1268,10 +1270,10 @@ Aborted
       return;}
     if(!svid){ // FIXME, move this to 'start()'
       if(!authenticate()){
-        LOG("%04X NOT authenticated\n",svid);
+        ELOG("%04X NOT authenticated\n",svid);
         leave();
         return;}
-      LOG("%04X CONTINUE after authentication\n",svid);
+      ELOG("%04X CONTINUE after authentication\n",svid);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
         boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1281,7 +1283,7 @@ Aborted
     if(read_msg_->hash.dat[1]==MSGTYPE_CND){
 //FIXME, move this to handle_read_candidate
       if(!parse_vote()){
-        LOG("%04X PARSE vote FAILED\n",svid);
+        ELOG("%04X PARSE vote FAILED\n",svid);
         leave();
         return;}}
     //TODO, check if correct server message number ! and update the server
@@ -1289,7 +1291,7 @@ Aborted
     //int ret=server_.message_insert(read_msg_);
     server_.message_insert(read_msg_);
     //if(server_.message_insert(read_msg_)<0){ //NEW, insert in correct containers
-    //  LOG("%04X INSERT message FAILED\n",svid);
+    //  ELOG("%04X INSERT message FAILED\n",svid);
     //  //leave();
     //  return;}
     // consider waiting here if we have too many messages to process
@@ -1300,14 +1302,14 @@ Aborted
   }
 
   void handle_read_block(const boost::system::error_code& error)
-  { LOG("%04X BLOCK, got BLOCK\n",svid);
+  { DLOG("%04X BLOCK, got BLOCK\n",svid);
     if(error || !svid){
-      LOG("%04X READ error %d %s (BLOCK)\n",svid,error.value(),error.message().c_str());
+      ELOG("%04X READ error %d %s (BLOCK)\n",svid,error.value(),error.message().c_str());
       leave();
       return;}
     if(read_msg_->len==4+64+10){ //adding missing data
       if(server_.last_srvs_.now!=read_msg_->msid){
-        LOG("%04X BLOCK READ problem, ignoring short BLK message due to msid mismatch, msid:%08X block:%08X\n",svid,read_msg_->msid,server_.last_srvs_.now);
+        DLOG("%04X BLOCK READ problem, ignoring short BLK message due to msid mismatch, msid:%08X block:%08X\n",svid,read_msg_->msid,server_.last_srvs_.now);
         read_msg_ = boost::make_shared<message>();
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data,message::header_length),
@@ -1320,30 +1322,30 @@ Aborted
     read_msg_->hash_signature();
     read_msg_->read_head();
     if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
-      LOG("%04X ERROR reading head\n",svid);
+      ELOG("%04X ERROR reading head\n",svid);
       leave();
       return;}
     if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,srvs_.nodes[read_msg_->svid].msha)){
-      LOG("%04X BLOCK signature error\n",svid);
+      ELOG("%04X BLOCK signature error\n",svid);
       leave();
       return;}
     if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      LOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
+      ELOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       leave();
       return;}
     if(read_msg_->svid==svid){
       //std::cerr << "BLOCK from peer "<<svid<<"\n";
-      LOG("%04X BLOCK\n",svid);
+      DLOG("%04X BLOCK\n",svid);
       assert(read_msg_->data!=NULL);
       memcpy(&peer_hs.head,read_msg_->data+4+64+10,sizeof(header_t));
       char hash[2*SHA256_DIGEST_LENGTH];
       //ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
       ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-      LOG("%04X BLOCK %08X %.*s from PEER\n",svid,peer_hs.head.now,2*SHA256_DIGEST_LENGTH,hash);}
-    LOG("%04X INSERT BLOCK message\n",svid);
+      DLOG("%04X BLOCK %08X %.*s from PEER\n",svid,peer_hs.head.now,2*SHA256_DIGEST_LENGTH,hash);}
+    DLOG("%04X INSERT BLOCK message\n",svid);
     server_.message_insert(read_msg_);
     //if(server_.message_insert(read_msg_)<0){ //NEW, insert in correct containers
-    //  LOG("%04X INSERT BLOCK message FAILED\n",svid);
+    //  DLOG("%04X INSERT BLOCK message FAILED\n",svid);
     //  //leave(); //do not leave because of a double spend message
     //  return;}
     read_msg_ = boost::make_shared<message>();
@@ -1356,25 +1358,27 @@ Aborted
   { SHA256_CTX sha256;
     SHA256_Init(&sha256);
     for(auto it=map.begin();it!=map.end();++it){
+#ifndef NDEBUG
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,it->second.hash,SHA256_DIGEST_LENGTH);
-      LOG("%04X HASH add %04X:%08X %.*s\n",svid,*(uint16_t*)(((char*)&it->first)+6),*(uint32_t*)(((char*)&it->first)+2),2*SHA256_DIGEST_LENGTH,sigh);
+      DLOG("%04X HASH add %04X:%08X %.*s\n",svid,*(uint16_t*)(((char*)&it->first)+6),*(uint32_t*)(((char*)&it->first)+2),2*SHA256_DIGEST_LENGTH,sigh);
+#endif
       SHA256_Update(&sha256,it->second.hash,sizeof(hash_t));}
     SHA256_Final(mhash, &sha256);
   }
 
   void handle_read_stop(const boost::system::error_code& error)
   {
-    LOG("%04X PEER got STOP\n",svid);
+    DLOG("%04X PEER got STOP\n",svid);
     if(error){
-      LOG("%04X READ error %d %s (STOP)\n",svid,error.value(),error.message().c_str());
+      ELOG("%04X READ error %d %s (STOP)\n",svid,error.value(),error.message().c_str());
       leave();
       return;}
     assert(read_msg_->data!=NULL);
     memcpy(last_message_hash,read_msg_->data+1,SHA256_DIGEST_LENGTH);
       char hash[2*SHA256_DIGEST_LENGTH]; hash[2*SHA256_DIGEST_LENGTH-1]='?';
       ed25519_key2text(hash,last_message_hash,SHA256_DIGEST_LENGTH);
-      LOG("%04X LAST HASH got %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+      DLOG("%04X LAST HASH got %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
     sync_start(false);
   }
 
@@ -1386,10 +1390,10 @@ Aborted
       BLOCK_PEER=true;}
     if(!BLOCK_SERV || !BLOCK_PEER){
       mtx_.unlock();
-      LOG("%04X PEER sync_start wait\n",svid);
+      DLOG("%04X PEER sync_start wait\n",svid);
       return;}
     mtx_.unlock(); // start synchronous communication
-    LOG("%04X PEER sync_start run (no UPDATE PEER SVID_MSID after this)\n",svid);
+    DLOG("%04X PEER sync_start run (no UPDATE PEER SVID_MSID after this)\n",svid);
     bool serv_error;
     bool peer_error;
 
@@ -1401,26 +1405,26 @@ Aborted
       write_serv_check(serv_error);
       peer_error=read_peer_check();
       if(peer_error){
-        LOG("%04X PEER SYNC problem\n",svid);
+        ELOG("%04X PEER SYNC problem\n",svid);
         write_serv_add(true);}
       if(serv_error){
-        LOG("%04X SERV SYNC problem\n",svid);
+        ELOG("%04X SERV SYNC problem\n",svid);
         serv_error=read_peer_add(true);
         write_serv_check(serv_error);}
       if(peer_error){
         peer_error=read_peer_check();}
       if(serv_error || peer_error){
-        LOG("%04X SYNC failed with %s %s\n",svid,(serv_error?"server error":""),(peer_error?"peer error":""));
+        ELOG("%04X SYNC failed with %s %s\n",svid,(serv_error?"server error":""),(peer_error?"peer error":""));
         leave();
         return;}
       sync_finish();}
     catch (std::exception& e){
-      LOG("%04X SYNC error %s\n",svid,e.what());}
+      ELOG("%04X SYNC error %s\n",svid,e.what());}
   }
 
   void write_serv_del() // send only info about missing messages first
   { std::string data;
-    LOG("%04X write_serv_del\n",svid);
+    DLOG("%04X write_serv_del\n",svid);
     uint16_t num_del=0; // this can be uint16_t;
     for(auto it=svid_msid_new.begin();it!=svid_msid_new.end();++it){
       auto pt=server_.LAST_block_svid_msgs.find(it->first); // could use svidmsid
@@ -1429,15 +1433,15 @@ Aborted
         num_del++;
         data.append((const char*)&it->first,2);
         data.append((const char*)&msid,4);
-        LOG("%04X SERV del %04X:00000000\n",svid,it->first);
+        DLOG("%04X SERV del %04X:00000000\n",svid,it->first);
         continue;}
       if(it->second>pt->second->msid){
         uint32_t msid=pt->second->msid;
         num_del++;
         data.append((const char*)&it->first,2);
         data.append((const char*)&msid,4);
-        LOG("%04X SERV del %04X:%08X\n",svid,it->first,msid);}}
-    LOG("%04X SERV del %d\n",svid,num_del);
+        DLOG("%04X SERV del %04X:%08X\n",svid,it->first,msid);}}
+    DLOG("%04X SERV del %d\n",svid,num_del);
     assert(data.size()==6*num_del);
     message_ptr put_msg(new message(2+data.size()));
     memcpy(put_msg->data,&num_del,2);
@@ -1449,7 +1453,7 @@ Aborted
 
   void read_peer_del()
   { if(2!=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,2))){
-      LOG("%04X READ read_peer_del error\n",svid);
+      ELOG("%04X READ read_peer_del error\n",svid);
       leave();
       throw("ERROR in read_peer_del\n");
       return;}
@@ -1457,18 +1461,18 @@ Aborted
     memcpy(&peer_del,read_msg_->data,2);
     PEER_block_del_start.clear();
     if(!peer_del || peer_del==0xffff){
-      LOG("%04X PEER del %s\n",svid,(peer_del?"all":"none"));}
+      DLOG("%04X PEER del %s\n",svid,(peer_del?"all":"none"));}
     else{
-      LOG("%04X PEER del %d\n",svid,peer_del);
+      DLOG("%04X PEER del %d\n",svid,peer_del);
       free(read_msg_->data);
       read_msg_->data=(uint8_t*)malloc(6*peer_del);
       read_msg_->len=6*peer_del;
       if(read_msg_->len!=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len))){
-        LOG("%04X READ read_peer_del error\n",svid);
+        ELOG("%04X READ read_peer_del error\n",svid);
         leave();
         throw("ERROR in read_peer_del\n");
         return;}
-      LOG("%04X PEER read peer del\n",svid);
+      DLOG("%04X PEER read peer del\n",svid);
       for(int i=0;i<peer_del;i++){
         uint16_t dsvid;
         uint32_t dmsid;
@@ -1476,16 +1480,16 @@ Aborted
         memcpy(&dmsid,read_msg_->data+6*i+2,4);
         PEER_block_del_start[dsvid]=dmsid;
         if(dsvid>=srvs_.nodes.size()){
-          LOG("%04X ERROR read_peer_del peersvid %04X\n",svid,dsvid);
+          ELOG("%04X ERROR read_peer_del peersvid %04X\n",svid,dsvid);
           leave();
           throw("ERROR in read_peer_del\n");
           return;}
-        LOG("%04X PEER del %04X:%08X\n",svid,dsvid,dmsid);}}
+        DLOG("%04X PEER del %04X:%08X\n",svid,dsvid,dmsid);}}
     return;
   }
 
   void write_serv_add(bool peer_error)
-  { LOG("%04X write_serv_add run\n",svid);
+  { DLOG("%04X write_serv_add run\n",svid);
     uint32_t num_add=0;
     uint16_t lastsvid=0;
     uint32_t maxmsid=0;
@@ -1510,9 +1514,9 @@ Aborted
         data.append((const char*)&mssvha,sizeof(msidsvidhash_t));
         char sigh[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(sigh,mssvha.sigh,SHA256_DIGEST_LENGTH);
-        LOG("%04X SERV add %04X:%08X %.*s\n",svid,mssvha.svid,mssvha.msid,2*SHA256_DIGEST_LENGTH,sigh);
+        DLOG("%04X SERV add %04X:%08X %.*s\n",svid,mssvha.svid,mssvha.msid,2*SHA256_DIGEST_LENGTH,sigh);
         num_add++;}}
-    LOG("%04X SERV add %d\n",svid,num_add);
+    DLOG("%04X SERV add %d\n",svid,num_add);
     assert(data.size()==sizeof(msidsvidhash_t)*num_add);
     message_ptr put_msg(new message(4+data.size()));
     memcpy(put_msg->data,&num_add,4);
@@ -1524,25 +1528,25 @@ Aborted
 
   bool read_peer_add(bool error)
   { if(4!=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,4))){
-      LOG("%04X READ read_peer_add error\n",svid);
+      ELOG("%04X READ read_peer_add error\n",svid);
       leave();
       throw("ERROR in read_peer_add\n");
       return(true);}
     memcpy(&peer_add,read_msg_->data,4);
     if(!peer_add){
-      LOG("%04X PEER add none\n",svid);}
+      DLOG("%04X PEER add none\n",svid);}
     else{
-      LOG("%04X PEER add %d\n",svid,peer_add);
+      DLOG("%04X PEER add %d\n",svid,peer_add);
       free(read_msg_->data);
       read_msg_->data=(uint8_t*)malloc(sizeof(msidsvidhash_t)*peer_add);
       read_msg_->len=sizeof(msidsvidhash_t)*peer_add;
       if(read_msg_->len!=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len))){
-        LOG("%04X READ read_peer_add error\n",svid);
+        ELOG("%04X READ read_peer_add error\n",svid);
         leave();
         throw("ERROR in read_peer_add\n");
         return(true);}}
 
-    LOG("%04X PEER read peer add\n",svid);
+    DLOG("%04X PEER read peer add\n",svid);
     PEER_block_del.clear();
     PEER_block_all.clear();
     if(!error && peer_del!=0xffff){
@@ -1563,7 +1567,9 @@ Aborted
         if(it->second->msid>maxmsid){
           PEER_block_del.insert(it->first);}
         else{
-          PEER_block_all[it->first]=*(hash_s*)it->second->sigh;}}}
+          //PEER_block_all[it->first]=*(hash_s*)it->second->sigh;
+          hash_s* hash_p=(hash_s*)it->second->sigh;
+          PEER_block_all[it->first]=*hash_p;}}}
     else{
       for(auto it=server_.LAST_block_all_msgs.begin();it!=server_.LAST_block_all_msgs.end();it++){
         PEER_block_del.insert(it->first);}}
@@ -1572,7 +1578,7 @@ Aborted
       uint64_t key=0;
       memcpy(((char*)&key)+2,read_msg_->data+sizeof(msidsvidhash_t)*i,6);
       if(*(uint16_t*)(((char*)&key)+6)>=srvs_.nodes.size()){
-        LOG("%04X ERROR read_peer_missing_messages peersvid %04X\n",svid,*(uint16_t*)(((char*)&key)+6));
+        ELOG("%04X ERROR read_peer_missing_messages peersvid %04X\n",svid,*(uint16_t*)(((char*)&key)+6));
         leave();
         throw("ERROR in read_peer_add\n");
         return(true);}
@@ -1581,22 +1587,24 @@ Aborted
       PEER_block_all[key]=*(hash_s*)(read_msg_->data+sizeof(msidsvidhash_t)*i+6);
       char sigh[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(sigh,read_msg_->data+sizeof(msidsvidhash_t)*i+6,SHA256_DIGEST_LENGTH);
-      LOG("%04X PEER add %04X:%08X %.*s\n",svid,*(uint16_t*)(((char*)&key)+6),*(uint32_t*)(((char*)&key)+2),2*SHA256_DIGEST_LENGTH,sigh);}
+      DLOG("%04X PEER add %04X:%08X %.*s\n",svid,*(uint16_t*)(((char*)&key)+6),*(uint32_t*)(((char*)&key)+2),2*SHA256_DIGEST_LENGTH,sigh);}
 
     // check data
     hash_t hash={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     message_phash(hash,PEER_block_all);
+#ifndef NDEBUG
     char hash1[2*SHA256_DIGEST_LENGTH];
     char hash2[2*SHA256_DIGEST_LENGTH];
     ed25519_key2text(hash1,last_message_hash,SHA256_DIGEST_LENGTH);
     ed25519_key2text(hash2,hash,SHA256_DIGEST_LENGTH);
-    LOG("%04X HASH check:\n  %.*s vs\n  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash1,2*SHA256_DIGEST_LENGTH,hash2);
+    DLOG("%04X HASH check:\n  %.*s vs\n  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash1,2*SHA256_DIGEST_LENGTH,hash2);
+#endif
     error=memcmp(last_message_hash,hash,SHA256_DIGEST_LENGTH);
     return(error);
   }
 
   void write_serv_check(bool error)
-  { LOG("%04X write_serv_check run\n",svid);
+  { DLOG("%04X write_serv_check run\n",svid);
     uint8_t buf[1];
     buf[0]=error;
     boost::asio::write(socket_,boost::asio::buffer(buf,1)); // ERROR handling ?
@@ -1606,23 +1614,24 @@ Aborted
   bool read_peer_check()
   { uint8_t buf[1];
     if(1!=boost::asio::read(socket_,boost::asio::buffer(buf,1))){
-      LOG("%04X READ read_peer_check error\n",svid);
+      ELOG("%04X READ read_peer_check error\n",svid);
       leave();
       throw("ERROR in read_peer_check\n");
       return(true);}
-    LOG("%04X PEER read peer check\n",svid);
+    DLOG("%04X PEER read peer check\n",svid);
     bool error=buf[0];
     return(error);
   }
 
   void sync_finish() 
-  { LOG("%04X SYNC OK\n",svid);
+  { ELOG("%04X SYNC OK\n",svid);
     mtx_.lock();
-    server_.save_candidate(BLOCK_MODE,*(hash_s*)last_message_hash,PEER_block_add,PEER_block_del,svid);
+    hash_s* hash_p=(hash_s*)last_message_hash;
+    server_.save_candidate(BLOCK_MODE,*hash_p,PEER_block_add,PEER_block_del,svid);
     if(!write_msgs_.empty()){
       //int len=message_len(write_msgs_.front());
       int len=write_msgs_.front()->len;
-      LOG("%04X send after sync [%016lX len:%d]\n",svid,*(uint64_t*)write_msgs_.front()->data,len);
+      DLOG("%04X send after sync [%016lX len:%d]\n",svid,*(uint64_t*)write_msgs_.front()->data,len);
       boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
         boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error)); }
     read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
@@ -1638,7 +1647,7 @@ Aborted
   int parse_vote() //TODO, make this function similar to handle_read_block (make this handle_read_candidate)
   { extern candidate_ptr nullcnd;
     if((read_msg_->msid!=server_.last_srvs_.now && read_msg_->msid!=srvs_.now) || read_msg_->now<read_msg_->msid || read_msg_->now>=read_msg_->msid+2*BLOCKSEC){
-      LOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
+      ELOG("%04X BLOCK TIME error now:%08X msid:%08X block[-1].now:%08X block[].now:%08X \n",svid,read_msg_->now,read_msg_->msid,server_.last_srvs_.now,srvs_.now);
       return(0);}
     hash_s cand;
     assert(read_msg_->data!=NULL);
@@ -1646,21 +1655,21 @@ Aborted
     candidate_ptr c_ptr=server_.known_candidate(cand,svid);
     char hash[2*SHA256_DIGEST_LENGTH];
     ed25519_key2text(hash,cand.hash,SHA256_DIGEST_LENGTH);
-    LOG("%04X CAND %04X %.*s (len:%d)\n",svid,read_msg_->svid,2*SHA256_DIGEST_LENGTH,hash,read_msg_->len);
+    DLOG("%04X CAND %04X %.*s (len:%d)\n",svid,read_msg_->svid,2*SHA256_DIGEST_LENGTH,hash,read_msg_->len);
     if(c_ptr==nullcnd){
-      LOG("%04X PARSE --NEW-- vote for --NEW-- candidate\n",svid);
+      DLOG("%04X PARSE --NEW-- vote for --NEW-- candidate\n",svid);
       if(read_msg_->len<4+64+10+sizeof(hash_t)+4+2){
-        LOG("%04X PARSE vote short message read FATAL\n",svid);
+        ELOG("%04X PARSE vote short message read FATAL\n",svid);
         return(0);}
       uint32_t num_del;
       uint32_t num_add;
       memcpy(&num_del,read_msg_->data+4+64+10+sizeof(hash_t),4);
       memcpy(&num_add,read_msg_->data+4+64+10+sizeof(hash_t)+4,4);
       if(!num_add && !num_del){
-        LOG("%04X PARSE vote empty change list FATAL\n",svid);
+        ELOG("%04X PARSE vote empty change list FATAL\n",svid);
         return(0);}
       if(read_msg_->len<4+64+10+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6){
-        LOG("%04X PARSE vote bad message length read FATAL (len:%d)\n",svid,(int)(4+64+10+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6));
+        ELOG("%04X PARSE vote bad message length read FATAL (len:%d)\n",svid,(int)(4+64+10+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6));
         return(0);}
       std::set<uint64_t> peer_block_del(PEER_block_del);
       std::map<uint64_t,hash_s> peer_block_add(PEER_block_add);
@@ -1680,12 +1689,12 @@ Aborted
       hash_t tmp_hash;
       message_phash(tmp_hash,peer_block_all);
       if(memcmp(cand.hash,tmp_hash,SHA256_DIGEST_LENGTH)){
-        LOG("%04X ERROR parsing hash from peer\n",svid);
+        ELOG("%04X ERROR parsing hash from peer\n",svid);
         return(0);}
-      LOG("%04X OK candidate from peer\n",svid);
+      DLOG("%04X OK candidate from peer\n",svid);
       c_ptr=server_.save_candidate(read_msg_->msid,cand,peer_block_add,peer_block_del,svid);}
     else{
-      LOG("%04X PARSE vote for known candidate\n",svid);}
+      DLOG("%04X PARSE vote for known candidate\n",svid);}
 
     //modify tail from message
     uint32_t oldlen=read_msg_->len;
@@ -1702,13 +1711,13 @@ Aborted
       for(auto it=c_ptr->msg_add.begin();it!=c_ptr->msg_add.end();it++,d+=sizeof(msidsvidhash_t)){ //have first!
         memcpy(d,((char*)&it->first)+2,6);
         memcpy(d+6,&it->second.hash,sizeof(hash_t));}
-      LOG("%04X CHANGE CAND LENGTH! [len:%d->%d]\n",svid,oldlen,read_msg_->len);
+      DLOG("%04X CHANGE CAND LENGTH! [len:%d->%d]\n",svid,oldlen,read_msg_->len);
       assert((uint32_t)(d-read_msg_->data)==read_msg_->len);}
     else{
       read_msg_->len=message::data_offset+sizeof(hash_t);
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len);}
     if(oldlen!=read_msg_->len){
-      LOG("%04X STORE DIFFERENT CAND LENGTH [len:%d->%d]\n",svid,oldlen,read_msg_->len);
+      DLOG("%04X STORE DIFFERENT CAND LENGTH [len:%d->%d]\n",svid,oldlen,read_msg_->len);
       memcpy(read_msg_->data+1,&read_msg_->len,3);}
     return(1);
   }

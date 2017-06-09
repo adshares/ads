@@ -175,7 +175,7 @@ public:
         std::cerr<<"ERROR: get log failed\n";
         offi_.unlock_user(utxs.auser);
         return;}
-      LOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,(long)slog.size());
+      DLOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,(long)slog.size());
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
       offi_.unlock_user(utxs.auser);
       return;}
@@ -189,7 +189,7 @@ public:
       else{
         path=utxs.ttime-utxs.ttime%BLOCKSEC;
         if(path>=lpath){
-          LOG("ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
+          DLOG("ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
           offi_.unlock_user(utxs.auser);
           return;}}
       //FIXME, report only completed broadcast files (<=last_path())
@@ -199,7 +199,7 @@ public:
       if(fd<0){
         size=0;
         boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
-        LOG("SENDING broadcast log %08X [empty]\n",path);
+        DLOG("SENDING broadcast log %08X [empty]\n",path);
         offi_.unlock_user(utxs.auser);
         return;}
       struct stat sb;
@@ -210,7 +210,7 @@ public:
         size=MESSAGE_CHUNK;}
       else{
         size=sb.st_size;}
-      LOG("SENDING broadcast log %08X [len:%d]\n",path,size);
+      DLOG("SENDING broadcast log %08X [len:%d]\n",path,size);
       if(!size){
         boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
         close(fd);
@@ -222,7 +222,7 @@ public:
         int len=read(fd,buf+2*sizeof(uint32_t),size);
         if(len<=0){
           close(fd);
-          LOG("ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
+          DLOG("ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
           offi_.unlock_user(utxs.auser);
           return;}
         if(!pos){
@@ -242,7 +242,7 @@ public:
       uint32_t start=block.read_start();
       int vip_tot=0;
       if(!start){
-        LOG("ERROR, failed to read block start\n");
+        DLOG("ERROR, failed to read block start\n");
         return;}
       header_t head;
       bzero(head.viphash,32);
@@ -252,7 +252,7 @@ public:
         if(block.header_get()){
           block.header(head);}
         else{
-          LOG("ERROR, failed to read block at start %08X\n",start);
+          DLOG("ERROR, failed to read block at start %08X\n",start);
           return;}
         //start with first viphash
         int len=0;
@@ -261,23 +261,23 @@ public:
         if(!len){
           char hash[65]; hash[64]='\0';
           ed25519_key2text(hash,block.viphash,32);
-          LOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
+          DLOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
           return;}
         vip_tot=len/(2+32);
         if(!block.vip_check(block.viphash,(uint8_t*)data+4,len/(2+32))){
           char hash[65]; hash[64]='\0';
           ed25519_key2text(hash,block.viphash,32);
-          LOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
+          DLOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
           free(data);
           return;}
         else{
           char hash[65]; hash[64]='\0';
           ed25519_key2text(hash,block.viphash,32);
-          LOG("INFO, sending vip keys for start viphash %.64s [len:%d]\n",hash,len);}
+          DLOG("INFO, sending vip keys for start viphash %.64s [len:%d]\n",hash,len);}
         boost::asio::write(socket_,boost::asio::buffer(data,len+4));
         free(data);}
       else if(from<start){
-        LOG("ERROR, failed to read block %08X before start %08X\n",from,start);
+        DLOG("ERROR, failed to read block %08X before start %08X\n",from,start);
         return;}
       else{
         block.now=from-BLOCKSEC;
@@ -288,7 +288,7 @@ public:
         to=time(NULL);
         to-=to%BLOCKSEC-BLOCKSEC;}
       if(from>to){
-        LOG("ERROR, no block between %08X and %08X\n",from,to);
+        DLOG("ERROR, no block between %08X and %08X\n",from,to);
         return;}
       std::string blocksstr;
       uint32_t n=0;
@@ -297,13 +297,13 @@ public:
       uint32_t trystop=from+128;
       for(block.now=from;block.now<=to;){
         if(!block.header_get()){
-          //LOG("ERROR, failed to provide block %08X\n",block.now);
+          //DLOG("ERROR, failed to provide block %08X\n",block.now);
           break;}
         if(memcmp(head.viphash,block.viphash,32)){
           newviphash=true;
           to=block.now;}
         block.header(head);
-        LOG("INFO, adding block %08X\n",block.now);
+        DLOG("INFO, adding block %08X\n",block.now);
         blocksstr.append((const char*)&head,sizeof(header_t));
 	block.now+=BLOCKSEC;
         //FIXME, user different stop criterion !!! do not stop if there are not enough signatures
@@ -314,20 +314,20 @@ public:
       block.now-=BLOCKSEC;
       blocksstr.replace(0,4,(const char*)&n,4);
       if(!n){
-        LOG("ERROR, failed to provide blocks from %08X to %08X\n",from,block.now);
+        DLOG("ERROR, failed to provide blocks from %08X to %08X\n",from,block.now);
         return;}
       else{
-        LOG("SEND %d blocks from %08X to %08X\n",(int)*((int*)blocksstr.c_str()),from,block.now);}
+        DLOG("SEND %d blocks from %08X to %08X\n",(int)*((int*)blocksstr.c_str()),from,block.now);}
       boost::asio::write(socket_,boost::asio::buffer(blocksstr.c_str(),4+n*sizeof(header_t)));
       //always send signatures for last block
       uint8_t *data=NULL;
       uint32_t nok;
       if(block.get_signatures(block.now,data,nok)){
-        LOG("INFO, sending %d signatures for block %08X\n",nok,block.now);
+        DLOG("INFO, sending %d signatures for block %08X\n",nok,block.now);
         boost::asio::write(socket_,boost::asio::buffer(data,8+nok*sizeof(svsi_t)));}
       else{ //else send 0
         //FIXME, go back and find a block with enough signatures
-        LOG("ERROR, sending no signatures for block %08X\n",block.now);
+        DLOG("ERROR, sending no signatures for block %08X\n",block.now);
         uint64_t zero=0;
         boost::asio::write(socket_,boost::asio::buffer(&zero,8));}
       free(data);
@@ -339,12 +339,12 @@ public:
         if(!len){
           char hash[65]; hash[64]='\0';
           ed25519_key2text(hash,block.viphash,32);
-          LOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
+          DLOG("ERROR, failed to provide vip keys for start viphash %.64s\n",hash);
           return;}
         if(!block.vip_check(block.viphash,(uint8_t*)data+4,len/(2+32))){
           char hash[65]; hash[64]='\0';
           ed25519_key2text(hash,block.viphash,32);
-          LOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
+          DLOG("ERROR, failed to provide %d correct vip keys for start viphash %.64s\n",len/(2+32),hash);
           free(data);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(data,4+len));
@@ -363,12 +363,12 @@ public:
       uint16_t tnum=utxs.amsid;
       msg->load_path();
       if(!msg->path || msg->path>offi_.last_path()){
-        LOG("ERROR, failed to provide txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
+        DLOG("ERROR, failed to provide txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
         return;}
       std::vector<hash_s> hashes;
       uint32_t mnum;
       if(!msg->hash_tree_get(tnum,hashes,mnum)){
-        LOG("ERROR, failed to read txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);}
+        DLOG("ERROR, failed to read txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);}
       servers srvs_;
       srvs_.now=msg->path;
       srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes);
@@ -388,7 +388,7 @@ public:
           memcpy(data+32*i,hashes[i].hash,32);}
         //boost::asio::write(socket_,boost::asio::buffer(hashes[0].hash,sizeof(hash_s)*res.hnum));
         boost::asio::write(socket_,boost::asio::buffer(data,32*res.hnum));}
-      LOG("SENT path for %08X/%04X:%08X[%04X] len:%d hashes:%d\n",res.path,res.node,res.msid,res.tnum,res.len,res.hnum);
+      DLOG("SENT path for %08X/%04X:%08X[%04X] len:%d hashes:%d\n",res.path,res.node,res.msid,res.tnum,res.len,res.hnum);
       return;}
 
     if(*buf==TXSTYPE_VIP){
@@ -399,7 +399,7 @@ public:
       if(!len){
         char hash[65]; hash[64]='\0';
         ed25519_key2text(hash,srvs_.viphash,32);
-        LOG("ERROR, failed to provide vip keys %.64s\n",hash);
+        DLOG("ERROR, failed to provide vip keys %.64s\n",hash);
         offi_.unlock_user(utxs.auser);
         return;}
       offi_.unlock_user(utxs.auser);
@@ -476,7 +476,7 @@ public:
           offi_.unlock_user(utxs.auser);
           return;}
         if(out.find(to.big)!=out.end()){
-          LOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+          DLOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
           offi_.unlock_user(utxs.auser);
           return;}
         if(!offi_.check_user((uint16_t)tbank,tuser)){
@@ -511,7 +511,7 @@ public:
       if(utxs.bbank!=offi_.svid){
         uint32_t now=time(NULL);
         if(now%BLOCKSEC>BLOCKSEC/2){
-          LOG("ERROR: bad timing for remote account request, try after %d seconds\n",
+          DLOG("ERROR: bad timing for remote account request, try after %d seconds\n",
             BLOCKSEC-now%BLOCKSEC);
           offi_.unlock_user(utxs.auser);
           return;}
@@ -563,7 +563,7 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.auser && utxs.bbank){
-        LOG("ERROR: only admin can change keys for DBL nodes (%04X) \n",utxs.bbank);
+        DLOG("ERROR: only admin can change keys for DBL nodes (%04X) \n",utxs.bbank);
         offi_.unlock_user(utxs.auser);
         return;}
       buf=(char*)std::realloc(buf,utxs.size);
@@ -580,7 +580,7 @@ public:
       // add bank logic here
       if(utxs.bbank == offi_.svid){
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users can set only higher bits
-	  LOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
+	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
           offi_.unlock_user(utxs.auser);
           return;}}
       fee=TXS_SUS_FEE;}
@@ -593,7 +593,7 @@ public:
       // add bank logic here
       if(utxs.bbank == offi_.svid){
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users set only higher bits
-	  LOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
+	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
           offi_.unlock_user(utxs.auser);
           return;}}
       fee=TXS_UUS_FEE;}
@@ -604,7 +604,7 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.auser){
-        LOG("ERROR: not authorized to change node status\n");
+        DLOG("ERROR: not authorized to change node status\n");
         offi_.unlock_user(utxs.auser);
         return;}
       fee=TXS_SBS_FEE;}
@@ -615,7 +615,7 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.auser){
-        LOG("ERROR: not authorized to change node status\n");
+        DLOG("ERROR: not authorized to change node status\n");
         offi_.unlock_user(utxs.auser);
         return;}
       fee=TXS_UBS_FEE;}
@@ -624,7 +624,7 @@ public:
     //  assert(0); //TODO, not implemented later
     //  fee=TXS_STP_FEE;}
     if(deduct+fee+(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS)>usera.weight){
-      LOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+      DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
         deduct,fee,(uint64_t)(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS),usera.weight);
       offi_.unlock_user(utxs.auser);
       return;}
@@ -634,7 +634,7 @@ public:
       if(utxs.bbank){
         uint8_t* key=offi_.node_pkey(utxs.bbank);
         if(key==NULL){
-          LOG("ERROR: setting key for remote bank (%04X) failed\n",utxs.bbank);
+          DLOG("ERROR: setting key for remote bank (%04X) failed\n",utxs.bbank);
           offi_.unlock_user(utxs.auser);
           return;}
         memcpy(utxs.opkey(buf),key,32);} // should do this by server during message creation (as in _SAV)
@@ -737,14 +737,14 @@ public:
         offi_.add_deposit(utxs);}}
     offi_.unlock_user(utxs.auser);
     //FIXME, return msid and mpos
-    LOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
+    DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
     try{
       //respond with a single message
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
       boost::asio::write(socket_,boost::asio::buffer(&msid,sizeof(uint32_t)));
       boost::asio::write(socket_,boost::asio::buffer(&mpos,sizeof(uint32_t)));}
     catch (std::exception& e){
-      LOG("ERROR responding to client %08X\n",utxs.auser);}
+      DLOG("ERROR responding to client %08X\n",utxs.auser);}
     return;
   }
 

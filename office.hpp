@@ -323,17 +323,17 @@ public:
       //message_.lock();
       file_.lock();
       uint32_t newmsid=srv_.msid_+1;
-      LOG("SENDING message %08X\n",newmsid);
+      DLOG("SENDING message %08X\n",newmsid);
 #ifdef DOUBLE_SPEND
       if(opts_.svid == 4 && !(newmsid%8) && !(rand()%2)){
-        LOG("\n\nNICE sending double spend message %08X\n\n\n",newmsid);
+        DLOG("\n\nNICE sending double spend message %08X\n\n\n",newmsid);
         srv_.write_dblspend(message);}
       else
 #endif
       if(!srv_.write_message(message)){
         //message_.unlock();
         file_.unlock();
-        LOG("ERROR sending message %08X\n",newmsid);
+        DLOG("ERROR sending message %08X\n",newmsid);
         continue;}
       message.clear();
       message_tnum=0;
@@ -609,7 +609,7 @@ public:
       mpos=0;
       //message_.unlock();
       file_.unlock();
-      LOG("ERROR, failed to append to message (%d>=%d)\n",message_tnum,MESSAGE_TNUM_MAX);
+      ELOG("ERROR, failed to append to message (%d>=%d)\n",message_tnum,MESSAGE_TNUM_MAX);
       return(false);}
     msid=srv_.msid_+1; // check if no conflict !!!
     char filename[64];
@@ -620,7 +620,7 @@ public:
       mpos=0;
       //message_.unlock();
       file_.unlock();
-      LOG("ERROR, failed to log message %s\n",filename);
+      ELOG("ERROR, failed to log message %s\n",filename);
       return(false);} // :-( maybe we should throw here something
     write(md,msg,len);
     close(md);

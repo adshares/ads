@@ -1,7 +1,8 @@
 .PHONY: restart
 .PHONY: all
 .PHONY: clean
-CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -g -DDEBUG
+#CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -DNDEBUG -DED25519_SSE2
+CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -DNDEBUG
 restart: main user
 all: main user
 ed25519/ed25519.o: ed25519/ed25519.c ed25519/ed25519.h

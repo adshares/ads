@@ -54,10 +54,10 @@ public:
       uint32_t now=time(NULL);
       now-=now%BLOCKSEC;
       if(stat("usr/0001.dat",&sb)>=0){
-        LOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
-        //LOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
+        ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
+        //ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
         if(!undo_bank()){
-          LOG("ERROR loading initial database, fatal\n");
+          ELOG("ERROR loading initial database, fatal\n");
           exit(-1);}
         // do not rebuild blockchain
         //last_srvs_.now=now;
@@ -68,7 +68,7 @@ public:
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-        LOG("MAKE BLOCKCHAIN\n");
+        ELOG("MAKE BLOCKCHAIN\n");
         for(;srvs_.now<now;){
           message_map empty;
           srvs_.msg=0;
@@ -80,7 +80,7 @@ public:
         start_path=0;
         start_msid=0;
         msid_=0;
-        LOG("START from a fresh database\n");
+        ELOG("START from a fresh database\n");
         last_srvs_.init(now-BLOCKSEC);
         srvs_=last_srvs_;
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
@@ -93,7 +93,7 @@ public:
       period_start=srvs_.nextblock();} //changes now!
       iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
 
-    LOG("START @ %08X with MSID: %08X\n",path,msid_);
+    ELOG("START @ %08X with MSID: %08X\n",path,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
@@ -102,7 +102,7 @@ public:
     if(!last_srvs_.find_key(pkey,skey)){
       char pktext[2*32+1]; pktext[2*32]='\0';
       ed25519_key2text(pktext,pkey,32);
-      LOG("ERROR: failed to find secret key for key:\n%.16s\n",pktext);
+      ELOG("ERROR: failed to find secret key for key:\n%.16s\n",pktext);
       exit(-1);}
 
     if(!opts_.init){
@@ -178,7 +178,7 @@ public:
   { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_){
-      LOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
+      ELOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
       if(!opts_.fast){
         exit(-1);}
       msid_=firstmsid;
@@ -193,7 +193,7 @@ public:
     for(uint32_t lastmsid=firstmsid;lastmsid<=msid_;lastmsid++){
       message_ptr msg(new message(MSGTYPE_MSG,lastpath,opts_.svid,lastmsid,pkey,msha)); //load from file
       if(!(msg->status & MSGSTAT_DAT)){
-        LOG("ERROR, failed to read message %08X/%02x_%04x_%08x.msg\n",
+        ELOG("ERROR, failed to read message %08X/%02x_%04x_%08x.msg\n",
           lastpath,MSGTYPE_MSG,opts_.svid,lastmsid);
         msid_=lastmsid-1;
         return;}
@@ -202,19 +202,19 @@ public:
         if(!ntime){
 	  ntime=time(NULL);
           assert(ntime>=srvs_.now);}
-        LOG("RECYCLED message %04X:%08X from %08X/ signing with new time %08X [len:%d]\n",opts_.svid,lastmsid,lastpath,ntime,msg->len);
+        ELOG("RECYCLED message %04X:%08X from %08X/ signing with new time %08X [len:%d]\n",opts_.svid,lastmsid,lastpath,ntime,msg->len);
         msg->signnewtime(ntime,skey,pkey,msha);
         ntime++;}
       memcpy(msha,msg->sigh,sizeof(hash_t));
       if(txs_insert(msg)){
-        LOG("RECYCLED message %04X:%08X from %08X/ inserted\n",opts_.svid,lastmsid,lastpath);
+        ELOG("RECYCLED message %04X:%08X from %08X/ inserted\n",opts_.svid,lastmsid,lastpath);
 	if(srvs_.now!=lastpath){
-          LOG("MOVE message %04X:%08X from %08X/ to %08X/\n",opts_.svid,lastmsid,lastpath,srvs_.now);
+          ELOG("MOVE message %04X:%08X from %08X/ to %08X/\n",opts_.svid,lastmsid,lastpath,srvs_.now);
           msg->move(srvs_.now);}}
       else{
-        LOG("RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);}}
+        ELOG("RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);}}
     if(msid_!=start_msid){
-      LOG("ERROR, failed to get correct msid now:%08X<>start:%08X, check msid.txt\n",msid_,start_msid);
+      ELOG("ERROR, failed to get correct msid now:%08X<>start:%08X, check msid.txt\n",msid_,start_msid);
       exit(-1);}
     //std::cerr<<"FINISH recycle (remove old files)\n";
     //if(srvs_.now!=lastpath){
@@ -224,7 +224,7 @@ public:
     //  msg->svid=opts_.svid;
     //  for(;firstmsid<=msid_;firstmsid++){
     //    msg->msid=firstmsid;
-    //    LOG("REMOVING message %04X:%08X from %08X/\n",msg->svid,msg->msid,lastpath);
+    //    ELOG("REMOVING message %04X:%08X from %08X/\n",msg->svid,msg->msid,lastpath);
     //    msg->remove();}}
   }
 
@@ -259,7 +259,7 @@ public:
     //uint32_t path=srvs_.now; //use undo from next block
     uint32_t path=last_srvs_.now+BLOCKSEC; //use undo from next block
     int rollback=opts_.back;
-    LOG("CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
+    DLOG("CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
     bool failed=false;
     for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
       char filename[64];
@@ -276,7 +276,7 @@ public:
         int nd=open(filename,O_RDONLY);
         if(nd<0){
           continue;}
-        LOG("USING bank %04X block %08X undo %s\n",bank,npath,filename);
+        DLOG("USING bank %04X block %08X undo %s\n",bank,npath,filename);
         ud.push_back(nd);}
       uint32_t users=last_srvs_.nodes[bank].users;
        int64_t weight=0;
@@ -286,11 +286,11 @@ public:
         for(auto it=ud.begin();it!=ud.end();it++){
           u.msid=0;
           if(sizeof(user_t)==read(*it,&u,sizeof(user_t)) && u.msid){
-            LOG("OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
+            DLOG("OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
             write(fd,&u,sizeof(user_t)); //overwrite bank file
             goto NEXTUSER;}}
         if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
-          LOG("ERROR loading bank %04X (bad read)\n",bank);
+          ELOG("ERROR loading bank %04X (bad read)\n",bank);
           failed=true;}
         NEXTUSER:;
         weight+=u.weight;
@@ -300,7 +300,7 @@ public:
         memcpy(&n,&u,sizeof(user_t));
         last_srvs_.user_csum(n,bank,user);
         if(memcmp(n.csum,u.csum,32)){
-          LOG("ERROR !!!, checksum mismatch for user %04X:%08X [%08X<>%08X]\n",bank,user,
+          ELOG("ERROR !!!, checksum mismatch for user %04X:%08X [%08X<>%08X]\n",bank,user,
             *((uint32_t*)(n.csum)),*((uint32_t*)(u.csum)));
           failed=true;}
 #endif
@@ -309,11 +309,11 @@ public:
       for(auto nd : ud){
         close(nd);}
       if(last_srvs_.nodes[bank].weight!=weight){
-        LOG("ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
+        ELOG("ERROR loading bank %04X (bad sum:%016lX<>%016lX)\n",
           bank,last_srvs_.nodes[bank].weight,weight);
         failed=true;}
       if(memcmp(last_srvs_.nodes[bank].hash,csum,32)){
-        LOG("ERROR loading bank %04X (bad hash)\n",bank);
+        ELOG("ERROR loading bank %04X (bad hash)\n",bank);
         failed=true;}}
     if(failed){
       return(0);}
@@ -341,7 +341,7 @@ public:
       uint16_t peer=put_msg->request();
       if(peer){
         //std::cerr << "REQUESTING USR "<<bank<<" from "<<peer<<"\n";
-        LOG("REQUESTING BANK %04X from %04X\n",bank,peer);
+        DLOG("REQUESTING BANK %04X from %04X\n",bank,peer);
         deliver(put_msg,peer);}}
     while(missing_msgs_.size()){
       //do new requests here
@@ -386,7 +386,7 @@ public:
       uint32_t n=headers.size();
       peer_.unlock();
       for(;!n;){
-        LOG("\nWAITING 1s\n");
+        ELOG("\nWAITING 1s\n");
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         peer_.lock();
         n=headers.size();
@@ -395,14 +395,14 @@ public:
       block=headers.begin();
       peer_.unlock();
       for(;;){
-        LOG("START syncing header %08X\n",block->now);
+        ELOG("START syncing header %08X\n",block->now);
         if(srvs_.now!=block->now){
-          LOG("ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
+          ELOG("ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
           exit(-1);} //FIXME, prevent this
         //block->load_signatures(); //TODO should go through signatures and update vok, vno
         block->header_put(); //FIXME will loose relation to signatures, change signature filename to fix this
         if(!block->msgl_load(missing_msgs_,opts_.svid)){
-          LOG("LOAD messages from peers\n");
+          ELOG("LOAD messages from peers\n");
           //request list of transactions from peers
           peer_.lock(); // consider changing this to missing_lock
           get_msglist=srvs_.now;
@@ -419,7 +419,7 @@ public:
               uint16_t svid=put_msg->request();
               if(svid){
                 //std::cerr << "REQUESTING MSL from "<<svid<<"\n";
-                LOG("REQUESTING MSL from %04X\n",svid);
+                ELOG("REQUESTING MSL from %04X\n",svid);
                 deliver(put_msg,svid);}}
             boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
           srvs_.msg=block->msg; //check
@@ -465,7 +465,7 @@ public:
           if(jt->second->load(0)){ // will be unloaded by the validator
             if(!jt->second->sigh_check()){
               jt->second->read_head(); //to get 'now'
-              LOG("LOADING TXS %04X:%08X from path:%08X\n",
+              DLOG("LOADING TXS %04X:%08X from path:%08X\n",
                 jt->second->svid,jt->second->msid,jt->second->path);
               check_.lock();
               check_msgs_.push_back(jt->second); // send to validator
@@ -473,17 +473,17 @@ public:
               missing_.lock();
               missing_msgs_.erase(jt);
               continue;}
-            LOG("LOADING TXS %04X:%08X from path:%08X failed\n",
+            DLOG("LOADING TXS %04X:%08X from path:%08X failed\n",
               jt->second->svid,jt->second->msid,jt->second->path);
             jt->second->len=message::header_length;}
           fillknown(jt->second);
           uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
           if(svid){
             if(srvs_.nodes[jt->second->svid].msid==jt->second->msid-1){ // do not request if previous message not processed
-              LOG("REQUESTING TXS %04X:%08X from %04X\n",jt->second->svid,jt->second->msid,svid);
+              DLOG("REQUESTING TXS %04X:%08X from %04X\n",jt->second->svid,jt->second->msid,svid);
               deliver(jt->second,svid);}
             else{
-              LOG("POSTPONING TXS %04X:%08X\n",jt->second->svid,jt->second->msid);}}
+              DLOG("POSTPONING TXS %04X:%08X\n",jt->second->svid,jt->second->msid);}}
           missing_.lock();}
         missing_.unlock();
         //wait for all messages to be processed by the validators
@@ -505,7 +505,7 @@ public:
 
 //FIXME, txshash not calculated !!!
 
-        //LOG("TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
+        //DLOG("TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
         std::cerr << "COMMIT deposits\n";
         commit_block(update); // process bkn and get transactions
         commit_dividends(update);
@@ -516,25 +516,25 @@ public:
         for(auto it=update.begin();it!=update.end();it++){
           assert(*it<srvs_.nodes.size());
           if(!srvs_.check_nodehash(*it)){ //FIXME, remove this later !, this is checked during download.
-            LOG("FATAL ERROR, failed to check the hash of bank %04X at block %08X\n",*it,srvs_.now);
+            ELOG("FATAL ERROR, failed to check the hash of bank %04X at block %08X\n",*it,srvs_.now);
             exit(-1);}}
 #endif
         //finish block
         srvs_.finish(); //FIXME, add locking
         if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)){
           //std::cerr<<"ERROR, failed to arrive at correct hash at block "<<srvs_.now<<", fatal\n";
-          LOG("ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
+          ELOG("ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
           exit(-1);}
         last_srvs_=srvs_; // consider not making copies of nodes
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
         //FIXME should be a separate thread
-        LOG("UPDATE LOG\n");
+        DLOG("UPDATE LOG\n");
         ofip_update_block(period_start,0,LAST_block_final_msgs,srvs_.div);
-        LOG("PROCESS LOG\n");
+        DLOG("PROCESS LOG\n");
         ofip_process_log(srvs_.now-BLOCKSEC);
-        LOG("WRITE NEW MSID\n");
+        DLOG("WRITE NEW MSID\n");
         writemsid();
         now=time(NULL);
         now-=now%BLOCKSEC;
@@ -544,7 +544,7 @@ public:
         for(block++;block==headers.end();block++){ // wait for peers to load more blocks
           block--;
           peer_.unlock();
-          LOG("WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
+          ELOG("WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
             (int)headers.size(),srvs_.now,now);
           //FIXME, insecure !!! better to ask more peers (disconnect if needed) and wait for block with enough votes
           get_more_headers(block->now+BLOCKSEC);
@@ -673,7 +673,7 @@ public:
   { for(std::map<uint16_t,message_ptr>::iterator jt=map.begin();jt!=map.end();){
       auto it=jt++;
       if(it->second->msid<=last_srvs_.nodes[it->first].msid){
-        LOG("CLEAN: %04X:%08X<-[%08X] !!!\n",it->first,it->second->msid,
+        DLOG("CLEAN: %04X:%08X<-[%08X] !!!\n",it->first,it->second->msid,
           last_srvs_.nodes[it->first].msid);
         map.erase(it);}}
   }
@@ -684,8 +684,8 @@ public:
     for(auto it=map.begin();it!=map.end();++it){
       char sigh[64];
       ed25519_key2text(sigh,it->second->sigh,32);
-      LOG("____ HASH %04X:%08X %016lX %.*s\n",it->second->svid,it->second->msid,it->first,64,sigh);
-      //LOG("____ HASH %04X:%08X<-%08X@%08X %.*s\n",it->second->svid,it->second->msid,
+      DLOG("____ HASH %04X:%08X %016lX %.*s\n",it->second->svid,it->second->msid,it->first,64,sigh);
+      //DLOG("____ HASH %04X:%08X<-%08X@%08X %.*s\n",it->second->svid,it->second->msid,
       //  last_srvs_.nodes[it->second->svid].msid,last_srvs_.now,2*SHA256_DIGEST_LENGTH,sigh);
       SHA256_Update(&sha256,it->second->sigh,4*sizeof(uint64_t));}
     SHA256_Final(mhash, &sha256);
@@ -734,7 +734,7 @@ public:
       it->second->status|=MSGSTAT_VAL;
       if(it->second->msid==0xFFFFFFFF){
         uint16_t svid=it->second->svid;
-        LOG("DOUBLE setting dbl status for node %04X\n",svid);
+        ELOG("DOUBLE setting dbl status for node %04X\n",svid);
         dbls_.lock();
         dbl_srvs_.insert(svid); //FIXME, pointless
         dbls_.unlock();
@@ -748,7 +748,7 @@ public:
     for(auto am=winner->msg_add.begin();am!=winner->msg_add.end();am++){
       if(*(uint32_t*)(((uint8_t*)&am->first)+2)==0xFFFFFFFF){
         uint16_t svid=*(uint16_t*)(((uint8_t*)&am->first)+6);
-        LOG("DOUBLE setting dbl status for node %04X\n",svid);
+        ELOG("DOUBLE setting dbl status for node %04X\n",svid);
         dbls_.lock();
         dbl_srvs_.insert(svid); //FIXME, pointless
         dbls_.unlock();
@@ -818,7 +818,6 @@ public:
       bad_recover(me);}
     srvs_.msg=LAST_block_final_msgs.size();
     srvs_.msgl_put(LAST_block_final_msgs,NULL);
-#ifdef DEBUG
     hash_s last_block_message;
     message_shash(last_block_message.hash,LAST_block_final_msgs);
     if(memcmp(last_block_message.hash,cand.hash,32)){
@@ -826,9 +825,8 @@ public:
       char tex2[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(tex1,last_block_message.hash,SHA256_DIGEST_LENGTH);
       ed25519_key2text(tex2,cand.hash,SHA256_DIGEST_LENGTH);
-      LOG("FATAL hash mismatch\n%.64s\n%.64s\n",tex1,tex2);
-      assert(0);}
-#endif
+      ELOG("FATAL hash mismatch\n%.64s\n%.64s\n",tex1,tex2);
+      exit(-1);}
     wait_msgs_.insert(wait_msgs_.begin(),check_msgs_.begin(),check_msgs_.end());
     check_msgs_.clear();
 
@@ -850,12 +848,12 @@ public:
         else{
           minmsid=0;}}
       if(tm->second->msid<=minmsid){
-        LOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+        DLOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
         tm->second->remove_undo();
         txs_msgs_.erase(tm);
         continue;}
       if((tm->second->status & MSGSTAT_BAD)){
-        LOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+        DLOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
         if((tm->second->status & MSGSTAT_COM)){
           undo_message(tm->second);}
         //bad_insert(tm->second); ... already inserted
@@ -863,15 +861,15 @@ public:
         txs_msgs_.erase(tm);
         continue;}
       if(!(tm->second->status & MSGSTAT_VAL) && (tm->second->status & MSGSTAT_COM)){
-        LOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
+        DLOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
         undo_message(tm->second);
         if(tm->second->now<last_srvs_.now){
-          LOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          DLOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           bad_insert(tm->second);
           remove_message(tm->second);
           txs_msgs_.erase(tm);}
         else{
-          LOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          DLOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);
           wait_.lock();
           wait_msgs_.push_back(tm->second);
@@ -879,29 +877,31 @@ public:
         continue;}
       if(!(tm->second->status & MSGSTAT_VAL) && tm->second->path && tm->second->path<=LAST_block){
         if(tm->second->now<last_srvs_.now){
-          LOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          DLOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           bad_insert(tm->second);
           remove_message(tm->second);
           txs_msgs_.erase(tm);}
         else{
-          LOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          DLOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);}}
       if((tm->second->status & (MSGSTAT_VAL | MSGSTAT_COM)) == MSGSTAT_VAL ){
         if(tm->second->msid==0xFFFFFFFF){
-          LOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          DLOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
           tm->second->status|=MSGSTAT_COM; // the only place to commit dbl messages
           assert(srvs_.nodes[tm->second->svid].status&SERVER_DBL);
           continue;}
         if(tm->second->status & MSGSTAT_DAT){
-          LOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          DLOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
           //the queue is not efficient this way, because of consecutive tasks from same node
           check_msgs_.push_front(tm->second);
           continue;}
         //check if missing messages where not stored as bad
-        auto it=bad_msgs_.find(*(hash_s*)tm->second->sigh);
+	hash_s* hash_p=(hash_s*)tm->second->sigh;
+        auto it=bad_msgs_.find(*hash_p);
+        //auto it=bad_msgs_.find(*(hash_s*)tm->second->sigh);
         if(it!=bad_msgs_.end()){
           if(it->second->hash.num==tm->second->hash.num){
-            LOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+            DLOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
             tm->second=it->second;
             assert(tm->second->status & MSGSTAT_DAT);
             bad_recover(tm->second);
@@ -909,7 +909,7 @@ public:
             tm->second->status|=MSGSTAT_VAL;
             check_msgs_.push_front(tm->second);
             continue;}}
-        LOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+        DLOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
         missing_msgs_[tm->second->hash.num]=tm->second;}}
     }
 
@@ -921,7 +921,7 @@ public:
       auto tm=txs_msgs_.lower_bound(*mn);
       while(tm!=txs_msgs_.end() && !((tm->second->hash.num ^ (*mn)) & 0xFFFFFFFFFFFF0000L)){
         if(tm->second->status & MSGSTAT_COM){
-          LOG("FOUND missing message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          DLOG("FOUND missing message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
           winner->msg_mis.erase(mn);
           break;}
         tm++;}}
@@ -945,7 +945,7 @@ public:
     cand_.unlock();
     if(cnd1==nullcnd){
       if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
-        LOG("CANDIDATE proposing\n");
+        DLOG("CANDIDATE proposing\n");
         write_candidate(cand);}
       return;}
     if(do_block<2 && (
@@ -953,41 +953,41 @@ public:
         (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
       uint64_t x=(cnd2!=nullcnd?cnd2->score:0);
       if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
-        LOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
+        ELOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
           cnd1->score,x,votes_max,votes_counted);}
       else{
-        LOG("CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
+        ELOG("CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
           cnd1->score,x,votes_max,votes_counted);}
       do_block=2;
       winner=cnd1;
       char text[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(text,best.hash,SHA256_DIGEST_LENGTH);
-      LOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
+      ELOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
       if(winner->failed){
-        LOG("BAD CANDIDATE elected :-(\n");}
-      LOG("STOPing validation to finish msg list\n");
+        ELOG("BAD CANDIDATE elected :-(\n");}
+      DLOG("STOPing validation to finish msg list\n");
       do_validate=0;
       threadpool.join_all();
-      LOG("STOPed validation to finish msg list\n");
+      DLOG("STOPed validation to finish msg list\n");
       LAST_block_final(best);
       if(!winner->elected_accept()){
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}}
     if(do_block==2 && winner->elected_accept()){
-      LOG("CANDIDATE winner accepted\n");
+      ELOG("CANDIDATE winner accepted\n");
       do_block=3;
       if(do_vote){
         write_candidate(best);}
       return;}
     if(do_block==2){
-      LOG("ELECTION: %s\n",winner->print_missing(&srvs_));}
+      DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));}
     if(do_vote && cnd1->accept() && cnd1->peers.size()>1){
-      LOG("CANDIDATE proposal accepted\n");
+      ELOG("CANDIDATE proposal accepted\n");
       write_candidate(best);
       return;}
     if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
-      LOG("CANDIDATE proposing\n");
+      ELOG("CANDIDATE proposing\n");
       write_candidate(cand);}
   }
 
@@ -1009,7 +1009,9 @@ public:
   void prepare_poll() // select CANDIDATE_MAX candidates and VOTES_MAX electors
   { 
     cand_.lock();
+#ifdef DEBUG
     uint32_t electors_old=electors.size();
+#endif
     electors.clear();
     for(auto it=candidates_.begin();it!=candidates_.end();){
       auto jt=it++;
@@ -1023,18 +1025,18 @@ public:
     for(auto it=blk_msgs_.begin();it!=blk_msgs_.end();++it){
       if(last_srvs_.nodes[it->second->svid].status & SERVER_DBL ||
           known_dbl(it->second->svid)){ // ignore also suspected DBL servers
-        LOG("ELECTOR blk ignore %04X (DBL)\n",it->second->svid);
+        DLOG("ELECTOR blk ignore %04X (DBL)\n",it->second->svid);
         continue;}
       if(it->second->msid!=srvs_.now-BLOCKSEC){
-        LOG("ELECTOR blk ignore %04X (time %08X<>%08X)\n",it->second->svid,it->second->msid,srvs_.now-BLOCKSEC);
+        DLOG("ELECTOR blk ignore %04X (time %08X<>%08X)\n",it->second->svid,it->second->msid,srvs_.now-BLOCKSEC);
         continue;}
       if(!(it->second->status & MSGSTAT_VAL)){
-        LOG("ELECTOR blk ignore %04X (invalid)\n",it->second->svid);
+        DLOG("ELECTOR blk ignore %04X (invalid)\n",it->second->svid);
         continue;}
-      LOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
+      DLOG("ELECTOR accepted:%04X (blk)\n",(it->second->svid));
       svid_rset.insert(it->second->svid);}
     if(!svid_rset.size()){
-      LOG("ERROR, no valid server for this block :-(\n");}
+      ELOG("ERROR, no valid server for this block :-(\n");}
     else{
       for(auto sv : svid_rset){
         svid_rank.push_back(sv);}
@@ -1043,15 +1045,15 @@ public:
     for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      LOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
+      ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
       electors[svid_rank[j]]=srvs_.nodes[svid_rank[j]].weight;
       votes_max+=srvs_.nodes[svid_rank[j]].weight;}
     extern candidate_ptr nullcnd;
     winner=nullcnd;
-    LOG("ELECTOR max:%016lX\n",votes_max);
+    ELOG("ELECTOR max:%016lX\n",votes_max);
 #ifdef DEBUG
     if(electors.size()<electors_old && electors.size()<srvs_.vtot/2){
-      LOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
+      ELOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
       exit(-1);}
 #endif
     cand_.unlock();
@@ -1064,7 +1066,7 @@ public:
     h.dat[1]=0; // message type
     memcpy(h.dat+2,&msid,4);
     memcpy(h.dat+6,&svid,2);
-    LOG("HASH find:%016lX (%04X:%08X) %d:%d\n",h.num,svid,msid,svid,msid);
+    DLOG("HASH find:%016lX (%04X:%08X) %d:%d\n",h.num,svid,msid,svid,msid);
     txs_.lock();
     message_ptr me=nullmsg;
     auto mi=txs_msgs_.lower_bound(h.num);
@@ -1081,7 +1083,7 @@ public:
 
   message_ptr message_find(message_ptr msg,uint16_t svid)
   { extern message_ptr nullmsg;
-    LOG("HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
+    DLOG("HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
     assert(msg->data!=NULL);
     if(msg->data[0]==MSGTYPE_GET){
       txs_.lock();
@@ -1102,8 +1104,11 @@ public:
           return it->second;}
         it++;}
       cnd_.unlock();
-LOG("HASH find failed, CND db:\n");
-for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
+#ifdef DEBUG
+      DLOG("HASH find failed, CND db:\n");
+      for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){
+        DLOG("HASH have: %016lX (%02X)\n",me->first,me->second->hashval(svid));} //data[4+(svid%64)]
+#endif
       return nullmsg;}
     if(msg->data[0]==MSGTYPE_BLG){
       blk_.lock();
@@ -1125,14 +1130,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         it++;}
       dbl_.unlock();
       return nullmsg;}
-    LOG("UNKNOWN hashtype:%d %02X\n",(uint32_t)msg->data[0],(uint32_t)msg->data[0]);
+    DLOG("UNKNOWN hashtype:%d %02X\n",(uint32_t)msg->data[0],(uint32_t)msg->data[0]);
     return nullmsg;
   }
 
   void double_spend(message_ptr msg)
-  { LOG("WARNING, double spend maybe not yet fully implemented\n");
+  { //DLOG("WARNING, double spend maybe not yet fully implemented\n");
     if(last_srvs_.nodes[msg->svid].msid>=msg->msid){ //check again correct message timing, probably not needed
-      LOG("IGONRING old double spend message %04X:%08X\n",msg->svid,msg->msid);
+      DLOG("IGONRING old double spend message %04X:%08X\n",msg->svid,msg->msid);
       return;}
     dbls_.lock();
     dbl_srvs_.insert(msg->svid);
@@ -1147,13 +1152,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     assert(memcmp(msg1->sigh,msg2->sigh,32));
     assert(!do_sync); // should never happen, should never get same msid from same server in a msg_list
     if(msg2->svid==opts_.svid){
-      LOG("FATAL, created own double spend !!!\n");
+      ELOG("FATAL, created own double spend !!!\n");
       exit(-1);}
     if(known_dbl(msg2->svid)){
-      LOG("DROP dbl spend message creation for DBL server (%04X)\n",msg1->svid);
+      DLOG("DROP dbl spend message creation for DBL server (%04X)\n",msg1->svid);
       return;}
     if(msg1->msid<=last_srvs_.nodes[msg1->svid].msid){ //ignore too old messages
-      LOG("DROP dbl spend message creation from old message (%04X:%08X)\n",msg1->svid,msg1->msid);
+      DLOG("DROP dbl spend message creation from old message (%04X:%08X)\n",msg1->svid,msg1->msid);
       return;}
     msg1->load(0xffff); // could use opts_.svid instead of 0xffff (can not use 0!)
     msg2->load(0xffff); // could use opts_.svid instead of 0xffff (can not use 0!)
@@ -1165,7 +1170,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       else{
         message_ptr pre=message_svidmsid(msg2->svid,msg2->msid-1);
         if(pre==nullmsg){
-          LOG("ERROR loading message %04X:%08X before double spend\n",msg2->svid,msg2->msid-1);
+          ELOG("ERROR loading message %04X:%08X before double spend\n",msg2->svid,msg2->msid-1);
           msg1->unload(0xffff);
           msg2->unload(0xffff);
           return;}
@@ -1222,7 +1227,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     assert(pre!=it->second);
     assert(nxt!=it->second);
     if(pre!=nullmsg && (pre->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
-      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,pre->hash.num,pre->len);
+      DLOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,pre->hash.num,pre->len);
       if(pre->len>message::header_length && msg->len>message::header_length){
         bad_insert(msg);
         create_double_spend_proof(pre,msg);
@@ -1232,7 +1237,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         return(-1);} // double spend
       return(1);} // possible double spend
     if(nxt!=nullmsg && (nxt->hash.num&0xFFFFFFFFFFFF0000L)==(msg->hash.num&0xFFFFFFFFFFFF0000L)){
-      LOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,nxt->hash.num,nxt->len);
+      DLOG("HASH insert:%016lX [len:%d] DOUBLE SPEND (%016lX) [len:%d] !\n",msg->hash.num,msg->len,nxt->hash.num,nxt->len);
       if(nxt->len>message::header_length && msg->len>message::header_length){
         bad_insert(msg);
         create_double_spend_proof(nxt,msg);
@@ -1247,17 +1252,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   void bad_insert(message_ptr msg)
   { assert(!(msg->status&MSGSTAT_BAD));
     bad_.lock();
-    auto it=bad_msgs_.find(*(hash_s*)msg->sigh);
+    hash_s* hash_p=(hash_s*)msg->sigh;
+    auto it=bad_msgs_.find(*hash_p);
+    //auto it=bad_msgs_.find(*(hash_s*)msg->sigh);
     if(it==bad_msgs_.end()){
       char text[2*32];
       ed25519_key2text(text,msg->sigh,32);
-      LOG("BAD message %04X:%08X %016lX %.64s\n",msg->svid,msg->msid,msg->hash.num,text);
+      DLOG("BAD message %04X:%08X %016lX %.64s\n",msg->svid,msg->msid,msg->hash.num,text);
       if(msg->status&MSGSTAT_SAV){
         msg->bad_insert();}
       else{
         msg->status|=MSGSTAT_BAD;
         msg->save();}
-      bad_msgs_[*(hash_s*)msg->sigh]=msg;}
+      hash_s* hash_p2=(hash_s*)msg->sigh;
+      bad_msgs_[*hash_p2]=msg;}
+      //bad_msgs_[*(hash_s*)msg->sigh]=msg;
     else{
       assert(!(msg->status&MSGSTAT_SAV));
       msg->status|=MSGSTAT_BAD;
@@ -1268,7 +1277,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 
   void bad_recover(message_ptr msg)
   { bad_.lock();
-    bad_msgs_.erase(*(hash_s*)msg->sigh);
+    hash_s* hash_p=(hash_s*)msg->sigh;
+    bad_msgs_.erase(*hash_p);
+    //bad_msgs_.erase(*(hash_s*)msg->sigh);
     if(msg->status&MSGSTAT_SAV){
       msg->bad_recover();}
     else{
@@ -1294,7 +1305,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   {
     assert(msg->hash.dat[1]==MSGTYPE_DBL);
     dbl_.lock(); // maybe no lock needed
-    LOG("HASH insert:%016lX (DBL)\n",msg->hash.num);
+    DLOG("HASH insert:%016lX (DBL)\n",msg->hash.num);
     auto it=dbl_msgs_.find(msg->hash.num);
     if(it!=dbl_msgs_.end()){
       message_ptr osg=it->second;
@@ -1305,7 +1316,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         //  return(0);}
         if(last_srvs_.nodes[msg->svid].msid>=msg->msid){
           dbl_.unlock();
-          LOG("IGONRING old double spend message %04X:%08X\n",msg->svid,msg->msid);
+          DLOG("IGONRING old double spend message %04X:%08X\n",msg->svid,msg->msid);
           missing_msgs_erase(msg);
           return(0);}
         osg->update(msg);
@@ -1343,7 +1354,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   int cnd_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_CND);
     cnd_.lock();
-    LOG("HASH insert:%016lX (CND) [len:%d]\n",msg->hash.num,msg->len);
+    DLOG("HASH insert:%016lX (CND) [len:%d]\n",msg->hash.num,msg->len);
     message_map::iterator it=cnd_msgs_.find(msg->hash.num);
     if(it!=cnd_msgs_.end()){
       message_ptr osg=it->second;
@@ -1354,14 +1365,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         cnd_.unlock();
         if(osg->msid>LAST_block){
           //TODO, this should not happen
-          LOG("ERROR, cnd message %04X:%08X to early :-(, keep in missing_msgs_\n",osg->svid,osg->msid);
+          DLOG("ERROR, cnd message %04X:%08X to early :-(, keep in missing_msgs_\n",osg->svid,osg->msid);
           return(0);}
         missing_msgs_erase(msg);
         if(check_dbl(cnd_,cnd_msgs_,it)<0){ // removes message from map
-          LOG("ERROR, cnd message %04X:%08X maybe double spend\n",osg->svid,osg->msid);
+          DLOG("ERROR, cnd message %04X:%08X maybe double spend\n",osg->svid,osg->msid);
           if(known_dbl(msg->svid)){ return(1);}
           return(-1);}
-        LOG("DEBUG, store cnd message %04X:%08X\n",osg->svid,osg->msid);
+        DLOG("DEBUG, store cnd message %04X:%08X\n",osg->svid,osg->msid);
         cnd_validate(osg);
         return(1);}
       else{ // update info about peer inventory
@@ -1394,7 +1405,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   int blk_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_BLK);
     blk_.lock();
-    LOG("HASH insert:%016lX (BLK)\n",msg->hash.num);
+    DLOG("HASH insert:%016lX (BLK)\n",msg->hash.num);
     message_map::iterator it=blk_msgs_.find(msg->hash.num);
     if(it!=blk_msgs_.end()){
       message_ptr osg=it->second;
@@ -1407,7 +1418,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(check_dbl(blk_,blk_msgs_,it)<0){ // removes message from map
           if(known_dbl(msg->svid)){ return(1);}
           return(-1);}
-        LOG("DEBUG, storing blk message from %04X\n",osg->svid);
+        DLOG("DEBUG, storing blk message from %04X\n",osg->svid);
         blk_validate(osg);
         return(1);}
       else{ // update info about peer inventory
@@ -1427,7 +1438,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
       assert(msg->peer==msg->svid);
-      LOG("DEBUG, storing own blk message\n");
+      DLOG("DEBUG, storing own blk message\n");
       //msg->save(); //too short to waste disk space
       blk_.unlock();
       blk_validate(msg);
@@ -1435,7 +1446,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(msg->svid==msg->peer){ // peers message
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
-      LOG("DEBUG, storing peer's %04X blk message\n",msg->svid);
+      DLOG("DEBUG, storing peer's %04X blk message\n",msg->svid);
       //msg->save(); //too short to waste disk space
       blk_.unlock();
       blk_validate(msg);
@@ -1448,10 +1459,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   int txs_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_MSG);
     if(last_srvs_.nodes[msg->svid].status & SERVER_DBL){ // BKY can change current status (srvs_.nodes[].status)
-      LOG("HASH insert:%016lX (TXS) [len:%d] DBLserver ignored\n",msg->hash.num,msg->len);
+      DLOG("HASH insert:%016lX (TXS) [len:%d] DBLserver ignored\n",msg->hash.num,msg->len);
       return(0);}
     txs_.lock(); // maybe no lock needed
-    //LOG("HASH insert:%016lX (TXS) [len:%d]\n",msg->hash.num,msg->len);
+    //DLOG("HASH insert:%016lX (TXS) [len:%d]\n",msg->hash.num,msg->len);
     message_map::iterator it=txs_msgs_.find(msg->hash.num);
     if(it!=txs_msgs_.end()){
       message_ptr osg=it->second;
@@ -1461,7 +1472,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         //if(do_sync && memcmp(osg->sigh,msg->sigh,SHA256_DIGEST_LENGTH))
         if((osg->status & MSGSTAT_VAL) && memcmp(osg->sigh,msg->sigh,SHA256_DIGEST_LENGTH)){
           txs_.unlock();
-          LOG("HASH insert:%016lX (TXS) [len:%d] WRONG SIGNATURE HASH!\n",msg->hash.num,msg->len);
+          DLOG("HASH insert:%016lX (TXS) [len:%d] WRONG SIGNATURE HASH!\n",msg->hash.num,msg->len);
 //FIXME, save as failed
           bad_insert(msg);
           return(0);}
@@ -1474,23 +1485,23 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             if(known_dbl(msg->svid)){ return(1);}
             return(-1);}}
         if(!osg->save()){ //FIXME, change path
-          LOG("HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",osg->hash.num,osg->len);
+          DLOG("HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",osg->hash.num,osg->len);
           exit(-1);}
         osg->unload(0);
         if(osg->now>=srvs_.now+BLOCKSEC){
-          LOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ ???\n",osg->hash.num,osg->len,osg->now);
+          DLOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ ???\n",osg->hash.num,osg->len,osg->now);
           wait_.lock();
           wait_msgs_.push_back(osg);
           wait_.unlock();
           return(1);}//FIXME, process wait messages later
-        LOG("HASH insert:%016lX (TXS) [len:%d] queued\n",osg->hash.num,osg->len);
+        DLOG("HASH insert:%016lX (TXS) [len:%d] queued\n",osg->hash.num,osg->len);
         check_.lock();
         check_msgs_.push_back(osg);
         check_.unlock();
         return(1);}
       else{ // update info about peer inventory
         txs_.unlock();
-        LOG("HASH insert:%016lX (TXS) [len:%d] ignored\n",msg->hash.num,msg->len);
+        DLOG("HASH insert:%016lX (TXS) [len:%d] ignored\n",msg->hash.num,msg->len);
         osg->know_insert(msg->peer);
         return(0);}} // RETURN, message known info
     else{
@@ -1499,7 +1510,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         std::pair<message_map::iterator,bool> ret;
         ret=txs_msgs_.insert(std::pair<uint64_t,message_ptr>(msg->hash.num,msg));
         txs_.unlock();
-        LOG("HASH insert:%016lX (TXS) [len:%d] set as missing\n",msg->hash.num,msg->len);
+        DLOG("HASH insert:%016lX (TXS) [len:%d] set as missing\n",msg->hash.num,msg->len);
         missing_msgs_insert(msg);
         if(!do_sync && check_dbl(txs_,txs_msgs_,ret.first)){
           if(known_dbl(msg->svid)){ return(1);}
@@ -1508,21 +1519,21 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       if(msg->svid==opts_.svid){ // own message
         txs_msgs_[msg->hash.num]=msg;
 	//if(msg->path && msg->path!=srvs_.now){ //move message
-        //  LOG("HASH insert:%016lX (TXS) [len:%d] path mismatch (%08X<>%08X)\n",
+        //  DLOG("HASH insert:%016lX (TXS) [len:%d] path mismatch (%08X<>%08X)\n",
         //    msg->hash.num,msg->len,msg->path,srvs_.now);
         //  exit(-1);}
         //assert(msg->path==srvs_.now || msg->path==srvs_.now+BLOCKSEC);
         msg->path=srvs_.now; // all messages must be in current block
-        LOG("HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
+        DLOG("HASH insert:%016lX (TXS) [len:%d] store as own\n",msg->hash.num,msg->len);
 	//saved before insertion
         if(!msg->save()){
-          LOG("ERROR, failed to save own message %08X, fatal\n",msg->msid);
+          ELOG("ERROR, failed to save own message %08X, fatal\n",msg->msid);
           exit(-1);}
         txs_.unlock();
         msg->unload(0);
         if(!(msg->status & MSGSTAT_BAD)){ // only during DOUBLE_SPEND tests
           if(msg->now>=srvs_.now+BLOCKSEC){
-            LOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ own message\n", //FIXME, fatal in start !!!
+            DLOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ own message\n", //FIXME, fatal in start !!!
               msg->hash.num,msg->len,srvs_.now+BLOCKSEC);
             wait_.lock();
             wait_msgs_.push_back(msg);
@@ -1534,19 +1545,19 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 	assert(msg->peer==msg->svid);
         return(1);}
       txs_.unlock();
-      LOG("HASH insert:%016lX (TXS) [len:%d] UNEXPECTED!\n",msg->hash.num,msg->len);
+      DLOG("HASH insert:%016lX (TXS) [len:%d] UNEXPECTED!\n",msg->hash.num,msg->len);
       return(-1);}
   }
 
   void cnd_validate(message_ptr msg) //FIXME, check timing !!!
   { if(msg->msid<srvs_.now){
-      LOG("ERROR dropping old candidate message %04X:%08X\n",msg->svid,msg->msid);
+      DLOG("ERROR dropping old candidate message %04X:%08X\n",msg->svid,msg->msid);
       return;}
-    LOG("CANDIDATE test\n");
+    DLOG("CANDIDATE test\n");
     cand_.lock();
     if(electors.find(msg->svid)==electors.end()){ //FIXME, electors should have assigned rank when building poll
       //std::cerr << "BAD ELECTOR "<< msg->svid <<" :-( \n";
-      LOG("BAD ELECTOR %04X\n",msg->svid);
+      DLOG("BAD ELECTOR %04X\n",msg->svid);
       cand_.unlock();
       //msg->status|=MSGSTAT_BAD;
       return;}
@@ -1566,7 +1577,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     msg->status|=MSGSTAT_VAL;
     it->second->score+=electors[msg->svid]; // update sum of weighted votes
     //std::cerr << "CANDIDATE score: "<< it->second->score <<"(+"<< electors[msg->svid] <<")\n";
-    LOG("CANDIDATE score:%016lX (added:%016lX)\n",it->second->score,electors[msg->svid]);
+    DLOG("CANDIDATE score:%016lX (added:%016lX)\n",it->second->score,electors[msg->svid]);
     electors[msg->svid]=0;
     cand_.unlock();
     update(msg); // update others
@@ -1579,13 +1590,13 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 //FIXME, if message too early, add anyway
 
     assert(msg->path==msg->msid);
-    LOG("BLOCK test\n");
+    DLOG("BLOCK test\n");
     if(msg->msid!=last_srvs_.now){
-      LOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
+      DLOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
       return;}
     uint32_t vip=last_srvs_.nodes[msg->svid].status & SERVER_VIP;
     if(!vip){
-      LOG("BLOCK ignore non-vip vote msid:%08x svid:%04x\n",msg->msid,(uint32_t)msg->svid);
+      DLOG("BLOCK ignore non-vip vote msid:%08x svid:%04x\n",msg->msid,(uint32_t)msg->svid);
       return;}
     msg->status|=MSGSTAT_VAL;
     assert(msg->data!=NULL);
@@ -1594,7 +1605,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     blk_.lock();
     last_srvs_.save_signature(msg->svid,msg->data+4,!no);
     blk_.unlock();
-    LOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
+    DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
     update(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
     if(last_srvs_.vno>last_srvs_.vtot/2){
       std::cerr << "BAD BLOCK consensus :-( must resync :-( \n"; // FIXME, do not exit, initiate sync
@@ -1602,7 +1613,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
     if(no){
       if(msg->peer==msg->svid){
         //FIXME, in the future, do not disconnect, peer will try syncing again
-        LOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
+        ELOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
         disconnect(msg->svid);}}
   }
 
@@ -1630,7 +1641,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           auto mi=mj++;
           if(mi->second->hash.dat[1]==MSGTYPE_BLK || mi->second->hash.dat[1]==MSGTYPE_CND){ //FIXME, consider checking mi->first
             if(mi->second->msid<last_srvs_.now-BLOCKSEC){
-              LOG("DEBUG, ERASING MISSING MESSAGE %04X:%08X\n",mi->second->svid,mi->second->msid);
+              DLOG("DEBUG, ERASING MISSING MESSAGE %04X:%08X\n",mi->second->svid,mi->second->msid);
               missing_msgs_.erase(mi);
               continue;}
             if(now>mi->second->got+MAX_MSGWAIT && (
@@ -1652,9 +1663,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 	  uint16_t svid=(*re)->request();
           if(svid){
             assert((*re)->data!=NULL);
-            LOG("HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
+            DLOG("HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
             //std::cerr << "REQUESTING MESSAGE from "<<svid<<" ("<<(*re)->svid<<":"<<(*re)->msid<<")\n";
-            LOG("REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
+            DLOG("REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
             deliver((*re),svid);}}
         //checking waiting messages
         tmp_msgs_.clear();
@@ -1662,14 +1673,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 	for(auto wa=wait_msgs_.begin();wa!=wait_msgs_.end();){
           if(block_only){
             if(((*wa)->status & MSGSTAT_VAL) && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
-              LOG("QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
+              DLOG("QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
               tmp_msgs_.push_back(*wa);
               wa=wait_msgs_.erase(wa);}
             else{
               wa++;}
             continue;}
           if((*wa)->now<srvs_.now+BLOCKSEC && srvs_.nodes[(*wa)->svid].msid==(*wa)->msid-1){
-            LOG("QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
+            DLOG("QUEUING MESSAGE %04X:%08X\n",(*wa)->svid,(*wa)->msid);
             tmp_msgs_.push_back(*wa);
             wa=wait_msgs_.erase(wa);}
           else{
@@ -1690,38 +1701,38 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         //this will be needed later if we need to provide usr/XXXX.dat file for syncing
         check_.unlock();
         if(msg->status & MSGSTAT_BAD){
-          LOG("WARNING ignoring validation of bad message %04X:%08X\n",msg->svid,msg->msid);
+          DLOG("WARNING ignoring validation of bad message %04X:%08X\n",msg->svid,msg->msid);
           continue;}
         if(msg->status & MSGSTAT_COM){
-          LOG("WARNING ignoring validation of committed message %04X:%08X\n",msg->svid,msg->msid);
+          DLOG("WARNING ignoring validation of committed message %04X:%08X\n",msg->svid,msg->msid);
           continue;}
         if(!(msg->status & MSGSTAT_VAL) && dbl_srvs_.find(msg->svid)!=dbl_srvs_.end()){ // ignore from DBL server
-          LOG("WARNING ignoring validation of invalid message %04X:%08X from DBL nodes (double?:%s)\n",
+          DLOG("WARNING ignoring validation of invalid message %04X:%08X from DBL nodes (double?:%s)\n",
             msg->svid,msg->msid,(last_srvs_.nodes[msg->svid].status&SERVER_DBL?"yes":"no"));
           continue;} //
         //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid)
         if(srvs_.nodes[msg->svid].msid>=msg->msid){
           //std::cerr <<"WARNING ignoring validation of old message "<<msg->svid<<":"<<msg->msid<<"<="<<srvs_.nodes[msg->svid].msid<<"\n";
-          LOG("WARNING ignoring validation of old message %04X:%08X (<=%08X)\n",
+          DLOG("WARNING ignoring validation of old message %04X:%08X (<=%08X)\n",
             msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
           continue;}
 	if(srvs_.nodes[msg->svid].msid!=msg->msid-1){ //assume only 1 validator per bank
           //std::cerr <<"WARNING postponing validation of future message "<<msg->svid<<":"<<msg->msid<<"!="<<srvs_.nodes[msg->svid].msid<<"+1\n";
-          LOG("WARNING postponing validation of future message %04X:%08X (!=%08X+1)\n",
+          DLOG("WARNING postponing validation of future message %04X:%08X (!=%08X+1)\n",
             msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
           wait_.lock();
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
         if(!(msg->status & MSGSTAT_VAL) && block_only){ // ignore from DBL server
-          LOG("WARNING postponing validation of invalid message %04X:%08X during block finish\n",
+          DLOG("WARNING postponing validation of invalid message %04X:%08X during block finish\n",
             msg->svid,msg->msid);
           wait_.lock();
           wait_msgs_.push_back(msg);
           wait_.unlock();
           continue;}
         if(!msg->load(0)){
-          LOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",msg->path>>20,msg->path&0xFFFFF,(uint32_t)msg->hashtype(),msg->svid,msg->msid,msg->len);
+          ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",msg->path>>20,msg->path&0xFFFFF,(uint32_t)msg->hashtype(),msg->svid,msg->msid,msg->len);
           exit(-1);}
         bool valid=process_message(msg); //maybe ERROR should be also returned.
         if(valid){
@@ -1741,7 +1752,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             memcpy(nod->msha,msg->sigh,sizeof(hash_t));
             mtx_.unlock();
             if(msid_<nod->msid){
-              LOG("WARNING !!! increasing local msid by network !!!\n");
+              ELOG("WARNING !!! increasing local msid by network !!!\n");
               msid_=nod->msid;}}
           //svid_msgs_[msg->svid]=msg;
           //svid_.unlock();
@@ -1756,9 +1767,9 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         else{
           //FIXME, if own message, try fixing :-(
           //TODO, inform peer if peer==author;
-          LOG("ERROR, have invalid message %04X:%08X !!!\n",msg->svid,msg->msid);
+          ELOG("ERROR, have invalid message %04X:%08X !!!\n",msg->svid,msg->msid);
           if(msg->status & MSGSTAT_VAL){
-            LOG("ERROR, failed to validate valid message %04X:%08X, fatal\n",msg->svid,msg->msid);
+            ELOG("ERROR, failed to validate valid message %04X:%08X, fatal\n",msg->svid,msg->msid);
             exit(-1);} //FIXME, die gently
           //if(!(msg->status & MSGSTAT_BAD)){
           //  msg->remove();} //save under new name (as failed)
@@ -1768,14 +1779,14 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 #endif
           continue;}
         if(msg->path<srvs_.now){
-          LOG("MOVING message %04X:%08X to %08X/ after validation\n",msg->svid,msg->msid,srvs_.now);
+          DLOG("MOVING message %04X:%08X to %08X/ after validation\n",msg->svid,msg->msid,srvs_.now);
           msg->move(srvs_.now);}
         msg->unload(0);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
 #ifdef DEBUG
           uint32_t seconds=(rand()%5);
-          LOG("SLEEP %d after validation\n",seconds);
+          DLOG("SLEEP %d after validation\n",seconds);
           boost::this_thread::sleep(boost::posix_time::seconds(seconds));
 #endif
           update_candidates(msg);
@@ -1809,10 +1820,10 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 #ifdef DOUBLE_SPEND
       if(opts_.svid == 4){ // make mess :-)
         msid_=srvs_.nodes[opts_.svid].msid;
-        LOG("IGNORING message problems on double spend server, set msid_=%08X\n",msid_);
+        DLOG("IGNORING message problems on double spend server, set msid_=%08X\n",msid_);
         return(false);}
 #endif
-      LOG("ERROR: trying to remove own message, MUST RESUBMIT (TODO!)\n");
+      ELOG("ERROR: trying to remove own message, MUST RESUBMIT (TODO!)\n");
       exit(-1);}
     return(true);
   }
@@ -1902,7 +1913,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       if(*p==TXSTYPE_PUT){
         utxs.parse(p);
         if(utxs.bbank!=utxs.abank){
-          LOG("WARNING undoing put\n");
+          DLOG("WARNING undoing put\n");
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=utxs.buser; //assume big endian
           to.small[1]=utxs.bbank; //assume big endian
@@ -1920,7 +1931,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           memcpy(&tuser,tbuf+2,4);
           memcpy(&tmass,tbuf+6,8);
           if(tbank!=utxs.abank){
-            LOG("WARNING undoing mpt to: %04X:%08X<=%016lX\n",tbank,tuser,tmass);
+            DLOG("WARNING undoing mpt to: %04X:%08X<=%016lX\n",tbank,tuser,tmass);
             union {uint64_t big;uint32_t small[2];} to;
             to.small[0]=tuser; //assume big endian
             to.small[1]=tbank; //assume big endian
@@ -1932,7 +1943,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         uint64_t ppi=make_ppi(msg->msid,msg->svid,utxs.bbank);
         txs_get.insert(ppi);
 	p+=utxs.size;
-        LOG("WARNING undoing get\n");
+        DLOG("WARNING undoing get\n");
 	continue;}
       if(*p==TXSTYPE_SBS){
         utxs.parse(p);
@@ -1941,7 +1952,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         blk_sbs.erase(ppb);
         blk_.unlock();
 	p+=utxs.size;
-        LOG("WARNING undoing sbs\n");
+        DLOG("WARNING undoing sbs\n");
 	continue;}
       if(*p==TXSTYPE_UBS){
         utxs.parse(p);
@@ -1950,7 +1961,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         blk_ubs.erase(ppb);
         blk_.unlock();
 	p+=utxs.size;
-        LOG("WARNING undoing ubs\n");
+        DLOG("WARNING undoing ubs\n");
 	continue;}
       if(*p==TXSTYPE_BKY){ //reverse bank key change
         utxs.parse(p);
@@ -1966,7 +1977,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           if(node==opts_.svid){
             if(utxs.bbank){
               ofip_change_pkey((uint8_t*)utxs.opkey(p));}
-            LOG("WARNING undoing local bank key change\n");}}}
+            DLOG("WARNING undoing local bank key change\n");}}}
       p+=utxs.get_size(p);}
     uint64_t ppi=make_ppi(msg->msid,msg->svid,msg->svid);
     blk_.lock();
@@ -2004,22 +2015,23 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       mtx_.unlock();}
     srvs_.nodes[msg->svid].mtim=mtim;
     //this could be a srvs_.function()
-    LOG("UNDO USERS:%08X\n",users);
+    DLOG("UNDO USERS:%08X\n",users);
     if(users){
       if(srvs_.nodes[msg->svid].users!=users){
-        LOG("WARNING undoing user additions (users back to:%08X)\n",users);}
+        DLOG("WARNING undoing user additions (users back to:%08X)\n",users);}
       srvs_.nodes[msg->svid].users=users;}
     int fd=open_bank(msg->svid);
     //char filename[64];
     //sprintf(filename,"usr/%04X.dat",msg->svid);
     //int fd=open(filename,O_RDWR|O_CREAT,0644);
     //if(fd<0){
-    //  LOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
+    //  ELOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
     //  exit(-1);}
     for(auto it=undo.begin();it!=undo.end();it++){
-      user_t& u=it->second;
-      LOG("UNDO:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
-        msg->svid,it->first,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
+      //user_t& u=it->second;
+      DLOG("UNDO:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+          msg->svid,it->first,it->second.msid,it->second.time,it->second.stat,it->second.node,
+          it->second.it->second.it->second.lpath,it->second.rpath,it->second.weight);
       lseek(fd,it->first*sizeof(user_t),SEEK_SET);
       write(fd,&it->second,sizeof(user_t));}
     close(fd);
@@ -2043,7 +2055,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644); //TODO maybe O_TRUNC not needed
       if(fd<0){
         log_.unlock();
-        LOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
+        DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
         return;}}
     write(fd,p,len);
     write(fd,hash,32);
@@ -2056,11 +2068,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
   bool process_message(message_ptr msg)
   { assert(msg->data!=NULL);
     if(msg->now<last_srvs_.now){
-      LOG("ERROR MSG %04X:%08X too old :-( (%08X<%08X)\n",msg->svid,msg->msid,msg->now,last_srvs_.now);
+      DLOG("ERROR MSG %04X:%08X too old :-( (%08X<%08X)\n",msg->svid,msg->msid,msg->now,last_srvs_.now);
       return(false);}
     char text[2*32];
     ed25519_key2text(text,msg->sigh,32);
-    LOG("PROCESS MSG %04X:%08X %.64s\n",msg->svid,msg->msid,text);
+    DLOG("PROCESS MSG %04X:%08X %.64s\n",msg->svid,msg->msid,text);
     char* p=(char*)msg->data+4+64+10;
     int fd=open_bank(msg->svid);
     std::map<uint64_t,log_t> log;
@@ -2126,7 +2138,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         return(false);}
       if(utxs.ttime>lpath+BLOCKSEC+5){ // remember that values are unsigned !
         //std::cerr<<"ERROR: time in the future block\n";
-	LOG("ERROR: time in the future block time:%08X block:%08X limit %08X\n",
+	DLOG("ERROR: time in the future block time:%08X block:%08X limit %08X\n",
 	  utxs.ttime,lpath,lpath+BLOCKSEC+5);
         close(fd);
         return(false);}
@@ -2144,7 +2156,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
 	  luser=utxs.auser;
           lpkey=utxs.upkey(p);}
         if(luser>users){
-          LOG("ERROR: bad target user id %08X\n",luser);
+          DLOG("ERROR: bad target user id %08X\n",luser);
           close(fd);
           return(false);}
 	if(luser<users){ //1. check if overwriting was legal
@@ -2160,7 +2172,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             usera=&lu->second;}
           int64_t delta=usera->weight;
           if(!(usera->stat&USER_STAT_DELETED)){
-            LOG("ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
+            ELOG("ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
               utxs.bbank,luser,usera->weight);
             close(fd);
             return(false);}
@@ -2192,7 +2204,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           continue;}}
       if(utxs.auser>=users){
         //std::cerr<<"ERROR, bad userid "<<utxs.abank<<":"<<utxs.auser<<"\n";
-        LOG("ERROR, bad userid %04X:%08X\n",utxs.abank,utxs.auser);
+        ELOG("ERROR, bad userid %04X:%08X\n",utxs.abank,utxs.auser);
         close(fd);
         return(false);}
       auto au=changes.find(utxs.auser); // get user
@@ -2214,7 +2226,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         return(false);}
       if(usera->msid!=utxs.amsid){
         //std::cerr<<"ERROR: bad msid ("<<usera->msid<<"<>"<<utxs.amsid<<")\n";
-        LOG("ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
+        ELOG("ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
         close(fd);
         return(false);}
       //process transactions
@@ -2235,7 +2247,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         if(!srvs_.check_user(utxs.bbank,utxs.buser)){
           // does not check if account closed [consider adding this slow check]
           //std::cerr<<"ERROR: bad target user ("<<utxs.bbank<<":"<<utxs.buser<<")\n";
-          LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          ELOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
           close(fd);
           return(false);}
         if(utxs.bbank==utxs.abank){
@@ -2278,11 +2290,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             close(fd);
             return(false);}
           if(out.find(to.big)!=out.end()){
-            LOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
+            ELOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
             close(fd);
             return(false);}
           if(!srvs_.check_user((uint16_t)tbank,tuser)){
-            LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+            ELOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
             close(fd);
             return(false);}
           out.insert(to.big);
@@ -2328,7 +2340,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
       else if(*p==TXSTYPE_GET){
         if(utxs.abank==utxs.bbank){
           //std::cerr<<"ERROR: bad bank ("<<utxs.bbank<<"), use PUT\n";
-          LOG("ERROR: bad bank %04X, use PUT\n",utxs.bbank);
+          ELOG("ERROR: bad bank %04X, use PUT\n",utxs.bbank);
           close(fd);
           return(false);}
         uint64_t ppb=make_ppi(msg->msid,msg->svid,utxs.bbank);
@@ -2343,11 +2355,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         fee=TXS_KEY_FEE;}
       else if(*p==TXSTYPE_BKY){ // we will get a confirmation from the network
         if(utxs.auser){
-          LOG("ERROR: bad user %08X for node key changes\n",utxs.auser);
+          ELOG("ERROR: bad user %08X for node key changes\n",utxs.auser);
           close(fd);
           return(false);}
         if(utxs.bbank>=last_srvs_.nodes.size()){
-          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
+          ELOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
           close(fd);
           return(false);}
         uint16_t node=msg->svid;
@@ -2358,22 +2370,22 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
             node=0;}}
         if(node){
           if(memcmp(srvs_.nodes[node].pk,utxs.opkey(p),32)){
-            LOG("ERROR: bad current node key for %04X in %04X:%08X\n",node,msg->svid,msg->msid);
+            ELOG("ERROR: bad current node key for %04X in %04X:%08X\n",node,msg->svid,msg->msid);
             close(fd);
             return(false);}
           else{
             if(node==opts_.svid){
               ofip_change_pkey((uint8_t*)utxs.key(p));
-              LOG("WARNING, changing my node key !\n");}
+              ELOG("WARNING, changing my node key !\n");}
             new_bky[node]=*(hash_s*)utxs.key(p);}}
         fee=TXS_BKY_FEE;}
       else if(*p==TXSTYPE_SBS){
         if(utxs.auser){
-          LOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
+          ELOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
           close(fd);
           return(false);}
         if(utxs.bbank>=last_srvs_.nodes.size()){
-          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
+          ELOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
           close(fd);
           return(false);}
         if((last_srvs_.nodes[msg->svid].status & SERVER_VIP) || (utxs.abank==utxs.bbank)){ // only VIP nodes vote
@@ -2382,11 +2394,11 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         fee=TXS_SBS_FEE;}
       else if(*p==TXSTYPE_UBS){
         if(utxs.auser){
-          LOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
+          ELOG("ERROR: bad user %04X for node status changes\n",utxs.auser);
           close(fd);
           return(false);}
         if(utxs.bbank>=last_srvs_.nodes.size()){
-          LOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
+          ELOG("ERROR: bad node %04X for node key changes\n",utxs.bbank);
           close(fd);
           return(false);}
         if((last_srvs_.nodes[msg->svid].status & SERVER_VIP) || (utxs.abank==utxs.bbank)){ // only VIP nodes vote
@@ -2395,7 +2407,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         fee=TXS_UBS_FEE;}
       else if(*p==TXSTYPE_SUS){
         if(!srvs_.check_user(utxs.bbank,utxs.buser)){
-          LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          ELOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
           close(fd);
           return(false);}
         if(utxs.bbank==utxs.abank){
@@ -2406,7 +2418,7 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
         fee=TXS_SUS_FEE;}
       else if(*p==TXSTYPE_UUS){
         if(!srvs_.check_user(utxs.bbank,utxs.buser)){
-          LOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
+          ELOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
           close(fd);
           return(false);}
         if(utxs.bbank==utxs.abank){
@@ -2420,17 +2432,17 @@ for(auto me=cnd_msgs_.begin();me!=cnd_msgs_.end();me++){ LOG("HASH have: %016lX 
           user_t u;
           msg->get_user(utxs.auser,u);
           if(memcmp(&u,utxs.usr(p),sizeof(user_t))){ // can fail if we don't have data from this block :-(
-            LOG("ERROR: bad user data for %04X:%08X\n",utxs.abank,utxs.auser);
+            ELOG("ERROR: bad user data for %04X:%08X\n",utxs.abank,utxs.auser);
             close(fd);
             return(false);}}
         fee=TXS_SAV_FEE;}
       int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
       if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
-LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
+        //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         weight+=div;}
       if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight){ //network accepts total withdrawal from user
         //std::cerr<<"ERROR: too low balance ("<<deduct<<"+"<<fee<<"+"<<USER_MIN_MASS<<">"<<usera->weight<<")\n";
-        LOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+        ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
           deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight);
         close(fd);
         return(false);}
@@ -2535,7 +2547,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
         srvs_.xor4(csum,u.csum);
         int64_t div=dividend(u,lodiv_fee); // store local fee
         if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
-LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
+          //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           weight+=div;}
         //u.weight+=it->second;
 	//weight+=it->second;
@@ -2616,12 +2628,12 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     blk_.lock();
     for(auto it=new_bky.begin();it!=new_bky.end();it++){
       if(last_srvs_.nodes[it->first].status & SERVER_DBL){
-        LOG("WARNING schedule resetting DBL status for node %04X!\n",it->first);
+        ELOG("WARNING schedule resetting DBL status for node %04X!\n",it->first);
         blk_bky[ppi].push_back(it->first);}
       memcpy(srvs_.nodes[it->first].pk,it->second.hash,32);
       if(it->first==opts_.svid){
         if(!srvs_.find_key(it->second.hash,skey)){
-          LOG("ERROR, failed to change to new bank key, fatal!\n");
+          ELOG("ERROR, failed to change to new bank key, fatal!\n");
           exit(-1);}
         pkey=srvs_.nodes[it->first].pk;}}
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
@@ -2637,11 +2649,11 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
 
   int open_bank(uint16_t svid) //
   { char filename[64];
-    LOG("OPEN usr/%04X.dat\n",svid);
+    DLOG("OPEN usr/%04X.dat\n",svid);
     sprintf(filename,"usr/%04X.dat",svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
-      LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+      ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
       exit(-1);}
     return(fd);
   }
@@ -2676,7 +2688,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
           tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
           tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]}};
-        LOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
+        DLOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
         uin[nuin]++;}}
     blk_usr.clear();
     for(auto it=blk_uok.begin();it!=blk_uok.end();it++){ //send funds from matched transactions to new account
@@ -2709,10 +2721,10 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             memcpy(alog.info,tx->pkey,32);
             log[key]=alog;}
             //put_log(tx->bbank,tx->buser,alog); //put_blklog
-          LOG("REMOTE user request %04X %04X %08X matched\n",abank,tx->bbank,tx->buser);
+          DLOG("REMOTE user request %04X %04X %08X matched\n",abank,tx->bbank,tx->buser);
           uin[nuin]--;}
         else{
-          LOG("REMOTE user request %04X %04X %08X not found\n",abank,tx->bbank,tx->buser);
+          DLOG("REMOTE user request %04X %04X %08X not found\n",abank,tx->bbank,tx->buser);
           if(tx->bbank==opts_.svid){ // no matching _USR transaction found
             uint64_t key=(uint64_t)tx->buser<<32;
             key|=lpos++;
@@ -2732,7 +2744,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
       uint32_t n=it->second;
       for(;n>0;n--){
-        LOG("REMOTE user request %04X %04X %08X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
+        DLOG("REMOTE user request %04X %04X %08X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
         union {uint64_t big;uint32_t small[2];} to;
         to.small[0]=it->first.auser;
         to.small[1]=it->first.abank;
@@ -2841,15 +2853,15 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
             auto bi=new_bnk.begin();
             peer=(*bi)&0xffff;
             new_bnk.erase(bi);
-            LOG("BANK, overwrite %04X\n",peer);
+            ELOG("BANK, overwrite %04X\n",peer);
             srvs_.put_node(u,peer,abank,*tx);} //save_undo() in put_node() !!!
           else if(srvs_.nodes.size()<BANK_MAX-1){
             peer=srvs_.add_node(u,abank,*tx); //deposits BANK_MIN_TMASS
             bank_fee.resize(srvs_.nodes.size());
-            LOG("BANK, add new bank %04X\n",peer);}
+            ELOG("BANK, add new bank %04X\n",peer);}
           else{
             //close(fd);
-            LOG("BANK, can not create more banks\n");
+            ELOG("BANK, can not create more banks\n");
             //goto BLK_END;
             union {uint64_t big;uint32_t small[2];} to;
             to.small[0]=*tx;
@@ -2927,7 +2939,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,it->first,div);
           if(svid==opts_.svid){
             mydiv_fee+=BANK_PROFIT(fee);}
           if(div!=(int64_t)0x8FFFFFFFFFFFFFFF){
-LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
+            //DLOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             srvs_.nodes[bbank].weight+=div;}
           int64_t delta=0;
           int64_t delta_gok=0;
@@ -3042,12 +3054,12 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
       uint32_t uend=srvs_.nodes[svid].users;
       if(user>=uend){
         continue;}
-      LOG("DIVIDEND to usr/%04X.dat\n",svid);
+      DLOG("DIVIDEND to usr/%04X.dat\n",svid);
       int fd=open_bank(svid);
       //sprintf(filename,"usr/%04X.dat",svid);
       //int fd=open(filename,O_RDWR,0644);
       //if(fd<0){
-      //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+      //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
       //  exit(-1);}
       for(;;user+=segment*(period-1)){
         lseek(fd,user*sizeof(user_t),SEEK_SET);
@@ -3056,7 +3068,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
             goto NEXTBANK;}
           read(fd,&u,sizeof(user_t));
           if(!u.msid){
-            LOG("ERROR, failed to read user %04X:%08X, fatal\n",svid,user);
+            ELOG("ERROR, failed to read user %04X:%08X, fatal\n",svid,user);
             close(fd);
             exit(-1);}
           memcpy(&ou,&u,sizeof(user_t)); //to keep data for undo
@@ -3069,7 +3081,7 @@ LOG("DIV: pay to %04X:%08X (%016lX)\n",bbank,tx->buser,div);
           if(div!=(int64_t)0x8FFFFFFFFFFFFFFF || !u.weight){
             if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
               div=0;}
-LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
+            //DLOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
             undo.emplace(user,ou); // no emplace needed, insert is ok
             srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
             union {uint64_t big;uint32_t small[2];} to;
@@ -3125,12 +3137,12 @@ LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
         //FIXME, should stop sync attempts on bank file, lock bank or accept sync errors
         lastsvid=svid;
 	update.insert(svid);
-        LOG("DEPOSIT to usr/%04X.dat\n",svid);
+        DLOG("DEPOSIT to usr/%04X.dat\n",svid);
         fd=open_bank(svid);}
         //sprintf(filename,"usr/%04X.dat",svid);
         //fd=open(filename,O_RDWR,0644);
         //if(fd<0){
-        //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+        //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
         //  exit(-1);}
       lseek(fd,user*sizeof(user_t),SEEK_SET);
       read(fd,&u,sizeof(user_t));
@@ -3143,7 +3155,7 @@ LOG("DIV: to %04X:%08X (%016lX)\n",svid,user,div);
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
       else{
-LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
+        //DLOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
         }
       if(user){ // no fees from remote deposits to bank
         bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));}
@@ -3179,7 +3191,7 @@ LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->sec
       //sprintf(filename,"usr/%04X.dat",svid);
       //int fd=open(filename,O_RDWR,0644);
       //if(fd<0){
-      //  LOG("ERROR, failed to open bank register %04X, fatal\n",svid);
+      //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
       //  exit(-1);}
       read(fd,&u,sizeof(user_t));
       std::map<uint32_t,user_t> undo;
@@ -3190,12 +3202,11 @@ LOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->sec
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
       else{
-        mydiv_fee+=BANK_PROFIT(fee);
-LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
-        }
+        //DLOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
+        mydiv_fee+=BANK_PROFIT(fee);}
       int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
       int64_t profit=bank_fee[svid]-buser_fee;
-      LOG("BANK_PROFIT %016lX to usr/%04X.dat (%ld)\n",profit,svid,profit);
+      DLOG("BANK_PROFIT %016lX to usr/%04X.dat (%ld)\n",profit,svid,profit);
       //int64_t before=u.weight; 
       if(profit<-u.weight){
        profit=-u.weight;}
@@ -3288,7 +3299,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
       if(!srvs_.check_nodehash(*it)){
-        LOG("FATAL ERROR, failed to check the hash of bank %04X\n",*it);
+        ELOG("FATAL ERROR, failed to check the hash of bank %04X\n",*it);
         exit(-1);}}
 #endif
     srvs_.finish(); //FIXME, add locking
@@ -3342,10 +3353,10 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
 #ifdef DOUBLE_SPEND
   uint32_t write_dblspend(std::string line)
   { if(last_srvs_.nodes[opts_.svid].status & SERVER_DBL){
-      LOG("DEBUG, server marked as double spender\n");
+      DLOG("DEBUG, server marked as double spender\n");
       return(0);}
     if(dbl_srvs_.find(opts_.svid)!=dbl_srvs_.end()){
-      LOG("DEBUG, server already double spent\n");
+      DLOG("DEBUG, server already double spent\n");
       return(0);}
     std::vector<uint16_t> peers;
     std::set<uint64_t> nums;
@@ -3354,7 +3365,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       return(0);}
     mtx_.lock();
     if(srvs_.nodes[opts_.svid].msid!=msid_){
-      LOG("ERROR, wrong network msid, postponing message write\n");
+      DLOG("ERROR, wrong network msid, postponing message write\n");
       mtx_.unlock();
       return(0);}
     memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
@@ -3364,10 +3375,10 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       line.append((char*)txs.data,txs.size);
       message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
       if(nums.find(msg->hash.num)!=nums.end()){
-        LOG("OOPS duplicated double spend %04X:%08X to %04X [%016lX]\n",opts_.svid,msid,pi,msg->hash.num);
+        DLOG("OOPS duplicated double spend %04X:%08X to %04X [%016lX]\n",opts_.svid,msid,pi,msg->hash.num);
         continue;}
       nums.insert(msg->hash.num);
-      LOG("NICE sending double spend %04X:%08X to %04X [%016lX]\n",opts_.svid,msid,pi,msg->hash.num);
+      DLOG("NICE sending double spend %04X:%08X to %04X [%016lX]\n",opts_.svid,msid,pi,msg->hash.num);
       msg->status|=MSGSTAT_BAD;
       txs_insert(msg);
       update(msg,pi);}
@@ -3381,7 +3392,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   { //FIXME !!! wrong msha !!!
     mtx_.lock();
     if(srvs_.nodes[opts_.svid].msid!=msid_){
-      LOG("ERROR, wrong network msid, postponing message write\n");
+      DLOG("ERROR, wrong network msid, postponing message write\n");
       mtx_.unlock();
       return(0);}
     memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
@@ -3392,11 +3403,11 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
     memcpy(msha_,msg->sigh,sizeof(hash_t));
     //if(!msg->save()){
-    //  LOG("ERROR, failed to save own message %08X, fatal\n",msid);
+    //  ELOG("ERROR, failed to save own message %08X, fatal\n",msid);
     //  exit(-1);}
     if(!txs_insert(msg)){
       mtx_.unlock();
-      LOG("FATAL message insert error for own message, dying !!!\n");
+      ELOG("FATAL message insert error for own message, dying !!!\n");
       exit(-1);}
     writemsid();
     mtx_.unlock();
@@ -3426,12 +3437,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         uint32_t msid=(key>>16) & 0xFFFFFFFFL;
         uint16_t svid=(key>>48);
         if(msid==0xFFFFFFFF){
-          LOG("%04X WARNING peer removed DBL spend from%04X\n",peer,svid);
+          ELOG("%04X WARNING peer removed DBL spend from%04X\n",peer,svid);
           failed=true;
           break;}
         message_ptr pm=message_svidmsid(svid,msid);
         if(pm!=nullmsg && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
-          LOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
+          ELOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
           failed=true;
           break;}}
       std::set<uint64_t> mis;
@@ -3451,12 +3462,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           continue;}
         uint16_t svid=(it->first>>48);
         if(svid>=last_srvs_.nodes.size()){
-          LOG("%04X WARNING illegal candidate (svid:%04X)\n",peer,svid);
+          DLOG("%04X WARNING illegal candidate (svid:%04X)\n",peer,svid);
           failed=true;
           mis.insert(it->first);
           continue;}
         if(msid<=last_srvs_.nodes[svid].msid){
-          LOG("%04X WARNING illegal candidate (%04X:%08X too old)\n",peer,svid,msid);
+          DLOG("%04X WARNING illegal candidate (%04X:%08X too old)\n",peer,svid,msid);
           failed=true;
           mis.insert(it->first);
           continue;}
@@ -3464,7 +3475,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
         if(pm==nullmsg || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
           mis.insert(it->first);
           continue;}}
-      LOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",
+      DLOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",
         peer,(int)add.size(),(int)del.size(),(int)mis.size(),failed);
       candidate_ptr c_ptr(new candidate(blk,add,del,mis,peer,failed));
       candidates_[h]=c_ptr;
@@ -3534,12 +3545,12 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
 #endif
       int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
       if(!svid || svid==opts_.svid || !srvs_.nodes[svid].ipv4 || !srvs_.nodes[svid].port){
-        //LOG("IGNORE CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+        //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
         continue;}
       if(connected(svid)){
-        //LOG("ALREADY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+        //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
         continue;}
-      //LOG("TRY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+      //DLOG("TRY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
       connect(svid);}
   }
 
@@ -3560,20 +3571,20 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
     //finish recycle submitted office messages
     while(msid_>srvs_.nodes[opts_.svid].msid){
 //FIXME, hangs sometimes !!!
-      LOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+      ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
     //recycle office message queue
     std::string line;
     if(ofip_get_msg(msid_+1,line)){
       while(msid_>srvs_.nodes[opts_.svid].msid){
-        LOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+        ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
         boost::this_thread::sleep(boost::posix_time::seconds(1));}
-      LOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
+      ELOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
       if(!write_message(line)){
-        LOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
+        ELOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
         exit(-1);}
       while(msid_>srvs_.nodes[opts_.svid].msid){
-        LOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+        ELOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
         boost::this_thread::sleep(boost::posix_time::seconds(1));}
       ofip_del_msg(msid_);}
     //must do this after recycling messages !!!
@@ -3588,14 +3599,15 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
       uint32_t now=time(NULL);
       const char* plist=peers_list();
       if(missing_msgs_.size()){
-        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s] (miss:%d:%016lX)\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s] (miss:%d:%016lX)\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
+          //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,plist,
           (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
       else{
-        LOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s]\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X) [%s]\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist);}
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,plist);}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         std::cerr << "STOPing validation to start block\n";
         do_validate=0;
@@ -3616,7 +3628,7 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
           memcpy(put_msg->data+1,cand.hash,SHA256_DIGEST_LENGTH);
           char hash[2*SHA256_DIGEST_LENGTH]; hash[2*SHA256_DIGEST_LENGTH-1]='?';
           ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
-          LOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
+          ELOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
           deliver(put_msg); // sets BLOCK_MODE for peers
         }
         prepare_poll(); // sets do_vote, clears candidates and electors
@@ -3653,23 +3665,23 @@ LOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
   bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
-#ifdef DEBUG
+//#ifdef DEBUG
     if((!(opts_.svid%2) && !(rand()%4)) || now==srvs_.now+del) // send message every 4s
-#else
-    if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM)
-#endif
-    { LOG("SILENCE, sending void message due to silence\n");
-#ifdef DEBUG
+//#else
+//    if(!do_block && do_hallo!=srvs_.now && now<srvs_.now+BLOCKSEC && now-srvs_.now>(uint32_t)(BLOCKSEC/4+opts_.svid*VOTE_DELAY) && svid_msgs_.size()<MIN_MSGNUM)
+//#endif
+    { DLOG("SILENCE, sending void message due to silence\n");
+//#ifdef DEBUG
       if(rand()%2){
         usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
         message.append((char*)txs.data,txs.size);}
       else{
         usertxs txs((uint32_t)(rand()%32));
         message.append((char*)txs.data,txs.size);}
-#else
-      usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
-      message.append((char*)txs.data,txs.size);
-#endif
+//#else
+//      usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+//      message.append((char*)txs.data,txs.size);
+//#endif
       tnum++;
       do_hallo=srvs_.now;
       del=rand()%(2*BLOCKSEC);

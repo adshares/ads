@@ -51,8 +51,8 @@
 
 boost::mutex flog;
 FILE* stdlog=NULL;
-const candidate_ptr nullcnd;
-const message_ptr nullmsg;
+candidate_ptr nullcnd;
+message_ptr nullmsg;
 
 int main(int argc, char* argv[])
 { stdlog=fopen("log.txt","a");
@@ -180,13 +180,13 @@ void server::peer_clean()
 	for(auto pj=peers_.begin();pj!=peers_.end();){
                 auto pi=pj++;
 		if((*pi)->killme){
-			LOG("KILL PEER %04X\n",(*pi)->svid);
+			DLOG("KILL PEER %04X\n",(*pi)->svid);
 			missing_sent_remove((*pi)->svid);
-			//LOG("DISCONNECT PEER %04X stop\n",(*pi)->svid);
+			//DLOG("DISCONNECT PEER %04X stop\n",(*pi)->svid);
 			(*pi)->stop();
-			//LOG("DISCONNECT PEER %04X erase\n",(*pi)->svid);
+			//DLOG("DISCONNECT PEER %04X erase\n",(*pi)->svid);
 			peers_.erase(*pi);
-			//LOG("DISCONNECT PEER %04X end\n",(*pi)->svid);
+			//DLOG("DISCONNECT PEER %04X end\n",(*pi)->svid);
 			continue;}}
 	peer_.unlock();
 }
@@ -195,7 +195,7 @@ void server::disconnect(uint16_t svid)
 	for(auto pj=peers_.begin();pj!=peers_.end();){
                 auto pi=pj++;
 		if((*pi)->svid==svid){
-			LOG("DISCONNECT PEER %04X\n",(*pi)->svid);
+			DLOG("DISCONNECT PEER %04X\n",(*pi)->svid);
 			(*pi)->killme=true;
 			continue;}}
 	peer_.unlock();
@@ -251,7 +251,7 @@ void server::get_more_headers(uint32_t now) //use random order
 		advance(pi,num);}
 	peer_.unlock();
 	if(!(*pi)->do_sync){
-		LOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
+		DLOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
 		(*pi)->request_next_headers(now);}
 }
 void server::fillknown(message_ptr msg) //use random order
@@ -326,7 +326,7 @@ void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& erro
 }
 void server::connect(std::string peer_address)
 {	try{
-		LOG("TRY connecting to address %s\n",peer_address.c_str());
+		DLOG("TRY connecting to address %s\n",peer_address.c_str());
 		const char* port=SERVER_PORT;
 		char* p=strchr((char*)peer_address.c_str(),':');
 		if(p!=NULL){
@@ -346,7 +346,7 @@ void server::connect(std::string peer_address)
 }
 void server::connect(uint16_t svid)
 {	try{
-		LOG("TRY connecting to peer %04X\n",svid);
+		DLOG("TRY connecting to peer %04X\n",svid);
 		//char ipv4t[32];
 		//sprintf(ipv4t,"%s",inet_ntoa(srvs_.nodes[svid].ipv4));
 		struct in_addr addr;

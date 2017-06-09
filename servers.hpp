@@ -132,7 +132,7 @@ public:
 				bzero(it->pk,SHA256_DIGEST_LENGTH);
 				it->users=0;
 				it->weight=0;}}
-		LOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
+		ELOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
 		//nodes.begin()->weight=TOTALMASS-sum;
 		assert(num>0);
 		//vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
@@ -153,7 +153,7 @@ public:
 	uint32_t read_start()
 	{	FILE* fp=fopen("blk/start.txt","r");
 		if(fp==NULL){
-			LOG("ERROR, failed to read blk/start.txt\n");
+			ELOG("ERROR, failed to read blk/start.txt\n");
 			return(0);}
 		uint32_t start;
 		fscanf(fp,"%X",&start);
@@ -250,10 +250,10 @@ public:
 
 	bool check_user(uint16_t peer,uint32_t uid)
 	{	if(peer>=nodes.size()){
-			LOG("ERROR, bad user %04X:%08X (bad node)\n",peer,uid);
+			DLOG("ERROR, bad user %04X:%08X (bad node)\n",peer,uid);
 			return(false);}
 	 	if(nodes[peer].users<=uid){
-			LOG("ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
+			DLOG("ERROR, bad user %04X:%08X [%08X]\n",peer,uid,nodes[peer].users);
 			return(false);}
 		return(true);
 	}
@@ -289,28 +289,29 @@ public:
 		for(uint32_t i=0;i<end;i++){
 			user_t u;
 			if(sizeof(user_t)!=read(fd,&u,sizeof(user_t))){
-				LOG("ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
+				ELOG("ERROR, failed to read %04X:%08X from %s\n",peer,i,filename);
 				close(fd);
 				exit(-1);}
-//FIXME, remove
-        LOG("USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
-          peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
 			xor4(csum,u.csum);
 			weight+=u.weight;
-//FIXME, remove later
+#ifdef DEBUG
+		        DLOG("USER:%04X:%08X m:%08X t:%08X s:%04X b:%04X u:%08X l:%08X r:%08X v:%016lX\n",
+				peer,i,u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight);
 			uint64_t usum[4]={0,0,0,0};
 			memcpy(usum,u.csum,sizeof(uint64_t)*4);
 			user_csum(u,peer,i);
 			if(memcmp(usum,u.csum,sizeof(uint64_t)*4)){
-				LOG("ERROR, checksum failed for %04X:%08X from %s\n",peer,i,filename);
+				ELOG("ERROR, checksum failed for %04X:%08X from %s\n",peer,i,filename);
 				close(fd);
-				exit(-1);}}
+				exit(-1);}
+#endif
+			}
 		close(fd);
 		if(nodes[peer].weight!=weight){
-			LOG("ERROR: check_node: bad weight sum\n");
+			ELOG("ERROR: check_node: bad weight sum\n");
 			return(false);}
 		if(memcmp(nodes[peer].hash,csum,4*sizeof(uint64_t))){
-			LOG("ERROR: check_node: bad hash\n");
+			ELOG("ERROR: check_node: bad hash\n");
 			return(false);}
 		return(true);
 	}
@@ -382,11 +383,11 @@ public:
 		for(auto it=map.begin();it!=map.end();++it,i++){
 			tree.update(it->second->sigh);}
 		if(msg!=i){
-			LOG("ERROR, bad message numer\n");
+			ELOG("ERROR, bad message numer\n");
 			return(false);}
 		tree.finish(hash);
 		if(memcmp(hash,msghash,SHA256_DIGEST_LENGTH)){
-			LOG("ERROR, bad message hash\n");
+			ELOG("ERROR, bad message hash\n");
 			return(false);}
 		return(true);
 	}*/
@@ -462,33 +463,46 @@ public:
 		sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){
-			LOG("ERROR %s not found\n",filename);
+			DLOG("ERROR %s not found\n",filename);
 			return(false);}
 		if((--mnum)%2){
-			uint8_t tmp[32+2+4]; // do not read own hash
+#pragma pack(1)
+			struct {hash_s ha;uint16_t svid;uint32_t msid;} tmp;
+#pragma pack()
+			assert(sizeof(tmp)==32+2+4);
+			//uint8_t tmp[32+2+4]; // do not read own hash
 			lseek(fd,32+(2+4+32)*(mnum)-32,SEEK_SET);
-			read(fd,tmp,32+2+4); // do not read own hash
-			if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid){
-				LOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-					*(uint16_t*)(&tmp[32]),*(uint32_t*)(&tmp[32+2]));
+			read(fd,(char*)&tmp,32+2+4); // do not read own hash
+			//if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
+			if(tmp.svid!=svid || tmp.msid!=msid){
+				DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+					tmp.svid,tmp.msid);
 				close(fd);
 				return(false);}
-			LOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
-			hashes.push_back(*(hash_s*)(&tmp[0]));}
+			DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
+			//hashes.push_back(*(hash_s*)(&tmp[0]));
+			hashes.push_back(tmp.ha);}
 		else{
-			uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
+#pragma pack(1)
+			struct {uint16_t svid1;uint32_t msid1;hash_s ha1;uint16_t svid2;uint32_t msid2;hash_s ha2;}
+				tmp;
+#pragma pack()
+			assert(sizeof(tmp)==2+4+32+2+4+32);
+			//uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
 			lseek(fd,32+(2+4+32)*(mnum),SEEK_SET);
-			read(fd,tmp,2+4+32+2+4+32); // do not read own hash
-			if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid){
-				LOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-					*(uint16_t*)(&tmp[0]),*(uint32_t*)(&tmp[2]));
+			read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
+			//if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
+			if(tmp.svid1!=svid || tmp.msid1!=msid){
+				DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+					tmp.svid1,tmp.msid1);
 				close(fd);
 				return(false);}
 			if(mnum<msg-1){
-				LOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
-				hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));}
+				DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
+				//hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));
+				hashes.push_back(tmp.ha2);}
 			else{
-				LOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
+				DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
 		uint32_t htot;
 		lseek(fd,32+(2+4+32)*msg,SEEK_SET);
 		read(fd,&htot,4); //needed only for debugging
@@ -496,29 +510,31 @@ public:
 		hashtree tree;
 		tree.hashpath(mnum/2,(msg+1)/2,add);
 		for(auto n : add){
-			LOG("HASHTREE add %d\n",n);
+			DLOG("HASHTREE add %d\n",n);
 			assert(n<htot);
 			lseek(fd,32+(2+4+32)*msg+4+32*n,SEEK_SET);
-			hash_t phash;
-			read(fd,phash,32);
-			hashes.push_back(*(hash_s*)phash);}
+			hash_s phash;
+			read(fd,phash.hash,32);
+			hashes.push_back(phash);}
 		close(fd);
 		//DEBUG only, confirm hash 
 			hash_t nhash;
 			tree.hashpathrun(nhash,hashes);
 			if(memcmp(msghash,nhash,32)){
-				LOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
+				DLOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
 				return(false);}
 		//add header hashes
 		//hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
 		//hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
-		hashes.push_back(*(hash_s*)minhash);
+		hash_s* hashmin=(hash_s*)minhash;
+		hashes.push_back(*hashmin);
+		//hashes.push_back(*(hash_s*)minhash);
 		//DEBUG only, confirm nowhash
 			//tree.addhash(nhash,viphash); // removed to save on _TXS traffic
 			//tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
 			tree.addhash(nhash,minhash);
 			if(memcmp(nowhash,nhash,32)){
-				LOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
+				DLOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
 				return(false);}
 		return(true);
 	}
@@ -533,10 +549,10 @@ public:
 		if(!load_vip(len,buf,viphash)){
 			update_viphash();
 			load_vip(len,buf,viphash);}
-		LOG("VIPS %d:\n",(len/(2+32)));
+		ELOG("VIPS %d:\n",(len/(2+32)));
 		for(int i=0;i<len;i+=2+32){
 			uint16_t svid=*((uint16_t*)(&buf[i+4]));
-			LOG("VIP: %04X\n",svid);
+			ELOG("VIP: %04X\n",svid);
 			assert(svid>0 && svid<nodes.size());
 			nodes[svid].status |= SERVER_VIP;
 			if(!i){
@@ -566,7 +582,8 @@ public:
 		std::map<uint16_t,hash_s> vipkeys;
 		for(i=1;i<VIP_MAX&&i<svid_rank.size();i++){ //other keys are sorted by svid
 			svid=svid_rank[i];
-			vipkeys[svid]=(*((hash_s*)nodes[svid].pk));}
+			memcpy(vipkeys[svid].hash,nodes[svid].pk,32);}
+			//vipkeys[svid]=(*((hash_s*)nodes[svid].pk));
 		assert(i>0);
 		for(auto it=vipkeys.begin();it!=vipkeys.end();it++){
 			data.append((char*)&it->first,2);
@@ -579,7 +596,7 @@ public:
 		sprintf(filename,"vip/%64s.vip",hash);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){
-			LOG("ERROR opening %s, fatal\n",filename);
+			ELOG("ERROR opening %s, fatal\n",filename);
 			exit(-1);}
 		write(fd,data.c_str(),data.length());
 		close(fd);
@@ -612,18 +629,18 @@ public:
 		sprintf(filename,"vip/%64s.vip",hash);
 		int fd=open(filename,O_RDONLY,0644);
 		if(fd<0){
-			LOG("ERROR opening %s\n",filename);
+			ELOG("ERROR opening %s\n",filename);
 			return(false);}
 		struct stat sb;
 		fstat(fd,&sb);
 		len=sb.st_size;
 		if(!len){
-			LOG("ERROR empty %s\n",filename);
+			ELOG("ERROR empty %s\n",filename);
 			close(fd);
 			return(false);}
 		buf=(char*)malloc(4+len);
 		if(buf==NULL){
-			LOG("ERROR malloc %d bytes for %s\n",4+len,filename);
+			ELOG("ERROR malloc %d bytes for %s\n",4+len,filename);
 			close(fd);
 			return(false);}
 		memcpy(buf,&len,4);
@@ -638,7 +655,7 @@ public:
 		update_viphash();
 		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
-			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
+			DLOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
 			SHA256_Init(&sha256);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
@@ -655,7 +672,7 @@ public:
 		tree.finish(nodhash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-		LOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		hashnow();
 		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);
@@ -748,12 +765,12 @@ public:
 			ia >> vok;
 			ia >> vno;}
 		else{
-			LOG("ERROR, failed to read header %08X\n",now);
+			ELOG("ERROR, failed to read header %08X\n",now);
 			return(0);}
 		if(!now){
 			now=check;}
 		else if(check!=now){
-			LOG("ERROR, failed to check header %08X\n",now);
+			ELOG("ERROR, failed to check header %08X\n",now);
 			return(0);}
 		return(1);
 	}
@@ -828,31 +845,31 @@ public:
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	LOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
+	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",now,msg,nod,div,vok,vno);
 		ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
-		LOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
-		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,viphash,SHA256_DIGEST_LENGTH);
-		LOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,nowhash,SHA256_DIGEST_LENGTH);
-		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
 	void header_print(header_t& head)
 	{	char hash[2*SHA256_DIGEST_LENGTH];
-	 	LOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
+	 	ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X\n",head.now,head.msg,head.nod,head.div,head.vok,head.vno);
 		ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
-		LOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
-		LOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nodhash,SHA256_DIGEST_LENGTH);
-		LOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.viphash,SHA256_DIGEST_LENGTH);
-		LOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		ed25519_key2text(hash,head.nowhash,SHA256_DIGEST_LENGTH);
-		LOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
 	void save_signature(uint16_t svid,uint8_t* sig,bool ok)
 	{	char filename[64];
@@ -944,16 +961,16 @@ public:
 			uint16_t svid;
 			memcpy(&svid,data,2);
 			if(svid>=nodes.size()){
-				LOG("ERROR, bad server %04X in signatures\n",svid);
+				DLOG("ERROR, bad server %04X in signatures\n",svid);
 				continue;}
 			if(!(nodes[svid].status & SERVER_VIP)){
-				LOG("WARNING, signature from non VIP server %04X ignored\n",svid);
+				DLOG("WARNING, signature from non VIP server %04X ignored\n",svid);
 				continue;}
 			int error=ed25519_sign_open((const unsigned char*)&head,sizeof(header_t)-4,nodes[svid].pk,data+2);
 			if(error){
 				char hash[4*SHA256_DIGEST_LENGTH];
 				ed25519_key2text(hash,data+2,2*SHA256_DIGEST_LENGTH);
-				LOG("BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
+				ELOG("BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
 				header_print(head);
 				continue;}
 			if(j!=i){
@@ -975,7 +992,7 @@ public:
 				memcpy(svsi+j,svsi+i,sizeof(svsi_t));}
 			j++;}
 		head.vno=j-head.vok;
-          	LOG("READ block signatures confirmed:%d failed:%d\n",head.vok,head.vno);
+          	ELOG("READ block signatures confirmed:%d failed:%d\n",head.vok,head.vno);
 	}
 
 	bool copy_nodes(node_t* peer_node,uint16_t peer_srvn)
@@ -1010,7 +1027,7 @@ public:
 		SHA256_CTX sha256;
 		hashtree tree;
 		for(i=0;i<peer_srvn;i++){ // consider changing this to hashtree/hashcalendar
-			LOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
+			DLOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&peer_node[i].pk[0]),(uint32_t)*((uint32_t*)&peer_node[i].hash[0]),(uint32_t)*((uint32_t*)&peer_node[i].msha[0]),
 				peer_node[i].msid,peer_node[i].mtim,peer_node[i].status,peer_node[i].weight,peer_node[i].users);
 			SHA256_Init(&sha256);
@@ -1028,7 +1045,7 @@ public:
 		tree.finish(tmphash);
 		char hash[2*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,tmphash,SHA256_DIGEST_LENGTH);
-		LOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+		ELOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		return(memcmp(tmphash,peer_nodehash,SHA256_DIGEST_LENGTH));
 	}
 
@@ -1068,13 +1085,13 @@ public:
 				sum+=nodes[n].weight;}
 			if(sum<TOTALMASS){
 				if(sum<TOTALMASS/2){
-					LOG("WARNING, very small account sum %016lX\n",sum);}
+					ELOG("WARNING, very small account sum %016lX\n",sum);}
 				//div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>32));
 				div=(uint32_t)((double)(TOTALMASS-sum)/(double)(sum>>16));}
 			else{
 				div=0;}
-			//LOG("NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
-			LOG("NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
+			//ELOG("NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
+			ELOG("NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
                           div,(float)(div)/0xFFFF,TOTALMASS-sum,(double)(TOTALMASS-sum)/(double)sum);}
 		blockdir();
 		//change log directory
@@ -1115,7 +1132,7 @@ public:
 
 	void clean_old(uint16_t svid)
 	{	char pat[8];
-		LOG("CLEANING by %04X\n",svid);
+		ELOG("CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
 #ifdef DEBUG
 		for(int i=30*24*2;i<10;i+=16){
@@ -1130,11 +1147,11 @@ public:
 			sprintf(pathname,"blk/%03X/%05X",path>>20,path&0xFFFFF);
 			dir=opendir(pathname);
 			if(dir==NULL){
-				LOG("UNLINK: no such dir %s\n",pathname);
+				DLOG("UNLINK: no such dir %s\n",pathname);
 				continue;}
 			dd=dirfd(dir);
 			if((fd=openat(dd,"clean.txt",O_RDONLY))>=0){
-				LOG("UNLINK: dir %s clean\n",pathname);
+				DLOG("UNLINK: dir %s clean\n",pathname);
 				close(fd);
 				closedir(dir);
 				continue;}
@@ -1149,11 +1166,21 @@ public:
 				    dat->d_name[4]!=pat[1] ||
 				    dat->d_name[5]!=pat[2] ||
 				    dat->d_name[6]!=pat[3])){
-					LOG("UNLINK: %s/%s\n",pathname,dat->d_name);
+					DLOG("UNLINK: %s/%s\n",pathname,dat->d_name);
 					unlinkat(dd,dat->d_name,0);}}
 			if((fd=openat(dd,"clean.txt",O_WRONLY|O_CREAT,0644))>=0){
 				close(fd);}
 			closedir(dir);}
+	}
+
+	uint32_t nowh32(void)
+	{	uint32_t* p=(uint32_t*)nowhash;
+		return(*p);
+	}
+
+	uint32_t nowh64(void)
+	{	uint64_t* p=(uint64_t*)nowhash;
+		return(*p);
 	}
 
 private:

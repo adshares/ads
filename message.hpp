@@ -125,7 +125,7 @@ public:
       char hash[4*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,data+4,2*SHA256_DIGEST_LENGTH);
       hash_signature();
-      LOG("BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
+      DLOG("BLOCK SIGNATURE created %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,mysvid);}
     else if(text_type==MSGTYPE_CND){
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
       hash_signature();}
@@ -135,10 +135,10 @@ public:
     else{
       assert(text_type==MSGTYPE_MSG);
       if(!insert_user()){
-        LOG("ERROR insert_user error, FATAL\n");
+        ELOG("ERROR insert_user error, FATAL\n");
         exit(-1);}
       if(!hash_tree()){
-        LOG("ERROR hash_tree error, FATAL\n");
+        ELOG("ERROR hash_tree error, FATAL\n");
         exit(-1);}
       ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);}
     hash.num=dohash(mysvid);
@@ -176,10 +176,10 @@ public:
       *hashtnum^=tnum;
       tree.update(hash);}
     if(!tnum){
-      LOG("ERROR empty hash_tree %04X:%08X\n",insvid,inmsid);
+      DLOG("ERROR empty hash_tree %04X:%08X\n",insvid,inmsid);
       return(false);}
     if(p!=end){
-      LOG("ERROR parsing transactions for hash_tree %04X:%08X\n",insvid,inmsid);
+      DLOG("ERROR parsing transactions for hash_tree %04X:%08X\n",insvid,inmsid);
       return(false);}
     tree.finish(outsigh);
     return(true);
@@ -232,23 +232,18 @@ public:
     assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
     assert(svid);
     assert(msid);
-    hash_t hash;
-    uint16_t* hashsvid=(uint16_t*)hash;
-    uint32_t* hashmsid=(uint32_t*)(&hash[4]);
-    uint16_t* hashtnum=(uint16_t*)(&hash[8]);
+    hash_s ha;
     hashtree tree;
     usertxs utxs;
     SHA256_CTX sha256;
     SHA256_Init(&sha256);
     SHA256_Update(&sha256,data+4+64,10);
-    SHA256_Final(hash,&sha256);
-    //std::vector<hash_s> hashes;
+    SHA256_Final(ha.hash,&sha256);
     std::vector<uint32_t> tpos;
     std::vector<hash_s> firsthashes;
     tpos.push_back(4+64);
-    firsthashes.push_back(*(hash_s*)hash);
-    //hashes.push_back(*(hash_s*)hash);
-    tree.update(hash);
+    firsthashes.push_back(ha);
+    tree.update(ha.hash);
     uint8_t* p=data+data_offset; // data_offset = 4+64+10
     uint8_t* end=data+len;
     uint32_t l;
@@ -261,32 +256,21 @@ public:
         return(false);}
       SHA256_Init(&sha256);
       SHA256_Update(&sha256,p,l);
-      SHA256_Final(hash,&sha256);
+      SHA256_Final(ha.hash,&sha256);
       //xor with txid
-      *hashsvid^=svid;
-      *hashmsid^=msid;
-      *hashtnum^=tnum;
-      firsthashes.push_back(*(hash_s*)hash);
-      //hashes.push_back(*(hash_s*)hash);
-      tree.update(hash);
-      //int n=tree.update(hash);
-      //for(int i=0;i<n;i++){
-      //  hashes.push_back(*(hash_s*)(&tree.hash_[i][0]));}
-      }
+      ha.hxor[0]^=svid;
+      ha.hxor[1]^=msid;
+      ha.hxor[2]^=tnum;
+      firsthashes.push_back(ha);
+      tree.update(ha.hash);}
     if(!tnum){
-      LOG("ERROR empty hash_tree %04X:%08X\n",svid,msid);
+      DLOG("ERROR empty hash_tree %04X:%08X\n",svid,msid);
       return(false);}
     if(p!=end){
-      LOG("ERROR parsing transactions for hash_tree %04X:%08X\n",svid,msid);
+      DLOG("ERROR parsing transactions for hash_tree %04X:%08X\n",svid,msid);
       return(false);}
-    //tree.finish(newsigh);
     tree.finish(sigh);
-    //tree.save(hashes);
-    //assert(hashes.size()>=1);
-    //assert(tree.hashes.size()>=1);
-    //add position indices and hashtree to data
     uint32_t tpos_size=tpos.size();
-    //uint32_t hashes_size=hashes.size()-1;
     uint32_t hashes_size=tree.hashes.size()-1; // last is msghash
     if(!tree.hashes.size()){
       hashes_size=0;}
@@ -300,7 +284,6 @@ public:
       memcpy(data+len+32+4+4+4+(4+32)*i,&tpos[i],4);
       memcpy(data+len+32+4+4+4+(4+32)*i+4,firsthashes[i].hash,32);}
     for(uint32_t i=0;i<hashes_size;i++){
-      //memcpy(data+len+32+4+4*tpos_size+32*i,&hashes[i],32);
       memcpy(data+len+32+4+4+4+(4+32)*tpos_size+32*i,&tree.hashes[i],32);}
     return(true);
   }
@@ -313,13 +296,13 @@ public:
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
-      LOG("ERROR %s not found\n",filename);
+      DLOG("ERROR %s not found\n",filename);
       return(false);}
     uint32_t mlen;
     read(fd,&mlen,4);
     mlen>>=8;
     if(!mlen){
-      LOG("ERROR %s failed to read message length\n",filename);
+      DLOG("ERROR %s failed to read message length\n",filename);
       close(fd);
       return(false);}
     hash_t mhash;
@@ -334,11 +317,11 @@ public:
     //fstat(fd,&sb);
     //assert(sb.st_size==ttot);
     if(!tmax){
-      LOG("ERROR %s failed to read number of hashes\n",filename);
+      DLOG("ERROR %s failed to read number of hashes\n",filename);
       close(fd);
       return(false);}
     if(tnum>=tmax){
-      LOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
+      DLOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
       close(fd);
       return(false);}
     uint32_t pos;
@@ -352,7 +335,7 @@ public:
       else{
         len=tmp[8+1+8]-pos;}
       hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
-      LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);
+      DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);
       hashes.push_back(*(hash_s*)(&tmp[0]));}
     else{
       uint32_t tmp[1+8+1+8];
@@ -362,10 +345,10 @@ public:
       hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
       if(tnum==tmax-1){
         len=mlen-pos;
-        LOG("HASHTREE start %d [max:%d len:%d]\n",tnum,tmax,len);}
+        DLOG("HASHTREE start %d [max:%d len:%d]\n",tnum,tmax,len);}
       else{
         len=tmp[1+8]-pos;
-        LOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,mlen,ttot,len);
+        DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,mlen,ttot,len);
         hashes.push_back(*(hash_s*)(&tmp[1+8+1]));}}
     if(data!=NULL){
       free(data);}
@@ -377,21 +360,21 @@ public:
     hashtree tree;
     tree.hashpath(tnum/2,(tmax+1)/2,add);
     for(auto n : add){
-      LOG("HASHTREE add %d\n",n);
+      DLOG("HASHTREE add %d\n",n);
       if(n*2==tmax-1){ //special case for last uneven hash
         lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);}
       else{
         assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
         lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);}
-      hash_t phash;
-      read(fd,phash,32);
-      hashes.push_back(*(hash_s*)phash);}
+      hash_s phash;
+      read(fd,phash.hash,32);
+      hashes.push_back(phash);}
     close(fd);
     //DEBUG only, confirm hash 
     hash_t nhash;
     tree.hashpathrun(nhash,hashes);
     if(memcmp(mhash,nhash,32)){
-      LOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
+      DLOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
       return(false);}
     return(true);
   }
@@ -401,10 +384,10 @@ public:
     memcpy(data+4+64+6,&ntime,4);
     now=ntime;
     if(!insert_user()){
-      LOG("ERROR insert_user error, FATAL\n");
+      ELOG("ERROR insert_user error, FATAL\n");
       exit(-1);}
     if(!hash_tree()){
-      LOG("ERROR hash_tree error, FATAL\n");
+      ELOG("ERROR hash_tree error, FATAL\n");
       exit(-1);}
     ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);
     hash.num=dohash(svid); //assert svid==opts_.svid
@@ -420,7 +403,7 @@ public:
   { data=NULL;
     hash.dat[1]=type;
     if(!load(0)){ //sets len ... assume this is invoked only by server during sync
-      LOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
+      ELOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
       return;}
     //load should get hash_tree
     memcpy(&now,data+4+64+6,4);
@@ -429,7 +412,7 @@ public:
     assert(len<=max_length);
     assert(data!=NULL);
     if(check_signature(svpk,msvid,msha)){
-      LOG("ERROR, failed to confirm signature of recycled message %04X:%08X [len:%d]\n",svid,msid,len);
+      ELOG("ERROR, failed to confirm signature of recycled message %04X:%08X [len:%d]\n",svid,msid,len);
       status=0;}
     //else{
     //  memcpy(msha,sigh,sizeof(hash_t));}
@@ -546,7 +529,7 @@ public:
       len=0;
       memcpy(&len,data+1,3);
       if((data[0]==MSGTYPE_MSG && len>max_length) || (data[0]==MSGTYPE_DBL && len>4+2*max_length) || len<=4+64+10){ // bad format
-        LOG("ERROR in message format >>%016lX>>\n",*(uint64_t*)data);
+        ELOG("ERROR in message format >>%016lX>>\n",*(uint64_t*)data);
         return 0;}
       data=(uint8_t*)std::realloc(data,len);
       if(data==NULL){
@@ -561,8 +544,7 @@ public:
       memcpy(&svid,data+6,2); // this is the bank id
       if(len>MESSAGE_CHUNK){
         uint64_t h=*((uint64_t*)data);
-        LOG("USR HEADER:%016lX\n",h);
-        std::cerr<<"ERROR in user message length\n";
+        ELOG("ERROR USR HEADER:%016lX too long (%u>%u)\n",h,len,MESSAGE_CHUNK);
         return 0;}
       data=(uint8_t*)std::realloc(data,8+len*sizeof(user_t));
       if(data==NULL){
@@ -619,7 +601,7 @@ public:
       len=header_length;
       return 1;} // short message
     //std::cerr << "ERROR: unknown message from peer: " << (int)((int)(data[0])+0) << "\n"; // TODO, ban ip
-    LOG("ERROR: unknown message header %016lX\n",(uint64_t)(*(uint64_t*)data));
+    ELOG("ERROR: unknown message header %016lX\n",(uint64_t)(*(uint64_t*)data));
     return 0;
   }
 
@@ -686,7 +668,7 @@ public:
       hash.num=dohash(mysvid);
       if(data[0]==MSGTYPE_BLK){
 	if(memcmp(data+4+64+2,data+4+64+10,4)){ //WARNING, 'now' must be first element of header_t
-	  LOG("ERROR, BLK message %04X:%08X msid error\n",svid,msid);
+	  ELOG("ERROR, BLK message %04X:%08X msid error\n",svid,msid);
 	  return(1);}
         return(ed25519_sign_open(data+4+64+10,sizeof(header_t)-4,svpk,data+4));}
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
@@ -705,15 +687,15 @@ public:
       data1=data+4+32;
       memcpy(&len1,data1+1,3);
       if(len<4+32+len1+4){
-        LOG("DBL message short len\n");
+        ELOG("DBL message short len\n");
         return(-1);}
       data2=data1+len1;
       memcpy(&len2,data2+1,3);
       if(4+32+len1+len2!=len){
-        LOG("DBL message bad len 4+32+%d+%d!=%d\n",len1,len2,len);
+        ELOG("DBL message bad len 4+32+%d+%d!=%d\n",len1,len2,len);
         return(-1);}
       if(*data1!=*data2){
-        LOG("DBL message type mismatch\n");
+        ELOG("DBL message type mismatch\n");
         return(-1);}
       memcpy(&svid1,data1+4+64+0,2); //was processed before by read_head()
       memcpy(&msid1,data1+4+64+2,4); //was processed before by read_head()
@@ -722,18 +704,18 @@ public:
       memcpy(&msid2,data2+4+64+2,4);
       memcpy( &now2,data2+4+64+6,4);
       if((svid1!=svid2)||(msid1!=msid2)){ // bad format
-        LOG("DBL message msid/svid mismatch\n");
+        ELOG("DBL message msid/svid mismatch\n");
         return(-1);}
       if(!memcmp(data1+4,data2+4,64)){ // equal messages
-        LOG("DBL message equal signatures\n");
+        ELOG("DBL message equal signatures\n");
         return(-1);}
       if(*data1==MSGTYPE_CND || *data1==MSGTYPE_BLK){
         if(len1!=len2){
-          LOG("DBL message len mismatch\n");
+          ELOG("DBL message len mismatch\n");
           return(-1);}
         if(*data1==MSGTYPE_CND){
           if(len1!=4+64+10+32){
-            LOG("DBL message bad CND len\n");
+            ELOG("DBL message bad CND len\n");
             return(-1);}
           const uint8_t* m[2]={data1+4+64,data2+4+64};
           size_t mlen[2]={10+32,10+32};
@@ -743,15 +725,15 @@ public:
           return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}
         if(*data1==MSGTYPE_BLK){
           if(len1!=4+64+10+sizeof(header_t)-4){
-            LOG("DBL message bad BLK len\n");
+            ELOG("DBL message bad BLK len\n");
             return(-1);}
           uint32_t hpath1=((header_t*)(data1+4+64+10))->now;
           uint32_t hpath2=((header_t*)(data1+4+64+10))->now;
           if(hpath1!=hpath2){
-            LOG("DBL message header mistamch\n");
+            ELOG("DBL message header mistamch\n");
             return(-1);}
           if(hpath1!=msid1){
-            LOG("DBL bad message header\n");
+            ELOG("DBL bad message header\n");
             return(-1);}
           const uint8_t* m[2]={data1+4+64+10,data2+4+64+10};
           size_t mlen[2]={sizeof(header_t)-4,sizeof(header_t)-4};
@@ -761,48 +743,51 @@ public:
           return(ed25519_sign_open_batch(m,mlen,pk,rs,2,valid));}}
       if(*data1==MSGTYPE_MSG){
         if((now1>now2+3*BLOCKSEC) || (now2>now1+3*BLOCKSEC)){ // time based protection for fixed messages
-          LOG("DBL bad message times %08X vs %08X\n",now1,now2);
+          ELOG("DBL bad message times %08X vs %08X\n",now1,now2);
           return(-1);}
         hash_t sigh1;
         hash_t sigh2;
         if(!hash_tree_fast(sigh1,data1,len1,svid1,msid1)){
-          LOG("DBL bad message hash_tree_fast 1 failed\n");
+          ELOG("DBL bad message hash_tree_fast 1 failed\n");
           return(-1);}
         if(!hash_tree_fast(sigh2,data2,len2,svid2,msid2)){
-          LOG("DBL bad message hash_tree_fast 1 failed\n");
+          ELOG("DBL bad message hash_tree_fast 1 failed\n");
           return(-1);}
         return(
           ed25519_sign_open2(dblmsha,32,sigh1,32,svpk,data1+4) ||
           ed25519_sign_open2(dblmsha,32,sigh2,32,svpk,data2+4));}
-      LOG("DBL message illegal type\n");
+      ELOG("DBL message illegal type\n");
       return(-1);}
     return(1); //return error
   }
 
   void print_text(const char* suffix)
-  { assert(data!=NULL);
+  { 
+#ifndef NDEBUG
+    assert(data!=NULL);
     char text[16];
     ed25519_key2text((char*)text,sigh,8);
-    LOG("%04X [%04X:%08X] [l:%d] (%08X) %.16s blk/%03X/%05X/%02x_%04x_%08x.msg %s\n",peer,svid,msid,len,now,text,path>>20,path&0xFFFFF,hashtype(),svid,msid,suffix);
+    DLOG("%04X [%04X:%08X] [l:%d] (%08X) %.16s blk/%03X/%05X/%02x_%04x_%08x.msg %s\n",peer,svid,msid,len,now,text,path>>20,path&0xFFFFF,hashtype(),svid,msid,suffix);
+#endif
   }
 
   void print(const char* suffix) const
-  { LOG("%04X [%04X-%08X] [l:%d] (%08X) %s\n",peer,svid,msid,len,now,suffix);
+  { DLOG("%04X [%04X-%08X] [l:%d] (%08X) %s\n",peer,svid,msid,len,now,suffix);
   }
 
   void print_header()
   { assert(data!=NULL);
     char hash[2*SHA256_DIGEST_LENGTH];
     header_t* h=(header_t*)(data+4+64+10);
-    LOG("HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
+    ELOG("HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
     ed25519_key2text(hash,h->oldhash,32);
-    LOG("OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    ELOG("OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->msghash,32);
-    LOG("TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    ELOG("TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->nodhash,32);
-    LOG("NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    ELOG("NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     ed25519_key2text(hash,h->nowhash,32);
-    LOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+    ELOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
   int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
@@ -811,16 +796,20 @@ public:
     busy.insert(who);
     if(!path){
       mtx_.unlock();
+#ifndef NDEBUG
       if(data==NULL){
         char filename[128];
         makefilename(filename,path,"msg");
-        LOG("%s lost [len:%d]\n",filename,len);}
+        DLOG("%s lost [len:%d]\n",filename,len);}
+#endif
       return(data!=NULL);}
     if(data!=NULL && len!=header_length){
       mtx_.unlock();
+#ifndef NDEBUG
       char filename[128];
       makefilename(filename,path,"msg");
-      LOG("%s full [len:%d]\n",filename,len);
+      DLOG("%s full [len:%d]\n",filename,len);
+#endif
       return(1);}
     char filename[128];
     makefilename(filename,path,"msg");
@@ -828,7 +817,7 @@ public:
     int fd=open(filename,O_RDONLY);
     if(fd<0){
       mtx_.unlock();
-      LOG("%s open failed [len:%d]\n",filename,len);
+      DLOG("%s open failed [len:%d]\n",filename,len);
       return(0);}
     if(data!=NULL){
       free(data);
@@ -847,7 +836,7 @@ public:
         hash_signature();}} //FIXME, check if message is not MSG,INI,CND,BLK (DBL for example)
     status|=MSGSTAT_DAT | MSGSTAT_SAV; //load() succeeded so massage is saved
     mtx_.unlock();
-    LOG("%s loaded\n",filename);
+    DLOG("%s loaded\n",filename);
     return(1);
   }
 
@@ -862,7 +851,7 @@ public:
     busy.erase(who);
     if(busy.empty()){
       if(len==header_length){
-        LOG("WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
+        DLOG("WARNING !!! trying to unload short message (%02x_%04x_%08x [len:%d])\n",
           (uint32_t)hashtype(),svid,msid,len);}
       else{
         if(data!=NULL && (status & MSGSTAT_SAV)){ //will only unload messages that are saved
@@ -879,14 +868,12 @@ public:
     char filename[128];
     makefilename(filename,path,"msg");
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-#ifdef DEBUG
     if(!(status & MSGSTAT_VAL)){
-      LOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
+      ELOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
       assert(0);}
-#endif
     int fd=open(filename,O_WRONLY);
     if(fd<0){
-      LOG("ERROR, saving mnum %d in %s\n",mnum,filename);
+      ELOG("ERROR, saving mnum %d in %s\n",mnum,filename);
       return;}
     lseek(fd,len+32,SEEK_SET);
     write(fd,&mnum,4);
@@ -913,11 +900,11 @@ public:
     makefilename(filename,path,"msg");
     //assert(data!=NULL);
     if(data==NULL){
-      LOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
+      ELOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
       assert(0);}
     int fd=open(filename,O_WRONLY|O_CREAT,0644);
     if(fd<0){
-      LOG("ERROR, saving %s\n",filename);
+      ELOG("ERROR, saving %s\n",filename);
       return(0);}
     if(hashtype()==MSGTYPE_MSG){
 //FIXME, if MSGTYPE_MSG, write hashtree and index
@@ -982,7 +969,7 @@ public:
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
     if(fd<0){
-      LOG("ERROR failed to open %s, fatal\n",filename);
+      ELOG("ERROR failed to open %s, fatal\n",filename);
       exit(-1);}
     write(fd,csum,4*sizeof(uint64_t));
     write(fd,&weight,sizeof(int64_t));
@@ -1002,7 +989,7 @@ public:
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
-      LOG("ERROR failed to open %s, fatal\n",filename);
+      ELOG("ERROR failed to open %s, fatal\n",filename);
       exit(-1);}
     read(fd,csum,4*sizeof(uint64_t));
     read(fd,&weight,sizeof(int64_t));
@@ -1037,7 +1024,7 @@ public:
       makefilename(oldname,path,"msg");
       makefilename(newname,nextpath,"msg");
       if((r=rename(oldname,newname))){
-        LOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
+        ELOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
         exit(-1);}} //FIXME, do not exit later
     path=nextpath;
     save_path();
@@ -1057,14 +1044,14 @@ public:
     makefilename(unewname,path,"und");
     unlink(unewname);
     if(rename(uoldname,unewname)){ //does not exist before validation
-      LOG("RECOVER %s to %s failed\n",uoldname,unewname);}
+      DLOG("RECOVER %s to %s failed\n",uoldname,unewname);}
     else{
-      LOG("RECOVER %s to %s succeeded\n",uoldname,unewname);}
+      DLOG("RECOVER %s to %s succeeded\n",uoldname,unewname);}
     unlink(mnewname);
     if(rename(moldname,mnewname)){ //does not exist before validation
-      LOG("RECOVER %s to %s failed\n",moldname,mnewname);
+      DLOG("RECOVER %s to %s failed\n",moldname,mnewname);
       return(false);}
-    LOG("RECOVER %s to %s succeeded\n",moldname,mnewname);
+    DLOG("RECOVER %s to %s succeeded\n",moldname,mnewname);
     return(true);
   }
 
@@ -1081,14 +1068,14 @@ public:
     makefilename(unewname,path,"und");
     unlink(unewname);
     if(rename(uoldname,unewname)){ //does not exist before validation
-      LOG("BAD insert %s to %s failed\n",uoldname,unewname);}
+      DLOG("BAD insert %s to %s failed\n",uoldname,unewname);}
     else{
-      LOG("BAD insert %s to %s succeeded\n",uoldname,unewname);}
+      DLOG("BAD insert %s to %s succeeded\n",uoldname,unewname);}
     unlink(mnewname);
     if(rename(moldname,mnewname)){ //does not exist before validation
-      LOG("BAD insert %s to %s failed\n",moldname,mnewname);
+      DLOG("BAD insert %s to %s failed\n",moldname,mnewname);
       return(false);}
-    LOG("BAD insert %s to %s succeeded\n",moldname,mnewname);
+    DLOG("BAD insert %s to %s succeeded\n",moldname,mnewname);
     return(true);
   }
 

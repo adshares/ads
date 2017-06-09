@@ -8,7 +8,7 @@ class hashtree
 public:
 	hashtree()
 	{	bzero(hash_loaded,MAXTREE*sizeof(uint8_t));
-		bzero(hash_,MAXTREE*SHA256_DIGEST_LENGTH*sizeof(uint8_t));
+		bzero(hash_,MAXTREE*sizeof(hash_s));
 	}
 
 	hashtree(void*) {} // no initialization
@@ -40,7 +40,6 @@ public:
 	{	uint32_t posnum=(hashnum<<1)-bits(hashnum); 
 		uint32_t posmax=(hashmax<<1)-bits(hashmax);
 		uint32_t diff=1;
-		//fprintf(stdout,"H%d\t\tN:%d\tMN:%d\tMH%d\n",posnum,hashnum,hashmax,posmax);
 		for(;diff<posmax;){
 			uint32_t posadd;
 			if(hashnum & 1){
@@ -57,10 +56,8 @@ public:
 				if(posnum>posmax){
 					posnum=posmax;}}
 				if(posadd>=posmax){
-					//fprintf(stdout," %d\t :\tN:%d\t\tD:%d\n",posnum,hashnum,diff);
 					}
 				else{
-					//fprintf(stdout,"H%d\t+:%d\tN:%d\t\tD:%d\n",posnum,posadd,hashnum,diff);
 					add.push_back(posadd);}}
 		return(posnum);
 	}
@@ -93,62 +90,43 @@ public:
 
 	int update(uint8_t* hash) //returns number of new hashes
 	{	int i=1;
-		//hashes.push_back(*(hash_s*)hash); // the first hash is saved earlier
-//char text[2*SHA256_DIGEST_LENGTH];
-//ed25519_key2text(text,hash,SHA256_DIGEST_LENGTH);
-//fprintf(stderr,"UPDATE HASH %.*s\n",2*SHA256_DIGEST_LENGTH,text);
 		if(!hash_loaded[0]){
-//fprintf(stderr,"       STORE as 0\n");
-			memcpy(hash_[0],hash,SHA256_DIGEST_LENGTH);
+			memcpy(hash_[0].hash,hash,SHA256_DIGEST_LENGTH);
 			hash_loaded[0]=1;
 			return(0);}
-		addhash(hash_[0],hash);
-		hashes.push_back(*(hash_s*)hash_[0]);
+		addhash(hash_[0].hash,hash);
+		hashes.push_back(hash_[0]);
 		hash_loaded[0]=0;
 		for(;i<MAXTREE;i++){
 			if(!hash_loaded[i]){
-//fprintf(stderr,"       STORE as %d\n",i);
-				memcpy(hash_[i],hash_[i-1],SHA256_DIGEST_LENGTH);
+				memcpy(hash_[i].hash,hash_[i-1].hash,SHA256_DIGEST_LENGTH);
 				hash_loaded[i]=1;
 				return(i);}
-			addhash(hash_[i],hash_[i-1]);
-			hashes.push_back(*(hash_s*)hash_[i]);
+			addhash(hash_[i].hash,hash_[i-1].hash);
+			hashes.push_back(hash_[i]);
 			hash_loaded[i]=0;}
 		return(i);
 	}
 
 	int finish(uint8_t* hash)
 	{	int i;
-		//uint8_t* hp;
 		for(i=0;i<MAXTREE;i++){
 			if(hash_loaded[i]){
-//fprintf(stderr,"       START as %d\n",i);
-				memcpy(hash,hash_[i],SHA256_DIGEST_LENGTH);
-				//hp=hash_[i];
+				memcpy(hash,hash_[i].hash,SHA256_DIGEST_LENGTH);
 				break;}}
 		if(i==MAXTREE){
 			bzero(hash,SHA256_DIGEST_LENGTH);
 			return(0);}
 		for(i++;i<MAXTREE;i++){
 			if(hash_loaded[i]){
-//fprintf(stderr,"       ADD      %d\n",i);
-				addhash(hash,hash_[i]);
+				addhash(hash,hash_[i].hash);
 				hashes.push_back(*(hash_s*)hash);
-				//addhash(hash_[i],hp);
-				//hp=hash_[i];
 				}}
-		//memcpy(hash,hp,SHA256_DIGEST_LENGTH);
 		return(1);
 	}
 
-	/*void save(std::vector<hash_s> &hashes)
-	{	for(i=0;i<MAXTREE;i++){
-			if(hash_loaded[i]){
-				hashes.push_bach(*(hash_s*)(&hash_[i][0]));}}
-	}*/
-
 	std::vector<hash_s> hashes;
-        uint8_t hash_[MAXTREE][SHA256_DIGEST_LENGTH]; //not private any more, needed to save hashtree
+        hash_s hash_[MAXTREE]; //not private any more, needed to save hashtree
 private:
         uint8_t hash_loaded[MAXTREE];
 	SHA256_CTX sha256;

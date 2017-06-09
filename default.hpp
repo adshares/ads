@@ -5,7 +5,8 @@
 # define BLOCKSEC 0x20 /* block period in seconds */
 # define BLOCKDIV 0x4 /* number of blocks for dividend update */
 #else
-# error define correct BLOCKSEC and BLOCKDIV
+# define BLOCKSEC 0x20 /* block period in seconds */
+# define BLOCKDIV 0x4 /* number of blocks for dividend update */
 #endif
 #define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
@@ -194,7 +195,7 @@ typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
 typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[4]
-typedef struct {hash_t hash;} hash_s;
+typedef struct {hash_t hash;uint32_t hxor[8];} hash_s;
 typedef struct handshake_s { //maybe this should be just header_t + peer_msid
 	//uint16_t type; // version of server, not needed (is in servers.hpp)
 	//uint16_t srvn; // number of legal servers
@@ -230,6 +231,11 @@ typedef struct hash_cmp {
   bool operator()(const hash_s& i,const hash_s& j) const {int k=memcmp(i.hash,j.hash,sizeof(hash_t));return(k<0);}
 } hash_cmp_t;
 
-#define LOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#ifndef NDEBUG
+#define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#else
+#define DLOG(...)
+#endif
 
 #endif // DEFAULT_HPP

@@ -174,7 +174,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   uint8_t  to_info[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
-  uint32_t to_status;
+  uint32_t to_status=0;
   uint32_t now=time(NULL);
   usertxs_ptr txs=NULL;
   std::stringstream ss;
