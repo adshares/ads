@@ -1191,20 +1191,25 @@ private:
 	friend class boost::serialization::access;
 	template<class Archive> void serialize(Archive & ar, const unsigned int version)
 	{	//uint32_t old; // remove later
-		ar & now;
-		if(version>2) ar & msg;
-		if(version>2) ar & nod;
-		if(version>3) ar & div;
-		if(version>0) ar & oldhash;
-		if(version>4) ar & minhash;
-		if(version>1) ar & msghash;
-		if(version>1) ar & nodhash;
-		if(version>4) ar & viphash;
-		if(version>0) ar & nowhash;
-		if(version>2) ar & vok;
-		if(version>2) ar & vno;
-		if(version>4) ar & vtot;
-		ar & nodes;
+		try{
+			ar & now;
+			if(version>2) ar & msg;
+			if(version>2) ar & nod;
+			if(version>3) ar & div;
+			if(version>0) ar & oldhash;
+			if(version>4) ar & minhash;
+			if(version>1) ar & msghash;
+			if(version>1) ar & nodhash;
+			if(version>4) ar & viphash;
+			if(version>0) ar & nowhash;
+			if(version>2) ar & vok;
+			if(version>2) ar & vno;
+			if(version>4) ar & vtot;
+			ar & nodes; }
+		catch (std::exception& e){
+			ELOG("ERROR in boost serialize: %s\n",e.what());
+			exit(-1);}
+
 	}
 };
 BOOST_CLASS_VERSION(servers, 5)

@@ -44,7 +44,14 @@ public:
     //remember start status
     start_path=path;
     start_msid=msid_;
-    last_srvs_.get(path);
+    try{
+      last_srvs_.get(path);}
+    catch(std::exception& e){
+      ELOG("ERROR reading servers: %s\n",e.what());
+      exit(-1);}
+    if(!last_srvs_.nodes.size() || (int)last_srvs_.nodes.size()<=(int)opts_.svid){
+      ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
+      exit(-1);}
     last_srvs_.update_vipstatus();
     bank_fee.resize(last_srvs_.nodes.size());
     pkey=last_srvs_.nodes[opts_.svid].pk;
