@@ -68,73 +68,20 @@ public:
       line="FAILED MISSING: ";}
     else{
       line="MISSING: ";}
+    lock.lock();
     for(auto key : msg_mis){
       char miss[64];
       uint32_t msid=(key>>16) & 0xFFFFFFFFL;
       uint16_t svid=(key>>48);
       sprintf(miss," %04X:%08X",svid,msid);
       line+=miss;}
+    lock.lock();
     return(line.c_str());
   }
-        
-/*
-  candidate() :
-	now(0),
-	peer(0),
-	score(0),
-	failed_peer(false)
-  {
-  }
 
-  candidate(uint32_t blk,std::map<uint16_t,msidhash_t>& miss,std::map<uint16_t,msidhash_t>& have,uint16_t svid,bool failed) :
-	now(blk),
-	peer(svid),
-	score(0),
-	failed_peer(failed)
-  {
-    svid_miss=miss;
-    svid_have=have;
-    for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
-      //assert(it->second.msid!=srvs->nodes[it->first].msid); //TODO, remove later
-      if(it->second.msid){
-        waiting_server.insert(it->first);}}
-  }
-
-  bool accept()
-  { if(!failed_peer && waiting_server.size()==0){
-      return true;}
-    return false;
-  }
-
-  bool elected_accept()
-  { if(waiting_server.size()==0){
-      return true;}
-    return false;
-  }
-
-  void update(message_ptr msg)
-  { auto m=svid_miss.find(msg->svid); //FIXME, should use local lock
-    if(m!=svid_miss.end() && m->second.msid==msg->msid && !memcmp(m->second.sigh,msg->sigh,sizeof(hash_t))){
-      waiting_server.erase(msg->svid);}
-  }
-
-  const char* print_missing(servers* srvs) //TODO, consider having local lock
-  { static std::string line;
-    if(failed_peer){
-      line="FAILED MISSING: ";}
-    else{
-      line="MISSING: ";}
-    for(auto it=svid_miss.begin();it!=svid_miss.end();it++){
-      char miss[64];
-      assert(it->first<srvs->nodes.size());
-      sprintf(miss," %04X:%08X>%08X",it->first,it->second.msid,srvs->nodes[it->first].msid);
-      line+=miss;}
-    return(line.c_str());
-  }
-*/
-        
+  boost::mutex lock; //used by server::print_missing_verbose() :-( TODO, keep local
 private:
-  boost::mutex lock;
+
 };
 typedef boost::shared_ptr<candidate> candidate_ptr;
 

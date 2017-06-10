@@ -973,7 +973,10 @@ public:
         write_candidate(best);}
       return;}
     if(do_block==2){
-      DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));}
+      if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
+        ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());}
+      else{
+        DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));}}
     if(do_vote && cnd1->accept() && cnd1->peers.size()>1){
       ELOG("CANDIDATE proposal accepted\n");
       write_candidate(best);
@@ -1071,6 +1074,38 @@ public:
       mi++;}
     txs_.unlock();
     return(me);
+  }
+
+  const char* print_missing_verbose()
+  { extern message_ptr nullmsg;
+    static std::string line;
+    line="";
+    winner->lock.lock();
+    for(auto key : winner->msg_mis){
+      char miss[64];
+      uint32_t msid=(key>>16) & 0xFFFFFFFFL;
+      uint16_t svid=(key>>48);
+      sprintf(miss,"%04X:%08X",svid,msid);
+      line+=miss;
+      message_ptr me=message_svidmsid(svid,msid);
+      if(me==nullmsg){
+        line+=" unknown :-(\n";}
+      else{
+        line+=" KNOW";
+        for(auto sv : me->know){
+          sprintf(miss,",%04X",sv);
+          line+=miss;}
+        line+=" BUSY";
+        for(auto sv : me->busy){
+          sprintf(miss,",%04X",sv);
+          line+=miss;}
+        line+=" SENT";
+        for(auto sv : me->sent){
+          sprintf(miss,",%04X",sv);
+          line+=miss;}
+        line+="\n";}}
+    winner->lock.unlock();
+    return(line.c_str());
   }
 
   message_ptr message_find(message_ptr msg,uint16_t svid)
@@ -2190,12 +2225,23 @@ public:
       else{
         usera=&au->second;}
       //do not check signature for valid messages
+#ifndef NDEBUG
       if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
           && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
         //TODO postpone this and run this as batch verification
         ELOG("ERROR: bad signature\n");
         close(fd);
         return(false);}
+#else
+      //during tests do not perform a second check of the signatures from office
+      if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
+          && msg->svid!=opts_.svid
+          && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
+        //TODO postpone this and run this as batch verification
+        ELOG("ERROR: bad signature\n");
+        close(fd);
+        return(false);}
+#endif
       if(usera->msid!=utxs.amsid){
         ELOG("ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
         close(fd);
