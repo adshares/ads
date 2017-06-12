@@ -3310,15 +3310,16 @@ public:
     commit_dividends(update);
     commit_deposit(update);
     commit_bankfee();
-#ifdef DEBUG
+//#ifdef DEBUG
     DLOG("CHECK accounts\n");
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
       if(!srvs_.check_nodehash(*it)){
         ELOG("FATAL ERROR, failed to check the hash of bank %04X\n",*it);
         exit(-1);}}
-#endif
+//#endif
     srvs_.finish(); //FIXME, add locking
+    ELOG("SPEED: %.1f\n",(float)srvs_.txs/(float)BLOCKSEC);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
@@ -3615,13 +3616,13 @@ public:
       uint32_t now=time(NULL);
       const char* plist=peers_list();
       if(missing_msgs_.size()){
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%08X txs:%016lX) [%s] (miss:%d:%016lX)\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
           (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
           (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
       else{
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%08X txs:%016lX) [%s]\n",
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){

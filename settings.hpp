@@ -21,6 +21,7 @@ public:
 		json(true),
 		mlin(false),
 		nice(true),
+		olog(true),
 		drun(false),
 		sk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		pk{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
@@ -37,6 +38,7 @@ public:
 	bool json;
 	bool mlin;
 	bool nice;
+	bool olog;
 	bool drun;
 	ed25519_secret_key sk;
 	ed25519_public_key pk;	// calculated
@@ -168,6 +170,7 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 //				("json,j", boost::program_options::value<bool>(&json)->default_value(false),			"expect json input and output")
 				("mlin,m", boost::program_options::value<bool>(&mlin)->default_value(false),			"allow json with multiple lines")
 				("nice,n", boost::program_options::value<bool>(&nice)->default_value(true),			"request pretty json")
+				("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"log submitted transactions")
 				("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
 				("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
 				("secret,s", boost::program_options::value<std::string>(&skey),					"passphrase or private key [64chars in hext format / 32bytes]")
@@ -262,6 +265,8 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				std::cerr << "MultiLine: " << vm["mlin"].as<bool>() << std::endl;}
 			if (vm.count("nice")){
 				std::cerr << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
+			if (vm.count("olog")){
+				std::cerr << "LogOutput: " << vm["olog"].as<bool>() << std::endl;}
 			if (vm.count("drun")){
 				std::cerr << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;}
 			if (vm.count("hash")){

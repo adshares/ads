@@ -36,7 +36,7 @@
 //#define PATHSHIFT 8
 #define PATHSHIFT 5
 #define MAXCLIENTS 128
-#define CLIENT_POOL 2	/* do not offer more threads that are used for network message validation */
+#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 
 #define SERVER_DBL 0x1 /* closed node */
 #define SERVER_VIP 0x2 /* VIP node */

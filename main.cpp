@@ -97,8 +97,10 @@ void office::handle_accept(client_ptr c,const boost::system::error_code& error)
   if(!run){ return;}
   DLOG("OFFICE new ticket (total open:%ld)\n",clients_.size());
   if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
-    DLOG("OFFICE busy, dropping connection\n");}
-  else if (!error){
+    ELOG("OFFICE busy, delaying connection\n");}
+  while(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));}
+  if (!error){
     client_.lock();
     clients_.insert(c);
     client_.unlock();

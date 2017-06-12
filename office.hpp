@@ -605,12 +605,11 @@ public:
     //message_.lock();
     file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX){
-      msid=0;
-      mpos=0;
-      //message_.unlock();
+      ELOG("MESSAGE busy, delaying message addition\n");}
+    while(message_tnum>=MESSAGE_TNUM_MAX){
       file_.unlock();
-      ELOG("ERROR, failed to append to message (%d>=%d)\n",message_tnum,MESSAGE_TNUM_MAX);
-      return(false);}
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+      file_.lock();}
     msid=srv_.msid_+1; // check if no conflict !!!
     char filename[64];
     sprintf(filename,"ofi/msg_%08X.msd",msid);

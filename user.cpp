@@ -1423,13 +1423,16 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             sts.msid=myuser.msid;
             memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
         if(txs->ttype==TXSTYPE_INF){
-          len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-          if(len!=sizeof(user_t)){
-            std::cerr<<"ERROR reading info\n";}
-          else{
-            user_t myuser;
-            memcpy(&myuser,buf,sizeof(user_t));
-            print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
+          try{
+            len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+            if(len!=sizeof(user_t)){
+              std::cerr<<"ERROR reading global info\n";}
+            else{
+              user_t myuser;
+              memcpy(&myuser,buf,sizeof(user_t));
+              print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
+          catch (std::exception& e){
+            fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
         else if(txs->ttype==TXSTYPE_LOG){
           int len;
           if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
@@ -1459,7 +1462,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             // save outgoing message log
             logpt.put("tx.node_msid",m.msid);
             logpt.put("tx.node_mpos",m.mpos);
-            out_log(logpt,sts.bank,sts.user);
+            if(sts.olog){
+              out_log(logpt,sts.bank,sts.user);}
             if(sts.json){
               char tx_id[64];
               sprintf(tx_id,"%04X%08X%04X",sts.bank,m.msid,m.mpos);
