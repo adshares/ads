@@ -757,6 +757,7 @@ public:
     //add new messages
     auto lm=LAST_block_final_msgs.begin();
     auto tm=txs_msgs_.begin();
+    message_map txs_msgs_add;
     std::set<message_ptr> recover;
     for(;lm!=LAST_block_final_msgs.end();){
       if(tm==txs_msgs_.end() || lm->first<tm->first){
@@ -767,7 +768,7 @@ public:
         if(lm->second->path && lm->second->path!=LAST_block){
           lm->second->move(LAST_block);}
         lm->second->path=LAST_block;
-        txs_msgs_[lm->first]=lm->second;
+        txs_msgs_add[lm->first]=lm->second;
         ed25519_key2text(hash,lm->second->sigh,sizeof(hash_t));
         fprintf(fp,"%04X:%08X %.*s\n",lm->second->svid,lm->second->msid,64,hash);
         lm++;
@@ -805,6 +806,7 @@ public:
         if(!(tm->second->status & MSGSTAT_BAD)){
           bad_insert(tm->second);}
         tm++;}}
+    txs_msgs_.insert(txs_msgs_add.begin(),txs_msgs_add.end());
     for(auto me : recover){ // must do this after removing all BAD messages
       assert(me->status & MSGSTAT_VAL);
       bad_recover(me);}
