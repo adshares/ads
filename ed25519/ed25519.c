@@ -214,7 +214,7 @@ ED25519_FN(ed25519_sign_open2) (const unsigned char *m, size_t mlen, const unsig
 		return -1;
 
 	/* hram = H(R,A,m) */
-	ed25519_hram2(hash, RS, pk, m, mlen, m2, mlen2);
+	ed25519_hram2(hash, RS, pk, m, mlen, m2, mlen2); //LESZEK
 	expand256_modm(hram, hash, 64);
 
 	/* S */

@@ -273,3 +273,78 @@ ED25519_FN(ed25519_sign_open_batch) (const unsigned char **m, size_t *mlen, cons
 	return ret;
 }
 
+//LESZEK
+int
+ED25519_FN(ed25519_sign_open_batch2) (const unsigned char **m, size_t *mlen,const unsigned char **m2, size_t *mlen2, const unsigned char **pk, const unsigned char **RS, size_t num, int *valid) {
+	batch_heap ALIGN(16) batch;
+	ge25519 ALIGN(16) p;
+	bignum256modm *r_scalars;
+	size_t i, batchsize;
+	unsigned char hram[64];
+	int ret = 0;
+
+	for (i = 0; i < num; i++)
+		valid[i] = 1;
+
+	while (num > 3) {
+		batchsize = (num > max_batch_size) ? max_batch_size : num;
+
+		/* generate r (scalars[batchsize+1]..scalars[2*batchsize] */
+		ED25519_FN(ed25519_randombytes_unsafe) (batch.r, batchsize * 16);
+		r_scalars = &batch.scalars[batchsize + 1];
+		for (i = 0; i < batchsize; i++)
+			expand256_modm(r_scalars[i], batch.r[i], 16);
+
+		/* compute scalars[0] = ((r1s1 + r2s2 + ...)) */
+		for (i = 0; i < batchsize; i++) {
+			expand256_modm(batch.scalars[i], RS[i] + 32, 32);
+			mul256_modm(batch.scalars[i], batch.scalars[i], r_scalars[i]);
+		}
+		for (i = 1; i < batchsize; i++)
+			add256_modm(batch.scalars[0], batch.scalars[0], batch.scalars[i]);
+
+		/* compute scalars[1]..scalars[batchsize] as r[i]*H(R[i],A[i],m[i]) */
+		for (i = 0; i < batchsize; i++) {
+			ed25519_hram2(hram, RS[i], pk[i], m[i], mlen[i], m2[i], mlen2[i]); //LESZEK
+			expand256_modm(batch.scalars[i+1], hram, 64);
+			mul256_modm(batch.scalars[i+1], batch.scalars[i+1], r_scalars[i]);
+		}
+
+		/* compute points */
+		batch.points[0] = ge25519_basepoint;
+		for (i = 0; i < batchsize; i++)
+			if (!ge25519_unpack_negative_vartime(&batch.points[i+1], pk[i]))
+				goto fallback;
+		for (i = 0; i < batchsize; i++)
+			if (!ge25519_unpack_negative_vartime(&batch.points[batchsize+i+1], RS[i]))
+				goto fallback;
+
+		ge25519_multi_scalarmult_vartime(&p, &batch, (batchsize * 2) + 1);
+		if (!ge25519_is_neutral_vartime(&p)) {
+			ret |= 2;
+
+			fallback:
+			for (i = 0; i < batchsize; i++) {
+				valid[i] = ED25519_FN(ed25519_sign_open2) (m[i], mlen[i], m2[i], mlen2[i], pk[i], RS[i]) ? 0 : 1;
+				ret |= (valid[i] ^ 1);
+			}
+		}
+
+		m += batchsize;
+		mlen += batchsize;
+		m2 += batchsize;
+		mlen2 += batchsize;
+		pk += batchsize;
+		RS += batchsize;
+		num -= batchsize;
+		valid += batchsize;
+	}
+
+	for (i = 0; i < num; i++) {
+		valid[i] = ED25519_FN(ed25519_sign_open2) (m[i], mlen[i], m2[i], mlen2[i], pk[i], RS[i]) ? 0 : 1;
+		ret |= (valid[i] ^ 1);
+	}
+
+	return ret;
+}
+

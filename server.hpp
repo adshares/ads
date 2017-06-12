@@ -2098,6 +2098,21 @@ public:
     char text[2*32];
     ed25519_key2text(text,msg->sigh,32);
     DLOG("PROCESS MSG %04X:%08X %.64s\n",msg->svid,msg->msid,text);
+    bool check_sig=((!(msg->status & MSGSTAT_VAL) && !do_sync && msg->svid!=opts_.svid)?true:false);
+    uint32_t tpos_max=*(uint32_t*)(msg->data+msg->len+32+4+4);
+    assert(tpos_max);
+    if(!check_sig){
+      tpos_max=1;}
+    int sign_num=0;
+    int sign_valid[tpos_max];
+    size_t sign_mlen[tpos_max];
+    size_t sign_mlen2[tpos_max];
+    hash_s sign_pk_hash[tpos_max];
+    hash_s sign_m__hash[tpos_max];
+    const unsigned char* sign_m[tpos_max];
+    const unsigned char* sign_m2[tpos_max];
+    const unsigned char* sign_pk[tpos_max];
+    const unsigned char* sign_rs[tpos_max];
     char* p=(char*)msg->data+4+64+10;
     int fd=open_bank(msg->svid);
     std::map<uint64_t,log_t> log;
@@ -2240,23 +2255,26 @@ public:
       else{
         usera=&au->second;}
       //do not check signature for valid messages
-#ifndef NDEBUG
-      if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
-          && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
-        //TODO postpone this and run this as batch verification
-        ELOG("ERROR: bad signature\n");
-        close(fd);
-        return(false);}
-#else
-      //during tests do not perform a second check of the signatures from office
-      if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
-          && msg->svid!=opts_.svid //FIXME, remove this after tests !!!
-          && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
-        //TODO postpone this and run this as batch verification
-        ELOG("ERROR: bad signature\n");
-        close(fd);
-        return(false);}
-#endif
+      if(check_sig){
+        assert(sign_num<(int)tpos_max);
+        int mlen2=utxs.sign_mlen2();
+        sign_mlen[sign_num]=(size_t)32;
+        sign_mlen2[sign_num]=(size_t)mlen2;
+        memcpy(sign_m__hash[sign_num].hash,usera->hash,32);
+        sign_m[sign_num]=sign_m__hash[sign_num].hash;
+        memcpy(sign_pk_hash[sign_num].hash,usera->pkey,32);
+        sign_pk[sign_num]=sign_pk_hash[sign_num].hash;
+        sign_m2[sign_num]=(unsigned char*)p;
+        sign_rs[sign_num]=(unsigned char*)p+mlen2;
+        sign_num++;}
+      ////during tests do not perform a second check of the signatures from office
+      //if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
+      //    && msg->svid!=opts_.svid //FIXME, remove this after tests !!!
+      //    && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
+      //  //TODO postpone this and run this as batch verification
+      //  ELOG("ERROR: bad signature\n");
+      //  close(fd);
+      //  return(false);}
       if(usera->msid!=utxs.amsid){
         ELOG("ERROR: bad msid %04X:%08X\n",usera->msid,utxs.amsid);
         close(fd);
@@ -2521,7 +2539,6 @@ public:
               blog.info[31]=(i?0:1);
               //bzero(blog.info,32);
               log[key]=blog;}}}}
-      //TODO run batch signature check here and not for each transaction
       usera->msid++;
       usera->time=utxs.ttime;
       usera->node=lnode;
@@ -2551,6 +2568,12 @@ public:
       local_dsu[utxs.auser].uus=0;//to find changes[utxs.auser]
       local_fee+=fee-remote_fee;
       p+=utxs.size;}
+    if(check_sig){
+      int ret=ed25519_sign_open_batch2(sign_m,sign_mlen,sign_m2,sign_mlen2,sign_pk,sign_rs,sign_num,sign_valid);
+      if(ret){ //TODO create detailed report (report each failed message)
+        ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);
+        close(fd);
+        return(false);}}
     //commit local changes
     user_t u;
     //const int offset=(char*)&u+sizeof(user_t)-(char*)&u.stat;

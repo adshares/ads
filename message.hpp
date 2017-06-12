@@ -144,11 +144,12 @@ public:
     hash.num=dohash(mysvid);
   }
 
+  //TODO, compute hashsvid,hashmsid,hashtnum as in hash_tree()
   bool hash_tree_fast(uint8_t* outsigh,uint8_t* indata,uint32_t inlen,uint16_t insvid,uint32_t inmsid)
   { assert(indata[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
     assert(insvid);
     assert(inmsid);
-    hash_t hash;
+    hash_t hash; //strict aliasing ???
     uint16_t* hashsvid=(uint16_t*)hash;
     uint32_t* hashmsid=(uint32_t*)(&hash[4]);
     uint16_t* hashtnum=(uint16_t*)(&hash[8]);

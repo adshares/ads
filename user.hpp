@@ -569,6 +569,14 @@ public:
 		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
 	}
 
+	int sign_mlen2()
+	{	if(ttype==TXSTYPE_BRO){
+			return(txslen[TXSTYPE_BRO]+bbank);}
+		if(ttype==TXSTYPE_MPT){
+			return(txslen[TXSTYPE_MPT]+bbank*(6+8));}
+		return(txslen[ttype]);
+	}
+
 	int wrong_sig2(uint8_t* buf) // additional signature to validate public key
 	{	assert(ttype==TXSTYPE_KEY);
 		return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
