@@ -768,15 +768,20 @@ public:
         if(lm->second->path && lm->second->path!=LAST_block){
           lm->second->move(LAST_block);}
         lm->second->path=LAST_block;
+        //FIXME :-( no info about peer inventory :-(
         txs_msgs_add[lm->first]=lm->second;
         ed25519_key2text(hash,lm->second->sigh,sizeof(hash_t));
-        fprintf(fp,"%04X:%08X %.*s\n",lm->second->svid,lm->second->msid,64,hash);
+        fprintf(fp,"%04X:%08X %.*s new\n",lm->second->svid,lm->second->msid,64,hash);
         lm++;
         continue;}
       if(lm->first==tm->first){
-        if(memcmp(tm->second->sigh,lm->second->sigh,32)){
+        if(!(tm->second->status & MSGSTAT_DAT)){
+          tm->second->status|=MSGSTAT_VAL;
+          memcpy(tm->second->sigh,lm->second->sigh,32);}
+        else if(memcmp(tm->second->sigh,lm->second->sigh,32)){
           if((tm->second->status & (MSGSTAT_BAD|MSGSTAT_DAT))==MSGSTAT_DAT){
             bad_insert(tm->second);}
+          //FIXME :-( overwrites info about peer inventory :-(
           tm->second=lm->second;}
         if(tm->second->status & MSGSTAT_BAD){
           //bad_recover(tm->second); !!! must do this later !!!
@@ -810,7 +815,7 @@ public:
     for(auto me : recover){ // must do this after removing all BAD messages
       assert(me->status & MSGSTAT_VAL);
       bad_recover(me);}
-    srvs_.msg=LAST_block_final_msgs.size();
+    //srvs_.msg=LAST_block_final_msgs.size(); //done in msgl_put
     srvs_.msgl_put(LAST_block_final_msgs,NULL);
     hash_s last_block_message;
     message_shash(last_block_message.hash,LAST_block_final_msgs);
@@ -842,12 +847,12 @@ public:
         else{
           minmsid=0;}}
       if(tm->second->msid<=minmsid){
-        DLOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+        ELOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
         tm->second->remove_undo();
         txs_msgs_.erase(tm);
         continue;}
       if((tm->second->status & MSGSTAT_BAD)){
-        DLOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+        ELOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
         if((tm->second->status & MSGSTAT_COM)){
           undo_message(tm->second);}
         //bad_insert(tm->second); ... already inserted
@@ -855,15 +860,15 @@ public:
         txs_msgs_.erase(tm);
         continue;}
       if(!(tm->second->status & MSGSTAT_VAL) && (tm->second->status & MSGSTAT_COM)){
-        DLOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
+        ELOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
         undo_message(tm->second);
         if(tm->second->now<last_srvs_.now){
-          DLOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           bad_insert(tm->second);
           remove_message(tm->second);
           txs_msgs_.erase(tm);}
         else{
-          DLOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          ELOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);
           wait_.lock();
           wait_msgs_.push_back(tm->second);
@@ -871,21 +876,21 @@ public:
         continue;}
       if(!(tm->second->status & MSGSTAT_VAL) && tm->second->path && tm->second->path<=LAST_block){
         if(tm->second->now<last_srvs_.now){
-          DLOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           bad_insert(tm->second);
           remove_message(tm->second);
           txs_msgs_.erase(tm);}
         else{
-          DLOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          ELOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);}}
       if((tm->second->status & (MSGSTAT_VAL | MSGSTAT_COM)) == MSGSTAT_VAL ){
         if(tm->second->msid==0xFFFFFFFF){
-          DLOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          ELOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
           tm->second->status|=MSGSTAT_COM; // the only place to commit dbl messages
           assert(srvs_.nodes[tm->second->svid].status&SERVER_DBL);
           continue;}
         if(tm->second->status & MSGSTAT_DAT){
-          DLOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          ELOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
           //the queue is not efficient this way, because of consecutive tasks from same node
           check_msgs_.push_front(tm->second);
           continue;}
@@ -895,7 +900,7 @@ public:
         //auto it=bad_msgs_.find(*(hash_s*)tm->second->sigh);
         if(it!=bad_msgs_.end()){
           if(it->second->hash.num==tm->second->hash.num){
-            DLOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+            ELOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
             tm->second=it->second;
             assert(tm->second->status & MSGSTAT_DAT);
             bad_recover(tm->second);
@@ -903,13 +908,13 @@ public:
             tm->second->status|=MSGSTAT_VAL;
             check_msgs_.push_front(tm->second);
             continue;}}
-        DLOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+        //FIXME, check info about peer inventory !!! find out who knows about the message !!!
+        ELOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
         missing_msgs_[tm->second->hash.num]=tm->second;}}
     }
 
     //txs_msgs_ clean
     block_only=true; // allow validation of block messages only
-    txs_.unlock();
     for(auto mm=winner->msg_mis.begin();mm!=winner->msg_mis.end();){
       auto mn=mm++;
       auto tm=txs_msgs_.lower_bound(*mn);
@@ -919,6 +924,8 @@ public:
           winner->msg_mis.erase(mn);
           break;}
         tm++;}}
+    txs_.unlock();
+    DLOG("LAST_block_final finished\n");
   }
 
   void count_votes(uint32_t now,hash_s& cand) // cand_.locked()
@@ -968,6 +975,7 @@ public:
         do_validate=1;
         threadpool.create_thread(boost::bind(&server::validator, this));
         threadpool.create_thread(boost::bind(&server::validator, this));}}
+    //DLOG("... count votes() ...\n");
     if(do_block==2 && winner->elected_accept()){
       ELOG("CANDIDATE winner accepted\n");
       do_block=3;
@@ -978,7 +986,10 @@ public:
       if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
         ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());}
       else{
-        DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));}}
+        //DLOG("--- count votes() ---\n");
+        DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));
+        //DLOG("+++ count votes() +++\n");
+        }}
     if(do_vote && cnd1->accept() && cnd1->peers.size()>1){
       ELOG("CANDIDATE proposal accepted\n");
       write_candidate(best);
@@ -986,6 +997,7 @@ public:
     if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
       ELOG("CANDIDATE proposing\n");
       write_candidate(cand);}
+    //DLOG(",,, count votes() ,,,\n");
   }
 
   void add_electors(header_t& head,svsi_t* peer_svsi)
@@ -1071,7 +1083,7 @@ public:
       if(mi->second->status & MSGSTAT_COM){
         txs_.unlock();
         return mi->second;}
-      if(mi->second->status & MSGSTAT_DAT){
+      if((mi->second->status & MSGSTAT_DAT) || (me==nullmsg)){
         me=mi->second;}
       mi++;}
     txs_.unlock();
@@ -1198,7 +1210,7 @@ public:
         memcpy(msha,last_srvs_.nodes[msg2->svid].msha,32);}
       else{
         message_ptr pre=message_svidmsid(msg2->svid,msg2->msid-1);
-        if(pre==nullmsg){
+        if(pre==nullmsg || !(pre->status & (MSGSTAT_DAT|MSGSTAT_VAL))){
           ELOG("ERROR loading message %04X:%08X before double spend\n",msg2->svid,msg2->msid-1);
           msg1->unload(0xffff);
           msg2->unload(0xffff);
@@ -2132,7 +2144,9 @@ public:
         DLOG("ERROR: failed to parse transaction\n");
         close(fd);
         return(false);}
+#ifdef DEBUG
       utxs.print_head();
+#endif
       if(*p==TXSTYPE_NON){
         p+=utxs.size;
 	//?? no fee :-(
@@ -2153,8 +2167,7 @@ public:
         close(fd);
         return(false);}
       if(utxs.abank!=msg->svid){
-        DLOG("ERROR: bad bank\n");
-        utxs.print_head();
+        ELOG("ERROR: bad bank\n");
         close(fd);
         return(false);}
       if((*p==TXSTYPE_USR && utxs.abank==utxs.bbank) || *p==TXSTYPE_UOK){ // check lock first
@@ -2237,7 +2250,7 @@ public:
 #else
       //during tests do not perform a second check of the signatures from office
       if((!(msg->status & MSGSTAT_VAL) || (iamvip && !do_sync))
-          && msg->svid!=opts_.svid
+          && msg->svid!=opts_.svid //FIXME, remove this after tests !!!
           && utxs.wrong_sig((uint8_t*)p,(uint8_t*)usera->hash,(uint8_t*)usera->pkey)){
         //TODO postpone this and run this as batch verification
         ELOG("ERROR: bad signature\n");
@@ -2658,9 +2671,10 @@ public:
     blk_uok.insert(txs_uok.begin(),txs_uok.end());
     blk_sbs.insert(txs_sbs.begin(),txs_sbs.end());
     blk_ubs.insert(txs_ubs.begin(),txs_ubs.end());
-    srvs_.msg++;
-    srvs_.txs+=tnum;
     blk_.unlock();
+    if(!block_only){ 
+      srvs_.msg++;
+      srvs_.txs+=tnum;}
     put_msglog(srvs_.now,msg->svid,msg->msid,log);
     return(true);
   }
@@ -3321,7 +3335,7 @@ public:
         exit(-1);}}
 //#endif
     srvs_.finish(); //FIXME, add locking
-    ELOG("SPEED: %.1f\n",(float)srvs_.txs/(float)BLOCKSEC);
+    ELOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
@@ -3460,7 +3474,7 @@ public:
           failed=true;
           break;}
         message_ptr pm=message_svidmsid(svid,msid);
-        if(pm!=nullmsg && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
+        if(pm!=nullmsg && (pm->status & (MSGSTAT_DAT|MSGSTAT_VAL)) && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE){
           ELOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
           failed=true;
           break;}}
@@ -3491,7 +3505,7 @@ public:
           mis.insert(it->first);
           continue;}
         message_ptr pm=message_svidmsid(svid,msid);
-        if(pm==nullmsg || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
+        if(pm==nullmsg || !(pm->status & (MSGSTAT_DAT)) || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
           mis.insert(it->first);
           continue;}}
       DLOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",

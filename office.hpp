@@ -162,6 +162,10 @@ public:
       int len=read(gd,&u,sizeof(user_t));
       if(len!=sizeof(user_t)){
         fprintf(stderr,"ERROR, failed to read global user %08X, fatal\n",user);
+
+//FIXME, !!! can be that user is not yet defined globally !!!
+//FIXME, take care of this case !!!
+
         exit(-1);}
       int64_t div=(u.weight>>16)*newdiv-TXS_DIV_FEE;
       if(div<-u.weight){

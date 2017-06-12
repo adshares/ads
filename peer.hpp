@@ -1162,7 +1162,7 @@ Aborted
         return;}
       if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1){
         message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
-        if(prev!=nullmsg){
+        if(prev!=nullmsg && (prev->status & (MSGSTAT_DAT|MSGSTAT_VAL))){
           msha=prev->sigh;}
         else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
           msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}

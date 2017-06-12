@@ -75,7 +75,7 @@ public:
       uint16_t svid=(key>>48);
       sprintf(miss," %04X:%08X",svid,msid);
       line+=miss;}
-    lock.lock();
+    lock.unlock();
     return(line.c_str());
   }
 
