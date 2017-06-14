@@ -182,7 +182,7 @@ public:
 	{	uint16_t peer=nodes.size();
 		node nn;
 		nn.mtim=now;
-		nn.users=1;
+		//nn.users=1; //too early !!! must resize changed[] in put_users
 		memcpy(nn.pk,ou.pkey,32);
 		memset(nn.msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		memcpy(nn.msha,&peer,2); // always start with a unique hash
@@ -191,7 +191,8 @@ public:
 		init_user(nu,peer,0,BANK_MIN_TMASS,ou.pkey,now,unode,user);
 		put_user(nu,peer,0);
 		//update_nodehash(peer);
-		memcpy(nn.hash,ou.csum,SHA256_DIGEST_LENGTH); //???
+                nodes[peer].weight=nu.weight;
+		memcpy(nodes[peer].hash,nu.csum,SHA256_DIGEST_LENGTH); //???
 		return(peer);
 	}
 
@@ -309,7 +310,7 @@ public:
 			}
 		close(fd);
 		if(nodes[peer].weight!=weight){
-			ELOG("ERROR: check_node: bad weight sum\n");
+			ELOG("ERROR: check_node: bad weight sum %016lX<>%016lX\n",nodes[peer].weight,weight);
 			return(false);}
 		if(memcmp(nodes[peer].hash,csum,4*sizeof(uint64_t))){
 			ELOG("ERROR: check_node: bad hash\n");
@@ -328,8 +329,9 @@ public:
 			nodes[svid].users=users;
 			nodes[svid].changed.resize(1+users/64);}
 		for(auto it=undo.begin();it!=undo.end();it++){
-			int i=(it->first)/64;
-			int j=1<<((it->first)%64);
+			uint32_t i=(it->first)/64;
+			uint32_t j=1<<((it->first)%64);
+			assert(i<nodes[svid].changed.size());
 			if(nodes[svid].changed[i]&j){
 				close(fd);
 				return;}

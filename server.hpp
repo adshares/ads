@@ -2893,7 +2893,7 @@ public:
         if(it->mtim+BANK_MIN_MTIME<srvs_.now && it->weight<BANK_MIN_TMASS){
           uint64_t bnk=it->weight<<16;
           bnk|=peer;
-          new_bnk.insert(bnk);}}
+          new_bnk.insert(bnk);}} //unused
       for(auto it=blk_bnk.begin();it!=blk_bnk.end();it++){
         uint16_t abank=ppi_abank(it->first);
         int fd=open_bank(abank);
@@ -3267,6 +3267,7 @@ public:
        profit=-u.weight;}
       u.weight+=profit;
       //int64_t after=u.weight; 
+      assert(svid<srvs_.nodes.size());
       srvs_.nodes[svid].weight+=profit+div;
       u.rpath=srvs_.now;
       if(svid==opts_.svid && !do_sync && ofip!=NULL){
@@ -3295,7 +3296,7 @@ public:
         log[0]=alog;}}
         //put_log(svid,0,alog);  //put_blklog
     bank_fee.clear();
-    bank_fee.resize(srvs_.nodes.size());
+    //bank_fee.resize(srvs_.nodes.size());
     put_msglog(srvs_.now,0,0,log);
   }
 
@@ -3354,7 +3355,7 @@ public:
     for(auto it=update.begin();it!=update.end();it++){
       assert(*it<srvs_.nodes.size());
       if(!srvs_.check_nodehash(*it)){
-        ELOG("FATAL ERROR, failed to check the hash of bank %04X\n",*it);
+        ELOG("FATAL ERROR, failed to check bank %04X\n",*it);
         exit(-1);}}
 //#endif
     srvs_.finish(); //FIXME, add locking
@@ -3841,8 +3842,8 @@ public:
 private:
   hash_t skey;
   boost::mutex ulock_[0x100];
-  enum { max_connections = 4 };
-  enum { max_recent_msgs = 1024 }; // this is the block chain :->
+  //enum { max_connections = 4 }; //unused
+  //enum { max_recent_msgs = 1024 }; // this is the block chain :->
   boost::asio::ip::tcp::endpoint endpoint_;
   boost::asio::io_service io_service_;
   boost::asio::io_service::work work_;
