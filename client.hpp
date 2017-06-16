@@ -143,7 +143,7 @@ public:
       user_t userb;
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
-          DLOG("FAILED to get local user info %08X:%04X\n",utxs.bbank,utxs.buser);
+          DLOG("FAILED to get user info %08X:%04X\n",utxs.bbank,utxs.buser);
           offi_.unlock_user(utxs.auser);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}

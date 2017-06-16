@@ -87,8 +87,11 @@ public:
 			if (vm.count("svid")){
 				std::cout << "Service svid: " << vm["svid"].as<int>() << std::endl;}
 			else{
-				std::cout << "ERROR: Service svid missing!" << std::endl;
-				exit(1);}
+				if(!init){
+					std::cout << "ERROR: Service svid missing!" << std::endl;
+					exit(1);}
+				std::cout << "Service svid: 1 (default)" << std::endl;
+				svid=1;}
 			/*if (vm.count("skey")){
 				char pktext[2*32+1]; pktext[2*32]='\0';
 				if(skey.length()!=64){

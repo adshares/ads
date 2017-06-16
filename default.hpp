@@ -31,8 +31,8 @@
 #define MAX_PEERS 32 /* keep not more than 16 peers connected */
 
 #define SERVER_TYPE 1
-#define OFFICE_PORT "9080"
-#define SERVER_PORT "9090"
+#define OFFICE_PORT "9081"
+#define SERVER_PORT "9091"
 //#define PATHSHIFT 8
 #define PATHSHIFT 5
 #define MAXCLIENTS 128

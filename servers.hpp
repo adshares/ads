@@ -105,10 +105,23 @@ public:
 	//int init(uint32_t newnow)
 	void init(uint32_t newnow)
 	{	uint16_t num=0;
-		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
 		uint64_t sum=0;
 		now=newnow;
 		blockdir();
+		if(!nodes.size()){
+			mkdir("key",0700);
+			int fd=open("key/key.txt",O_WRONLY|O_CREAT,0600);
+			close(fd);
+			FILE *fp=fopen("key/key.txt","a");
+			fprintf(fp,"14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0\n#PK: 7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF\n#SG: C42B0C170A78C9985319B7A2E17D44E4BD88845FCE21C3FCC00A496AAAB6E8F84AD54E06F0D5FDDE98D370462C4EFAA52A38C8BCB513B7DF597315835244D10A\n");
+			fclose(fp);
+			hash_t hash;
+		        ed25519_text2key(hash,"7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF",32);
+			node nn;
+			memcpy(nn.pk,hash,32);
+			nodes.push_back(nn);
+			nodes.push_back(nn);}
+		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
 			memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 			memcpy(it->msha,&num,2); // always start with a unique hash
@@ -140,6 +153,9 @@ public:
 		vtot=1;
 		finish();
 		write_start();
+		now=0;
+		put();
+		now=newnow;
 		//return(num<VIP_MAX?num:VIP_MAX);
 	}
 
@@ -244,7 +260,7 @@ public:
 		sprintf(filename,"usr/%04X.dat",peer);
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){ ELOG("ERROR, failed to open account file %s, fatal\n",filename);
-			exit(-1);}
+			return;}
 		lseek(fd,uid*sizeof(user_t),SEEK_SET);
 		read(fd,&u,sizeof(user_t));
 		close(fd);
@@ -262,10 +278,10 @@ public:
 
 	bool find_key(uint8_t* pkey,uint8_t* skey)
 	{	FILE* fp=fopen("key/key.txt","r");
-		char line[128];
+		char line[255];
 		if(fp==NULL){
 			return(false);}
-		while(fgets(line,128,fp)>0){
+		while(fgets(line,255,fp)>0){
 			if(line[0]=='#' || strlen(line)<64){
 				continue;}
 			hash_t pk;
@@ -364,7 +380,7 @@ public:
 			ia >> (*this);}
 		assert(now==path);
 	}
-	void put() //uint32_t path) //FIXME, not used
+	void put()
 	{	char filename[64]="servers.txt";
 	 	if(now>0){
 			sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);}

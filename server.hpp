@@ -49,12 +49,18 @@ public:
     catch(std::exception& e){
       ELOG("ERROR reading servers: %s\n",e.what());
       exit(-1);}
-    if(!last_srvs_.nodes.size() || (int)last_srvs_.nodes.size()<=(int)opts_.svid){
+    if(!last_srvs_.nodes.size()){
+      if(!opts_.init){
+        ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
+        exit(-1);}
+      ELOG("CREATING first node\n");}
+    else if((int)last_srvs_.nodes.size()<=(int)opts_.svid){
       ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
       exit(-1);}
-    last_srvs_.update_vipstatus();
-    bank_fee.resize(last_srvs_.nodes.size());
-    pkey=last_srvs_.nodes[opts_.svid].pk;
+    if(last_srvs_.nodes.size()){
+      last_srvs_.update_vipstatus();
+      bank_fee.resize(last_srvs_.nodes.size());
+      pkey=last_srvs_.nodes[opts_.svid].pk;}
 
     if(opts_.init){
       struct stat sb;   
@@ -91,8 +97,10 @@ public:
         last_srvs_.init(now-BLOCKSEC);
         srvs_=last_srvs_;
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
-        period_start=srvs_.nextblock();} //changes now!
+        period_start=srvs_.nextblock(); //changes now!
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
+        bank_fee.resize(last_srvs_.nodes.size());
+        pkey=last_srvs_.nodes[opts_.svid].pk;}
       do_sync=0;}
     else{
       srvs_=last_srvs_;
@@ -109,7 +117,7 @@ public:
     if(!last_srvs_.find_key(pkey,skey)){
       char pktext[2*32+1]; pktext[2*32]='\0';
       ed25519_key2text(pktext,pkey,32);
-      ELOG("ERROR: failed to find secret key for key:\n%.16s\n",pktext);
+      ELOG("ERROR: failed to find secret key for key:\n%.64s\n",pktext);
       exit(-1);}
 
     if(!opts_.init){
@@ -3253,15 +3261,17 @@ public:
       undo.emplace(0,u);
       int64_t fee=0;
       int64_t div=dividend(u,fee);
+      int64_t bank_fee_start=bank_fee[svid];
       bank_fee[svid]+=BANK_PROFIT(fee);
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
       else{
-        //DLOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
-        mydiv_fee+=BANK_PROFIT(fee);}
+        ELOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
+        if(svid==opts_.svid){
+          mydiv_fee+=BANK_PROFIT(fee);}}
       int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
       int64_t profit=bank_fee[svid]-buser_fee;
-      DLOG("BANK_PROFIT %016lX to usr/%04X.dat (%ld)\n",profit,svid,profit);
+      DLOG("PROFIT %04X %016lX (%lX+%lX-%lX)\n",svid,profit,bank_fee_start,BANK_PROFIT(fee),buser_fee);
       //int64_t before=u.weight; 
       if(profit<-u.weight){
        profit=-u.weight;}
@@ -3295,8 +3305,9 @@ public:
         memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
         log[0]=alog;}}
         //put_log(svid,0,alog);  //put_blklog
-    bank_fee.clear();
-    //bank_fee.resize(srvs_.nodes.size());
+    //bank_fee.clear();
+    bzero(bank_fee.data(),bank_fee.size()*sizeof(uint64_t));
+    DLOG("RESET bank_fee[%ld] (bank_fee[1]=%ld)\n",bank_fee.size(),bank_fee[1]);
     put_msglog(srvs_.now,0,0,log);
   }
 
