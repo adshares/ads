@@ -157,20 +157,30 @@ public:
     if(gd<0){
       fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
+    sprintf(filename,"ofi/%04X.dat",svid);
+    int ld=open(filename,O_RDONLY);
+    if(ld<0){
+      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      exit(-1);}
     for(uint32_t user=0;user<users;user++){
       user_t u;
       int len=read(gd,&u,sizeof(user_t));
       if(len!=sizeof(user_t)){
-        fprintf(stderr,"ERROR, failed to read global user %08X, fatal\n",user);
-
-//FIXME, !!! can be that user is not yet defined globally !!!
-//FIXME, take care of this case !!!
-
-        exit(-1);}
+        lseek(ld,user*sizeof(user_t),SEEK_SET);
+        len=read(ld,&u,sizeof(user_t));
+        if(len!=sizeof(user_t)){
+          fprintf(stderr,"ERROR, failed to read local user %08X, fatal\n",user);
+          exit(-1);}
+        if(u.rpath>=now){ // should be a rare case, but maybe possible
+          int64_t div=0;
+          write(dd,&div,sizeof(uint64_t));
+          continue;}
+        u.weight=USER_MIN_MASS;}
       int64_t div=(u.weight>>16)*newdiv-TXS_DIV_FEE;
       if(div<-u.weight){
         div=-u.weight;}
       write(dd,&div,sizeof(uint64_t));}
+    close(ld);
     close(gd);
     close(dd);
   }
@@ -686,20 +696,6 @@ public:
     mkdir(filename,0755);
   }
 
-  void mklogfile(uint16_t svid,uint32_t user)
-  { char filename[64];
-    sprintf(filename,"log/%04X/%03X",svid,user>>20);
-    mkdir(filename,0755);
-    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
-    mkdir(filename,0755);
-    //create log file ... would be created later anyway
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
-    int fd=open(filename,O_WRONLY|O_CREAT,0644);
-    if(fd<0){
-      ELOG("ERROR, failed to create log directory %s\n",filename);}
-    close(fd);
-  }
-
   // use (2) fallocate to remove beginning of files
   // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
 #ifdef FALLOC_FL_COLLAPSE_RANGE
@@ -733,17 +729,37 @@ public:
   }
 #endif
 
+#ifdef NOLOG
+  void mklogfile(uint16_t svid,uint32_t user) {}
+  void put_log(uint32_t user,log_t& log) {}
+  void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) {}
+#else
+  void mklogfile(uint16_t svid,uint32_t user)
+  { char filename[64];
+    sprintf(filename,"log/%04X/%03X",svid,user>>20);
+    mkdir(filename,0755);
+    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
+    mkdir(filename,0755);
+    //create log file ... would be created later anyway
+    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    int fd=open(filename,O_WRONLY|O_CREAT,0644);
+    if(fd<0){
+      ELOG("ERROR, failed to create log directory %s\n",filename);}
+    close(fd);
+  }
   void put_log(uint32_t user,log_t& log) //single user, called by office and client
   { char filename[64];
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(fd<0){
-      ELOG("ERROR, failed to open log register %s\n",filename);
-      return;} // :-( maybe we should throw here something
+      mklogfile(svid,user);
+      fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+      if(fd<0){
+        ELOG("ERROR, failed to open log register %s\n",filename);
+        return;}} // :-( maybe we should throw here something
     write(fd,&log,sizeof(log_t));
     close(fd);
   }
-
   void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) //many users, called by office and client
   { uint32_t luser=MAX_USERS;
     int fd=-1;
@@ -760,8 +776,11 @@ public:
         sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
         fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
         if(fd<0){
-          ELOG("ERROR, failed to open log register %s\n",filename);
-          return;} // :-( maybe we should throw here something
+          mklogfile(svid,user);
+          fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
+          if(fd<0){
+            ELOG("ERROR, failed to open log register %s\n",filename);
+            return;}} // :-( maybe we should throw here something
         }
       it->second.time=ntime;
       write(fd,&it->second,sizeof(log_t));}
@@ -770,6 +789,7 @@ public:
       close(fd);}
     log.clear();
   }
+#endif
 
   void put_ulog(uint32_t user,log_t& log) //single user, called by office and client
   { log_.lock();

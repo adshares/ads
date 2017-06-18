@@ -29,6 +29,7 @@
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 32 /* keep not more than 16 peers connected */
+#define VALIDATORS 8 /* number of validatro threads */
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9081"

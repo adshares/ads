@@ -356,6 +356,13 @@ Aborted
     bytes_in+=read_msg_->len;
     files_in++;
     read_msg_->know.insert(svid);
+    if(read_msg_->data[0]==MSGTYPE_USR){ //len can be message::header_length in this case :-(
+      //FIXME, accept only if needed !!
+      DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
+        boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+      return;}
     if(read_msg_->len==message::header_length){
       if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid ||
           server_.last_srvs_.nodes.size()<=read_msg_->svid){
@@ -438,7 +445,7 @@ Aborted
         do_sync=0;}
       else{
         int n=read_msg_->data[0];
-        ELOG("%04X ERROR message type %02X received\n",svid,n);
+        ELOG("%04X ERROR message type %02X (%d) received (%016lX)\n",svid,n,n,*(uint64_t*)read_msg_->data);
         leave();
         return;}
       read_msg_ = boost::make_shared<message>();
@@ -460,13 +467,6 @@ Aborted
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
           boost::bind(&peer::handle_read_msglist,shared_from_this(),boost::asio::placeholders::error));
-	return;}
-      if(read_msg_->data[0]==MSGTYPE_USR){
-        //FIXME, accept only if needed !!
-        DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
-        boost::asio::async_read(socket_,
-          boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
-          boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
 	return;}
       if(read_msg_->data[0]==MSGTYPE_BLK){
         DLOG("%04X READ block header\n",svid);
@@ -613,7 +613,15 @@ Aborted
       sync_ls=server_.headers.back();} // FIXME, use pointers/references maybe
     server_.peer_.unlock();
     uint32_t from=sync_ls.now;
-    if(to<BLOCKSEC+from){
+    /*if(opts_.fast){
+      if(to!=from){
+        DLOG("%04X HEADERS loaded ? %08X!=%08X\n",svid,to,from);
+        return;}}
+    else if(to<=from){ //FIXME, this failes sometimes
+      DLOG("%04X HEADERS loaded ? %08X<=%08X\n",svid,to,from);
+      return;}*/
+    if(to<=from){ //FIXME, this failes sometimes
+      DLOG("%04X HEADERS loaded (%08X<=%08X)\n",svid,to,from);
       return;}
     uint32_t num=(to-from)/BLOCKSEC;
     assert(num>0);
@@ -665,6 +673,7 @@ Aborted
       ELOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       leave();
       ELOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
+      leave();
       return;}
     DLOG("%04X HASHES loaded\n",svid);
     //server_.slow_sync(true,headers);
@@ -850,7 +859,7 @@ Aborted
         }
 #endif
         server_.last_srvs_.xor4(csum,u->csum);}
-      DLOG("%04X SENDING bank %04X block %08X chunk %08X max user %08X sum %016lX hash %08X\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum));
+      DLOG("%04X SENDING bank %04X block %08X chunk %X muser %X sum %016lX hash %08X head %016lX\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum),*(uint64_t*)put_msg->data);
       send_sync(put_msg); // send even if we have errors
       if(user==users){
         //uint8_t hash[32];

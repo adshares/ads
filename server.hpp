@@ -390,8 +390,8 @@ public:
     auto block=headers.begin();
     now-=now%BLOCKSEC;
     do_validate=1;
-    threadpool.create_thread(boost::bind(&server::validator, this));
-    threadpool.create_thread(boost::bind(&server::validator, this));
+    for(int v=0;v<VALIDATORS;v++){
+      threadpool.create_thread(boost::bind(&server::validator, this));}
 //FIXME, must start with a matching nowhash and load serv_
     if(srvs_.now<now){
       peer_.lock();
@@ -641,7 +641,7 @@ public:
         return(1);}
       peer_.unlock();
       boost::this_thread::sleep(boost::posix_time::seconds(1));}
-      return 0;
+    return 0;
   }
 
   uint32_t readmsid()
@@ -981,8 +981,8 @@ public:
       LAST_block_final(best);
       if(!winner->elected_accept()){
         do_validate=1;
-        threadpool.create_thread(boost::bind(&server::validator, this));
-        threadpool.create_thread(boost::bind(&server::validator, this));}}
+        for(int v=0;v<VALIDATORS;v++){
+          threadpool.create_thread(boost::bind(&server::validator, this));}}}
     //DLOG("... count votes() ...\n");
     if(do_block==2 && winner->elected_accept()){
       ELOG("CANDIDATE winner accepted\n");
@@ -1627,7 +1627,7 @@ public:
 
     assert(msg->path==msg->msid);
     DLOG("BLOCK test\n");
-    if(msg->msid!=last_srvs_.now){
+    if(msg->msid!=last_srvs_.now){ //FIXME, this fails during authentication
       DLOG("BLOCK bad msid:%08x block:%08x\n",msg->msid,last_srvs_.now);
       return;}
     uint32_t vip=last_srvs_.nodes[msg->svid].status & SERVER_VIP;
@@ -3261,7 +3261,7 @@ public:
       undo.emplace(0,u);
       int64_t fee=0;
       int64_t div=dividend(u,fee);
-      int64_t bank_fee_start=bank_fee[svid];
+      //int64_t bank_fee_start=bank_fee[svid];
       bank_fee[svid]+=BANK_PROFIT(fee);
       if(div==(int64_t)0x8FFFFFFFFFFFFFFF){
         div=0;}
@@ -3271,7 +3271,7 @@ public:
           mydiv_fee+=BANK_PROFIT(fee);}}
       int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
       int64_t profit=bank_fee[svid]-buser_fee;
-      DLOG("PROFIT %04X %016lX (%lX+%lX-%lX)\n",svid,profit,bank_fee_start,BANK_PROFIT(fee),buser_fee);
+      DLOG("PROFIT %04X %016lX (%lX+%lX-%lX)\n",svid,profit,profit-BANK_PROFIT(fee)-buser_fee,BANK_PROFIT(fee),buser_fee);
       //int64_t before=u.weight; 
       if(profit<-u.weight){
        profit=-u.weight;}
@@ -3632,8 +3632,8 @@ public:
     block_only=false;
     if(!do_validate){
       do_validate=1;
-      threadpool.create_thread(boost::bind(&server::validator, this));
-      threadpool.create_thread(boost::bind(&server::validator, this));}
+      for(int v=0;v<VALIDATORS;v++){
+        threadpool.create_thread(boost::bind(&server::validator, this));}}
 
     //TODO, consider validating local messages faster to limit delay in this region
     //finish recycle submitted office messages
@@ -3705,8 +3705,8 @@ public:
         std::set<uint64_t> msg_del; // could be also svid_msha
         save_candidate(srvs_.now,cand,msg_add,msg_del,opts_.svid); // do after prepare_poll
         do_validate=1;
-        threadpool.create_thread(boost::bind(&server::validator, this));
-        threadpool.create_thread(boost::bind(&server::validator, this));}
+        for(int v=0;v<VALIDATORS;v++){
+          threadpool.create_thread(boost::bind(&server::validator, this));}}
       if(do_block>0 && do_block<3){
         count_votes(now,cand);}
       if(do_block==3){
@@ -3724,8 +3724,8 @@ public:
         do_block=0;
         do_validate=1;
         block_only=false;
-        threadpool.create_thread(boost::bind(&server::validator, this));
-        threadpool.create_thread(boost::bind(&server::validator, this));}
+        for(int v=0;v<VALIDATORS;v++){
+          threadpool.create_thread(boost::bind(&server::validator, this));}}
       boost::this_thread::sleep(boost::posix_time::seconds(1));
     }
   }
