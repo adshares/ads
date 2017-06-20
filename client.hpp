@@ -15,11 +15,16 @@ public:
       len(0),
       more(0)
   {  //read_msg_ = boost::make_shared<message>();
+#ifdef DEBUG
     DLOG("OFFICER ready %04X\n",offi_.svid);
+#endif
   }
 
   ~client()
-  { DLOG("Client left %s:%s\n",addr.c_str(),port.c_str());
+  { 
+#ifdef DEBUG
+    DLOG("Client left %s:%s\n",addr.c_str(),port.c_str());
+#endif
     free(buf);
     buf=NULL;
   }
@@ -31,7 +36,9 @@ public:
   void start() //TODO consider providing a local user file pointer
   { addr = socket_.remote_endpoint().address().to_string();
     port = std::to_string(socket_.remote_endpoint().port());
+#ifdef DEBUG
     DLOG("Client entered %s:%s\n",addr.c_str(),port.c_str());
+#endif
     buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64+128);
     boost::asio::async_read(socket_,boost::asio::buffer(buf,1),
       boost::bind(&client::handle_read_txstype,shared_from_this(),boost::asio::placeholders::error));
@@ -63,7 +70,9 @@ public:
       return;}
     bzero(&utxs,sizeof(usertxs));
     utxs.parse(buf);
+#ifdef DEBUG
     utxs.print_head();
+#endif
     if(*buf==TXSTYPE_BRO){
       buf=(char*)std::realloc(buf,len+utxs.bbank);
       boost::asio::async_read(socket_,boost::asio::buffer(buf+len,utxs.bbank),
@@ -139,7 +148,9 @@ public:
         DLOG("ERROR: bad bank for INF\n");
         offi_.unlock_user(utxs.auser);
         return;}
+#ifdef DEBUG
       DLOG("SENDING user info %08X:%04X\n",utxs.bbank,utxs.buser);
+#endif
       user_t userb;
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
@@ -704,7 +715,9 @@ public:
         offi_.add_deposit(utxs);}}
     offi_.unlock_user(utxs.auser);
     //FIXME, return msid and mpos
+#ifdef DEBUG
     DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
+#endif
     try{
       //respond with a single message
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message

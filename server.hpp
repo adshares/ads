@@ -1076,7 +1076,7 @@ public:
     cand_.unlock();
   }
 
-  message_ptr message_svidmsid(uint16_t svid,uint32_t msid)
+  message_ptr message_svidmsid(uint16_t svid,uint32_t msid) //txs_.lock()
   { extern message_ptr nullmsg;
     union {uint64_t num; uint8_t dat[8];} h;
     h.dat[0]=0; // hash
@@ -1109,7 +1109,7 @@ public:
       uint16_t svid=(key>>48);
       sprintf(miss,"%04X:%08X",svid,msid);
       line+=miss;
-      message_ptr me=message_svidmsid(svid,msid);
+      message_ptr me=message_svidmsid(svid,msid); //txs_.lock() !!! DOUBLE LOCK
       if(me==nullmsg){
         line+=" unknown :-(\n";}
       else{
@@ -1130,7 +1130,7 @@ public:
     return(line.c_str());
   }
 
-  message_ptr message_find(message_ptr msg,uint16_t svid)
+  message_ptr message_find(message_ptr msg,uint16_t svid) //cnd_/blk_/dbl_/txs_.lock()
   { extern message_ptr nullmsg;
     DLOG("HASH find:%016lX (%04X%08X) %d:%d\n",msg->hash.num,msg->svid,msg->msid,msg->svid,msg->msid);
     assert(msg->data!=NULL);
@@ -1583,7 +1583,7 @@ public:
 	assert(msg->peer==msg->svid);
         return(1);}
       txs_.unlock();
-      DLOG("HASH insert:%016lX (TXS) [len:%d] UNEXPECTED!\n",msg->hash.num,msg->len);
+      ELOG("HASH insert:%016lX (TXS) [len:%d] UNEXPECTED!\n",msg->hash.num,msg->len);
       return(-1);}
   }
 
@@ -1770,16 +1770,14 @@ public:
         bool valid=process_message(msg); //maybe ERROR should be also returned.
         if(valid){
           msg->print_text("COMMITED");
-          //msg->status&= ~ MSGSTAT_BAD;
           msg->status|=MSGSTAT_COM;
-          //svid_.lock();
           node* nod=&srvs_.nodes[msg->svid];
           if(msg->svid!=opts_.svid){
             nod->msid=msg->msid;
             nod->mtim=msg->now;
             memcpy(nod->msha,msg->sigh,sizeof(hash_t));}
           else{
-            mtx_.lock();
+            mtx_.lock(); //no lock needed ???
             nod->msid=msg->msid;
             nod->mtim=msg->now;
             memcpy(nod->msha,msg->sigh,sizeof(hash_t));
@@ -1787,8 +1785,6 @@ public:
             if(msid_<nod->msid){
               ELOG("WARNING !!! increasing local msid by network !!!\n");
               msid_=nod->msid;}}
-          //svid_msgs_[msg->svid]=msg;
-          //svid_.unlock();
           uint32_t now=time(NULL);
           uint64_t next=msg->hash.num+1;
 	  missing_.lock();
@@ -1946,7 +1942,9 @@ public:
       if(*p==TXSTYPE_PUT){
         utxs.parse(p);
         if(utxs.bbank!=utxs.abank){
+#ifdef DEBIG
           DLOG("WARNING undoing put\n");
+#endif
           union {uint64_t big;uint32_t small[2];} to;
           to.small[0]=utxs.buser; //assume big endian
           to.small[1]=utxs.bbank; //assume big endian
@@ -1964,7 +1962,9 @@ public:
           memcpy(&tuser,tbuf+2,4);
           memcpy(&tmass,tbuf+6,8);
           if(tbank!=utxs.abank){
+#ifdef DEBUG
             DLOG("WARNING undoing mpt to: %04X:%08X<=%016lX\n",tbank,tuser,tmass);
+#endif
             union {uint64_t big;uint32_t small[2];} to;
             to.small[0]=tuser; //assume big endian
             to.small[1]=tbank; //assume big endian
@@ -2105,22 +2105,32 @@ public:
       return(false);}
     char text[2*32];
     ed25519_key2text(text,msg->sigh,32);
-    DLOG("PROCESS MSG %04X:%08X %.64s\n",msg->svid,msg->msid,text);
     bool check_sig=((!(msg->status & MSGSTAT_VAL) && !do_sync && msg->svid!=opts_.svid)?true:false);
     uint32_t tpos_max=*(uint32_t*)(msg->data+msg->len+32+4+4);
     assert(tpos_max);
     if(!check_sig){
       tpos_max=1;}
+    DLOG("PROCESS MSG %04X:%08X [tp:%d] %.64s\n",msg->svid,msg->msid,tpos_max,text);
     int sign_num=0;
-    int sign_valid[tpos_max];
-    size_t sign_mlen[tpos_max];
-    size_t sign_mlen2[tpos_max];
-    hash_s sign_pk_hash[tpos_max];
-    hash_s sign_m__hash[tpos_max];
-    const unsigned char* sign_m[tpos_max];
-    const unsigned char* sign_m2[tpos_max];
-    const unsigned char* sign_pk[tpos_max];
-    const unsigned char* sign_rs[tpos_max];
+    //remember pthreads stack size limit 2Mb
+    //int sign_valid[tpos_max];
+    //size_t sign_mlen[tpos_max];
+    //size_t sign_mlen2[tpos_max];
+    //hash_s sign_pk_hash[tpos_max]; //2MB :-( exceeds stack size :-(
+    //hash_s sign_m__hash[tpos_max]; //2MB :-( exceeds stack size :-(
+    //const unsigned char* sign_m[tpos_max];
+    //const unsigned char* sign_m2[tpos_max];
+    //const unsigned char* sign_pk[tpos_max];
+    //const unsigned char* sign_rs[tpos_max];
+    std::vector<int> sign_valid(tpos_max);
+    std::vector<size_t> sign_mlen(tpos_max);
+    std::vector<size_t> sign_mlen2(tpos_max);
+    std::vector<hash_s> sign_pk_hash(tpos_max);
+    std::vector<hash_s> sign_m__hash(tpos_max);
+    std::vector<const unsigned char*> sign_m(tpos_max);
+    std::vector<const unsigned char*> sign_m2(tpos_max);
+    std::vector<const unsigned char*> sign_pk(tpos_max);
+    std::vector<const unsigned char*> sign_rs(tpos_max);
     char* p=(char*)msg->data+4+64+10;
     int fd=open_bank(msg->svid);
     std::map<uint64_t,log_t> log;
@@ -2181,11 +2191,11 @@ public:
 	//?? no fee :-(
         continue;}
       if(*p>=TXSTYPE_INF){
-        DLOG("ERROR: unknown transaction\n");
+        ELOG("ERROR: unknown transaction\n");
         close(fd);
         return(false);}
       if(utxs.ttime>lpath+BLOCKSEC+5){ // remember that values are unsigned !
-	DLOG("ERROR: time in the future block time:%08X block:%08X limit %08X\n",
+	ELOG("ERROR: time in the future block time:%08X block:%08X limit %08X\n",
 	  utxs.ttime,lpath,lpath+BLOCKSEC+5);
         close(fd);
         return(false);}
@@ -2224,7 +2234,7 @@ public:
             return(false);}
           local_fee+=delta;
           weight-=delta;}
-        else{ //TODO, consider locking
+        else{
           user_t u;
           bzero(&u,sizeof(user_t));
           users++;
@@ -2266,6 +2276,7 @@ public:
       if(check_sig){
         assert(sign_num<(int)tpos_max);
         int mlen2=utxs.sign_mlen2();
+        assert(p+mlen2<(char*)msg->data+msg->len);
         sign_mlen[sign_num]=(size_t)32;
         sign_mlen2[sign_num]=(size_t)mlen2;
         memcpy(sign_m__hash[sign_num].hash,usera->hash,32);
@@ -2577,7 +2588,16 @@ public:
       local_fee+=fee-remote_fee;
       p+=utxs.size;}
     if(check_sig){
-      int ret=ed25519_sign_open_batch2(sign_m,sign_mlen,sign_m2,sign_mlen2,sign_pk,sign_rs,sign_num,sign_valid);
+      //std::vector<int> sign_valid(tpos_max);
+      //std::vector<size_t> sign_mlen(tpos_max);
+      //std::vector<size_t> sign_mlen2(tpos_max);
+      //std::vector<hash_s> sign_pk_hash(tpos_max);
+      //std::vector<hash_s> sign_m__hash(tpos_max);
+      //std::vector<const unsigned char*> sign_m(tpos_max);
+      //std::vector<const unsigned char*> sign_m2(tpos_max);
+      //std::vector<const unsigned char*> sign_pk(tpos_max);
+      //std::vector<const unsigned char*> sign_rs(tpos_max);
+      int ret=ed25519_sign_open_batch2(&sign_m[0],&sign_mlen[0],&sign_m2[0],&sign_mlen2[0],&sign_pk[0],&sign_rs[0],sign_num,&sign_valid[0]);
       if(ret){ //TODO create detailed report (report each failed message)
         ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);
         close(fd);
@@ -2707,6 +2727,7 @@ public:
       srvs_.msg++;
       srvs_.txs+=tnum;}
     put_msglog(srvs_.now,msg->svid,msg->msid,log);
+    DLOG("COMPLETED MSG %04X:%08X [tp:%d]\n",msg->svid,msg->msid,tpos_max);
     return(true);
   }
 

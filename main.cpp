@@ -87,7 +87,9 @@ int main(int argc, char* argv[])
 void office::start_accept()
 { if(!run){ return;}
   client_ptr c(new client(*io_services_[next_io_service_++],*this));
+#ifdef DEBUG
   DLOG("OFFICE online %d\n",next_io_service_);
+#endif
   if(next_io_service_>=CLIENT_POOL){
     next_io_service_=0;}
   acceptor_.async_accept(c->socket(),boost::bind(&office::handle_accept,this,c,boost::asio::placeholders::error));
@@ -95,7 +97,9 @@ void office::start_accept()
 void office::handle_accept(client_ptr c,const boost::system::error_code& error)
 { //uint32_t now=time(NULL);
   if(!run){ return;}
+#ifdef DEBUG
   DLOG("OFFICE new ticket (total open:%ld)\n",clients_.size());
+#endif
   if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
     ELOG("OFFICE busy, delaying connection\n");}
   while(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG){
