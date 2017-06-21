@@ -3512,7 +3512,7 @@ public:
     if(!cnd_insert(msg)){
       ELOG("FATAL message insert error for own message, dying !!!\n");
       exit(-1);}
-    DLOG("SENDING candidate\n");
+    ELOG("SENDING candidate\n");
     update(msg); // update peers even if we are not an elector
   }
 
