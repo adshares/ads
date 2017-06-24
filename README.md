@@ -4,7 +4,7 @@ Enterprise Service Chain (ESC) is a block chain based software tool facilitating
 
 The main features of the Enterprise Service Chain can be summarized as follows:
 -	Delegated Proof of Stake as block consensus mechanism to reduce network maintenance costs
--	Small account and transaction identifiers, reduced transaction set and parallel processing of transactions to facilitate high transaction volumes
+-	Small account and transaction identifiers, reduced transaction set and parallel processing of transactions to facilitate high transaction volumes (>100kHz one-one transactions, >1MHz one-many transactions)
 -	Nodes are heavily penalized for double spends so most transactions can be trusted almost instantly
 -	Small set of VIP nodes responsible for network integrity to facilitate incorporation of slow nodes with reduced transaction processing capabilities
 -	Hash of all accounts is part of the block and enables instant synchronization with the block chain
