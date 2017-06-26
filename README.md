@@ -1,4 +1,4 @@
-Enterprise Service Chain
+# Enterprise Service Chain
 
 Enterprise Service Chain (ESC) is a block chain based software tool facilitating high volumes of simple transactions that, in most cases, send tokens between accounts as in other crypto currencies. The name is derived from the concept of the Enterprise Service Bus in which a crypto currency is used as the protocol of communication.
 
@@ -11,6 +11,10 @@ The main features of the Enterprise Service Chain can be summarized as follows:
 -	Hierarchical organization of accounts and nodes facilitates KYC, AML , eID  supply and governance
 -	Dividend payments to account holders and node managers to support the growth of the economy of the ESC system
 
-Current status
+## Details
+
+A [white paper](docs/ESC.pdf) provides a more detailed description of the concept of the Enterprise Service Chain.
+
+## Current status
 
 The software is currently an academic proof of concept. It does not have a user-friendly class structure. It lacks comments. It has small bugs. It has a long ToDo list, but it can be deployed and tested. An instruction for the deployment will be provided shortly.
