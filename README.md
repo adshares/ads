@@ -71,7 +71,7 @@ make
 
 The default Makefile contains the DEBUG option. If You want to run production speed tests, then compile against Makefile.ndebug. The compilation should finish in few seconds.
 
-When compiling, the compiler will detect if You have a recent kernel that supports the "FALLOC_FL_COLLAPSE_RANGE" option for fallocate(). This option is used to remove old (first) pages from log files and works only on ext4 file systems. If You don’t have a recent kernel or run the software on a different file system, then user log files will not be purged (will grow forever). We will consider adding support for this case in the future.
+When compiling, the compiler will detect if You have a recent kernel that supports the "FALLOC_FL_COLLAPSE_RANGE" option for fallocate(). This option is used to remove old (first) pages from log files and works only on ext4 file systems. If You don't have a recent kernel or run the software on a different file system, then user log files will not be purged (will grow forever). We will consider adding support for this case in the future.
 
 ## Setting up a local test net
 
@@ -92,20 +92,20 @@ To start the first node enter
 ./main --init 1
 ```
 
-The program will detect that it is in an empty directory and will create an initial setup with a single node and an administrator account for the node. The current version is compiled with temporary development setting with a much shorter block period (32s, defined in default.hpp). Keep the node running for at least 1 block period to initialize the block-chain correctly. You can stop a node by typing a dot (".") followed by enter. Currently, killing the node with a signal (^C) may destroy the database files. You can continue with the same block-chain by running the code again with the ‘--init 1’ switch.
+The program will detect that it is in an empty directory and will create an initial setup with a single node and an administrator account for the node. The current version is compiled with temporary development setting with a much shorter block period (32s, defined in default.hpp). Keep the node running for at least 1 block period to initialize the block-chain correctly. You can stop a node by typing a dot (".") followed by enter. Currently, killing the node with a signal (^C) may destroy the database files. You can continue with the same block-chain by running the code again with the '--init 1' switch.
 
 ```
 ./main --init 1
 ```
 
 The first node will start with the default node secret key stored in key/key.txt . The secret key to the admin account is the same. Secret keys can be created by running the key executable with a selected brain-key-string (ed25519/key "brain-key-string"). Both keys can be changed later. In production the node key and the admin key should differ for security reasons.
-To add more nodes and users open a new terminal and connect to the running node as admin (user with account number 0). We have created a directory for the user previously. Let’s go there.
+To add more nodes and users open a new terminal and connect to the running node as admin (user with account number 0). We have created a directory for the user previously. Let's go there.
 
 ```
 cd /tmp/user0
 ```
 
-Let’s create the file containing the connection setting for the user.
+Let's create the file containing the connection setting for the user.
 
 ```
 echo 'port=9081' > settings.cfg
@@ -115,7 +115,7 @@ echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >
 chmod go-r settings.cfg
 ```
 
-This is the account address of our user 0001-00000000-XXXX. Last 4 characters should be hex characters defining the checksum. If ‘XXXX’ is provided the checksum is not tested. Let’s try to connect to the node and get the current status of our user.
+This is the account address of our user 0001-00000000-XXXX. Last 4 characters should be hex characters defining the checksum. If 'XXXX' is provided the checksum is not tested. Let's try to connect to the node and get the current status of our user.
 
 ```
 echo '{"run":"get_me"}' | ./user 2>err.txt
@@ -166,7 +166,7 @@ This command should list the current status of the user. We should get something
 ```
 
 No standard output means the connection failed. You can try to examine err.txt for some clues. Correct standard output show the correct account number for the admin of the first node, which is "0001-00000000-9B6F" (the checksum is 9B6F).
-Now let’s change our secret key and create a new account with a new key. First let’s generate 2 keys.
+Now let's change our secret key and create a new account with a new key. First let's generate 2 keys.
 
 ```
 ./key "user-0-0"
@@ -188,13 +188,13 @@ PK: C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196
 SG: ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05
 ```
 
-The secret keys are printed in the lines starting with "SK:". The line starting with "SG:" contains the signature of an empty phrase signed with the secret key. This signature is uses as checksum when creating a new account. Let’s change the key for the admin account now:
+The secret keys are printed in the lines starting with "SK:". The line starting with "SG:" contains the signature of an empty phrase signed with the secret key. This signature is uses as checksum when creating a new account. Let's change the key for the admin account now:
 
 ```
 (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | ./user
 ```
 
-After this the admin needs a new secret key to connect to its account, so let’s fix the settings.txt file.
+After this the admin needs a new secret key to connect to its account, so let's fix the settings.txt file.
 
 ```
 echo 'port=9081' > settings.cfg
@@ -209,19 +209,19 @@ And confirm that we can connect again with the new key.
 echo '{"run":"get_me"}' | ./user 2>err.txt
 ```
 
-The output should indicate that our transaction id was incremented and is now equal 2 ("msid": "2",). Let’s now create the second user.
+The output should indicate that our transaction id was incremented and is now equal 2 ("msid": "2",). Let's now create the second user.
 
 ```
 (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./user
 ```
 
-The new user is managed by our node so the creation process will be fast and the node will report the new account number for the local user in the paired_id field ("paired_id": "1"). Let’s read the status of the new user account.
+The new user is managed by our node so the creation process will be fast and the node will report the new account number for the local user in the paired_id field ("paired_id": "1"). Let's read the status of the new user account.
 
 ```
 echo '{"run":"get_account","address":"0001-00000001-XXXX"}' | ./user
 ```
 
-We should see that the correct new account address is "0001-00000001-8B4E". The balance of the new user is too small to make any transactions so let’s send him some funds.
+We should see that the correct new account address is "0001-00000001-8B4E". The balance of the new user is too small to make any transactions so let's send him some funds.
 
 ```
 (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./user
@@ -233,14 +233,14 @@ The new balance shold be 0.362144000
 echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./user 2>/dev/null | grep balance
 ```
 
-Let’s change the public key of the new user by connecting as the new user with the current coppied key. Do not forget to use the "--address 0001-00000001-8B4E" here, otherwise You will change Your own public key. In normal cases You don’t know the corresponding secret key so You will loose Your account. 
+Let's change the public key of the new user by connecting as the new user with the current coppied key. Do not forget to use the "--address 0001-00000001-8B4E" here, otherwise You will change Your own public key. In normal cases You don't know the corresponding secret key so You will loose Your account. 
 
 ```
-(echo ‘{"run":"get_me"}’; echo ‘{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}’ )  | ./user  --address 0001-00000001-8B4E
+(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | ./user  --address 0001-00000001-8B4E
 ```
 
 The output should indicate that the public key was changed.
-Let’s connect as the new user after setting up the new environment.
+Let's connect as the new user after setting up the new environment.
 
 ```
 mkdir ../user1
@@ -253,14 +253,14 @@ chmod go-r settings.cfg
 echo '{"run":"get_me"}' | ../user0/user
 ```
 
-The output should indicate that You have successfully connected to the node as user "0001-00000001-8B4E". You don’t have enough funds to create a new node. User0 will help You.
+The output should indicate that You have successfully connected to the node as user "0001-00000001-8B4E". You don't have enough funds to create a new node. User0 will help You.
 
 ```
 cd ../user0
 (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":70.0,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./user
 ```
 
-Let’s now try to create a new node. The new node will get the public key of the requesting user.
+Let's now try to create a new node. The new node will get the public key of the requesting user.
 
 ```
 (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ../user0/user
@@ -276,7 +276,7 @@ NOD: 145a96c9 e186f4ad ffff0002 00000000 595EA5A0 0 0000000FFFF08000 1
 
 When the new node is created You can send some funds to the new admin account (0002-00000000-XXXX) if You plan to perform any transaction. We will skip it because we will only try to connect a new node.
 
-Let’s create the directory and the files for the new node
+Let's create the directory and the files for the new node
 
 ```
 mkdir ../node2
@@ -292,7 +292,7 @@ echo '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' > key/ke
 chmod go-r key/key.txt
 ```
 
-The configuration file (options.txt) indicates an initial peer address that we want to start syncing from. To connect to the network we also need a recent network topology file that already includes our new node. This file can be found in a recent block directory of the running node (and all nodes on the network). The blocks are in ../node1/blk/xxx/xxxxx. The block numbers correspond to unix time. Let’s take a servers.txt file from ../node1/blk/595/EA9C0/ .
+The configuration file (options.txt) indicates an initial peer address that we want to start syncing from. To connect to the network we also need a recent network topology file that already includes our new node. This file can be found in a recent block directory of the running node (and all nodes on the network). The blocks are in ../node1/blk/xxx/xxxxx. The block numbers correspond to unix time. Let's take a servers.txt file from ../node1/blk/595/EA9C0/ .
 
 ```
 cp ../node1/blk/595/EA9C0/servers.txt ./
@@ -304,7 +304,7 @@ Now we should be able to connect the new node to the network.
 ../node1/main -m 1 -f 1
 ```
 
-The connection should be established shortly. You can stop the node again by pressing ‘.’and enter. The -m switch indicates that we need only 1 signature to trust the blocks (we have only 1 node). The -f switch indicates that we want to start from the current status of the block-chain. After stopping the second node, we should start it again without the -f option to load the missing blocks.
+The connection should be established shortly. You can stop the node again by pressing '.' and enter. The -m switch indicates that we need only 1 signature to trust the blocks (we have only 1 node). The -f switch indicates that we want to start from the current status of the block-chain. After stopping the second node, we should start it again without the -f option to load the missing blocks.
 
 ```
 ../node1/main -m 1
