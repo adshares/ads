@@ -1,0 +1,9 @@
+# srun -n 8 -c 24 --multi-prog /workspace/leszek/net/uxx/accounts.conf
+0 /workspace/leszek/net/uxx/accounts.pl 1 100000
+1 /workspace/leszek/net/uxx/accounts.pl 2 100000
+2 /workspace/leszek/net/uxx/accounts.pl 3 100000
+3 /workspace/leszek/net/uxx/accounts.pl 4 100000
+4 /workspace/leszek/net/uxx/accounts.pl 5 100000
+5 /workspace/leszek/net/uxx/accounts.pl 6 100000
+6 /workspace/leszek/net/uxx/accounts.pl 7 100000
+7 /workspace/leszek/net/uxx/accounts.pl 8 100000

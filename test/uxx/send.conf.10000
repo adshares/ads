@@ -1,0 +1,9 @@
+# srun -n 8 -c 24 --multi-prog /workspace/leszek/net/uxx/send.conf
+0 /workspace/leszek/net/uxx/send.pl 1 8 10000 16 1024
+1 /workspace/leszek/net/uxx/send.pl 2 8 10000 16 1024
+2 /workspace/leszek/net/uxx/send.pl 3 8 10000 16 1024
+3 /workspace/leszek/net/uxx/send.pl 4 8 10000 16 1024
+4 /workspace/leszek/net/uxx/send.pl 5 8 10000 16 1024
+5 /workspace/leszek/net/uxx/send.pl 6 8 10000 16 1024
+6 /workspace/leszek/net/uxx/send.pl 7 8 10000 16 1024
+7 /workspace/leszek/net/uxx/send.pl 8 8 10000 16 1024

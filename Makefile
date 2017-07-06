@@ -1,12 +1,7 @@
 .PHONY: restart
 .PHONY: all
 .PHONY: clean
-#CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -DNDEBUG -DED25519_SSE2
-#CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -DNDEBUG
-#CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -static
-CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -static -DNDEBUG
-#CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -O3 -DNDEBUG
-
+CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -g -DDEBUG
 restart: main user
 all: main user
 ed25519/ed25519.o: ed25519/ed25519.c ed25519/ed25519.h
@@ -16,8 +11,8 @@ user.o: user.cpp user.hpp settings.hpp ed25519/ed25519.h default.hpp message.hpp
 main.o: main.cpp candidate.hpp office.hpp peer.hpp servers.hpp client.hpp message.hpp options.hpp server.hpp ed25519/ed25519.h user.hpp hash.hpp default.hpp
 	$(CCP) -c $< -o $@
 main: main.o ed25519/ed25519.o
-	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -ldl -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
+	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
 user: user.o ed25519/ed25519.o
-	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -ldl -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
+	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
 clean:
 	rm ed25519/ed25519.o user.o main.o main user
