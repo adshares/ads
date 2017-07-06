@@ -292,7 +292,7 @@ echo '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' > key/ke
 chmod go-r key/key.txt
 ```
 
-The configuration file (options.txt) indicates an initial peer address that we want to start syncing from. To connect to the network we also need a recent network topology file that already includes our new node. This file can be found in a recent block directory of the running node (and all nodes on the network). The blocks are in ../node1/blk/xxx/xxxxx. The block numbers correspond to unix time. Let’s take a servers.txt from from ../node1/blk/595/EA9C0/ .
+The configuration file (options.txt) indicates an initial peer address that we want to start syncing from. To connect to the network we also need a recent network topology file that already includes our new node. This file can be found in a recent block directory of the running node (and all nodes on the network). The blocks are in ../node1/blk/xxx/xxxxx. The block numbers correspond to unix time. Let’s take a servers.txt file from ../node1/blk/595/EA9C0/ .
 
 ```
 cp ../node1/blk/595/EA9C0/servers.txt ./
