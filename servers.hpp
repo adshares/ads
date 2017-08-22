@@ -775,6 +775,7 @@ public:
 		read(fd,oldhash,SHA256_DIGEST_LENGTH);
 		read(fd,minhash,SHA256_DIGEST_LENGTH);
 		read(fd,msghash,SHA256_DIGEST_LENGTH);
+		read(fd,nodhash,SHA256_DIGEST_LENGTH);
 		read(fd,viphash,SHA256_DIGEST_LENGTH);
 		read(fd,nowhash,SHA256_DIGEST_LENGTH);
 		read(fd,&vok,sizeof(uint16_t));
@@ -811,6 +812,7 @@ public:
 		write(fd,oldhash,SHA256_DIGEST_LENGTH);
 		write(fd,minhash,SHA256_DIGEST_LENGTH);
 		write(fd,msghash,SHA256_DIGEST_LENGTH);
+		write(fd,nodhash,SHA256_DIGEST_LENGTH);
 		write(fd,viphash,SHA256_DIGEST_LENGTH);
 		write(fd,nowhash,SHA256_DIGEST_LENGTH);
 		write(fd,&vok,sizeof(uint16_t));
