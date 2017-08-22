@@ -11,8 +11,8 @@ esc.o: user.cpp user.hpp settings.hpp ed25519/ed25519.h default.hpp message.hpp 
 escd.o: main.cpp candidate.hpp office.hpp peer.hpp servers.hpp client.hpp message.hpp options.hpp server.hpp ed25519/ed25519.h user.hpp hash.hpp default.hpp
 	$(CCP) -c $< -o $@
 escd: escd.o ed25519/ed25519.o
-	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
+	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lrt -o $@
 esc: esc.o ed25519/ed25519.o
-	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lboost_serialization -lrt -o $@
+	$(CCP) $^ -m64 -lssl -lcrypto -lboost_thread -lpthread -lboost_system -lboost_program_options -lrt -o $@
 clean:
 	rm ed25519/ed25519.o esc.o escd.o escd esc

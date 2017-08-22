@@ -19,7 +19,7 @@ public:
 	{	//bzero(host,64);
 	}
 	ed25519_public_key pk; // public key
-	uint8_t ohash[SHA256_DIGEST_LENGTH]; // hash of accounts
+	//uint8_t ohash[SHA256_DIGEST_LENGTH]; // hash of accounts
 	uint64_t hash[4]; // hash of accounts, could be atomic to prevent locking
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last message
 	uint32_t msid; // last message, server closed if msid==0xffffffff
@@ -36,33 +36,33 @@ public:
 	//std::list<int> in; // incomming connections
 	//std::list<int> out; // outgoing connections
 	std::vector<uint64_t> changed; //account changed bits
-private:
-	friend class boost::serialization::access;
-	template<class Archive> void serialize(Archive & ar, const unsigned int version)
-	{	
-		ar & pk;
-	 	if(version<3){	ar & ohash; memcpy(hash,ohash,32);}
-		else{		ar & hash;}
-		//if(version>0) ar & msha;
-		ar & msha;
-	 	ar & msid;
-	 	ar & mtim;
-		ar & weight; //changed order !!!
-	 	ar & status; //changed order !!!
-	 	//if(version==0) ar & in;
-	 	//if(version==0) ar & out;
-	 	//if(version==0) ar & addr;
-	 	//if(version==1) ar & host;
-	 	//if(version==1) ar & port;
-	 	////ar & status;
-		//if(version>0) ar & weight;
-		////ar & weight;
-	 	if(version>1) ar & users;
-	 	if(version>1) ar & port;
-	 	if(version>1) ar & ipv4;
-	}
+//private:
+//	friend class boost::serialization::access;
+//	template<class Archive> void serialize(Archive & ar, const unsigned int version)
+//	{	
+//		ar & pk;
+//	 	if(version<3){	ar & ohash; memcpy(hash,ohash,32);}
+//		else{		ar & hash;}
+//		//if(version>0) ar & msha;
+//		ar & msha;
+//	 	ar & msid;
+//	 	ar & mtim;
+//		ar & weight; //changed order !!!
+//	 	ar & status; //changed order !!!
+//	 	//if(version==0) ar & in;
+//	 	//if(version==0) ar & out;
+//	 	//if(version==0) ar & addr;
+//	 	//if(version==1) ar & host;
+//	 	//if(version==1) ar & port;
+//	 	////ar & status;
+//		//if(version>0) ar & weight;
+//		////ar & weight;
+//	 	if(version>1) ar & users;
+//	 	if(version>1) ar & port;
+//	 	if(version>1) ar & ipv4;
+//	}
 };
-BOOST_CLASS_VERSION(node, 3)
+//BOOST_CLASS_VERSION(node, 3)
 class servers // also a block
 {
 public:
@@ -364,34 +364,35 @@ public:
 	}
 
 	void get()
-	{	std::ifstream ifs("servers.txt");
-		if(ifs.is_open()){
-			boost::archive::text_iarchive ia(ifs);
-			ia >> (*this);}
+	{	get(0);
+		//std::ifstream ifs("servers.txt");
+		//if(ifs.is_open()){
+		//	boost::archive::text_iarchive ia(ifs);
+		//	ia >> (*this);}
 	}
 	void get(uint32_t path)
-	{	char filename[64];
-	 	if(path==0){
-			get();
-			return;}
-		sprintf(filename,"blk/%03X/%05X/servers.txt",path>>20,path&0xFFFFF);
-		std::ifstream ifs(filename);
-		if(ifs.is_open()){
-			boost::archive::text_iarchive ia(ifs);
-			ia >> (*this);}
-		assert(now==path);
+	{	char filename[64]="servers.srv";
+	 	if(path>0){
+			//assert(now==path);
+			sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);}
+		data_read(filename,true);
+		//std::ifstream ifs(filename);
+		//if(ifs.is_open()){
+		//	boost::archive::text_iarchive ia(ifs);
+		//	ia >> (*this);}
 	}
 	void put()
-	{	char filename[64]="servers.txt";
+	{	char filename[64]="servers.srv";
 	 	if(now>0){
-			sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);}
-		std::ofstream ofs(filename);
-		if(ofs.is_open()){
-			boost::archive::text_oarchive oa(ofs);
-			oa << (*this);}
-		else{
+			sprintf(filename,"blk/%03X/%05X/servers.srv",now>>20,now&0xFFFFF);}
+		if(!data_write(filename,true)){
 			ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
-
+		//std::ofstream ofs(filename);
+		//if(ofs.is_open()){
+		//	boost::archive::text_oarchive oa(ofs);
+		//	oa << (*this);}
+		//else{
+		//	ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
 	}
 	//TODO, *msg* should go to message.hpp
 	/*bool msg_check(std::map<uint64_t,message_ptr>& map)
@@ -692,11 +693,12 @@ public:
 		ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
 		ELOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 		hashnow();
-		char filename[64];
-		sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);
-		std::ofstream sfs(filename);
-		boost::archive::text_oarchive sa(sfs);
-		sa << (*this);
+		//char filename[64];
+		//sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);
+		//std::ofstream sfs(filename);
+		//boost::archive::text_oarchive sa(sfs);
+		//sa << (*this);
+		put();
 		header_put();
 		header_print();
 		clear_undo();
@@ -760,35 +762,106 @@ public:
 		head.vok=vok;
 		head.vno=vno;
 	}
+	int data_read(const char* filename,bool read_nodes)
+	{	uint32_t version;
+		int fd=open(filename,O_RDONLY);
+                if(fd<0){ ELOG("ERROR, failed to read file %s, fatal\n",filename);
+                        return(0);}
+		read(fd,&version,sizeof(uint32_t)); // not used yet
+		read(fd,&now,sizeof(uint32_t));
+		read(fd,&msg,sizeof(uint32_t));
+		read(fd,&nod,sizeof(uint32_t));
+		read(fd,&div,sizeof(uint32_t));
+		read(fd,oldhash,SHA256_DIGEST_LENGTH);
+		read(fd,minhash,SHA256_DIGEST_LENGTH);
+		read(fd,msghash,SHA256_DIGEST_LENGTH);
+		read(fd,viphash,SHA256_DIGEST_LENGTH);
+		read(fd,nowhash,SHA256_DIGEST_LENGTH);
+		read(fd,&vok,sizeof(uint16_t));
+		read(fd,&vno,sizeof(uint16_t));
+		read(fd,&vtot,sizeof(uint16_t));
+		if(read_nodes && nod){
+			if(nodes.size()!=nod){
+				nodes.resize(nod);}
+			uint32_t n=0;
+			for(;n<nod;n++){
+				read(fd,nodes[n].pk,SHA256_DIGEST_LENGTH);
+				read(fd,nodes[n].hash,SHA256_DIGEST_LENGTH);
+				read(fd,nodes[n].msha,SHA256_DIGEST_LENGTH);
+				read(fd,&nodes[n].msid,sizeof(uint32_t));
+				read(fd,&nodes[n].mtim,sizeof(uint32_t));
+				read(fd,&nodes[n].weight,sizeof(uint64_t));
+				read(fd,&nodes[n].status,sizeof(uint32_t));
+				read(fd,&nodes[n].users,sizeof(uint32_t));
+				read(fd,&nodes[n].port,sizeof(uint32_t));
+				read(fd,&nodes[n].ipv4,sizeof(uint32_t));}}
+		close(fd);
+		return(now);
+	}
+	int data_write(const char* filename,bool write_nodes)
+	{	uint32_t version=1;
+	 	int fd=open(filename,O_WRONLY|O_CREAT,0644);
+                if(fd<0){ ELOG("ERROR, failed to write file %s, fatal\n",filename);
+                        return(0);}
+		write(fd,&version,sizeof(uint32_t)); // not used yet
+		write(fd,&now,sizeof(uint32_t));
+		write(fd,&msg,sizeof(uint32_t));
+		write(fd,&nod,sizeof(uint32_t));
+		write(fd,&div,sizeof(uint32_t));
+		write(fd,oldhash,SHA256_DIGEST_LENGTH);
+		write(fd,minhash,SHA256_DIGEST_LENGTH);
+		write(fd,msghash,SHA256_DIGEST_LENGTH);
+		write(fd,viphash,SHA256_DIGEST_LENGTH);
+		write(fd,nowhash,SHA256_DIGEST_LENGTH);
+		write(fd,&vok,sizeof(uint16_t));
+		write(fd,&vno,sizeof(uint16_t));
+		write(fd,&vtot,sizeof(uint16_t));
+		if(write_nodes && nod){
+			uint32_t n=0;
+			for(;n<nod;n++){
+				write(fd,nodes[n].pk,SHA256_DIGEST_LENGTH);
+				write(fd,nodes[n].hash,SHA256_DIGEST_LENGTH);
+				write(fd,nodes[n].msha,SHA256_DIGEST_LENGTH);
+				write(fd,&nodes[n].msid,sizeof(uint32_t));
+				write(fd,&nodes[n].mtim,sizeof(uint32_t));
+				write(fd,&nodes[n].weight,sizeof(uint64_t));
+				write(fd,&nodes[n].status,sizeof(uint32_t));
+				write(fd,&nodes[n].users,sizeof(uint32_t));
+				write(fd,&nodes[n].port,sizeof(uint32_t));
+				write(fd,&nodes[n].ipv4,sizeof(uint32_t));}}
+		close(fd);
+		return(now);
+	}
 	int header_get()
 	{	char filename[64];
 		if(!now){
-			sprintf(filename,"blk/header.txt");}
+			sprintf(filename,"blk/header.hdr");}
 		else{
-			sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);}
-		std::ifstream ifs(filename);
-		uint32_t check=0;
-		if(ifs.is_open()){
-			boost::archive::text_iarchive ia(ifs);
-			ia >> check;
-			ia >> msg;
-			ia >> nod;
-			ia >> div;
-			ia >> oldhash;
-			ia >> minhash; // only for hashtree reports
-			ia >> msghash;
-			ia >> nodhash;
-			ia >> viphash;
-			ia >> nowhash;
-			ia >> vok;
-			ia >> vno;}
-		else{
+			sprintf(filename,"blk/%03X/%05X/header.hdr",now>>20,now&0xFFFFF);}
+		uint32_t check=now;
+		if(!data_read(filename,false)){
 			ELOG("ERROR, failed to read header %08X\n",now);
 			return(0);}
-		if(!now){
-			now=check;}
-		else if(check!=now){
-			ELOG("ERROR, failed to check header %08X\n",now);
+		//std::ifstream ifs(filename);
+		//if(ifs.is_open()){
+		//	boost::archive::text_iarchive ia(ifs);
+		//	ia >> now;
+		//	ia >> msg;
+		//	ia >> nod;
+		//	ia >> div;
+		//	ia >> oldhash;
+		//	ia >> minhash; // only for hashtree reports
+		//	ia >> msghash;
+		//	ia >> nodhash;
+		//	ia >> viphash;
+		//	ia >> nowhash;
+		//	ia >> vok;
+		//	ia >> vno;}
+		//else{
+		//	ELOG("ERROR, failed to read header %08X\n",now);
+		//	return(0);}
+		if(check && check!=now){
+			ELOG("ERROR, failed to check header %08X<>%08X\n",now,check);
 			return(0);}
 		return(1);
 	}
@@ -823,43 +896,48 @@ public:
 	}
 	void header_put()
 	{	char filename[64];
-		sprintf(filename,"blk/%03X/%05X/header.txt",now>>20,now&0xFFFFF);
-		std::ofstream ofs(filename);
-		if(ofs.is_open()){
-			boost::archive::text_oarchive oa(ofs);
-			oa << now;
-			oa << msg;
-			oa << nod;
-			oa << div;
-			oa << oldhash;
-			oa << minhash;
-			oa << msghash;
-			oa << nodhash;
-			oa << viphash;
-			oa << nowhash;
-			oa << vok;
-			oa << vno;}
-		else{
+		sprintf(filename,"blk/%03X/%05X/header.hdr",now>>20,now&0xFFFFF);
+		if(!data_write(filename,false)){
 			ELOG("ERROR, failed to write header\n");}
+		//std::ofstream ofs(filename);
+		//if(ofs.is_open()){
+		//	boost::archive::text_oarchive oa(ofs);
+		//	oa << now;
+		//	oa << msg;
+		//	oa << nod;
+		//	oa << div;
+		//	oa << oldhash;
+		//	oa << minhash;
+		//	oa << msghash;
+		//	oa << nodhash;
+		//	oa << viphash;
+		//	oa << nowhash;
+		//	oa << vok;
+		//	oa << vno;}
+		//else{
+		//	ELOG("ERROR, failed to write header\n");}
 	}
 	void header_last()
-	{	std::ofstream ofs("blk/header.txt");
-		if(ofs.is_open()){
-			boost::archive::text_oarchive oa(ofs);
-			oa << now;
-			oa << msg;
-			oa << nod;
-			oa << div;
-			oa << oldhash;
-			oa << minhash;
-			oa << msghash;
-			oa << nodhash;
-			oa << viphash;
-			oa << nowhash;
-			oa << vok;
-			oa << vno;}
-		else{
-			ELOG("ERROR, failed to write header\n");}
+	{	char filename[64]="blk/header.hdr";
+		if(!data_write(filename,false)){
+			ELOG("ERROR, failed to write last header\n");}
+	 	//std::ofstream ofs("blk/header.txt");
+		//if(ofs.is_open()){
+		//	boost::archive::text_oarchive oa(ofs);
+		//	oa << now;
+		//	oa << msg;
+		//	oa << nod;
+		//	oa << div;
+		//	oa << oldhash;
+		//	oa << minhash;
+		//	oa << msghash;
+		//	oa << nodhash;
+		//	oa << viphash;
+		//	oa << nowhash;
+		//	oa << vok;
+		//	oa << vno;}
+		//else{
+		//	ELOG("ERROR, failed to write header\n");}
 	}
 	void header_print()
 	{	char hash[2*SHA256_DIGEST_LENGTH];
@@ -1205,32 +1283,32 @@ public:
 		return(*p);
 	}
 
-private:
-	//boost::mutex mtx_; can not be coppied :-(
-	friend class boost::serialization::access;
-	template<class Archive> void serialize(Archive & ar, const unsigned int version)
-	{	//uint32_t old; // remove later
-		try{
-			ar & now;
-			if(version>2) ar & msg;
-			if(version>2) ar & nod;
-			if(version>3) ar & div;
-			if(version>0) ar & oldhash;
-			if(version>4) ar & minhash;
-			if(version>1) ar & msghash;
-			if(version>1) ar & nodhash;
-			if(version>4) ar & viphash;
-			if(version>0) ar & nowhash;
-			if(version>2) ar & vok;
-			if(version>2) ar & vno;
-			if(version>4) ar & vtot;
-			ar & nodes; }
-		catch (std::exception& e){
-			ELOG("ERROR in boost serialize: %s\n",e.what());
-			exit(-1);}
-
-	}
+//private:
+//	//boost::mutex mtx_; can not be coppied :-(
+//	friend class boost::serialization::access;
+//	template<class Archive> void serialize(Archive & ar, const unsigned int version)
+//	{	//uint32_t old; // remove later
+//		try{
+//			ar & now;
+//			if(version>2) ar & msg;
+//			if(version>2) ar & nod;
+//			if(version>3) ar & div;
+//			if(version>0) ar & oldhash;
+//			if(version>4) ar & minhash;
+//			if(version>1) ar & msghash;
+//			if(version>1) ar & nodhash;
+//			if(version>4) ar & viphash;
+//			if(version>0) ar & nowhash;
+//			if(version>2) ar & vok;
+//			if(version>2) ar & vno;
+//			if(version>4) ar & vtot;
+//			ar & nodes; }
+//		catch (std::exception& e){
+//			ELOG("ERROR in boost serialize: %s\n",e.what());
+//			exit(-1);}
+//
+//	}
 };
-BOOST_CLASS_VERSION(servers, 5)
+//BOOST_CLASS_VERSION(servers, 5)
 
 #endif // SERVERS_HPP

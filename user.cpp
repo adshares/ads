@@ -12,8 +12,8 @@
 #include <boost/optional/optional.hpp>
 #include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/serialization/list.hpp>
-#include <boost/serialization/vector.hpp>
+//#include <boost/serialization/list.hpp>
+//#include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/container/flat_set.hpp>
