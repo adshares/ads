@@ -1,7 +1,7 @@
 .PHONY: restart
 .PHONY: all
 .PHONY: clean
-CCP=g++ -Wall -m64 -fmax-errors=5 -fPIC -std=c++11 -g -DDEBUG
+CCP=g++ -Wall -fmax-errors=5 -fPIC -std=c++11 -g -DDEBUG -DDOUBLE_SPEND
 restart: escd esc
 all: escd esc
 ed25519/ed25519.o: ed25519/ed25519.c ed25519/ed25519.h

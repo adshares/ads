@@ -517,6 +517,7 @@ Aborted
       servers linkservers;
       linkservers.now=from;
       if(!linkservers.header_get()){
+        //FIXME, new block possibly not ready yet, repeat (sleep) until block ready
 	ELOG("%04X ERROR, failed to provide header links\n",svid);
         leave(); // consider updating client
         return;}

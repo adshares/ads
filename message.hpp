@@ -1165,6 +1165,7 @@ public:
       if(s==sent.end()){
         got=mynow;
         //sent.insert(*k); //will be also inserted by peer::handle_write after message submitted + deliver(,)
+        //FIXME, will not be inserted if peer has dicsonnected
         mtx_.unlock();
         DLOG("REQUEST for %04X:%08X from %04X\n",svid,msid,*k);
         return(*k);}}

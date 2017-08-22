@@ -430,8 +430,8 @@ public:
               fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
               uint16_t svid=put_msg->request();
               if(svid){
-                ELOG("REQUESTING MSL from %04X\n",svid);
-                deliver(put_msg,svid);}}
+                int ok=deliver(put_msg,svid);
+                ELOG("REQUESTING MSL from %04X (%d)\n",svid,ok);}}
             boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
           srvs_.msg=block->msg; //check
           memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
