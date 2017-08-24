@@ -353,6 +353,8 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     if(sts.bank!=to_bank){
       fee+=TXS_LNG_FEE(to_mass);}}
   else if(!run.compare(txsname[TXSTYPE_USR])){
+    if(!to_bank){
+      to_bank=sts.bank;}
     txs=boost::make_shared<usertxs>(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     deduct=USER_MIN_MASS;
     if(sts.bank==to_bank){

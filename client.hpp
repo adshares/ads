@@ -719,7 +719,7 @@ public:
     DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
 #endif
     try{
-      //respond with a single message
+      //FIXME, respond with a single message
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t))); //consider signing this message
       boost::asio::write(socket_,boost::asio::buffer(&msid,sizeof(uint32_t)));
       boost::asio::write(socket_,boost::asio::buffer(&mpos,sizeof(uint32_t)));}
