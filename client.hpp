@@ -183,25 +183,29 @@ public:
       offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_BLG){
-      uint32_t head[2];
+      uint32_t head[3];
       uint32_t &path=head[0];
-      uint32_t &size=head[1];
-      uint32_t lpath=offi_.last_path();
+      uint32_t &lpath=head[1];
+      uint32_t &size=head[2];
+      lpath=offi_.last_path();
       if(!utxs.ttime){
         path=lpath;}
       else{
         path=utxs.ttime-utxs.ttime%BLOCKSEC;
-        if(path>=lpath){
+        //if(path>=lpath){
+        if(path>lpath){
           DLOG("ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
-          offi_.unlock_user(utxs.auser);
-          return;}}
+          //will now return an empty blog file
+          //offi_.unlock_user(utxs.auser);
+          //return;
+          }}
       //FIXME, report only completed broadcast files (<=last_path())
       char filename[64];
       sprintf(filename,"blk/%03X/%05X/bro.log",path>>20,path&0xFFFFF);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
         size=0;
-        boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
+        boost::asio::write(socket_,boost::asio::buffer(head,3*sizeof(uint32_t)));
         DLOG("SENDING broadcast log %08X [empty]\n",path);
         offi_.unlock_user(utxs.auser);
         return;}
@@ -215,23 +219,23 @@ public:
         size=sb.st_size;}
       DLOG("SENDING broadcast log %08X [len:%d]\n",path,size);
       if(!size){
-        boost::asio::write(socket_,boost::asio::buffer(head,2*sizeof(uint32_t)));
+        boost::asio::write(socket_,boost::asio::buffer(head,3*sizeof(uint32_t)));
         close(fd);
         offi_.unlock_user(utxs.auser);
         return;}
-      char buf[2*sizeof(uint32_t)+size];
-      memcpy(buf,head,2*sizeof(uint32_t));
+      char buf[3*sizeof(uint32_t)+size];
+      memcpy(buf,head,3*sizeof(uint32_t));
       for(uint32_t pos=0;pos<sb.st_size;){
-        int len=read(fd,buf+2*sizeof(uint32_t),size);
+        int len=read(fd,buf+3*sizeof(uint32_t),size);
         if(len<=0){
           close(fd);
           DLOG("ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
           offi_.unlock_user(utxs.auser);
           return;}
         if(!pos){
-          boost::asio::write(socket_,boost::asio::buffer(buf,2*sizeof(uint32_t)+len));}
+          boost::asio::write(socket_,boost::asio::buffer(buf,3*sizeof(uint32_t)+len));}
         else{
-          boost::asio::write(socket_,boost::asio::buffer(buf+2*sizeof(uint32_t),len));}
+          boost::asio::write(socket_,boost::asio::buffer(buf+3*sizeof(uint32_t),len));}
         pos+=len;}
       close(fd);
       offi_.unlock_user(utxs.auser);

@@ -405,7 +405,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
 }
 
 //usertxs_ptr run(settings& sts,std::string& line)
-usertxs_ptr run(settings& sts,const char* line,int len)
+usertxs_ptr run(settings& sts,const char* line,int len) // this function is obsolete, only json input should be allowed now
 { uint32_t to_bank=0; //actually uint16_t
   uint32_t to_user=0;
    int64_t to_mass=0;
@@ -773,7 +773,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
 }
 
 //void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
-void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
+void print_blg_file(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
 { struct stat sb;
   fstat(fd,&sb);
   uint32_t len=sb.st_size;
@@ -790,7 +790,13 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     fprintf(stderr,"ERROR, broadcast file read error\n");
     free(blg);
     return;}
-  //boost::property_tree::ptree blogtree;
+  print_blg(blg,len,path,boost::property_tree::ptree& blogtree,settings& sts)
+  //pt.add_child("broadcast",blogtree);
+  free(blg);
+}
+
+void print_blg_file(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
+{ //boost::property_tree::ptree blogtree;
   usertxs utxs;
   for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32+4+4){
     boost::property_tree::ptree blogentry;
@@ -856,8 +862,6 @@ void print_blg(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settin
     //FIXME calculate fee
     blogentry.put("fee",print_amount(TXS_BRO_FEE(utxs.bbank)));
     blogtree.push_back(std::make_pair("",blogentry));}
-  //pt.add_child("broadcast",blogtree);
-  free(blg);
 }
 
 void out_log(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
@@ -1023,74 +1027,74 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
 
-    if(txs->ttype==TXSTYPE_BLG){
-      uint32_t path=txs->ttime;
-      uint32_t to=time(NULL)-2*BLOCKSEC;
-      to+=-(to%BLOCKSEC);
-      if(!path){
-        path=to;}
-      char blockhex[9];
-      blockhex[8]='\0';
-      sprintf(blockhex,"%08X",to);
-      pt.put("to_block_hex",blockhex);
-      pt.put("to_block",to);
-      sprintf(blockhex,"%08X",path);
-      pt.put("from_block_hex",blockhex);
-      pt.put("from_block",path);
+    if(txs->ttype==TXSTYPE_BLG){ //FIXME, not tested !!!
       boost::property_tree::ptree blogtree;
-      for(;path<=to;to-=BLOCKSEC){
-        if(txs->ttime!=to){
-          txs->change_time(to);
-          txs->sign(sts.ha,sts.sk,sts.pk);}
-        char filename[64];
-        sprintf(filename,"bro/%08X.bin",to);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0){
-          try{
-            fprintf(stderr,"DEBUG request broadcast from %08X\n",to);
-            if(!node_connect(endpoint_iterator,socket)){
-              break;}
-            boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
-            uint32_t head[2];
-            if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,2*sizeof(uint32_t)))){
-              std::cerr<<"ERROR reading broadcast log length\n";
+      uint32_t path=txs->ttime;
+      if(!path){
+        path=time(NULL)-BLOCKSEC;}
+      path=path-(path%BLOCKSEC);
+      char filename[64];
+      sprintf(filename,"bro/%08X.bin",path);
+      int fd=open(filename,O_RDONLY);
+      if(fd>=0){
+        pt.put("log_final","true");
+        print_blg_file(fd,to,blogtree,sts);
+        close(fd);}
+      else{
+        try{
+          if(txs->ttime && txs->ttime!=path){
+            txs->change_time(path);
+            txs->sign(sts.ha,sts.sk,sts.pk);}
+          fprintf(stderr,"DEBUG request broadcast from %08X\n",path);
+          if(!node_connect(endpoint_iterator,socket)){
+            break;}
+          boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
+          uint32_t head[3];
+          if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,3*sizeof(uint32_t)))){
+            std::cerr<<"ERROR reading broadcast log length\n";
+            socket.close();
+            break;}
+          node_path=head[0];
+          node_lpath=head[1];
+          int len=(int)head[2];
+          if(!len){
+            fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
+          else{
+            char* blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
+            if(blg==NULL){
+              fprintf(stderr,"ERROR allocating %08X bytes\n",len);
+              close(fd);
               socket.close();
               break;}
-            to=head[0];
-            int len=(int)head[1];
-            mkdir("bro",0755);
-            fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
-            char* blg=NULL;
-            if(len){
-              blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
-              if(blg==NULL){
-                fprintf(stderr,"ERROR allocating %08X bytes\n",len);
-                close(fd);
-                socket.close();
-                break;}
-              if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
-                std::cerr<<"ERROR reading broadcast log\n";
-                free(blg);
-                close(fd);
-                socket.close();
-                break;}
-              write(fd,(char*)blg,len);
-              lseek(fd,0,SEEK_SET);
-              free(blg);}
+            if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
+              std::cerr<<"ERROR reading broadcast log\n";
+              free(blg);
+              close(fd);
+              socket.close();
+              break;}
+            print_blg(blg,len,node_path,blogtree,sts);
+            if(path==node_path && path<=node_lpath){
+              pt.put("log_final","true");
+              mkdir("bro",0755);
+              fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+              if(fd>=0){
+                write(fd,(char*)blg,len);
+                close(fd);}}
             else{
-              fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
-            socket.close();}
-          catch (std::exception& e){
-            if(fd>=0){
-              close(fd);}
-            std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
-            break;}}
-        if(fd>=0){
-          //print_blg(fd,path,pt);
-          print_blg(fd,to,blogtree,sts);
-          close(fd);}}
-        //else{
-        //  pt.put("ERROR","broadcast file missing");}
+              pt.put("log_final","false");
+              path=node_path;}
+            free(blg);}
+          socket.close();}
+        catch (std::exception& e){
+          if(fd>=0){
+            close(fd);}
+          std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
+          break;}}
+      char blockhex[9];
+      blockhex[8]='\0';
+      sprintf(blockhex,"%08X",path);
+      pt.put("block_time_hex",blockhex);
+      pt.put("block_time",path);
       pt.add_child("broadcast",blogtree);
       if(sts.json){
         boost::property_tree::write_json(std::cout,pt,sts.nice);}
@@ -1206,7 +1210,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         char* firstkeys=NULL; //FIXME, free !!!
         int firstkeyslen=0;
         //read first vipkeys if needed
-        if(!txs->amsid){
+        if(!txs->amsid){ // amsid = to_from
           mkdir("blk",0755);
           mkdir("vip",0755);
           mkdir("txs",0755);
@@ -1253,7 +1257,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           memcpy(oldhash,headers->nowhash,32);
           block.loadhead(*headers);
           if(memcmp(oldhash,block.nowhash,32)){
-            fprintf(stderr,"ERROR failed to confirm first header hash, fatal\n");
+            fprintf(stderr,"ERROR, failed to confirm first header hash, fatal\n");
             socket.close();
             return;}
           memcpy(oldhash,headers->oldhash,32);
@@ -1262,7 +1266,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           block.now=0;
           block.header_get();
           if(block.now+BLOCKSEC!=headers->now){ // do not accept download random blocks
-            fprintf(stderr,"ERROR failed to get correct block (%08X), fatal\n",block.now+BLOCKSEC);
+            fprintf(stderr,"ERROR, failed to get correct block (%08X), fatal\n",block.now+BLOCKSEC);
             socket.close();
             return;}
           memcpy(viphash,block.viphash,32);
