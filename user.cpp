@@ -772,30 +772,7 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
     pt.add_child("log",logtree);}
 }
 
-//void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
-void print_blg_file(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
-{ struct stat sb;
-  fstat(fd,&sb);
-  uint32_t len=sb.st_size;
-  //pt.put("length",len);
-  if(!len){
-    return;}
-  char *blg=(char*)malloc(len);
-  if(blg==NULL){
-    //pt.put("ERROR","broadcast file too large");
-    fprintf(stderr,"ERROR, broadcast file malloc error (size:%d)\n",len);
-    return;}
-  if(read(fd,blg,len)!=len){
-    //pt.put("ERROR","broadcast file read error");
-    fprintf(stderr,"ERROR, broadcast file read error\n");
-    free(blg);
-    return;}
-  print_blg(blg,len,path,boost::property_tree::ptree& blogtree,settings& sts)
-  //pt.add_child("broadcast",blogtree);
-  free(blg);
-}
-
-void print_blg_file(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
+void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
 { //boost::property_tree::ptree blogtree;
   usertxs utxs;
   for(uint8_t *p=(uint8_t*)blg;p<(uint8_t*)blg+len;p+=utxs.size+32+32+4+4){
@@ -862,6 +839,29 @@ void print_blg_file(char *blg,uint32_t len,uint32_t path,boost::property_tree::p
     //FIXME calculate fee
     blogentry.put("fee",print_amount(TXS_BRO_FEE(utxs.bbank)));
     blogtree.push_back(std::make_pair("",blogentry));}
+}
+
+//void print_blg(int fd,uint32_t path,boost::property_tree::ptree& pt)
+void print_blg_file(int fd,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
+{ struct stat sb;
+  fstat(fd,&sb);
+  uint32_t len=sb.st_size;
+  //pt.put("length",len);
+  if(!len){
+    return;}
+  char *blg=(char*)malloc(len);
+  if(blg==NULL){
+    //pt.put("ERROR","broadcast file too large");
+    fprintf(stderr,"ERROR, broadcast file malloc error (size:%d)\n",len);
+    return;}
+  if(read(fd,blg,len)!=len){
+    //pt.put("ERROR","broadcast file read error");
+    fprintf(stderr,"ERROR, broadcast file read error\n");
+    free(blg);
+    return;}
+  print_blg(blg,len,path,blogtree,sts);
+  //pt.add_child("broadcast",blogtree);
+  free(blg);
 }
 
 void out_log(boost::property_tree::ptree& logpt,uint16_t bank,uint32_t user)
@@ -1038,7 +1038,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       int fd=open(filename,O_RDONLY);
       if(fd>=0){
         pt.put("log_final","true");
-        print_blg_file(fd,to,blogtree,sts);
+        print_blg_file(fd,path,blogtree,sts);
         close(fd);}
       else{
         try{
@@ -1047,31 +1047,32 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             txs->sign(sts.ha,sts.sk,sts.pk);}
           fprintf(stderr,"DEBUG request broadcast from %08X\n",path);
           if(!node_connect(endpoint_iterator,socket)){
-            break;}
+            std::cerr<<"ERROR connecting\n";
+            return;}
           boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
           uint32_t head[3];
           if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,3*sizeof(uint32_t)))){
             std::cerr<<"ERROR reading broadcast log length\n";
             socket.close();
-            break;}
-          node_path=head[0];
-          node_lpath=head[1];
+            return;}
+          uint32_t node_path=head[0];
+          uint32_t node_lpath=head[1];
           int len=(int)head[2];
           if(!len){
-            fprintf(stderr,"WARNING broadcast for block %08X is empty\n",to);}
+            fprintf(stderr,"WARNING broadcast for block %08X is empty\n",path);}
           else{
             char* blg=(char*)malloc(len);//last 4 bytes: the block time of the broadcast log file
             if(blg==NULL){
               fprintf(stderr,"ERROR allocating %08X bytes\n",len);
               close(fd);
               socket.close();
-              break;}
+              return;}
             if(len!=(int)boost::asio::read(socket,boost::asio::buffer(blg,len))){ // exception will ...
               std::cerr<<"ERROR reading broadcast log\n";
               free(blg);
               close(fd);
               socket.close();
-              break;}
+              return;}
             print_blg(blg,len,node_path,blogtree,sts);
             if(path==node_path && path<=node_lpath){
               pt.put("log_final","true");
@@ -1089,7 +1090,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           if(fd>=0){
             close(fd);}
           std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
-          break;}}
+          return;}}
       char blockhex[9];
       blockhex[8]='\0';
       sprintf(blockhex,"%08X",path);
