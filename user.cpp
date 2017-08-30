@@ -940,7 +940,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
 
 void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data)
 { char txid[64];
-  sprintf(txid,"%04X%08X%04X",res.node,res.msid,res.tnum);
+  sprintf(txid,"%04X:%08X:%04X",res.node,res.msid,res.tnum);
   pt.put("network_tx.id",&txid[0]);
   pt.put("network_tx.block_id",res.path);
   pt.put("network_tx.node_id",res.node);
@@ -1121,7 +1121,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         //fprintf(stderr,"read txspath for %s\n",filename);
         boost::asio::read(socket,boost::asio::buffer(&res,sizeof(txspath_t)));
         if(!res.len){
-          fprintf(stderr,"ERROR, failed to read transaction path for txid %04X%08X%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to read transaction path for txid %04X:%08X:%04X\n",svid,msid,tnum);
           socket.close();
           return;}
         uint8_t data[res.len+res.hnum*32];
@@ -1132,10 +1132,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         //fprintf(stderr,"close socket for %s\n",filename);
         socket.close();
         if(!res.path){
-          fprintf(stderr,"ERROR, got empty block for txid %04X%08X%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, got empty block for txid %04X:%08X:%04X\n",svid,msid,tnum);
           return;}
         if(res.node!=svid || res.msid!=msid || res.tnum!=tnum){
-          fprintf(stderr,"ERROR, got wrong transaction %04X%08X%04X for txid %04X%08X%04X\n",
+          fprintf(stderr,"ERROR, got wrong transaction %04X:%08X:%04X for txid %04X:%08X:%04X\n",
             res.node,res.msid,res.tnum,svid,msid,tnum);
           return;}
         servers block;
@@ -1155,7 +1155,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         *hashmsid^=msid;
         *hashtnum^=tnum;
         if(memcmp(nhash,data+res.len,32)){
-          fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X%08X%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X:%08X:%04X\n",svid,msid,tnum);
           return;}
         std::vector<hash_s> hashes(res.hnum);
         for(int i=0;i<res.hnum;i++){
@@ -1163,7 +1163,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         hashtree tree;
         tree.hashpathrun(nhash,hashes);
         if(memcmp(nhash,block.nowhash,32)){
-          fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X%08X%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X:%08X:%04X\n",svid,msid,tnum);
           return;}
 	//store confirmation and transaction in repository
 //FIXME, create directories
@@ -1473,7 +1473,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               out_log(logpt,sts.bank,sts.user);}
             if(sts.json){
               char tx_id[64];
-              sprintf(tx_id,"%04X%08X%04X",sts.bank,m.msid,m.mpos);
+              sprintf(tx_id,"%04X:%08X:%04X",sts.bank,m.msid,m.mpos);
               pt.put("tx.node_msid",m.msid);
               pt.put("tx.node_mpos",m.mpos);
               pt.put("tx.id",tx_id);}

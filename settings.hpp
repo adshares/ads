@@ -123,8 +123,8 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
   if(str_txid.length()!=18){
     fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 18)\n",str_txid.c_str());
     return(false);}
-  if(str_txid[4]!='-' || str_txid[13]!='-'){
-    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB-NNNNNNNN-PPPP)\n",str_txid.c_str());
+  if(str_txid[4]!=':' || str_txid[13]!=':'){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB:MMMMMMMM:PPPP)\n",str_txid.c_str());
     return(false);}
   str_txid[4]='\0';
   str_txid[13]='\0';
