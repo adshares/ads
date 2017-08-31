@@ -560,7 +560,7 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       // add bank logic here
-      if(utxs.bbank == offi_.svid){
+      if(utxs.bbank == offi_.svid){ // check if other admins have write permissions
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users can set only higher bits
 	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
           offi_.unlock_user(utxs.auser);
@@ -573,7 +573,7 @@ public:
         offi_.unlock_user(utxs.auser);
         return;}
       // add bank logic here
-      if(utxs.bbank == offi_.svid){
+      if(utxs.bbank == offi_.svid){ // check if other admins have write permissions
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users set only higher bits
 	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
           offi_.unlock_user(utxs.auser);

@@ -87,7 +87,7 @@ bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt)
     fprintf(stderr,"ERROR: parse_acnt(%s) bad length (required 18)\n",str_acnt.c_str());
     return(false);}
   if(str_acnt[4]!='-' || str_acnt[13]!='-'){
-    fprintf(stderr,"ERROR: parse_acnt(%s) bad format (required BBBB-UUUUUUUU-XXXX)\n",str_acnt.c_str());
+    fprintf(stderr,"ERROR: parse_acnt(%s) bad format (required NNNN-UUUUUUUU-XXXX)\n",str_acnt.c_str());
     return(false);}
   str_acnt[4]='\0';
   str_acnt[13]='\0';
@@ -123,8 +123,8 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
   if(str_txid.length()!=18){
     fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 18)\n",str_txid.c_str());
     return(false);}
-  if(str_txid[4]!='-' || str_txid[13]!='-'){
-    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required BBBB-NNNNNNNN-PPPP)\n",str_txid.c_str());
+  if(str_txid[4]!=':' || str_txid[13]!=':'){
+    fprintf(stderr,"ERROR: parse_txid(%s) bad format (required NNNN:MMMMMMMM:PPPP)\n",str_txid.c_str());
     return(false);}
   str_txid[4]='\0';
   str_txid[13]='\0';

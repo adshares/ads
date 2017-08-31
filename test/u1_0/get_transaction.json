@@ -1,2 +1,3 @@
 {"run":"get_me"}
-{"run":"get_transaction","txid":"0001-00000004-0003"}
+{"run":"get_transaction","txid":"0001:00000002:0001"}
+{"run":"get_transaction","txid":"0001:00000002:0002"}

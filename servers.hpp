@@ -122,12 +122,13 @@ public:
 			memcpy(nn.pk,hash,32);
 			nodes.push_back(nn);
 			nodes.push_back(nn);}
-		 int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
+		int64_t stw=TOTALMASS/(nodes.size()-1)*0.99; //FIXME, remove initial tax of 1%
 		for(auto it=nodes.begin();it<nodes.end();it++,num++){
 			memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 			memcpy(it->msha,&num,2); // always start with a unique hash
+			memcpy(it->msha+2,&now,4); // network id
 			it->msid=0;
-			it->mtim=now; // blockchain start time in nodes[0]
+			it->mtim=now; // blockchain start time in nodes[0] == network id
 			it->status=0;
 			if(num){
 				//if(num<=VIP_MAX){
@@ -203,6 +204,7 @@ public:
 		memcpy(nn.pk,ou.pkey,32);
 		memset(nn.msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		memcpy(nn.msha,&peer,2); // always start with a unique hash
+		memcpy(nn.msha+2,&nodes[0].mtim,4); // network id
 	 	nodes.push_back(nn);
 		user_t nu;
 		init_user(nu,peer,0,BANK_MIN_TMASS,ou.pkey,now,unode,user);
@@ -231,6 +233,7 @@ public:
 		memset(u.hash,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
 		memcpy(u.hash,&uid,4); // always start with a unique hash
 		memcpy(u.hash+4,&peer,2); // always start with a unique hash
+		memcpy(u.hash+6,&nodes[0].mtim,4); // network id
 		u.msid=1; // always >0 to help identify holes in delta files
                 u.time=when;
 		u.node=node;

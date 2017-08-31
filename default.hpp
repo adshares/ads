@@ -83,11 +83,11 @@
 #define TXS_DIV_FEE      (0x100000)  /* dividend fee collected every BLOCKDIV blocks ( *8_years=MIN_MASS ) */
 #define TXS_KEY_FEE      (0x1000) /* */
 #define TXS_BRO_FEE(x)   (0x1000  +0x10000*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
-#define TXS_PUT_FEE(x)   (0x1000  +((x)>>13)) /* local wires fee (weight) (/8192) */
+#define TXS_PUT_FEE(x)   (0x1000  +((x)>>13)) /* local wires fee (weight) (/8192) */ // 0.0244%
 #define TXS_LNG_FEE(x)   (         ((x)>>13)) /* additional remote wires fee (weight) */
 #define TXS_MPT_FEE(x)   (0x100   +((x)>>13)) /* + MIN_FEE !!! */
 #define TXS_GET_FEE      (0x100000) /* get initiation fee */
-#define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */
+#define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */ // 0.0122%
 #define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
 #define TXS_SUS_FEE      (0x10000) /* 0x0.0001G */
 #define TXS_SBS_FEE      (0x10000) /* 0x0.0001G */
