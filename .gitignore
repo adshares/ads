@@ -1,4 +1,6 @@
 *.out
 *.o
-main
-user
+esc
+escd
+.old
+perl
