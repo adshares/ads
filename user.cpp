@@ -656,19 +656,21 @@ fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
           continue;}
         if(txst==TXSTYPE_FEE){ //bank profit
           logentry.put("profit",print_amount(ulog.weight));
-          if(ulog.nmid){
+          if(ulog.nmid){ // bank profit on transactions
             logentry.put("node",ulog.node);
             logentry.put("node_msid",ulog.nmid);
-            int64_t fee;
-            int64_t div;
-            int64_t put;
-            memcpy(&fee,ulog.info+ 0,8);
-            memcpy(&div,ulog.info+ 8,8);
-            memcpy(&put,ulog.info+16,8);
-            logentry.put("profit_fee",print_amount(fee));
-            logentry.put("profit_div",print_amount(div));
-            logentry.put("profit_put",print_amount(put));}
-          else{
+            if(ulog.nmid==sts.bank){
+              int64_t fee;
+              int64_t div;
+              //int64_t put; //FIXME, useless !!!
+              memcpy(&fee,ulog.info+ 0,8);
+              memcpy(&div,ulog.info+ 8,8);
+              //memcpy(&put,ulog.info+16,8); //FIXME, useless !!!
+              logentry.put("profit_fee",print_amount(fee));
+              logentry.put("profit_div",print_amount(div));
+              //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
+              }}
+          else{ // bank profit at block end
             logentry.put("node_block",ulog.mpos);
             int64_t div;
             int64_t usr;
@@ -1037,7 +1039,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       sprintf(filename,"bro/%08X.bin",path);
       int fd=open(filename,O_RDONLY);
       if(fd>=0){
-        pt.put("log_final","true");
+        pt.put("log_file","archive");
         print_blg_file(fd,path,blogtree,sts);
         close(fd);}
       else{
@@ -1075,14 +1077,14 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               return;}
             print_blg(blg,len,node_path,blogtree,sts);
             if(path==node_path && path<=node_lpath){
-              pt.put("log_final","true");
+              pt.put("log_file","new");
               mkdir("bro",0755);
               fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
               if(fd>=0){
                 write(fd,(char*)blg,len);
                 close(fd);}}
             else{
-              pt.put("log_final","false");
+              pt.put("log_file","pending");
               path=node_path;}
             free(blg);}
           socket.close();}

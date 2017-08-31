@@ -2674,7 +2674,7 @@ public:
       alog.weight=profit;
       memcpy(alog.info,&local_fee,sizeof(int64_t));
       memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
-      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t));
+      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
       bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
       log[0]=alog;}
     else if(myput_fee){
@@ -2690,9 +2690,9 @@ public:
       alog.nmid=msg->msid;
       alog.mpos=0;
       alog.weight=myput_fee;
-      memcpy(alog.info,&local_fee,sizeof(int64_t));
-      memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
-      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t));
+      memcpy(alog.info,&local_fee,sizeof(int64_t)); //FIXME, useless !!!
+      memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t)); //FIXME, useless !!!
+      memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
       bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
       log[0]=alog;}
 
