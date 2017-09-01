@@ -65,9 +65,14 @@ int main(int argc, char* argv[])
 { std::future<int> fut=prom.get_future();
   std::signal(SIGHUP,signal_handler);
   std::signal(SIGINT,signal_handler);
+  std::signal(SIGILL,signal_handler);
+  std::signal(SIGFPE,signal_handler);
+  std::signal(SIGQUIT,signal_handler);
+  std::signal(SIGABRT,signal_handler);
   std::signal(SIGTERM,signal_handler);
   std::signal(SIGSEGV,signal_handler);
   std::signal(SIGUSR1,signal_handler);
+  std::signal(SIGUSR2,signal_handler);
   stdlog=fopen(".lock","a");
   fclose(stdlog);
   stdlog=fopen("log.txt","a");
