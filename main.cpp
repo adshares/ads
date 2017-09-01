@@ -15,6 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/container/flat_set.hpp>
+#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -24,6 +25,7 @@
 #include <fcntl.h>
 #include <forward_list>
 #include <fstream>
+#include <future>
 #include <iostream>
 #include <iterator>
 #include <list>
@@ -53,9 +55,22 @@ boost::mutex flog;
 FILE* stdlog=NULL;
 candidate_ptr nullcnd;
 message_ptr nullmsg;
+std::promise<int> prom;
+
+void signal_handler(int signal)
+{ prom.set_value(signal);
+}
 
 int main(int argc, char* argv[])
-{ stdlog=fopen("log.txt","a");
+{ std::future<int> fut=prom.get_future();
+  std::signal(SIGHUP,signal_handler);
+  std::signal(SIGINT,signal_handler);
+  std::signal(SIGTERM,signal_handler);
+  std::signal(SIGSEGV,signal_handler);
+  std::signal(SIGUSR1,signal_handler);
+  stdlog=fopen(".lock","a");
+  fclose(stdlog);
+  stdlog=fopen("log.txt","a");
   options opt;
   opt.get(argc,argv);
   try{
@@ -63,7 +78,8 @@ int main(int argc, char* argv[])
     office o(opt,s);
     s.ofip=&o;
     s.start();
-    std::string line;
+    fut.get();
+    /*std::string line;
     while (std::getline(std::cin,line)){
       if(line[0]=='.' && line[1]=='\0'){
         break;}
@@ -73,13 +89,14 @@ int main(int argc, char* argv[])
       //o.message.append((char*)txs.data,txs.size);
       uint32_t msid;
       uint32_t mpos;
-      o.add_msg(txs.data,txs,msid,mpos);}
+      o.add_msg(txs.data,txs,msid,mpos);}*/
     ELOG("Shutting down\n");
     o.stop();
     s.stop(); }
   catch (std::exception& e){
     ELOG("Exception: %s\n",e.what());}
   fclose(stdlog);
+  unlink(".lock");
   return 0;
 }
 
