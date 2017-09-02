@@ -58,24 +58,26 @@ message_ptr nullmsg;
 std::promise<int> prom;
 
 void signal_handler(int signal)
-{ prom.set_value(signal);
+{ DLOG("SIGNAL: %d\n",signal);
+  if(signal==SIGINT || signal==SIGQUIT || signal==SIGABRT || signal==SIGTERM){
+    prom.set_value(signal);}
 }
 
 int main(int argc, char* argv[])
 { std::future<int> fut=prom.get_future();
-  std::signal(SIGHUP,signal_handler);
+  //std::signal(SIGHUP,signal_handler);
   std::signal(SIGINT,signal_handler);
-  std::signal(SIGILL,signal_handler);
-  std::signal(SIGFPE,signal_handler);
+  //std::signal(SIGILL,signal_handler);
+  //std::signal(SIGFPE,signal_handler);
   std::signal(SIGQUIT,signal_handler);
   std::signal(SIGABRT,signal_handler);
   std::signal(SIGTERM,signal_handler);
-  std::signal(SIGSEGV,signal_handler);
-  std::signal(SIGUSR1,signal_handler);
-  std::signal(SIGUSR2,signal_handler);
+  //std::signal(SIGSEGV,signal_handler);
+  //std::signal(SIGUSR1,signal_handler);
+  //std::signal(SIGUSR2,signal_handler);
   stdlog=fopen(".lock","a");
   fclose(stdlog);
-  stdlog=fopen("log.txt","a");
+  stdlog=fopen("log.txt","w");
   options opt;
   opt.get(argc,argv);
   try{

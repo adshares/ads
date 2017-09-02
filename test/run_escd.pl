@@ -5,8 +5,8 @@ use warnings;
 use lib "./";
 use NET; # qw(:ALL); # ($hostname @nodes $bin $peers)
 
-if(!@ARGV || !$ARGV[0]){
-  die "USAGE: $0 node_id_starting_from_1\n";}
+if(!@ARGV || !($ARGV[0]>0 && $ARGV[0]<=@NET::nodes)){
+  die "USAGE: $0 node_id_starting_from_1_ending_at_".scalar(@NET::nodes)."\n";}
 my $svid=$ARGV[0];
 if($svid>@NET::nodes){
   die "ERROR: node id too high ($svid), only ".scalar(@NET::nodes)." nodes defined.\n";}
@@ -16,17 +16,17 @@ if($host eq ""){
   $host=`hostname -I`;
   $host=~s/ .*//;
   chomp($host);}
-my $port=8080+$svid;
-my $offi=9090+$svid;
+my $port=&NET::port($svid);
+my $offi=&NET::offi($svid);
 if(!-d $ndir){
   system("mkdir -p $ndir");
   if(!-d $ndir){
     die "ERROR: failed to create $ndir directory\n";}}
 if(-e "$ndir/.lock"){
   die "ERROR: node lock file $ndir/.lock exists, remove if node not running\n";}
-my $check_screen=`screen -S node$svid -ls`;
+my $check_screen=`screen -S escd_node$svid -ls`;
 if($check_screen!~/No Sockets found/){
-  die "ERROR: screen -S node$svid running? try: screen -S node$svid -X kill\n";}
+  die "ERROR: screen -S node$svid running? try: screen -S escd_node$svid -X kill\n";}
 
 print "SVID: $svid\n";
 print "NDIR: $ndir\n";
@@ -34,24 +34,13 @@ print "HOST: $host\n";
 print "PORT: $port\n";
 print "OFFI: $offi\n";
 
-#my $options="svid=$svid\n";
-#$host=`hostname -I`;
-#if($host=~/(10\.20\.11\.\d+)/){
-#  my $addr=$1;
-#  open(FILE,">/workspace/leszek/net/nxx/peer.$svid")||die;
-#  print FILE "$addr\n";
-#  close(FILE);
-#  $options.="addr=$addr\n";}
-#else{
-#  die "ERROR: bad ip $host";}
-
 my $options="svid=$svid\naddr=$host\nport=$port\noffi=$offi\n";
 my $peers="";
 for(my $n=1;$n<=@NET::nodes;$n++){
   if($n==$svid){
     next;}
-  my $dir=$NET::nodes[$svid-1];
-  if(-e "$dir/.lock"){
+  my $dir=$NET::nodes[$n-1];
+  if(-f "$dir/.lock"){
     open(FILE,"$dir/.lock");
     my $peer=<FILE>;
     close(FILE);
@@ -97,41 +86,14 @@ open(FILE,">.lock")||die "ERROR: failed to create lock file\n";
 print FILE "$host:$port\n";
 close(FILE);
 if($peers eq'' && $svid==1){
-  print "screen -S node$svid -d -m ./escd --init 1\n";
-  system("screen -S node$svid -d -m ./escd --init 1");} # init if node1 and no nodes running
+  print "screen -S escd_node$svid -d -m ./escd --init 1\n";
+  system("screen -S escd_node$svid -d -m ./escd --init 1");} # init if node1 and no nodes running
 else{
   if(-d "usr/0001.dat"){
-    print "screen -S node$svid -d -m ./escd -m 1\n";
-    system("screen -S node$svid -d -m ./escd -m 1");} # full sync if started before
+    print "screen -S escd_node$svid -d -m ./escd -m 1\n";
+    system("screen -S escd_node$svid -d -m ./escd -m 1");} # full sync if started before
   else{
-    print "screen -S node$svid -d -m ./escd -m 1 -f 1\n";
-    system("screen -S node$svid -d -m ./escd -m 1 -f 1");}} # resync fast first time
+    print "screen -S escd_node$svid -d -m ./escd -m 1 -f 1\n";
+    system("screen -S escd_node$svid -d -m ./escd -m 1 -f 1");}} # resync fast first time
 
 exit;
-
-#system("rm -rf /run/shm/net");
-#mkdir("/run/shm/net") || die;
-#chdir("/run/shm/net") || die; 
-#system("rsync -a /workspace/leszek/net/nxx/key /workspace/leszek/net/nxx/servers.txt ./");
-#system("echo > in.txt");
-#
-#if($peers eq ""){
-#  system("tail -f in.txt | /workspace/leszek/net/main --init 1 &");}
-#else{
-#  system("tail -f in.txt | /workspace/leszek/net/main -m 1 -f 1 &");}
-#
-#while(<STDIN>){
-#  if($_=~/^\./){
-#    system("echo '.' >> in.txt");
-#    sleep(1);
-#    system("echo '.' >> in.txt");
-#    sleep(5);
-#    last;}
-#  system("lsof -u leszek | grep '^main'");
-#  system("uptime");
-#  system("free -m");
-#  system("df -h ./");}
-#chdir("/");
-#system("rm -rf /run/shm/net");
-#unlink("/workspace/leszek/net/nxx/peer.$svid");
-#print "DONE\n";
