@@ -77,6 +77,7 @@ public:
     if(clock_thread!=NULL){
       clock_thread->interrupt();
       clock_thread->join();}
+    DLOG("Office shutdown completed\n");
   }
 
   void init(uint32_t myusers)
@@ -131,6 +132,7 @@ public:
 
   void start()
   { //init io_service_pool
+    RETURN_ON_SHUTDOWN();
     run=true; //not used yet
     div_ready=0;
     block_ready=0;

@@ -18,6 +18,9 @@ public:
     work_(io_service_),
     acceptor_(io_service_,endpoint_),
     opts_(opts),
+    ioth_(NULL),
+    peers_thread(NULL),
+    clock_thread(NULL),
     do_validate(0),
     votes_max(0.0),
     do_vote(0),
@@ -44,11 +47,7 @@ public:
     //remember start status
     start_path=path;
     start_msid=msid_;
-    try{
-      last_srvs_.get(path);}
-    catch(std::exception& e){
-      ELOG("ERROR reading servers: %s\n",e.what());
-      exit(-1);}
+    last_srvs_.get(path);
     if(!last_srvs_.nodes.size()){
       if(!opts_.init){
         ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
@@ -67,8 +66,10 @@ public:
       uint32_t now=time(NULL);
       now-=now%BLOCKSEC;
       if(stat("usr/0001.dat",&sb)>=0){
+        if(!last_srvs_.nodes.size()){
+          ELOG("ERROR reading servers for path %08X\n",path);
+          exit(-1);}
         ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
-        //ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
         if(!undo_bank()){
           ELOG("ERROR loading initial database, fatal\n");
           exit(-1);}
@@ -142,13 +143,15 @@ public:
     ioth_ = new boost::thread(boost::bind(&server::iorun, this));
     for(std::string addr : opts_.peer){
       connect(addr);
-      boost::this_thread::sleep(boost::posix_time::seconds(2));} //wait some time before connecting to more peers
+      boost::this_thread::sleep(boost::posix_time::seconds(2)); //wait some time before connecting to more peers
+      RETURN_ON_SHUTDOWN();}
     peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){
       if(opts_.fast){ //FIXME, do slow sync after fast sync
         while(do_fast){ // fast_sync changes the status, FIXME use future/promis
-          boost::this_thread::sleep(boost::posix_time::seconds(1));}
+          boost::this_thread::sleep(boost::posix_time::seconds(1));
+          RETURN_ON_SHUTDOWN();}
         //wait for all user files to arrive
         load_banks();
 	srvs_.write_start();}
@@ -179,13 +182,16 @@ public:
   void stop()
   { do_validate=0;
     io_service_.stop();
-    ioth_->join();
+    if(ioth_!=NULL){
+      ioth_->join();}
     threadpool.join_all();
-    peers_thread->interrupt();
-    peers_thread->join();
-    clock_thread->interrupt();
-    clock_thread->join();
-    DLOG("Shutting down completed\n");
+    if(peers_thread!=NULL){
+      peers_thread->interrupt();
+      peers_thread->join();}
+    if(clock_thread!=NULL){
+      clock_thread->interrupt();
+      clock_thread->join();}
+    DLOG("Server shutdown completed\n");
   }
 
   void recyclemsid(uint32_t lastpath)
@@ -360,6 +366,7 @@ public:
       missing_.unlock();
       ELOG("WAITING for banks\n");
       boost::this_thread::sleep(boost::posix_time::seconds(2)); //yes, yes, use futur/promise instead
+      RETURN_ON_SHUTDOWN();
       missing_.lock();}
     missing_.unlock();
     //we should have now all banks
@@ -386,7 +393,8 @@ public:
   }
 
   void load_chain()
-  { uint32_t now=time(NULL);
+  { 
+    uint32_t now=time(NULL);
     auto block=headers.begin();
     now-=now%BLOCKSEC;
     do_validate=1;
@@ -400,6 +408,7 @@ public:
       for(;!n;){
         ELOG("\nWAITING 1s\n");
         boost::this_thread::sleep(boost::posix_time::seconds(1));
+        RETURN_ON_SHUTDOWN();
         peer_.lock();
         n=headers.size();
         peer_.unlock();}
@@ -432,7 +441,8 @@ public:
               if(svid){
                 int ok=deliver(put_msg,svid);
                 ELOG("REQUESTING MSL from %04X (%d)\n",svid,ok);}}
-            boost::this_thread::sleep(boost::posix_time::milliseconds(50));}
+            boost::this_thread::sleep(boost::posix_time::milliseconds(50));
+            RETURN_ON_SHUTDOWN();}
           srvs_.msg=block->msg; //check
           memcpy(srvs_.msghash,block->msghash,SHA256_DIGEST_LENGTH);}
         else{
@@ -502,6 +512,7 @@ public:
         while(ldc_msgs_.size()){
           ldc_.unlock();
           boost::this_thread::sleep(boost::posix_time::milliseconds(50)); //yes, yes, use futur/promise instead
+          RETURN_ON_SHUTDOWN();
           ldc_.lock();}
         ldc_.unlock();
         //run save_mnum for each message (msgl_put ...)
@@ -559,6 +570,7 @@ public:
           //FIXME, insecure !!! better to ask more peers (disconnect if needed) and wait for block with enough votes
           get_more_headers(block->now+BLOCKSEC);
           boost::this_thread::sleep(boost::posix_time::seconds(2));
+          RETURN_ON_SHUTDOWN();
           peer_.lock();}
         peer_.unlock();}}
     //TODO, add nodes if needed
@@ -640,7 +652,8 @@ public:
         peer_.unlock();
         return(1);}
       peer_.unlock();
-      boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      RETURN_VAL_ON_SHUTDOWN(0);}
     return 0;
   }
 
@@ -1726,7 +1739,8 @@ public:
         //TODO, check if there are no forgotten messeges in the missing_msgs_ queue
         if(check_msgs_.empty()){
           check_.unlock();
-	  boost::this_thread::sleep(boost::posix_time::milliseconds(100));}
+	  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+          RETURN_ON_SHUTDOWN();}
         else{
           check_.unlock();}}
       else{
@@ -1817,6 +1831,7 @@ public:
           uint32_t seconds=(rand()%5);
           DLOG("SLEEP %d after validation\n",seconds);
           boost::this_thread::sleep(boost::posix_time::seconds(seconds));
+          RETURN_ON_SHUTDOWN();
 #endif
           update_candidates(msg);
           update(msg);}
@@ -3622,6 +3637,7 @@ public:
     //return;
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
+      RETURN_ON_SHUTDOWN();
       peer_clean(); //cleans all peers with killme==true
       uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       now-=now%BLOCKSEC;
@@ -3661,20 +3677,23 @@ public:
     while(msid_>srvs_.nodes[opts_.svid].msid){
 //FIXME, hangs sometimes !!!
       ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
-      boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      boost::this_thread::sleep(boost::posix_time::seconds(1));
+      RETURN_ON_SHUTDOWN();}
     //recycle office message queue
     std::string line;
     if(ofip_get_msg(msid_+1,line)){
       while(msid_>srvs_.nodes[opts_.svid].msid){
         ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
-        boost::this_thread::sleep(boost::posix_time::seconds(1));}
+        boost::this_thread::sleep(boost::posix_time::seconds(1));
+        RETURN_ON_SHUTDOWN();}
       ELOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
       if(!write_message(line)){
         ELOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
         exit(-1);}
       while(msid_>srvs_.nodes[opts_.svid].msid){
         ELOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
-        boost::this_thread::sleep(boost::posix_time::seconds(1));}
+        boost::this_thread::sleep(boost::posix_time::seconds(1));
+        RETURN_ON_SHUTDOWN();}
       ofip_del_msg(msid_);}
     //must do this after recycling messages !!!
     ofip_init(srvs_.nodes[opts_.svid].users); // this can be slow :-(
@@ -3748,6 +3767,7 @@ public:
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}
       boost::this_thread::sleep(boost::posix_time::seconds(1));
+      RETURN_ON_SHUTDOWN();
     }
   }
 
@@ -3880,12 +3900,12 @@ private:
   boost::asio::io_service io_service_;
   boost::asio::io_service::work work_;
   boost::asio::ip::tcp::acceptor acceptor_;
-  boost::thread* ioth_;
   servers srvs_;
   options& opts_;
+  boost::thread* ioth_;
   boost::thread_group threadpool;
-  boost::thread* clock_thread;
   boost::thread* peers_thread;
+  boost::thread* clock_thread;
   //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
   //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt
   int do_validate; // keep validation threads running

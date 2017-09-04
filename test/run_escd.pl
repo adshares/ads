@@ -51,11 +51,11 @@ open(FILE,">$ndir/options.cfg")||die;
 print FILE $options.$peers;
 close(FILE);
 
-if(!-e "$ndir/escd"){
+if(!-e "$ndir/escd" || ((-C"$NET::bin/escd")<(-C"$ndir/escd"))){
   system("cp $NET::bin/escd $ndir/escd")&&
     die "ERROR: failed to copy $NET::bin/escd to $ndir/escd\n";}
 
-if(!-e "$ndir/esc"){
+if(!-e "$ndir/esc" || ((-C"$NET::bin/esc")<(-C"$ndir/esc"))){
   system("cp $NET::bin/esc $ndir/esc")&&
     die "ERROR: failed to copy $NET::bin/esc to $ndir/esc\n";}
 

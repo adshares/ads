@@ -51,6 +51,7 @@
 #include "office.hpp"
 #include "client.hpp"
 
+bool finish=false;
 boost::mutex flog;
 FILE* stdlog=NULL;
 candidate_ptr nullcnd;
@@ -58,21 +59,25 @@ message_ptr nullmsg;
 std::promise<int> prom;
 
 void signal_handler(int signal)
-{ DLOG("SIGNAL: %d\n",signal);
+{ DLOG("\nSIGNAL: %d\n\n",signal);
+  if(signal==SIGSEGV){
+    exit(-1);}
   if(signal==SIGINT || signal==SIGQUIT || signal==SIGABRT || signal==SIGTERM){
-    prom.set_value(signal);}
+    if(!finish){
+      prom.set_value(signal);
+      finish=true;}}
 }
 
 int main(int argc, char* argv[])
 { std::future<int> fut=prom.get_future();
-  //std::signal(SIGHUP,signal_handler);
   std::signal(SIGINT,signal_handler);
-  //std::signal(SIGILL,signal_handler);
-  //std::signal(SIGFPE,signal_handler);
   std::signal(SIGQUIT,signal_handler);
   std::signal(SIGABRT,signal_handler);
   std::signal(SIGTERM,signal_handler);
-  //std::signal(SIGSEGV,signal_handler);
+  std::signal(SIGSEGV,signal_handler); //FIXME, raised when killing threads :-(
+  //std::signal(SIGHUP,signal_handler); //maybe used by asio
+  //std::signal(SIGILL,signal_handler);
+  //std::signal(SIGFPE,signal_handler);
   //std::signal(SIGUSR1,signal_handler);
   //std::signal(SIGUSR2,signal_handler);
   stdlog=fopen(".lock","a");

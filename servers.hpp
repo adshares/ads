@@ -768,7 +768,7 @@ public:
 	int data_read(const char* filename,bool read_nodes)
 	{	uint32_t version;
 		int fd=open(filename,O_RDONLY);
-                if(fd<0){ ELOG("ERROR, failed to read file %s, fatal\n",filename);
+                if(fd<0){ DLOG("ERROR, failed to read servers from %s\n",filename);
                         return(0);}
 		read(fd,&version,sizeof(uint32_t)); // not used yet
 		read(fd,&now,sizeof(uint32_t));
@@ -805,7 +805,7 @@ public:
 	int data_write(const char* filename,bool write_nodes)
 	{	uint32_t version=1;
 	 	int fd=open(filename,O_WRONLY|O_CREAT,0644);
-                if(fd<0){ ELOG("ERROR, failed to write file %s, fatal\n",filename);
+                if(fd<0){ ELOG("ERROR, failed to write file %s\n",filename);
                         return(0);}
 		write(fd,&version,sizeof(uint32_t)); // not used yet
 		write(fd,&now,sizeof(uint32_t));
@@ -835,7 +835,7 @@ public:
 				write(fd,&nodes[n].port,sizeof(uint32_t));
 				write(fd,&nodes[n].ipv4,sizeof(uint32_t));}}
 		close(fd);
-		return(now);
+		return(1);
 	}
 	int header_get()
 	{	char filename[64];
