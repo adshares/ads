@@ -232,9 +232,10 @@ typedef struct hash_cmp {
   bool operator()(const hash_s& i,const hash_s& j) const {int k=memcmp(i.hash,j.hash,sizeof(hash_t));return(k<0);}
 } hash_cmp_t;
 
-#define RETURN_VAL_ON_SHUTDOWN(...) {extern bool finish;if(finish){return(__VA_ARGS__);}}
-#define RETURN_ON_SHUTDOWN(...) {extern bool finish;if(finish){return;}}
-#define SHUTDOWN_AND_RETURN(...) {std::raise(SIGABRT);return(__VA_ARGS__);}
+#define RETURN_VAL_ON_SHUTDOWN(val) {extern bool finish;if(finish){return(val);}}
+#define RETURN_ON_SHUTDOWN() {extern bool finish;if(finish){return;}}
+#define SHUTDOWN_AND_RETURN_VAL(val) {std::raise(SIGABRT);return(val);}
+#define SHUTDOWN_AND_RETURN() {std::raise(SIGABRT);return;}
 #define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 #ifndef NDEBUG
 #define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
