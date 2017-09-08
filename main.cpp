@@ -61,7 +61,7 @@ std::promise<int> prom;
 void signal_handler(int signal)
 { DLOG("\nSIGNAL: %d\n\n",signal);
   if(signal==SIGSEGV){
-    exit(-1);}
+    abort();}
   if(signal==SIGINT || signal==SIGQUIT || signal==SIGABRT || signal==SIGTERM){
     if(!finish){
       prom.set_value(signal);
@@ -80,11 +80,13 @@ int main(int argc, char* argv[])
   //std::signal(SIGFPE,signal_handler);
   //std::signal(SIGUSR1,signal_handler);
   //std::signal(SIGUSR2,signal_handler);
-  stdlog=fopen(".lock","a");
-  fclose(stdlog);
   stdlog=fopen("log.txt","w");
   options opt;
   opt.get(argc,argv);
+  FILE *lock=fopen(".lock","a");
+  assert(lock!=NULL);
+  fprintf(lock,"%s:%d\n",opt.addr.c_str(),opt.port);
+  fclose(lock);
   try{
     server s(opt);
     office o(opt,s);

@@ -11,7 +11,7 @@ public:
   //server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
   server(options& opts) :
     do_sync(1),
-    do_fast(1),
+    do_fast(opts.fast?2:0),
     ofip(NULL),
     endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
     io_service_(),
@@ -58,8 +58,7 @@ public:
       exit(-1);}
     if(last_srvs_.nodes.size()){
       last_srvs_.update_vipstatus();
-      bank_fee.resize(last_srvs_.nodes.size());
-      pkey=last_srvs_.nodes[opts_.svid].pk;}
+      bank_fee.resize(last_srvs_.nodes.size());}
 
     if(opts_.init){
       struct stat sb;   
@@ -81,7 +80,6 @@ public:
         srvs_=last_srvs_;
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
-        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
         ELOG("MAKE BLOCKCHAIN\n");
         for(;srvs_.now<now;){
           message_map empty;
@@ -99,22 +97,23 @@ public:
         srvs_=last_srvs_;
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock(); //changes now!
-        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-        bank_fee.resize(last_srvs_.nodes.size());
-        pkey=last_srvs_.nodes[opts_.svid].pk;}
-      do_sync=0;}
+        bank_fee.resize(last_srvs_.nodes.size());}
+      if(!do_fast){ //always sync on do_fast
+        do_sync=0;}}
     else{
       srvs_=last_srvs_;
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       period_start=srvs_.nextblock();} //changes now!
-      iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
 
     ELOG("START @ %08X with MSID: %08X\n",path,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
     if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
-      ELOG("ERROR: reading servers\n");
+      ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
       exit(-1);} 
+    iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
+    pkey=srvs_.nodes[opts_.svid].pk;
+DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(!last_srvs_.find_key(pkey,skey)){
       char pktext[2*32+1]; pktext[2*32]='\0';
       ed25519_key2text(pktext,pkey,32);
@@ -123,18 +122,20 @@ public:
 
     if(!opts_.init){
       if(!undo_bank()){//check database consistance
-        if(!opts_.fast){
+        if(!do_fast){
           ELOG("DATABASE check failed, must use fast option to load new datase from network\n");
           exit(-1);}
+        else{
+          DLOG("DATABASE check failed, load new datase from network\n");}
         do_sync=1;}
       else{
         ELOG("DATABASE check passed\n");
         uint32_t now=time(NULL);
         now-=now%BLOCKSEC;
-        if(last_srvs_.now==now-BLOCKSEC){
+        if(last_srvs_.now==now-BLOCKSEC && !do_fast){
           do_sync=0;}
         else{
-          if(last_srvs_.now<now-MAXLOSS && !opts_.fast){
+          if(last_srvs_.now<now-MAXLOSS && !do_fast){
             ELOG("WARNING, possibly missing too much history for full resync\n");}
           do_sync=1;}}}
     //ofip_init(last_srvs_.nodes[opts_.svid].users); //must do this after recycling messages !!!
@@ -148,20 +149,23 @@ public:
     peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){
-      if(opts_.fast){ //FIXME, do slow sync after fast sync
-        while(do_fast){ // fast_sync changes the status, FIXME use future/promis
+      //if(opts_.fast){ //FIXME, do slow sync after fast sync
+      if(do_fast){ //FIXME, do slow sync after fast sync
+        while(do_fast>1){ // fast_sync changes the status, FIXME use future/promis
           boost::this_thread::sleep(boost::posix_time::seconds(1));
           RETURN_ON_SHUTDOWN();}
+        do_fast=0;
         //wait for all user files to arrive
         load_banks();
 	srvs_.write_start();}
-      else{
-        do_fast=0;}
+      //else{
+      //  do_fast=0;}
       ELOG("START syncing headers\n");
       load_chain(); // sets do_sync=0;
       //svid_msgs_.clear();
       }
     //load old messages or check/modify
+    //pkey=srvs_.nodes[opts_.svid].pk; //FIXME, is this needed ? srvs_ is overwritten in fast sync :-(
 
     recyclemsid(lastpath+BLOCKSEC);
     writemsid(); // synced to new position
@@ -199,7 +203,7 @@ public:
     hash_t msha;
     if(firstmsid>msid_){
       ELOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
-      if(!opts_.fast){
+      if(!do_fast){
         exit(-1);}
       msid_=firstmsid;
       return;}
@@ -280,6 +284,7 @@ public:
     int rollback=opts_.back;
     DLOG("CHECK DATA @%08X (and undo till @%08X)\n",last_srvs_.now,path+rollback*BLOCKSEC);
     bool failed=false;
+    last_srvs_.blockdir();
     for(uint16_t bank=1;bank<last_srvs_.nodes.size();bank++){
       char filename[64];
       sprintf(filename,"usr/%04X.dat",bank);
@@ -406,7 +411,8 @@ public:
       uint32_t n=headers.size();
       peer_.unlock();
       for(;!n;){
-        ELOG("\nWAITING 1s\n");
+        get_more_headers(srvs_.now+BLOCKSEC); // try getting more headers
+        ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         RETURN_ON_SHUTDOWN();
         peer_.lock();
@@ -632,7 +638,7 @@ public:
     for(;;){
       uint32_t now=time(NULL);
       peer_.lock();
-      if(!do_fast){
+      if(do_fast<2){
         peer_.unlock();
         return(-1);}
       if(done){ // peer should now overwrite servers with current data
@@ -644,7 +650,8 @@ public:
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-        do_fast=0;
+        pkey=srvs_.nodes[opts_.svid].pk; //FIXME, is this needed and safe ?
+        do_fast=1;
         peer_.unlock();
         return(1);}
       if(last<now-SYNC_WAIT){
@@ -3444,8 +3451,13 @@ public:
         memcpy(hs.msha,last_srvs_.nodes[peer].msha,SHA256_DIGEST_LENGTH);
         hs.msid=last_srvs_.nodes[peer].msid;}}
     else{
+      //if(do_fast){ // force sync if '-f 1'
+      //  hs.vno=0xFFFF;}
       bzero(hs.msha,SHA256_DIGEST_LENGTH);
-      hs.msid=0;}
+      if(do_fast){
+        hs.msid=0xFFFFFFFF;} // not needed
+      else{
+        hs.msid=0;}}
     hs.do_sync=do_sync;
     //ed25519_printkey(skey,32);
     //ed25519_printkey(pkey,32);

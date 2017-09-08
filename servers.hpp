@@ -677,7 +677,7 @@ public:
 		update_viphash();
 		hashtree tree;
 		for(auto it=nodes.begin();it<nodes.end();it++){ // consider changing this to hashtree/hashcalendar
-			DLOG("NOD: %08x %08x %08x %08X %08X %u %016lX %u\n",
+			DLOG("NOD: %08X %08x %08x %08X %08X %u %016lX %u\n",
 				(uint32_t)*((uint32_t*)&it->pk[0]),(uint32_t)*((uint32_t*)&it->hash[0]),(uint32_t)*((uint32_t*)&it->msha[0]),it->msid,it->mtim,it->status,it->weight,it->users);
 			SHA256_Init(&sha256);
 			SHA256_Update(&sha256,it->pk,sizeof(ed25519_public_key));
@@ -980,6 +980,9 @@ public:
 		char hash[4*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
 		FILE *fp=fopen(filename,"a");
+		if(fp==NULL){
+			DLOG("ERROR, creating blk/%03X/%05X/signatures.ok, very bad :-(",now>>20,now&0xFFFFF);
+			return;}
 		fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
 		fclose(fp);
 		if(ok){

@@ -130,6 +130,7 @@ public:
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
       hash_signature();}
     else if(text_type==MSGTYPE_INI){
+DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
       ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
       hash_signature();}
     else{
@@ -674,6 +675,7 @@ public:
       if(data[0]==MSGTYPE_CND){ //FIXME, consider changing the signature format
         return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));}
       if(data[0]==MSGTYPE_INI){
+DLOG("INI:%016lX\n",*(uint64_t*)svpk);
         return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));}
       assert(0);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!

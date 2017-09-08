@@ -43,6 +43,6 @@ foreach(@delete){
   if(!chdir($_)){
     print STDERR "ERROR: failed to change dir to $_\n";
     next;}
-  system("rm -rf blk esc escd inx key log log.txt msid.txt ofi options.cfg servers.srv usr vip cli .lock");}
+  system("rm -rf blk esc escd inx key log log.txt msid.txt ofi options.cfg servers.srv usr vip cli .lock core");}
 
 exit;
