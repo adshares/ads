@@ -23,7 +23,8 @@ public:
   union {uint64_t num; uint8_t dat[8];} hash; // header hash, TODO change this name to 'head'
   uint8_t status; // |0x1:data |0x2:saved |0x4:valid |0x8:invalid
   //std::set<uint16_t> know; // peers that know about this item
-  boost::container::flat_set<uint16_t> know; // peers that know about this item, flat_set to enable random selection
+  //boost::container::flat_set<uint16_t> know; // peers that know about this item, flat_set to enable random selection
+  std::vector<uint16_t> know; // peers that know about this item, ordered by insert time
   std::set<uint16_t> busy; // peers downloading this item
   std::set<uint16_t> sent; // peers that downloaded this item
   boost::mutex mtx_;	// to update the sets and data
@@ -1110,7 +1111,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     msg->data=data;
     len=l;
     data=d;
-    know.insert(msg->peer);
+    know_insert_(msg->peer);
     memcpy(sigh,msg->sigh,SHA256_DIGEST_LENGTH);
     peer=msg->peer;
     now=msg->now;
@@ -1133,9 +1134,35 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     mtx_.unlock();
   }
 
+  bool know_find_(uint16_t p)
+  { for(auto k=know.begin();k!=know.end();k++){
+      if(*k==p){
+        return(true);}}
+    return(false);
+  }
+
+  void know_erase_(uint16_t p)
+  { for(auto k=know.begin();k!=know.end();k++){
+      if(*k==p){
+        *k=0;}} // will cause limited memory leak 
+  }
+
+  void know_insert_(uint16_t p)
+  { auto n=know.end();
+    for(auto k=know.begin();k!=know.end();k++){
+      if(*k==p){
+        return;}
+      if(*k==0){
+        n=k;}}
+    if(n!=know.end()){
+      *n=p;}
+    else{
+      know.push_back(p);}
+  }
+
   void know_insert(uint16_t p)
   { mtx_.lock();
-    know.insert(p);
+    know_insert_(p);
     mtx_.unlock();
   }
 
@@ -1162,7 +1189,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     if(mynow<=got+MAX_MSGWAIT+(data[0]==MSGTYPE_USR?MAX_USRWAIT:0)){ //FIXME, make MAX_MSGWAIT dependend on expected size
       mtx_.unlock();
       return(0);}
-    for(auto k=know.begin();k!=know.end();k++){//known is expected to have random order (or order based on insertions)
+    for(auto k=know.begin();k!=know.end();k++){
       auto s=sent.find(*k);
       if(s==sent.end()){
         got=mynow;

@@ -89,7 +89,7 @@ public:
     DLOG("%04X PEER ACCEPT OK %s:%d\n",svid,
       socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
     message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
-    msg->know.insert(svid);
+    msg->know_insert_(svid);
     msg->sent.insert(svid);
     msg->busy.insert(svid);
     msg->print(" HANDSHAKE");
@@ -128,12 +128,13 @@ public:
       msg->print("; NO ECHO");
       return;}
     msg->mtx_.lock();
-    if(msg->know.find(svid) != msg->know.end()){
+    //if(msg->know.find(svid) != msg->know.end())
+    if(msg->know_find_(svid)){
       //DLOG("%04X HASH %016lX [%016lX] (known) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
       msg->print("; NO UPDATE");
       msg->mtx_.unlock();
       return;}
-    msg->know.insert(svid);
+    msg->know_insert_(svid);
     msg->mtx_.unlock();
     message_ptr put_msg(new message()); // gone ??? !!!
     switch(msg->hashtype()){
@@ -223,7 +224,7 @@ public:
       DLOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
       msg->mtx_.unlock();
       return;}
-    msg->know.insert(svid);
+    msg->know_insert_(svid);
     msg->sent.insert(svid);
     msg->busy.insert(svid);
     msg->mtx_.unlock();
@@ -355,7 +356,7 @@ Aborted
       return;}
     bytes_in+=read_msg_->len;
     files_in++;
-    read_msg_->know.insert(svid);
+    read_msg_->know_insert_(svid);
     if(read_msg_->data[0]==MSGTYPE_USR){ //len can be message::header_length in this case :-(
       //FIXME, accept only if needed !!
       DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);

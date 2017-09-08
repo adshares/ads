@@ -360,17 +360,32 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       put_msg->svid=bank;
       put_msg->hash.num=put_msg->dohash(put_msg->data);
       put_msg->got=0; // do first request emidiately
-      missing_msgs_[put_msg->hash.num]=put_msg;
-      fillknown(put_msg);
-      uint16_t peer=put_msg->request();
-      if(peer){
-        DLOG("REQUESTING BANK %04X from %04X\n",bank,peer);
-        deliver(put_msg,peer);}}
+      missing_msgs_[put_msg->hash.num]=put_msg;}
+      //fillknown(put_msg);
+      //int m=0,max=peers_.size();
+      //for(;m<max;m++){
+      //  uint16_t peer=put_msg->request();
+      //  if(peer){
+      //    DLOG("REQUESTING BANK %04X from %04X\n",bank,peer);
+      //    deliver(put_msg,peer);
+      //    if(put_msg->sent.find(peer)!=put_msg->sent.end()){
+      //      DLOG("REQUESTING BANK %04X from %04X failed\n",bank,peer);}
+      //    else{
+      //      break;}}}
     while(missing_msgs_.size()){
-      //do new requests here
+      //FIXME, don't send too many requests !!! FIXME, FIXME !!!
+      std::set<uint16_t> sent;
+      for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
+        fillknown(pm->second);
+        uint16_t peer=pm->second->request();
+        if(peer && sent.find(peer)==sent.end()){
+          sent.insert(peer);
+          DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,peer);
+          deliver(pm->second,peer);
+          DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,peer);}}
       missing_.unlock();
       ELOG("WAITING for banks\n");
-      boost::this_thread::sleep(boost::posix_time::seconds(2)); //yes, yes, use futur/promise instead
+      boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
       RETURN_ON_SHUTDOWN();
       missing_.lock();}
     missing_.unlock();
@@ -1677,7 +1692,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   { missing_.lock();
     for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
       mi->second->mtx_.lock();
-      mi->second->know.erase(svid);
+      mi->second->know_erase_(svid);
       mi->second->sent.erase(svid);
       mi->second->mtx_.unlock();}
     missing_.unlock();
