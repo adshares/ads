@@ -588,13 +588,15 @@ Aborted
     uint32_t from;
     memcpy(&from,read_msg_->data+1,4);
     char* data=(char*)read_msg_->data+8;
-    DLOG("%04X PROCESSING block header request\n",svid);
+    DLOG("%04X PROCESSING next header\n",svid);
     servers peer_ls;
     headlink_t* link=(headlink_t*)(data+SHA256_DIGEST_LENGTH);
     peer_ls.loadlink(*link,from,data);
     server_.peer_.lock();
-    if(server_.headers.back().now==from-BLOCKSEC &&
-       !memcmp(peer_ls.oldhash,server_.headers.back().nowhash,SHA256_DIGEST_LENGTH)){
+    if((!server_.headers.size() && 
+         !memcmp(peer_ls.oldhash,server_.last_srvs_.nowhash,SHA256_DIGEST_LENGTH)) ||
+       (server_.headers.back().now==from-BLOCKSEC &&
+         !memcmp(peer_ls.oldhash,server_.headers.back().nowhash,SHA256_DIGEST_LENGTH))){
       server_.headers.insert(server_.headers.end(),peer_ls);}
     server_.peer_.unlock();
     read_msg_ = boost::make_shared<message>(); // continue with a fresh message container

@@ -426,7 +426,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       uint32_t n=headers.size();
       peer_.unlock();
       for(;!n;){
-        get_more_headers(srvs_.now+BLOCKSEC); // try getting more headers
+        get_more_headers(srvs_.now); // try getting more headers
         ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         RETURN_ON_SHUTDOWN();

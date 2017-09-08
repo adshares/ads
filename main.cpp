@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 { std::future<int> fut=prom.get_future();
   std::signal(SIGINT,signal_handler);
   std::signal(SIGQUIT,signal_handler);
-  std::signal(SIGABRT,signal_handler);
+  //std::signal(SIGABRT,signal_handler);
   std::signal(SIGTERM,signal_handler);
   std::signal(SIGSEGV,signal_handler); //FIXME, raised when killing threads :-(
   //std::signal(SIGHUP,signal_handler); //maybe used by asio
@@ -278,10 +278,10 @@ void server::get_more_headers(uint32_t now) //use random order
 	if(peers_.size()>1){
 		int64_t num=((uint64_t)random())%peers_.size();
 		advance(pi,num);}
-	peer_.unlock();
 	if(!(*pi)->do_sync){
 		DLOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
 		(*pi)->request_next_headers(now);}
+	peer_.unlock();
 }
 void server::fillknown(message_ptr msg) //use random order
 {	static uint32_t r=0;
