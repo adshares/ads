@@ -82,9 +82,10 @@ if($svid>1){
       die "ERROR: node can not start yet, $NET::nodes[0]/msid.txt missing (maybe start node 1 first)\n";}}}
 
 chdir($ndir)||die "ERROR: failed to change dir to $ndir\n";
-open(FILE,">.lock")||die "ERROR: failed to create lock file\n";
-print FILE "$host:$port\n";
-close(FILE);
+#now, the node creates a .lock file with same format
+#open(FILE,">.lock")||die "ERROR: failed to create lock file\n";
+#print FILE "$host:$port\n";
+#close(FILE);
 if($peers eq'' && $svid==1){
   print "screen -S escd_node$svid -d -m ./escd --init 1\n";
   system("screen -S escd_node$svid -d -m ./escd --init 1");} # init if node1 and no nodes running

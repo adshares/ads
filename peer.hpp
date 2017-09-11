@@ -8,6 +8,7 @@ public:
       svid(0),
       do_sync(1), //remove, use peer_hs.do_sync
       killme(false),
+      busy(0),
       peer_io_service_(),
       work_(peer_io_service_),
       socket_(peer_io_service_),
@@ -219,6 +220,7 @@ public:
       return;}
     if(do_sync){
       return;}
+    busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
     msg->mtx_.lock();//TODO, do this right before sending the message ?
     if(msg->sent.find(svid)!=msg->sent.end()){
       DLOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
@@ -281,6 +283,7 @@ Aborted
     //assert(do_sync); //FIXME, failed !!!
 //FIXME, brakes after handle_read_headers() if there are more headers to load
     put_msg->load(svid);
+    busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
     mtx_.lock(); //most likely no lock needed
     boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
     mtx_.unlock();
@@ -354,6 +357,7 @@ Aborted
       ELOG("%04X READ header error\n",svid);
       leave();
       return;}
+    busy=0; // any incomming data resets the busy flag indicating a responsive peer
     bytes_in+=read_msg_->len;
     files_in++;
     read_msg_->know_insert_(svid);
@@ -1223,6 +1227,7 @@ Aborted
         ELOG("%04X NOT authenticated\n",svid);
         leave();
         return;}
+      busy=0; // make peer available for download traffic
       ELOG("%04X CONTINUE after authentication\n",svid);
       read_msg_ = boost::make_shared<message>();
       boost::asio::async_read(socket_,
@@ -1662,9 +1667,10 @@ Aborted
     return(1);
   }
 
-  uint32_t svid;
+  uint32_t svid; // svid of peer
   int do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
-  bool killme;
+  bool killme; // kill process initiated
+  uint32_t busy; // waiting for response (used during sync load balancing) set to last request time
 private:
   boost::asio::io_service peer_io_service_;	//TH
   boost::asio::io_service::work work_;		//TH

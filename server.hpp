@@ -348,6 +348,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   {
     //create missing bank messages
     uint16_t end=last_srvs_.nodes.size();
+    std::set<uint16_t> ready;
+    peerready(ready); //get list of peers available for data download
     missing_.lock();
     for(uint16_t bank=1;bank<end;bank++){
       //TODO, unlikely but maybe we have the correct bank already, we could check this
@@ -372,21 +374,37 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       //      DLOG("REQUESTING BANK %04X from %04X failed\n",bank,peer);}
       //    else{
       //      break;}}}
-    while(missing_msgs_.size()){
-      //FIXME, don't send too many requests !!! FIXME, FIXME !!!
-      std::set<uint16_t> sent;
+    uint32_t mynow=time(NULL);
+    for(auto peer=ready.begin();peer!=ready.end();peer++){ // send 2 requestes to each peer
       for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
-        fillknown(pm->second);
-        uint16_t peer=pm->second->request();
-        if(peer && sent.find(peer)==sent.end()){
-          sent.insert(peer);
-          DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,peer);
-          deliver(pm->second,peer);
-          DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,peer);}}
+        if(pm->second->cansend(*peer,mynow)){
+          DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
+          deliver(pm->second,*peer);
+          DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
+          break;}}}
+    while(missing_msgs_.size()){
+      uint32_t mynow=time(NULL);
+      for(auto peer=ready.begin();peer!=ready.end();peer++){ // send 2 requestes to each peer
+        for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
+          if(pm->second->cansend(*peer,mynow)){
+            DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
+            deliver(pm->second,*peer);
+            DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
+            break;}}}
+      //for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
+      //  fillknown(pm->second);
+      //  uint16_t peer=pm->second->request();
+      //  if(peer && sent.find(peer)==sent.end()){
+      //    sent.insert(peer);
+      //    DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,peer);
+      //    deliver(pm->second,peer);
+      //    DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,peer);}}
       missing_.unlock();
-      ELOG("WAITING for banks\n");
+      ELOG("WAITING for banks (peers:%d)\n",(int)ready.size());
+      //TODO sleep much shorter !!!
       boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
       RETURN_ON_SHUTDOWN();
+      peerready(ready); //get list of peers available for data download
       missing_.lock();}
     missing_.unlock();
     //we should have now all banks
@@ -3880,6 +3898,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   void connect(std::string peer_address);
   void connect(uint16_t svid);
   void fillknown(message_ptr msg);
+  void peerready(std::set<uint16_t>& ready);
   void get_more_headers(uint32_t now);
   void ofip_gup_push(gup_t& g);
   void ofip_add_remote_deposit(uint32_t user,int64_t weight);

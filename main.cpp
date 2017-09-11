@@ -297,6 +297,13 @@ void server::fillknown(message_ptr msg) //use random order
 	peer_.unlock();
 	r++;
 }
+void server::peerready(std::set<uint16_t>& ready) //get list of peers available for data download
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid && !((*pi)->killme) && !((*pi)->do_sync) && !((*pi)->busy)){
+			ready.insert((*pi)->svid);}}
+	peer_.unlock();
+}
 int server::deliver(message_ptr msg,uint16_t svid)
 {	peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
