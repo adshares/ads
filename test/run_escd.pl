@@ -45,7 +45,7 @@ for(my $n=1;$n<=@NET::nodes;$n++){
     my $peer=<FILE>;
     close(FILE);
     chomp($peer);
-    if($peer=~/:\d+$/){
+    if($peer=~/:\d+/){
       $peers.="peer=$peer\n";}}}
 open(FILE,">$ndir/options.cfg")||die;
 print FILE $options.$peers;
@@ -90,7 +90,7 @@ if($peers eq'' && $svid==1){
   print "screen -S escd_node$svid -d -m ./escd --init 1\n";
   system("screen -S escd_node$svid -d -m ./escd --init 1");} # init if node1 and no nodes running
 else{
-  if(-d "usr/0001.dat"){
+  if(-s "usr/0001.dat"){
     print "screen -S escd_node$svid -d -m ./escd -m 1\n";
     system("screen -S escd_node$svid -d -m ./escd -m 1");} # full sync if started before
   else{

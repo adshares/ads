@@ -50,7 +50,7 @@ public:
   }
 
   void stop() // by server only
-  { DLOG("%04X PEER KILL\n",svid);
+  { DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
     peer_io_service_.stop();
     //DLOG("%04X PEER INTERRUPT\n",svid);
     //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -64,7 +64,8 @@ public:
   }
 
   void leave()
-  { DLOG("%04X PEER LEAVING\n",svid);
+  { DLOG("%04X PEER LEAVING %d<->%d\n",svid,socket_.local_endpoint().port(),port);
+    message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
     killme=true;
   }
 
@@ -72,8 +73,8 @@ public:
   { assert(incoming_);
     addr = socket_.remote_endpoint().address().to_string();
     port = socket_.remote_endpoint().port();
-    DLOG("%04X PEER CONNECT OK %s:%d\n",svid,
-      socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
+    DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(),
+      socket_.remote_endpoint().address().to_string().c_str(),port);
     boost::asio::async_read(socket_,
       boost::asio::buffer(read_msg_->data,message::header_length),
       boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
@@ -87,8 +88,8 @@ public:
     assert(!incoming_);
     addr = socket_.remote_endpoint().address().to_string();
     port = socket_.remote_endpoint().port();
-    DLOG("%04X PEER ACCEPT OK %s:%d\n",svid,
-      socket_.remote_endpoint().address().to_string().c_str(),socket_.remote_endpoint().port());
+    DLOG("%04X PEER ACCEPT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(),
+      socket_.remote_endpoint().address().to_string().c_str(),port);
     message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
     msg->know_insert_(svid);
     msg->sent.insert(svid);

@@ -47,7 +47,7 @@ public:
 				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"service address or hostname")
 				("svid,i", boost::program_options::value<int>(&svid),						"service id (assigned by the network)")
 				//("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
-				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port or hostname:port, multiple peers allowed")
+				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
 				("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (irreversable!)")
 				;
 			boost::program_options::options_description cmdline_options;
@@ -114,6 +114,14 @@ public:
 			exit(1);
 		}
 	}
+
+	uint16_t get_svid(std::string peer_address) // get svid from peer address
+	{	char* p=strchr((char*)peer_address.c_str(),'/'); //detect port
+		if(p==NULL){
+			return(0);}
+		return((uint16_t)atoi(p+1));
+	}
+
 };
 
 #endif // OPTIONS_HPP

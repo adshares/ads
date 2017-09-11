@@ -142,10 +142,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
 
     //FIXME, move this to a separate thread that will keep a minimum number of connections
     ioth_ = new boost::thread(boost::bind(&server::iorun, this));
-    for(std::string addr : opts_.peer){
-      connect(addr);
-      boost::this_thread::sleep(boost::posix_time::seconds(2)); //wait some time before connecting to more peers
-      RETURN_ON_SHUTDOWN();}
+    //for(std::string addr : opts_.peer){
+    //  connect(addr);
+    //  boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
+    //  RETURN_ON_SHUTDOWN();}
     peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){
@@ -3678,30 +3678,45 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
 
   void peers() // connect new peers
   { 
-    //FIXME, run this
-    //return;
+    std::set<uint16_t> list;
+    connected(list);
+    for(std::string addr : opts_.peer){
+      uint16_t peer=opts_.get_svid(addr);
+      if(peer && list.find(peer)==list.end()){
+        connect(addr);
+        boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
+        RETURN_ON_SHUTDOWN();}}
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
       RETURN_ON_SHUTDOWN();
       peer_clean(); //cleans all peers with killme==true
-      uint32_t now=time(NULL)+5; // do not connect if close to block creation time
-      now-=now%BLOCKSEC;
+      //uint32_t now=time(NULL)+5; // do not connect if close to block creation time
+      //now-=now%BLOCKSEC;
 #ifdef DEBUG
-      if(peers_.size()>=2 || peers_.size()>(srvs_.nodes.size()-2)/2 || srvs_.now<now){
+      if(peers_.size()>=2 || peers_.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
         continue;}
 #else
-      if(peers_.size()>=MIN_PEERS || peers_.size()>(srvs_.nodes.size()-2)/2 || srvs_.now<now){
+      if(peers_.size()>=MIN_PEERS || peers_.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
         continue;}
 #endif
-      int16_t svid=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
-      if(!svid || svid==opts_.svid || !srvs_.nodes[svid].ipv4 || !srvs_.nodes[svid].port){
-        //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+      connected(list);
+      for(std::string addr : opts_.peer){
+        uint16_t peer=opts_.get_svid(addr);
+        if(peer && list.find(peer)==list.end()){
+          list.insert(peer);
+          connect(addr);
+          boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
+          RETURN_ON_SHUTDOWN();}}
+      int16_t peer=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+      if(!peer || peer==opts_.svid || !srvs_.nodes[peer].ipv4 || !srvs_.nodes[peer].port){
+        //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
         continue;}
-      if(connected(svid)){
-        //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
+      //if(connected(peer))
+      if(list.find(peer)==list.end()){
+        //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
         continue;}
-      //DLOG("TRY CONNECT to %04X (%08X:%08X)\n",svid,srvs_.nodes[svid].ipv4,srvs_.nodes[svid].port);
-      connect(svid);}
+      //DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+      connect(peer);}
   }
 
   void clock()
@@ -3885,6 +3900,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   void peer_clean();
   void disconnect(uint16_t svid);
   const char* peers_list();
+  void connected(std::set<uint16_t>& list);
   void connected(std::vector<uint16_t>& list);
   bool connected(uint16_t svid);
   int duplicate(peer_ptr participant);

@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
   opt.get(argc,argv);
   FILE *lock=fopen(".lock","a");
   assert(lock!=NULL);
-  fprintf(lock,"%s:%d\n",opt.addr.c_str(),opt.port);
+  fprintf(lock,"%s:%d/%d\n",opt.addr.c_str(),opt.port,opt.svid);
   fclose(lock);
   try{
     server s(opt);
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
     ELOG("Exception: %s\n",e.what());}
   fclose(stdlog);
   unlink(".lock");
-  return 0;
+  return(0);
 }
 
 // office <-> client
@@ -211,11 +211,8 @@ void server::peer_clean()
 		if((*pi)->killme){
 			DLOG("KILL PEER %04X\n",(*pi)->svid);
 			missing_sent_remove((*pi)->svid);
-			//DLOG("DISCONNECT PEER %04X stop\n",(*pi)->svid);
 			(*pi)->stop();
-			//DLOG("DISCONNECT PEER %04X erase\n",(*pi)->svid);
 			peers_.erase(*pi);
-			//DLOG("DISCONNECT PEER %04X end\n",(*pi)->svid);
 			continue;}}
 	peer_.unlock();
 }
@@ -243,6 +240,13 @@ const char* server::peers_list()
 			list+="*";}}
  	peer_.unlock();
 	return(list.c_str()+1);
+}
+void server::connected(std::set<uint16_t>& list)
+{	peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->svid){
+			list.insert((*pi)->svid);}}
+	peer_.unlock();
 }
 void server::connected(std::vector<uint16_t>& list)
 {	peer_.lock();
@@ -364,7 +368,10 @@ void server::connect(std::string peer_address)
 {	try{
 		DLOG("TRY connecting to address %s\n",peer_address.c_str());
 		const char* port=SERVER_PORT;
-		char* p=strchr((char*)peer_address.c_str(),':');
+		char* p=strchr((char*)peer_address.c_str(),'/'); //separate peer id
+		if(p!=NULL){
+			peer_address[p-peer_address.c_str()]='\0';}
+		p=strchr((char*)peer_address.c_str(),':'); //detect port
 		if(p!=NULL){
 			peer_address[p-peer_address.c_str()]='\0';
 			port=p+1;}
