@@ -51,6 +51,7 @@ public:
 
   void stop() // by server only
   { DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
+    killme=true;
     peer_io_service_.stop();
     //DLOG("%04X PEER INTERRUPT\n",svid);
     //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -65,7 +66,7 @@ public:
 
   void leave()
   { DLOG("%04X PEER LEAVING %d<->%d\n",svid,socket_.local_endpoint().port(),port);
-    message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
+    //message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
     killme=true;
   }
 
@@ -117,7 +118,6 @@ public:
   void update(message_ptr msg)
   { if(killme){
       DLOG("%04X KILL detected ! (UPDATE), leaving\n",svid);
-      leave();
       return;}
     msg->print("; TRY UPDATE");
     if(do_sync){
@@ -217,7 +217,6 @@ public:
   { extern candidate_ptr nullcnd;
     if(killme){
       DLOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
-      leave();
       return;}
     if(do_sync){
       return;}
@@ -283,6 +282,9 @@ Aborted
 */
     //assert(do_sync); //FIXME, failed !!!
 //FIXME, brakes after handle_read_headers() if there are more headers to load
+    if(killme){
+      DLOG("%04X KILL detected ! (SEND SYNC), leaving\n",svid);
+      return;}
     put_msg->load(svid);
     busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
     mtx_.lock(); //most likely no lock needed
@@ -295,6 +297,9 @@ Aborted
 
   void handle_write(const boost::system::error_code& error) //TODO change this later, dont send each message separately if possible
   {
+    if(killme){
+      DLOG("%04X KILL detected ! (HANDLE WRITE), leaving\n",svid);
+      return;}
     if (!error) {
       mtx_.lock();
       message* msg=&(*(write_msgs_.front()));
@@ -347,8 +352,7 @@ Aborted
   void handle_read_header(const boost::system::error_code& error)
   { extern message_ptr nullmsg;
     if(killme){
-      ELOG("%04X KILL detected ! (HEADER), leaving\n",svid);
-      leave();
+      ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
       return;}
     if(error){
       ELOG("%04X READ error %d %s (HEADER)\n",svid,error.value(),error.message().c_str());
@@ -525,7 +529,9 @@ Aborted
       if(!linkservers.header_get()){
         //FIXME, new block possibly not ready yet, repeat (sleep) until block ready
 	ELOG("%04X ERROR, failed to provide header links\n",svid);
-        leave(); // consider updating client
+        uint32_t now=time(NULL);
+        if(from < now-2*BLOCKSEC || from > now){
+          leave();} // consider updating client
         return;}
       put_msg->data[0]=MSGTYPE_NHD;
       memcpy(put_msg->data+1,&from,4);
@@ -548,7 +554,9 @@ Aborted
       linkservers.now=now;
       if(!linkservers.header_get()){
 	ELOG("%04X ERROR, failed to provide header links\n",svid);
-        leave(); // consider updateing client
+        uint32_t now=time(NULL);
+        if(from < now-2*BLOCKSEC || from > now){
+          leave();} // consider updating client
         return;}
       if(now==from+BLOCKSEC){
 	memcpy(data,(const char*)linkservers.oldhash,SHA256_DIGEST_LENGTH);
@@ -680,7 +688,6 @@ Aborted
       ELOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash,sync_ls.nowhash,SHA256_DIGEST_LENGTH);
       ELOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-      leave();
       ELOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
       leave();
       return;}

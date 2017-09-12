@@ -891,6 +891,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     check_msgs_.clear();
 
     //clean and undo txs messages
+    std::deque<message_ptr> signnew; // vector of own late message for time update, signature and resubmission
     uint16_t lastsvid=0;
     uint32_t minmsid=0;
     if(!txs_msgs_.empty()){
@@ -923,11 +924,15 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       if(!(tm->second->status & MSGSTAT_VAL) && (tm->second->status & MSGSTAT_COM)){
         ELOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
         undo_message(tm->second);
-        if(tm->second->now<last_srvs_.now){
+        //if(tm->second->now<last_srvs_.now) will be too late :-(
+        if(tm->second->now<srvs_.now){
           ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          message_ptr msg=tm->second;
           bad_insert(tm->second);
           remove_message(tm->second);
-          txs_msgs_.erase(tm);}
+          txs_msgs_.erase(tm);
+          if(msg->svid==opts_.svid){
+            signnew.push_front(msg);}}
         else{
           ELOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);
@@ -936,11 +941,15 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           wait_.unlock();}
         continue;}
       if(!(tm->second->status & MSGSTAT_VAL) && tm->second->path && tm->second->path<=LAST_block){
+        //if(tm->second->now<last_srvs_.now) will be too late :-(
         if(tm->second->now<last_srvs_.now){
           ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+          message_ptr msg=tm->second;
           bad_insert(tm->second);
           remove_message(tm->second);
-          txs_msgs_.erase(tm);}
+          txs_msgs_.erase(tm);
+          if(msg->svid==opts_.svid){
+            signnew.push_front(msg);}}
         else{
           ELOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
           tm->second->move(LAST_block+BLOCKSEC);}}
@@ -972,6 +981,24 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         //FIXME, check info about peer inventory !!! find out who knows about the message !!!
         ELOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
         missing_msgs_[tm->second->hash.num]=tm->second;}}
+    }
+
+    if(!signnew.empty()){ // sign again messages that failed to be accepted by the network on time
+      uint32_t ntime=time(NULL);
+      uint32_t msid=srvs_.nodes[opts_.svid].msid;
+      hash_t msha;
+      memcpy(msha,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
+      for(auto mp=signnew.begin();mp!=signnew.end();mp++){
+        msid++;
+        assert(msid==(*mp)->msid);
+        (*mp)->load(0);
+        (*mp)->signnewtime(ntime,skey,pkey,msha);
+        (*mp)->status &= ~MSGSTAT_BAD;
+        memcpy(msha,(*mp)->sigh,sizeof(hash_t));
+        (*mp)->save();
+        (*mp)->unload(0);
+        check_msgs_.push_back((*mp));
+        ntime++;}
     }
 
     //txs_msgs_ clean
@@ -1858,7 +1885,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           //  msg->remove();} //save under new name (as failed)
           bad_insert(msg);
 #ifdef DEBUG
-          exit(-1);
+          exit(-1); //only for debugging
 #endif
           continue;}
         if(msg->path<srvs_.now){
