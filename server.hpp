@@ -167,7 +167,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     //load old messages or check/modify
     //pkey=srvs_.nodes[opts_.svid].pk; //FIXME, is this needed ? srvs_ is overwritten in fast sync :-(
 
+    RETURN_ON_SHUTDOWN();
     recyclemsid(lastpath+BLOCKSEC);
+    RETURN_ON_SHUTDOWN();
     writemsid(); // synced to new position
     clock_thread = new boost::thread(boost::bind(&server::clock, this));
     start_accept();
@@ -3816,6 +3818,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         //svid_msgs_.clear();
         //svid_.unlock();
         //TODO, maybe last_svid_msgs not needed (this can be read from txs_msgs_[_VAL] when creatin block_all_msgs)
+        RETURN_ON_SHUTDOWN();
         LAST_block_msgs();
         message_shash(cand.hash,LAST_block_all_msgs);
         { message_ptr put_msg(new message(1+SHA256_DIGEST_LENGTH));
@@ -3835,12 +3838,14 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}
       if(do_block>0 && do_block<3){
+        RETURN_ON_SHUTDOWN();
         count_votes(now,cand);}
       if(do_block==3){
         DLOG("STOPing validation to finish block\n");
         do_validate=0;
         threadpool.join_all();
         DLOG("STOPed validation to finish block\n");
+        RETURN_ON_SHUTDOWN();
         finish_block();
         //writelastpath();
         writemsid();
