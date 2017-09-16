@@ -87,14 +87,14 @@ chdir($ndir)||die "ERROR: failed to change dir to $ndir\n";
 #print FILE "$host:$port\n";
 #close(FILE);
 if($peers eq'' && $svid==1){
-  print "screen -S escd_node$svid -d -m ./escd --init 1\n";
-  system("screen -S escd_node$svid -d -m ./escd --init 1");} # init if node1 and no nodes running
+  print "screen -S escd_node$svid -d -m ./escd --init 1 2>log.err\n";
+  system("screen -S escd_node$svid -d -m ./escd --init 1 2>log.err");} # init if node1 and no nodes running
 else{
   if(-s "usr/0001.dat"){
-    print "screen -S escd_node$svid -d -m ./escd -m 1\n";
-    system("screen -S escd_node$svid -d -m ./escd -m 1");} # full sync if started before
+    print "screen -S escd_node$svid -d -m ./escd -m 1 2>log.err\n";
+    system("screen -S escd_node$svid -d -m ./escd -m 1 2>log.err");} # full sync if started before
   else{
-    print "screen -S escd_node$svid -d -m ./escd -m 1 -f 1\n";
-    system("screen -S escd_node$svid -d -m ./escd -m 1 -f 1");}} # resync fast first time
+    print "screen -S escd_node$svid -d -m ./escd -m 1 -f 1 2>log.err\n";
+    system("screen -S escd_node$svid -d -m ./escd -m 1 -f 1 2>log.err");}} # resync fast first time
 
 exit;

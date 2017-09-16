@@ -819,6 +819,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
     int fd=open(filename,O_RDONLY);
     if(fd<0){
+      busy.erase(who); //FIXME, check if this is not a problem :-(
       mtx_.unlock();
       DLOG("%s open failed [len:%d]\n",filename,len);
       return(0);}
@@ -858,6 +859,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
           (uint32_t)hashtype(),svid,msid,len);}
       else{
         if(data!=NULL && (status & MSGSTAT_SAV)){ //will only unload messages that are saved
+          DLOG("UNLOAD %04X:%08X %08X\n",svid,msid,who);
           free(data);
           data=NULL;}}}
     mtx_.unlock();
@@ -1134,6 +1136,15 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     mtx_.unlock();
   }
 
+  bool not_busy(uint16_t p)
+  { mtx_.lock();
+    if(busy.find(p)==busy.end()){
+      mtx_.unlock();
+      return(true);}
+    mtx_.unlock();
+    return(false);
+  }
+
   bool know_find_(uint16_t p)
   { for(auto k=know.begin();k!=know.end();k++){
       if(*k==p){
@@ -1166,6 +1177,28 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     mtx_.unlock();
   }
 
+  bool know_emplace(uint16_t p)
+  { mtx_.lock();
+    if(know_find_(p)){
+      mtx_.unlock();
+      return(false);}
+    know_insert_(p);
+    mtx_.unlock();
+    return(true);
+  }
+
+  bool sent_emplace(uint16_t p)
+  { mtx_.lock();
+    if(sent.find(p)!=sent.end()){
+      mtx_.unlock();
+      return(false);}
+    know_insert_(p);
+    sent.insert(p);
+    busy.insert(p);
+    mtx_.unlock();
+    return(true);
+  }
+
   void sent_insert(uint16_t p)
   { mtx_.lock();
     sent.insert(p);
@@ -1175,6 +1208,13 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
   void sent_erase(uint16_t p)
   { mtx_.lock();
     //if(busy.find(p)==busy.end()) //why was this here ??? ... maybe to prevent assert failure ...
+    sent.erase(p);
+    mtx_.unlock();
+  }
+
+  void know_sent_erase(uint16_t p)
+  { mtx_.lock();
+    know_erase_(p);
     sent.erase(p);
     mtx_.unlock();
   }
@@ -1218,6 +1258,16 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
         return(*k);}}
     mtx_.unlock();
     return(0);
+  }
+
+  uint32_t data_len()
+  { uint32_t dlen=len;
+    mtx_.lock();
+    if(len>64){
+      dlen=0;
+      memcpy(&dlen,data+1,3);}
+    mtx_.unlock();
+    return(dlen);
   }
 
 private:

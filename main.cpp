@@ -14,7 +14,7 @@
 //#include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/thread.hpp>
-#include <boost/container/flat_set.hpp>
+//#include <boost/container/flat_set.hpp>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
@@ -93,17 +93,6 @@ int main(int argc, char* argv[])
     s.ofip=&o;
     s.start();
     fut.get();
-    /*std::string line;
-    while (std::getline(std::cin,line)){
-      if(line[0]=='.' && line[1]=='\0'){
-        break;}
-      //FIXME, send a broadcast
-      uint32_t now=time(NULL);
-      usertxs txs(TXSTYPE_CON,0,0,now);
-      //o.message.append((char*)txs.data,txs.size);
-      uint32_t msid;
-      uint32_t mpos;
-      o.add_msg(txs.data,txs,msid,mpos);}*/
     ELOG("Shutting down\n");
     o.stop();
     s.stop(); }
@@ -188,167 +177,129 @@ void server::ofip_change_pkey(uint8_t* pkey)
 }
 
 // server <-> peer
-//void server::join(peer_ptr p)
-//{	peer_.lock();
-//	peers_.insert(p);
-//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
-//	peer_.unlock();
-//}
-//void server::leave(peer_ptr p) // not used !
-//{	assert(0);
-//	peer_.lock();
-//	if(peers_.find(p)!=peers_.end()){
-//		missing_sent_remove(p->svid);
-//		peers_.erase(p);}
-//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::print, _1));
-//	peer_.unlock();
-//	p->stop();
-//}
-void server::peer_clean()
+void server::peer_set(std::set<peer_ptr>& peers)
 {	peer_.lock();
-	for(auto pj=peers_.begin();pj!=peers_.end();){
-                auto pi=pj++;
-		if((*pi)->killme){
-			DLOG("KILL PEER %04X\n",(*pi)->svid);
-			missing_sent_remove((*pi)->svid);
-			(*pi)->stop();
-			peers_.erase(*pi);
-			continue;}}
+	peers=peers_;
 	peer_.unlock();
+}
+void server::peer_clean() //LOCK: peer_ missing_ mtx_
+{	std::set<peer_ptr> remove;
+        peer_.lock();
+	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+		if((*pi)->killme){
+			remove.insert(*pi);
+			peers_.erase(*pi);}}
+	peer_.unlock();
+	for(auto pi=remove.begin();pi!=remove.end();pi++){
+		DLOG("KILL PEER %04X\n",(*pi)->svid);
+		missing_sent_remove((*pi)->svid);
+		(*pi)->stop();}
 }
 void server::disconnect(uint16_t svid)
-{	peer_.lock();
-	for(auto pj=peers_.begin();pj!=peers_.end();){
-                auto pi=pj++;
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		if((*pi)->svid==svid){
 			DLOG("DISCONNECT PEER %04X\n",(*pi)->svid);
-			(*pi)->killme=true;
-			continue;}}
-	peer_.unlock();
+			(*pi)->killme=true;}}
 }
 const char* server::peers_list()
-{	static std::string list;
+{	std::set<peer_ptr> peers;
+	static std::string list;
 	list="";
- 	peer_.lock();
-	if(!peers_.size()){
- 		peer_.unlock();
+        peer_set(peers);
+	if(!peers.size()){
 		return("");}
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		list+=",";
 		list+=std::to_string((*pi)->svid);
 		if((*pi)->killme){
 			list+="*";}}
- 	peer_.unlock();
 	return(list.c_str()+1);
 }
-void server::connected(std::set<uint16_t>& list)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+void server::peers_known(std::set<uint16_t>& list)
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		if((*pi)->svid){
 			list.insert((*pi)->svid);}}
-	peer_.unlock();
 }
 void server::connected(std::vector<uint16_t>& list)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		if((*pi)->svid){
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
+		if((*pi)->svid && !((*pi)->killme) && !((*pi)->do_sync)){
 			list.push_back((*pi)->svid);}}
-	peer_.unlock();
-}
-bool server::connected(uint16_t svid)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		if((*pi)->svid==svid){
-			peer_.unlock();
-			return(true);}}
-	peer_.unlock();
-	return(false);
 }
 int server::duplicate(peer_ptr p)
-{	peer_.lock();
-	for(const peer_ptr r : peers_){
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto r : peers){
 		if(r!=p && r->svid==p->svid){
-			peer_.unlock();
 			return 1;}}
-	peer_.unlock();
 	return 0;
 }
-void server::get_more_headers(uint32_t now) //use random order
-{	peer_.lock();
-	auto pi=peers_.begin();
-	if(!peers_.size()){
-		peer_.unlock();
+void server::get_more_headers(uint32_t now)
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	auto pi=peers.begin();
+	if(!peers.size()){
 		return;}
-	if(peers_.size()>1){
-		int64_t num=((uint64_t)random())%peers_.size();
+	if(peers.size()>1){
+		int64_t num=((uint64_t)random())%peers.size();
 		advance(pi,num);}
 	if(!(*pi)->do_sync){
 		DLOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
-		(*pi)->request_next_headers(now);}
-	peer_.unlock();
+		(*pi)->request_next_headers(now);} //LOCK: peer::sio_
 }
-void server::fillknown(message_ptr msg) //use random order
+void server::fillknown(message_ptr msg)
 {	static uint32_t r=0;
- 	std::vector<uint16_t> v;
-	peer_.lock();
-	v.reserve(peers_.size());
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
-		if((*pi)->svid && !((*pi)->killme)){
-			v.push_back((*pi)->svid);}}
-	uint32_t n=v.size();
+ 	std::vector<uint16_t> peers;
+        connected(peers);
+	uint32_t n=peers.size();
 	for(uint32_t i=0;i<n;i++){
-		msg->know_insert(v[(r+i)%n]);} //insertion order important
-	peer_.unlock();
+		msg->know_insert(peers[(r+i)%n]);}
 	r++;
 }
 void server::peerready(std::set<uint16_t>& ready) //get list of peers available for data download
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		if((*pi)->svid && !((*pi)->killme) && !((*pi)->do_sync) && !((*pi)->busy)){
 			ready.insert((*pi)->svid);}}
-	peer_.unlock();
 }
 int server::deliver(message_ptr msg,uint16_t svid)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		if((*pi)->svid==svid){
 			(*pi)->deliver(msg);
-			peer_.unlock();
 			return(1);}}
-	peer_.unlock();
 	msg->sent_erase(svid);
 	return(0);
 }
 void server::deliver(message_ptr msg)
-{	peer_.lock();
-	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::deliver, _1, msg));
-	peer_.unlock();
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	std::for_each(peers.begin(),peers.end(),boost::bind(&peer::deliver, _1, msg));
 }
 int server::update(message_ptr msg,uint16_t svid)
-{	peer_.lock();
-	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		if((*pi)->svid==svid){
 			(*pi)->update(msg);
-			peer_.unlock();
 			return(1);}}
-	peer_.unlock();
 	msg->sent_erase(svid);
 	return(0);
 }
 void server::update(message_ptr msg)
-{	peer_.lock();
-	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::update, _1, msg));
-	peer_.unlock();
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	std::for_each(peers.begin(),peers.end(),boost::bind(&peer::update, _1, msg));
 }
-//void server::svid_msid_rollback(message_ptr msg)
-//{	assert(0); //do not use this, this causes sync problems if peers is in different block
-//	peer_.lock();
-//	std::for_each(peers_.begin(),peers_.end(),boost::bind(&peer::svid_msid_rollback, _1, msg));
-//	peer_.unlock();
-//}
 void server::start_accept()
 {	peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
-	//new_peer->iostart();
 	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::peer_accept,this,new_peer,boost::asio::placeholders::error));
 }
 void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error)
@@ -359,9 +310,6 @@ void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& erro
 		new_peer->accept();}
 	else{
 		new_peer->stop();}
-		//peer_.lock();
-		//peers_.erase(new_peer);
-		//peer_.unlock();
 	start_accept();
 }
 void server::connect(std::string peer_address)
@@ -382,7 +330,6 @@ void server::connect(std::string peer_address)
 		peer_.lock();
 		peers_.insert(new_peer);
 		peer_.unlock();
-                //new_peer->iostart();
 		boost::asio::async_connect(new_peer->socket(),iterator,
 			boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){
@@ -404,7 +351,6 @@ void server::connect(uint16_t svid)
 		peer_.lock();
 		peers_.insert(new_peer);
 		peer_.unlock();
-                //new_peer->iostart();
 		boost::asio::async_connect(new_peer->socket(),iterator,
 			boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
 	catch (std::exception& e){

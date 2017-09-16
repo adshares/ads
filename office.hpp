@@ -29,9 +29,9 @@ public:
       fprintf(stderr,"OFFICE %04X open\n",svid);
       // prapare local register [this could be in RAM later or be on a RAM disk]
       mkdir("ofi",0755);
-      char filename[64];
-      sprintf(filename,"ofi/%04X.dat",svid);
-      offifd_=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
+      //char filename[64];
+      sprintf(ofifilename,"ofi/%04X.dat",svid);
+      offifd_=open(ofifilename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
       if(offifd_<0){
         ELOG("ERROR, failed to open office register\n");}
       mklogdir(opts_.svid);
@@ -195,6 +195,13 @@ public:
     if(dd<0){
       fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
+    // read 2 times to prevent double lock
+    for(uint32_t user=0;user<users;user++){
+      int64_t div;
+      if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
+        break;}
+      add_deposit(user,div);}//LOCK: file_
+    lseek(dd,0,SEEK_SET);
     log_.lock();
     log_t alog;
     alog.time=time(NULL);
@@ -209,7 +216,6 @@ public:
       int64_t div;
       if(read(dd,&div,sizeof(uint64_t))!=sizeof(uint64_t)){
         break;}
-      add_deposit(user,div);
       alog.weight=div;
       put_log(user,alog);}
     close(dd);
@@ -323,10 +329,8 @@ public:
         div_ready=0;}
       if(message.empty()){
 #ifdef DEBUG
-        //message_.lock();
         file_.lock();
         srv_.break_silence(now,message,message_tnum);
-        //message_.unlock();
         file_.unlock();
 #endif
         continue;}
@@ -336,7 +340,6 @@ public:
       if(!srv_.accept_message()){
 	DLOG("WARNING, server not ready for a new message (%d)\n",srv_.msid_);
         continue;}
-      //message_.lock();
       file_.lock();
       uint32_t newmsid=srv_.msid_+1;
       DLOG("SENDING message %08X\n",newmsid);
@@ -347,13 +350,11 @@ public:
       else
 #endif
       if(!srv_.write_message(message)){
-        //message_.unlock();
         file_.unlock();
         DLOG("ERROR sending message %08X\n",newmsid);
         continue;}
       message.clear();
       message_tnum=0;
-      //message_.unlock();
       file_.unlock();
       del_msg(newmsid);
       message_sent=now;}
@@ -423,11 +424,15 @@ public:
       return(get_user_global(u,cbank,cuser));}
     if(cuser>=users){
       return(false);}
-    file_.lock(); // could use read only access without lock
-    lseek(offifd_,cuser*sizeof(user_t),SEEK_SET);
-    read(offifd_,&u,sizeof(user_t));
+    //file_.lock(); //FIXME, could use read only access without lock
+    int fd=open(ofifilename,O_RDONLY);
+    if(fd<0){ ELOG("ERROR, failed to open account file %s\n",ofifilename);
+      return(false);}
+    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    read(fd,&u,sizeof(user_t));
+    close(fd);
+    //file_.unlock();
     if(!u.msid){
-      file_.unlock();
       return(false);}
     //if(deposit[cuser] || ustatus[cuser]!=u.status)
     //if(deposit[cuser]){
@@ -437,7 +442,6 @@ public:
     //  assert(u.weight>=0);
     //  lseek(offifd_,-sizeof(user_t),SEEK_CUR);
     //  write(offifd_,&u,sizeof(user_t));} // write weight
-    file_.unlock();
     return(true);
   }
 
@@ -567,20 +571,24 @@ public:
 
   bool try_account(hash_s* key)
   { account_.lock();
-    if(accounts_.size()>MAX_ACCOUNT){
-      for(auto it=accounts_.begin();it!=accounts_.end();){
-        auto jt=it++;
-        user_t u;
-        get_user(u,svid,jt->second); //watch out for deadlocks
-        //if(u.weight>=USER_MIN_MASS)
-        if(u.weight>0){
-          accounts_.erase(jt);}}
-      if(accounts_.size()>MAX_ACCOUNT){
-        account_.unlock();
-        return(false);}}
     if(accounts_.find(*key)!=accounts_.end()){
       account_.unlock();
       return(false);}
+    if(accounts_.size()>MAX_ACCOUNT){
+      std::map<hash_s,uint32_t,hash_cmp> acs = accounts_;
+      account_.unlock();
+      std::vector<hash_s> del;
+      for(auto it=acs.begin();it!=acs.end();it++){
+        user_t u;
+        get_user(u,svid,it->second);
+        if(u.weight>0){
+          del.push_back(it->first);}}
+      account_.lock();
+      for(auto jt : del){
+        accounts_.erase(jt);}
+      if(accounts_.size()>MAX_ACCOUNT){
+        account_.unlock();
+        return(false);}}
     account_.unlock();
     return(true);
   }
@@ -618,7 +626,6 @@ public:
   bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
   { if(!run){ return(false);}
     int len=utxs.size;
-    //message_.lock();
     file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX){
       ELOG("MESSAGE busy, delaying message addition\n");}
@@ -633,7 +640,6 @@ public:
     if(md<0){
       msid=0;
       mpos=0;
-      //message_.unlock();
       file_.unlock();
       ELOG("ERROR, failed to log message %s\n",filename);
       return(false);} // :-( maybe we should throw here something
@@ -657,17 +663,30 @@ public:
       if(oldstatus!=u.stat){
         lseek(offifd_,-sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t));}} // write only stat !!!
-    //message_.unlock();
     file_.unlock();
     return(true);
   }
 
-  void lock_user(uint32_t cuser)
-  { users_[cuser & 0xff].lock();
+  bool lock_user(uint32_t cuser) //WARNING, ddos attack against user, use alternative protections
+  { //users_[cuser & 0xff].lock();
+    users_.lock();
+    if(users_lock.size()>CLIENT_POOL*2){
+      users_.unlock();
+      return(false);}
+    if(users_lock.find(cuser)!=users_lock.end()){
+      users_.unlock();
+      return(false);}
+    users_lock.insert(cuser);
+    users_.unlock();
+    return(true);
   }
 
   void unlock_user(uint32_t cuser)
-  { users_[cuser & 0xff].unlock();
+  { //users_[cuser & 0xff].unlock();
+    users_.lock();
+    users_lock.erase(cuser);
+    users_.unlock();
+    return;
   }
 
   void start_accept(); // main.cpp
@@ -759,7 +778,7 @@ public:
       if(fd<0){
         ELOG("ERROR, failed to open log register %s\n",filename);
         return;}} // :-( maybe we should throw here something
-    write(fd,&log,sizeof(log_t));
+    write(fd,&log,sizeof(log_t)); // lock() here
     close(fd);
   }
   void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) //many users, called by office and client
@@ -785,7 +804,7 @@ public:
             return;}} // :-( maybe we should throw here something
         }
       it->second.time=ntime;
-      write(fd,&it->second,sizeof(log_t));}
+      write(fd,&it->second,sizeof(log_t));} // lock() here
     if(fd>=0){
       purge_log(fd,luser);
       close(fd);}
@@ -793,14 +812,14 @@ public:
   }
 #endif
 
-  void put_ulog(uint32_t user,log_t& log) //single user, called by office and client
+  void put_ulog(uint32_t user,log_t& log) //single user, called by client
   { log_.lock();
     log.time=time(NULL);
     put_log(user,log);
     log_.unlock();
   }
 
-  void put_ulog(std::map<uint64_t,log_t>& log) //single user, called by office and client
+  void put_ulog(std::map<uint64_t,log_t>& log) //single user, called by client
   { log_.lock();
     uint32_t ntime=time(NULL);
     put_log(log,ntime);
@@ -897,6 +916,7 @@ public:
   hash_t pkey; // local copy for managing updates
   std::stack<gup_t> gup; // GET results
 private:
+  char ofifilename[64];
   const user_t user_tmp={};
   bool run;
   uint32_t div_ready;
@@ -933,12 +953,13 @@ private:
   boost::thread* ioth_;
   boost::thread* clock_thread;
 
+  std::set<uint32_t> users_lock;
+
+  boost::mutex file_; //LOCK: server::
+  boost::mutex log_; //FIXME, maybe no need for this lock, lock too long
+  boost::mutex users_; //LOCK: file_, log_
   boost::mutex client_;
-  boost::mutex file_;
   boost::mutex account_;
-  //boost::mutex message_; requires file.lock too, to process status changes in correct order :-(
-  boost::mutex users_[0x100];
-  boost::mutex log_;
 };
 
 #endif // OFFICE_HPP

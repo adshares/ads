@@ -975,7 +975,9 @@ public:
 		ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
 	void save_signature(uint16_t svid,uint8_t* sig,bool ok)
-	{	char filename[64];
+	{	static boost::mutex local_;
+		boost::lock_guard<boost::mutex> lock(local_);
+		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/signatures.txt",now>>20,now&0xFFFFF);
 		char hash[4*SHA256_DIGEST_LENGTH];
 		ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);

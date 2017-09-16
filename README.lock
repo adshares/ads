@@ -1,0 +1,25 @@
+LOCK order
+
+message.hpp:	boost::mutex mtx_; OK
+candidate.hpp:	boost::mutex msg_; OK
+server.hpp:	boost::mutex wait_; OK
+server.hpp:	boost::mutex check_; OK
+server.hpp:	boost::mutex bad_; OK mtx_ //is this needed ?
+server.hpp:	boost::mutex ldc_; OK
+server.hpp:	boost::mutex cnd_; OK mtx_
+server.hpp:	boost::mutex blk_; OK mtx_
+server.hpp:	boost::mutex dbls_; OK
+server.hpp:	boost::mutex dbl_; OK dbls_, mtx_
+server.hpp:	boost::mutex deposit_; OK
+server.hpp:	boost::mutex headers_; OK
+server.hpp:	boost::mutex peer_; OK
+server.hpp:	boost::mutex missing_; OK mtx_, peer_, pio_(!!!)
+server.hpp:	boost::mutex txs_; OK mtx_, bad_, wait_, check_, blk_, deposit_, msg_
+server.hpp:	boost::mutex cand_; OK txs_, mtx_, msg_
+office.hpp:	boost::mutex file_; OK txs_, peer_
+office.hpp:	boost::mutex log_; OK
+office.hpp:	boost::mutex users_; OK file_, log_
+office.hpp:	boost::mutex client_; OK
+office.hpp:	boost::mutex account_; OK
+peer.hpp:	boost::mutex pio_; OK mtx_
+main.cpp:	boost::mutex flog; OK

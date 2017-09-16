@@ -52,14 +52,14 @@ public:
   }
 
   void update(message_ptr msg)
-  { lock.lock(); //just in case
+  { msg_.lock(); //just in case
     auto mis=msg_mis.find(msg->hash.num & 0xFFFFFFFFFFFF0000L);
     if(mis!=msg_mis.end()){
       auto add=msg_add.find(msg->hash.num & 0xFFFFFFFFFFFF0000L);
       assert(add!=msg_add.end());
       if(!memcmp(add->second.hash,msg->sigh,32)){
         msg_mis.erase(mis);}}
-    lock.unlock();
+    msg_.unlock();
   }
 
   const char* print_missing(servers* srvs) //TODO, consider having local lock
@@ -68,19 +68,32 @@ public:
       line="FAILED MISSING: ";}
     else{
       line="MISSING: ";}
-    lock.lock();
+    msg_.lock();
     for(auto key : msg_mis){
       char miss[64];
       uint32_t msid=(key>>16) & 0xFFFFFFFFL;
       uint16_t svid=(key>>48);
       sprintf(miss," %04X:%08X",svid,msid);
       line+=miss;}
-    lock.unlock();
+    msg_.unlock();
     return(line.c_str());
   }
 
-  boost::mutex lock; //used by server::print_missing_verbose() :-( TODO, keep local
+  void get_missing(std::vector<uint64_t>& missing)
+  { msg_.lock();
+    for(auto key : msg_mis){
+      missing.push_back(key);}
+    msg_.unlock();
+  }
+
+  void del_missing(uint64_t mis)
+  { msg_.lock();
+    msg_mis.erase(mis);
+    msg_.unlock();
+  }
+
 private:
+  boost::mutex msg_;
 
 };
 typedef boost::shared_ptr<candidate> candidate_ptr;

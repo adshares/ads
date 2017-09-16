@@ -83,7 +83,12 @@ public:
       boost::asio::async_read(socket_,boost::asio::buffer(buf+len,utxs.bbank*(6+8)),
         boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    parse();
+    if(offi_.lock_user(utxs.auser)){
+      try{
+        parse();}
+      catch (std::exception& e){
+        DLOG("ERROR exception in parse (%08X)\n",utxs.auser);}
+      offi_.unlock_user(utxs.auser);}
     offi_.leave(shared_from_this());
   }
 
@@ -92,7 +97,12 @@ public:
       DLOG("ERROR: read more error\n");
       offi_.leave(shared_from_this());
       return;}
-    parse();
+    if(offi_.lock_user(utxs.auser)){
+      try{
+        parse();}
+      catch (std::exception& e){
+        DLOG("ERROR exception in parse (%08X)\n",utxs.auser);}
+      offi_.unlock_user(utxs.auser);}
     offi_.leave(shared_from_this());
   }
 
@@ -112,41 +122,33 @@ public:
     msid=0;
     mpos=0;
 
-    offi_.lock_user(utxs.auser); //needed to prevent 2 msgs from a user with same msid
 //FIXME, read the rest ... add additional signatures
     //consider adding a max txs limit per user
     if(!offi_.get_user(usera,utxs.abank,utxs.auser)){
       DLOG("ERROR: read user failed\n");
-      offi_.unlock_user(utxs.auser);
       return;}
     if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
       DLOG("ERROR: bad signature\n");
-      offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf)){
       DLOG("ERROR: bad second signature\n");
-      offi_.unlock_user(utxs.auser);
       return;}
     if(diff>1 && *buf!=TXSTYPE_BLG){
       DLOG("ERROR: time in the future (%d>1s)\n",diff);
-      offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_BKY){
       hash_t skey;
       if(!utxs.bbank && !offi_.find_key((uint8_t*)utxs.key(buf),skey)){
         DLOG("ERROR: matching secret key not found\n");
-        offi_.unlock_user(utxs.auser);
         return;}}
     if(*buf==TXSTYPE_INF){ // this is special, just local info
       if((abs(diff)>2)){
         DLOG("ERROR: high time difference (%d>2s)\n",diff);
-        offi_.unlock_user(utxs.auser);
         return;}
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
       if(utxs.abank!=offi_.svid && utxs.bbank!=offi_.svid){
         DLOG("ERROR: bad bank for INF\n");
-        offi_.unlock_user(utxs.auser);
         return;}
 #ifdef DEBUG
       DLOG("SENDING user info %08X:%04X\n",utxs.bbank,utxs.buser);
@@ -155,32 +157,26 @@ public:
       if(utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser){
         if(!offi_.get_user(userb,utxs.bbank,utxs.buser)){
           DLOG("FAILED to get user info %08X:%04X\n",utxs.bbank,utxs.buser);
-          offi_.unlock_user(utxs.auser);
           return;}
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       else{
         boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));}
       if(!offi_.get_user_global(userb,utxs.bbank,utxs.buser)){
         DLOG("FAILED to get global user info %08X:%04X\n",utxs.bbank,utxs.buser);
-        offi_.unlock_user(utxs.auser);
         return;}
       boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
-      offi_.unlock_user(utxs.auser);
       return;}
     if(utxs.abank!=offi_.svid){
       DLOG("ERROR: bad bank\n");
-      offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_LOG){
       boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));
       std::string slog;
       if(!offi_.get_log(utxs.abank,utxs.auser,utxs.ttime,slog)){
         DLOG("ERROR: get log failed\n");
-        offi_.unlock_user(utxs.auser);
         return;}
       DLOG("SENDING user %04X:%08X log [size:%lu]\n",utxs.abank,utxs.auser,(long)slog.size());
       boost::asio::write(socket_,boost::asio::buffer(slog.c_str(),slog.size()));
-      offi_.unlock_user(utxs.auser);
       return;}
     if(*buf==TXSTYPE_BLG){
       uint32_t head[3];
@@ -196,7 +192,6 @@ public:
         if(path>lpath){
           DLOG("ERROR, broadcast %08X not ready (>=%08X)\n",path,lpath);
           //will now return an empty blog file
-          //offi_.unlock_user(utxs.auser);
           //return;
           }}
       //FIXME, report only completed broadcast files (<=last_path())
@@ -207,7 +202,6 @@ public:
         size=0;
         boost::asio::write(socket_,boost::asio::buffer(head,3*sizeof(uint32_t)));
         DLOG("SENDING broadcast log %08X [empty]\n",path);
-        offi_.unlock_user(utxs.auser);
         return;}
       struct stat sb;
       fstat(fd,&sb);
@@ -221,7 +215,6 @@ public:
       if(!size){
         boost::asio::write(socket_,boost::asio::buffer(head,3*sizeof(uint32_t)));
         close(fd);
-        offi_.unlock_user(utxs.auser);
         return;}
       char buf[3*sizeof(uint32_t)+size];
       memcpy(buf,head,3*sizeof(uint32_t));
@@ -230,7 +223,6 @@ public:
         if(len<=0){
           close(fd);
           DLOG("ERROR, failed to read BROADCAST LOG %s [size:%08X,pos:%08X]\n",filename,size,pos);
-          offi_.unlock_user(utxs.auser);
           return;}
         if(!pos){
           boost::asio::write(socket_,boost::asio::buffer(buf,3*sizeof(uint32_t)+len));}
@@ -238,11 +230,9 @@ public:
           boost::asio::write(socket_,boost::asio::buffer(buf+3*sizeof(uint32_t),len));}
         pos+=len;}
       close(fd);
-      offi_.unlock_user(utxs.auser);
       return;}
 
     if(*buf==TXSTYPE_BLK){
-      offi_.unlock_user(utxs.auser); //FIXME, unlock before sending output (fix other commands)
       servers block;
       uint32_t from=utxs.amsid-utxs.amsid%BLOCKSEC; //TODO replace 0 by the available beginning or last checkpoint
       uint32_t to=utxs.buser-utxs.buser%BLOCKSEC;
@@ -362,7 +352,6 @@ public:
       return;}
 
     if(*buf==TXSTYPE_TXS){
-      offi_.unlock_user(utxs.auser);
       message_ptr msg(new message());
       msg->hash.dat[1]=MSGTYPE_MSG; //prevent assert in hash_tree_get()
       msg->svid=utxs.bbank;
@@ -407,31 +396,25 @@ public:
         char hash[65]; hash[64]='\0';
         ed25519_key2text(hash,srvs_.viphash,32);
         DLOG("ERROR, failed to provide vip keys %.64s\n",hash);
-        offi_.unlock_user(utxs.auser);
         return;}
-      offi_.unlock_user(utxs.auser);
       boost::asio::write(socket_,boost::asio::buffer(buf,len+4));
       free(buf);
       return;}
 
     if(*buf==TXSTYPE_SIG){ //TODO, add
 
-      offi_.unlock_user(utxs.auser);
       return;}
 
     if(usera.msid!=utxs.amsid){
       DLOG("ERROR: bad msid %08X<>%08X\n",usera.msid,utxs.amsid);
-      offi_.unlock_user(utxs.auser);
       return;}
     //commit trasaction
     if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=utxs.auser || usera.node!=utxs.abank)){//check account lock
       if(*buf!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
         DLOG("ERROR: account locked, send 0 to yourself and wait for unlock\n");
-        offi_.unlock_user(utxs.auser);
         return;}
       if(usera.lpath>usera.time){
         DLOG("ERROR: account unlock in porgress\n");
-        offi_.unlock_user(utxs.auser);
         return;}
       utxs.ttime=usera.time;//lock time not changed
       //need to read data with _INF to confirm unlock !!!
@@ -446,7 +429,6 @@ public:
       if(!offi_.check_user(utxs.bbank,utxs.buser)){
         // does not check if account closed [consider adding this slow check]
 	DLOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
-        offi_.unlock_user(utxs.auser);
         return;}
       deposit=utxs.tmass;
       deduct=utxs.tmass;
@@ -475,16 +457,13 @@ public:
         memcpy(&tmass,tbuf+6,8);
         if(tmass<=0){ //only positive non-zero values allowed
           DLOG("ERROR: only positive non-zero transactions allowed in MPT\n");
-          offi_.unlock_user(utxs.auser);
           return;}
         if(out.find(to.big)!=out.end()){
           DLOG("ERROR: duplicate target: %04X:%08X\n",tbank,tuser);
-          offi_.unlock_user(utxs.auser);
           return;}
         if(!offi_.check_user((uint16_t)tbank,tuser)){
           // does not check if account closed [consider adding this slow check]
           DLOG("ERROR: bad target user %04X:%08X\n",tbank,tuser);
-          offi_.unlock_user(utxs.auser);
           return;}
         out.insert(to.big);
         mpt_bank.push_back((uint16_t)tbank);
@@ -504,14 +483,12 @@ public:
         fee=TXS_MIN_FEE;}
       if(deduct+fee+USER_MIN_MASS>usera.weight){ //check in advance before creating new user
         DLOG("ERROR: too low balance %ld+%ld+%ld>%ld\n",deduct,fee,USER_MIN_MASS,usera.weight);
-        offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.bbank!=offi_.svid){
         uint32_t now=time(NULL);
         if(now%BLOCKSEC>BLOCKSEC/2){
           DLOG("ERROR: bad timing for remote account request, try after %d seconds\n",
             BLOCKSEC-now%BLOCKSEC);
-          offi_.unlock_user(utxs.auser);
           return;}
         bzero(buf+txslen[(int)*buf]+64+0,4+32);
         utxs.buser=0;} //FIXME, remove 32 bytes
@@ -519,7 +496,6 @@ public:
         uint32_t nuser=offi_.add_user(utxs.abank,usera.pkey,utxs.ttime,utxs.auser);
         if(!nuser){
           DLOG("ERROR: failed to open account\n");
-          offi_.unlock_user(utxs.auser);
           return;}
         memcpy(buf+txslen[(int)*buf]+64+0,&nuser,4);
         memcpy(buf+txslen[(int)*buf]+64+4,usera.pkey,32); //FIXME, this data is not needed !!!
@@ -532,7 +508,6 @@ public:
     else if(*buf==TXSTYPE_GET){ // we will get a confirmation from the network
       if(utxs.abank==utxs.bbank){
 	DLOG("ERROR: bad bank %04X, use PUT\n",utxs.bbank);
-        offi_.unlock_user(utxs.auser);
         return;}
 //FIXME, check second user and stop transaction if GET is pednig or there are no funds
       fee=TXS_GET_FEE;}
@@ -542,11 +517,9 @@ public:
     else if(*buf==TXSTYPE_BKY){ // we will get a confirmation from the network
       if(utxs.auser){
 	DLOG("ERROR: bad user %04X for bank key changes\n",utxs.auser);
-        offi_.unlock_user(utxs.auser);
         return;}
       //if(utxs.auser && utxs.bbank){
       //  DLOG("ERROR: only admin can change keys for DBL nodes (%04X) \n",utxs.bbank);
-      //  offi_.unlock_user(utxs.auser);
       //  return;}
       buf=(char*)std::realloc(buf,utxs.size);
       fee=TXS_BKY_FEE;}
@@ -557,48 +530,40 @@ public:
     else if(*buf==TXSTYPE_SUS){
       if(!offi_.check_user(utxs.bbank,utxs.buser)){
 	DLOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
-        offi_.unlock_user(utxs.auser);
         return;}
       // add bank logic here
       if(utxs.bbank == offi_.svid){ // check if other admins have write permissions
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users can set only higher bits
 	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
-          offi_.unlock_user(utxs.auser);
           return;}}
       fee=TXS_SUS_FEE;}
 
     else if(*buf==TXSTYPE_UUS){
       if(!offi_.check_user(utxs.bbank,utxs.buser)){
 	DLOG("ERROR: bad target user %04X:%08X\n",utxs.bbank,utxs.buser);
-        offi_.unlock_user(utxs.auser);
         return;}
       // add bank logic here
       if(utxs.bbank == offi_.svid){ // check if other admins have write permissions
         if(utxs.auser && utxs.auser!=utxs.buser && (0x0!=(utxs.tmass&0xF))){ //normal users set only higher bits
 	  DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",(uint16_t)utxs.tmass,utxs.buser);
-          offi_.unlock_user(utxs.auser);
           return;}}
       fee=TXS_UUS_FEE;}
 
     else if(*buf==TXSTYPE_SBS){
       if(!offi_.check_user(utxs.bbank,0)){
 	DLOG("ERROR: bad target node %04X\n",utxs.bbank);
-        offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.auser){
         DLOG("ERROR: not authorized to change node status\n");
-        offi_.unlock_user(utxs.auser);
         return;}
       fee=TXS_SBS_FEE;}
 
     else if(*buf==TXSTYPE_UBS){
       if(!offi_.check_user(utxs.bbank,0)){
 	DLOG("ERROR: bad target node %04X\n",utxs.bbank);
-        offi_.unlock_user(utxs.auser);
         return;}
       if(utxs.auser){
         DLOG("ERROR: not authorized to change node status\n");
-        offi_.unlock_user(utxs.auser);
         return;}
       fee=TXS_UBS_FEE;}
 
@@ -608,7 +573,6 @@ public:
     if(deduct+fee+(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS)>usera.weight){
       DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
         deduct,fee,(uint64_t)(utxs.auser?USER_MIN_MASS:BANK_MIN_UMASS),usera.weight);
-      offi_.unlock_user(utxs.auser);
       return;}
     //send message
     //commit bank key change
@@ -617,7 +581,6 @@ public:
         uint8_t* key=offi_.node_pkey(utxs.bbank);
         if(key==NULL){
           DLOG("ERROR: setting key for remote bank (%04X) failed\n",utxs.bbank);
-          offi_.unlock_user(utxs.auser);
           return;}
         memcpy(utxs.opkey(buf),key,32);} // should do this by server during message creation (as in _SAV)
       else{
@@ -647,7 +610,6 @@ public:
     //if(!msid||!mpos){
     if(!msid){
       DLOG("ERROR: message submission failed (%08X:%08X)\n",msid,mpos);
-      offi_.unlock_user(utxs.auser);
       return;}
 
     offi_.set_user(utxs.auser,usera,deduct+fee); //will fail if status changed !!!
@@ -717,7 +679,6 @@ public:
       //  offi_.set_status(utxs);} //must be in add_msg to keep correct order
       if(*buf==TXSTYPE_PUT && deposit>=0){
         offi_.add_deposit(utxs);}}
-    offi_.unlock_user(utxs.auser);
     //FIXME, return msid and mpos
 #ifdef DEBUG
     DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n",utxs.abank,utxs.auser,msid,mpos);
