@@ -1219,13 +1219,13 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     mtx_.unlock();
   }
 
-  bool cansend(uint16_t p, uint32_t mynow)
+  bool cansend(uint16_t p, uint32_t mynow, uint32_t maxwait)
   { assert(data!=NULL);
     if((status & MSGSTAT_DAT) || len!=header_length){
       DLOG("IGNORING REQUEST for %04X:%08X\n",svid,msid);
       return(false);}
     mtx_.lock();
-    if(mynow<=got+MAX_MSGWAIT+(data[0]==MSGTYPE_USR?MAX_USRWAIT:0)){ //FIXME, make MAX_MSGWAIT dependend on expected size
+    if(mynow<=got+MAX_MSGWAIT+maxwait){
       mtx_.unlock();
       return(false);}
     if(sent.find(p)==sent.end()){
@@ -1244,7 +1244,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
       return(0);}
     uint32_t mynow=time(NULL);
     mtx_.lock();
-    if(mynow<=got+MAX_MSGWAIT+(data[0]==MSGTYPE_USR?MAX_USRWAIT:0)){ //FIXME, make MAX_MSGWAIT dependend on expected size
+    //if(mynow<=got+MAX_MSGWAIT+(data[0]==MSGTYPE_USR?MAX_USRWAIT:0))
+    if(mynow<=got+MAX_MSGWAIT){
       mtx_.unlock();
       return(0);}
     for(auto k=know.begin();k!=know.end();k++){

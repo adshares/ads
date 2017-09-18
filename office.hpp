@@ -574,7 +574,7 @@ public:
     if(accounts_.find(*key)!=accounts_.end()){
       account_.unlock();
       return(false);}
-    if(accounts_.size()>MAX_ACCOUNT){
+    if(accounts_.size()>MAX_USER_QUEUE){
       std::map<hash_s,uint32_t,hash_cmp> acs = accounts_;
       account_.unlock();
       std::vector<hash_s> del;
@@ -586,7 +586,7 @@ public:
       account_.lock();
       for(auto jt : del){
         accounts_.erase(jt);}
-      if(accounts_.size()>MAX_ACCOUNT){
+      if(accounts_.size()>MAX_USER_QUEUE){
         account_.unlock();
         return(false);}}
     account_.unlock();
@@ -727,10 +727,10 @@ public:
     if(size%sizeof(log_t)){
       ELOG("ERROR, log corrupt register\n");
       return(-2);}
-    if(size<LOG_PURGE_START){
+    if(size<MIN_LOG_SIZE){
       return(0);}
     size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
-    for(;size>=LOG_PURGE_START;size-=4096){
+    for(;size>=MIN_LOG_SIZE;size-=4096){
       if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)){
         ELOG("ERROR, log lseek error\n");
         return(-1);}

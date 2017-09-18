@@ -135,7 +135,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(last_srvs_.now==now-BLOCKSEC && !do_fast){
           do_sync=0;}
         else{
-          if(last_srvs_.now<now-MAXLOSS && !do_fast){
+          if(last_srvs_.now<now-(BLOCKSEC*MAX_UNDO) && !do_fast){
             ELOG("WARNING, possibly missing too much history for full resync\n");}
           do_sync=1;}}}
     //ofip_init(last_srvs_.nodes[opts_.svid].users); //must do this after recycling messages !!!
@@ -353,6 +353,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     std::set<uint16_t> ready;
     peerready(ready); //get list of peers available for data download
     missing_.lock();
+    missing_msgs_.clear();
     for(uint16_t bank=1;bank<end;bank++){
       //TODO, unlikely but maybe we have the correct bank already, we could check this
       message_ptr put_msg(new message());
@@ -379,7 +380,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     uint32_t mynow=time(NULL);
     for(auto peer=ready.begin();peer!=ready.end();peer++){ // send 2 requestes to each peer
       for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
-        if(pm->second->cansend(*peer,mynow)){
+        uint32_t maxwait=last_srvs_.nodes[pm->second->svid].users*sizeof(user_t)/1000000; //expect 1Mb connection
+        if(pm->second->cansend(*peer,mynow,maxwait)){
           DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
           deliver(pm->second,*peer); //LOCK: pio_
           DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
@@ -388,7 +390,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       uint32_t mynow=time(NULL);
       for(auto peer=ready.begin();peer!=ready.end();peer++){ // send 2 requestes to each peer
         for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
-          if(pm->second->cansend(*peer,mynow)){ // wait dependend on message size !!!
+          uint32_t maxwait=last_srvs_.nodes[pm->second->svid].users*sizeof(user_t)/1000000; //expect 1Mb connection
+          if(pm->second->cansend(*peer,mynow,maxwait)){ // wait dependend on message size !!!
             DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
             deliver(pm->second,*peer); //LOCK: pio_
             DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
@@ -1064,9 +1067,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       return;}
     if(do_block<2 && (
         (cnd1->score>(cnd2!=nullcnd?cnd2->score:0)+(votes_max-votes_counted))||
-        (now>srvs_.now+BLOCKSEC+MAX_ELEWAIT))){
+        (now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)))){
       uint64_t x=(cnd2!=nullcnd?cnd2->score:0);
-      if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
+      if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)){
         ELOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
           cnd1->score,x,votes_max,votes_counted);}
       else{
@@ -1096,7 +1099,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         write_candidate(best);}
       return;}
     if(do_block==2){
-      if(now>srvs_.now+BLOCKSEC+MAX_ELEWAIT){
+      if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)||now>srvs_.now+BLOCKSEC+(VIP_MAX*VOTE_DELAY)){
         ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());}
       else{
         //DLOG("--- count votes() ---\n");
@@ -1129,7 +1132,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }
       
   //FIXME, using blk_msgs_ as elector set is unsafe, VIP nodes should be used
-  void prepare_poll() // select CANDIDATE_MAX candidates and VOTES_MAX electors
+  void prepare_poll()
   { 
     cand_.lock();
 #ifdef DEBUG
@@ -1171,7 +1174,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j){return(this->last_srvs_.nodes[i].weight>this->last_srvs_.nodes[j].weight);});} //fuck, lambda :-/
     //TODO, save this list
     cand_.lock();
-    for(uint32_t j=0;j<VOTES_MAX && j<svid_rank.size();j++){
+    for(uint32_t j=0;j<VIP_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
       ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
@@ -2389,7 +2392,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         close(fd);
         return(false);}
       //process transactions
-      if(usera->time+2*LOCK_TIME<lpath && usera->user && usera->node && (usera->user!=utxs.auser || usera->node!=utxs.abank)){//check account lock
+      if(usera->time+LOCK_TIME<lpath && usera->user && usera->node && (usera->user!=utxs.auser || usera->node!=utxs.abank)){//check account lock
         if(*p!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){
           DLOG("ERROR: account locked, send 0 to yourself and wait for unlock\n");
           close(fd);
@@ -3102,7 +3105,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
         read(fd,&u,sizeof(user_t));
         if(!memcmp(u.pkey,tx->pkey,32)){ //FIXME, add transaction fees processing
-          if(u.time+2*LOCK_TIME>srvs_.now){
+          if(u.time+LOCK_TIME>srvs_.now){
             continue;}
           undo.emplace(tx->buser,u);
           int64_t fee=0;

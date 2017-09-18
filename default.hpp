@@ -4,45 +4,48 @@
 #ifdef DEBUG
 # define BLOCKSEC 0x20 /* block period in seconds */
 # define BLOCKDIV 0x4 /* number of blocks for dividend update */
+# define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
+# define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
 #else
-# define BLOCKSEC 0x20 /* block period in seconds */
-# define BLOCKDIV 0x4 /* number of blocks for dividend update */
+# define BLOCKSEC 0x400 /* block period in seconds (17min) */
+# define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
+# define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
+# define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #endif
-#define MAX_UNDO 8 /* maximum history of block undo files in blocks */
+#define VIP_MAX 63 /* maximum number of VIP servers */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-#define VOTES_MAX 127
-#define VIP_MAX 127
-#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
+#define TOTALMASS 0x4000000000000000L /* total balance (target) */
+#define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
+#define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
+
+//local parameters (office<->client), not part of network protocol
+#define MIN_PEERS 8 /* keep at least 8 peers connected */
+#define MAX_PEERS 16 /* keep not more than 16 peers connected */
+#define VALIDATORS 8 /* number of validator threads */
+#define SYNC_WAIT 8 /* wait before another attempt to download servers */
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
-#define MAX_MSGWAIT 2 /* start with 2 and chenge to 8: wait no more than 8s for a message */
-#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
-#define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
-#define SYNC_WAIT 4 /* wait before another attempt to download servers */
-#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-#define TOTALMASS 0x4000000000000000L /*total weight of moon in MoonBlocks (16TonsOfMoon) or in seconds*/
-#define MAX_USERS 0x40000000L
-//#define LOCK_TIME (0x80*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
-#define LOCK_TIME (0x2*BLOCKSEC) /*time needed for lock to start; 2*LOCK_TIME => allow withdrawal*/
-#define MAX_ACCOUNT 0x10000 /* maximum number of accounts in the "blacklist" */
-#define LOG_PURGE_START (4096+2048) /* when this log size is reached try purging */
+#define MAX_USER_QUEUE 0x10000 /* maximum number of accounts in create_account queue ("blacklist") */
+#define MIN_LOG_SIZE (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
-#define MIN_PEERS 8 /* keep at least 8 peers connected */
-#define MAX_PEERS 32 /* keep not more than 16 peers connected */
-#define VALIDATORS 8 /* number of validatro threads */
+
+//#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
+//#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
+//#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
+//#define VOTES_MAX 63
+//#define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
+//#define PATHSHIFT 8
+//#define PATHSHIFT 5
 
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9081"
 #define SERVER_PORT "9091"
-//#define PATHSHIFT 8
-#define PATHSHIFT 5
 #define MAXCLIENTS 128
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 
 #define SERVER_DBL 0x1 /* closed node */
 #define SERVER_VIP 0x2 /* VIP node */
 #define SERVER_UNO 0x4 /* single master node */
-#define MESSAGE_MAXAGE 100
 
 //#define MSGSTAT_INF 0x0
 #define MSGSTAT_DAT 0x1 /* downloaded */
@@ -51,6 +54,8 @@
 #define MSGSTAT_VAL 0x8 /* validated */
 #define MSGSTAT_BAD 0x10 /* invalid */
 #define MSGSTAT_SIG 0x20 /* signature failure */
+
+#define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
 #define MSGTYPE_DBL 0	/* double spend proof, maybe we should start with 1 */
 #define MSGTYPE_DBP 1
@@ -105,16 +110,15 @@
 #define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (0x1000 + ((BANK_PROFIT(((uint64_t)(x))*(TXS_DIV_FEE/BLOCKDIV)))>>2)) /* every block */
 
-#define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
-
-#define MESSAGE_TOO_LONG 0x800000
+#define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */
+#define MESSAGE_TOO_LONG 0x800000 /* 8MB */
 #define MESSAGE_LEN_OK   0x10000
 #define MESSAGE_TNUM_OK  0x1000
 #define MESSAGE_TNUM_MAX 0xFFF0
 #define MESSAGE_WAIT 5
 #define MESSAGE_TOO_OLD (60*60*24*7)
 #define MESSAGE_CHUNK    0x100000
-#define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */
+#define MESSAGE_MAXAGE 100 /* prefer blocks with all messages older than MAXAGE */
 
 #pragma pack(1)
 typedef struct headlink_s { // header links sent when syncing
@@ -191,29 +195,17 @@ typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
 typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
 typedef struct {uint32_t auser;int64_t weight;} dep_t;
 typedef struct {uint64_t deposit;int16_t sus;uint16_t uus;} dsu_t;
-//typedef struct {uint16_t bbank;uint32_t status} bst_t; // not needed, change to 
 typedef struct {uint32_t auser;uint16_t bbank;uint8_t pkey[32];} usr_t;
 typedef struct {uint32_t auser;uint16_t bbank;uint32_t buser;uint8_t pkey[32];} uok_t;
 typedef struct {uint16_t bbank;uint16_t abank;uint32_t auser;uint8_t pkey[32];} uin_t;
 typedef unsigned char hash_t[32]; // consider reducing this to uint64_t[4]
 typedef union {hash_t hash;uint32_t hxor[8];} hash_s;
 typedef struct handshake_s { //maybe this should be just header_t + peer_msid
-	//uint16_t type; // version of server, not needed (is in servers.hpp)
-	//uint16_t srvn; // number of legal servers
-	//uint32_t ipv4; // ip of connecting server
-	//uint32_t port; // port of connecting server
-	//uint32_t path; // last block
-	//uint8_t hash[SHA256_DIGEST_LENGTH]; // hash of last block
 	header_t head; // last header
 	int do_sync; // 0: in sync; 1: not in sync
 	uint32_t msid; // peer msid
 	uint8_t msha[SHA256_DIGEST_LENGTH]; // hash of last peer message
 } handshake_t;
-//typedef struct svidmsidhash_s {
-//	uint16_t svid;
-//	uint32_t msid;
-//	hash_t sigh;
-//} svidmsidhash_t;
 typedef struct msidsvidhash_s {
 	uint32_t msid;
 	uint16_t svid;
