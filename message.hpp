@@ -840,7 +840,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
         hash_signature();}} //FIXME, check if message is not MSG,INI,CND,BLK (DBL for example)
     status|=MSGSTAT_DAT | MSGSTAT_SAV; //load() succeeded so massage is saved
     mtx_.unlock();
-    DLOG("%s loaded\n",filename);
+    DLOG("%04X LOAD %04X:%08X (len:%d) %s\n",who,svid,msid,len,filename);
     return(1);
   }
 
@@ -859,7 +859,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
           (uint32_t)hashtype(),svid,msid,len);}
       else{
         if(data!=NULL && (status & MSGSTAT_SAV)){ //will only unload messages that are saved
-          DLOG("UNLOAD %04X:%08X %08X\n",svid,msid,who);
+          DLOG("%04X UNLOAD %04X:%08X (len:%d)\n",who,svid,msid,len);
           free(data);
           data=NULL;}}}
     mtx_.unlock();

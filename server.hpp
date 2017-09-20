@@ -1828,7 +1828,14 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             wa++;}}
         wait_.unlock();
 	check_.lock();
-        check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
+        //check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
+        //prevent adding duplicates
+        for(auto tm : tmp_msgs_){
+          for(auto cm : check_msgs_){
+            if(tm==cm){
+              goto NEXT;}}
+          check_msgs_.push_back(tm);
+          NEXT:;} 
         //TODO, check if there are no forgotten messeges in the missing_msgs_ queue
         if(check_msgs_.empty()){
           check_.unlock();
@@ -3994,7 +4001,7 @@ private:
   candidate_ptr winner; // elected candidate
   std::set<peer_ptr> peers_;
   std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates, TODO should be map of message_ptr
-  message_queue wait_msgs_; //TODO, not used yet :-/
+  message_queue wait_msgs_;
   message_queue check_msgs_;
   std::map<hash_s,message_ptr,hash_cmp> bad_msgs_;
   message_map missing_msgs_; //TODO, start using this, these are messages we still wait for

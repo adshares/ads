@@ -60,9 +60,9 @@ std::promise<int> prom;
 
 void signal_handler(int signal)
 { DLOG("\nSIGNAL: %d\n\n",signal);
-  if(signal==SIGSEGV){
+  if(signal==SIGSEGV || signal==SIGABRT){
     abort();}
-  if(signal==SIGINT || signal==SIGQUIT || signal==SIGABRT || signal==SIGTERM){
+  if(signal==SIGINT || signal==SIGQUIT || signal==SIGTERM){
     if(!finish){
       prom.set_value(signal);
       finish=true;}}
@@ -71,10 +71,10 @@ void signal_handler(int signal)
 int main(int argc, char* argv[])
 { std::future<int> fut=prom.get_future();
   std::signal(SIGINT,signal_handler);
-//std::signal(SIGQUIT,signal_handler);
+  std::signal(SIGQUIT,signal_handler);
   //std::signal(SIGABRT,signal_handler);
-//std::signal(SIGTERM,signal_handler);
-//std::signal(SIGSEGV,signal_handler); //FIXME, raised when killing threads :-(
+  std::signal(SIGTERM,signal_handler);
+  std::signal(SIGSEGV,signal_handler); //FIXME, raised when killing threads :-(
   //std::signal(SIGHUP,signal_handler); //maybe used by asio
   //std::signal(SIGILL,signal_handler);
   //std::signal(SIGFPE,signal_handler);
