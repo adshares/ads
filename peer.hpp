@@ -388,7 +388,8 @@ Aborted
              (read_msg_->data[0]==MSGTYPE_GET && srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1 && server_.check_msgs_size()<MAX_CHECKQUE)){
             DLOG("%04X REQUESTING MESSAGE (%04X:%08X)\n",svid,read_msg_->svid,read_msg_->msid);
 #ifdef DEBUG
-            boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
+            if(!do_sync && !sync_hs.do_sync && !peer_hs.do_sync){
+              boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));}
 #endif
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
@@ -410,7 +411,8 @@ Aborted
               else{
                 DLOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d)\n",svid,msg->svid,msg->msid,msg->hash.dat[1],msg->len);
 #ifdef DEBUG
-                boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));
+                if(!do_sync && !sync_hs.do_sync && !peer_hs.do_sync){
+                  boost::this_thread::sleep(boost::posix_time::milliseconds(rand()%1000));}
 #endif
                 deliver(msg);}} // must force deliver without checks
             else{ // no real message available

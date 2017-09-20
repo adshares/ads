@@ -153,6 +153,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       if(do_fast){ //FIXME, do slow sync after fast sync
         while(do_fast>1){ // fast_sync changes the status, FIXME use future/promis
           boost::this_thread::sleep(boost::posix_time::seconds(1));
+          //boost::this_thread::sleep(boost::posix_time::milliseconds(50));
           RETURN_ON_SHUTDOWN();}
         do_fast=0;
         //wait for all user files to arrive
@@ -191,6 +192,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(ioth_!=NULL){
       ioth_->join();}
     threadpool.join_all();
+    busy_msgs_.clear(); // not needed
     if(peers_thread!=NULL){
       peers_thread->interrupt();
       peers_thread->join();}
@@ -1085,6 +1087,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       DLOG("STOPing validation to finish msg list\n");
       do_validate=0;
       threadpool.join_all();
+      busy_msgs_.clear();
       DLOG("STOPed validation to finish msg list\n");
       LAST_block_final(best);
       if(!winner->elected_accept()){
@@ -1770,9 +1773,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }
 
   void validator(void)
-  {
+  { message_ptr busy_msg;
     while(do_validate){
       check_.lock(); //TODO this should be a lock for check_msgs_ only maybe
+      busy_msgs_.erase(busy_msg);
       if(check_msgs_.empty()){
         check_.unlock();
         uint32_t now=time(NULL);
@@ -1828,72 +1832,76 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             wa++;}}
         wait_.unlock();
 	check_.lock();
-        //check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
-        //prevent adding duplicates
-        for(auto tm : tmp_msgs_){
-          for(auto cm : check_msgs_){
-            if(tm==cm){
-              goto NEXT;}}
-          check_msgs_.push_back(tm);
-          NEXT:;} 
+        check_msgs_.insert(check_msgs_.end(),tmp_msgs_.begin(),tmp_msgs_.end());
+        //prevent adding duplicates // no need for this any more because we check busy_msgs_
+        //for(auto tm : tmp_msgs_){
+        //  for(auto cm : check_msgs_){
+        //    if(tm==cm){
+        //      goto NEXT;}}
+        //  check_msgs_.push_back(tm);
+        //  NEXT:;} 
         //TODO, check if there are no forgotten messeges in the missing_msgs_ queue
         if(check_msgs_.empty()){
           check_.unlock();
-	  boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+	  boost::this_thread::sleep(boost::posix_time::milliseconds(50));
           RETURN_ON_SHUTDOWN();}
         else{
           check_.unlock();}}
       else{
-        message_ptr msg=check_msgs_.front();
+        busy_msg=check_msgs_.front();
 	check_msgs_.pop_front();
+        auto notbusy=busy_msgs_.emplace(busy_msg);
         //could concider a custom lock check against opening the same usr/XXXX.dat file
         //this will be needed later if we need to provide usr/XXXX.dat file for syncing
         check_.unlock();
-        if(msg->status & MSGSTAT_BAD){
-          DLOG("WARNING ignoring validation of bad message %04X:%08X\n",msg->svid,msg->msid);
+        if(!notbusy.second){
+          DLOG("WARNING ignoring validation of busy message %04X:%08X\n",busy_msg->svid,busy_msg->msid);
           continue;}
-        if(msg->status & MSGSTAT_COM){
-          DLOG("WARNING ignoring validation of committed message %04X:%08X\n",msg->svid,msg->msid);
+        if(busy_msg->status & MSGSTAT_BAD){
+          DLOG("WARNING ignoring validation of bad message %04X:%08X\n",busy_msg->svid,busy_msg->msid);
           continue;}
-        if(!(msg->status & MSGSTAT_VAL) && dbl_srvs_.find(msg->svid)!=dbl_srvs_.end()){ // ignore from DBL server
+        if(busy_msg->status & MSGSTAT_COM){
+          DLOG("WARNING ignoring validation of committed message %04X:%08X\n",busy_msg->svid,busy_msg->msid);
+          continue;}
+        if(!(busy_msg->status & MSGSTAT_VAL) && dbl_srvs_.find(busy_msg->svid)!=dbl_srvs_.end()){ // ignore from DBL server
           DLOG("WARNING ignoring validation of invalid message %04X:%08X from DBL nodes (double?:%s)\n",
-            msg->svid,msg->msid,(last_srvs_.nodes[msg->svid].status&SERVER_DBL?"yes":"no"));
+            busy_msg->svid,busy_msg->msid,(last_srvs_.nodes[busy_msg->svid].status&SERVER_DBL?"yes":"no"));
           continue;} //
-        //if(msg->status==MSGSTAT_VAL || srvs_.nodes[msg->svid].msid>=msg->msid)
-        if(srvs_.nodes[msg->svid].msid>=msg->msid){
+        //if(busy_msg->status==MSGSTAT_VAL || srvs_.nodes[busy_msg->svid].msid>=busy_msg->msid)
+        if(srvs_.nodes[busy_msg->svid].msid>=busy_msg->msid){
           DLOG("WARNING ignoring validation of old message %04X:%08X (<=%08X)\n",
-            msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
+            busy_msg->svid,busy_msg->msid,srvs_.nodes[busy_msg->svid].msid);
           continue;}
-	if(srvs_.nodes[msg->svid].msid!=msg->msid-1){ //assume only 1 validator per bank
+	if(srvs_.nodes[busy_msg->svid].msid!=busy_msg->msid-1){ //assume only 1 validator per bank
           DLOG("WARNING postponing validation of future message %04X:%08X (!=%08X+1)\n",
-            msg->svid,msg->msid,srvs_.nodes[msg->svid].msid);
+            busy_msg->svid,busy_msg->msid,srvs_.nodes[busy_msg->svid].msid);
           wait_.lock();
-          wait_msgs_.push_back(msg);
+          wait_msgs_.push_back(busy_msg);
           wait_.unlock();
           continue;}
-        if(!(msg->status & MSGSTAT_VAL) && block_only){ // ignore from DBL server
+        if(!(busy_msg->status & MSGSTAT_VAL) && block_only){ // ignore from DBL server
           DLOG("WARNING postponing validation of invalid message %04X:%08X during block finish\n",
-            msg->svid,msg->msid);
+            busy_msg->svid,busy_msg->msid);
           wait_.lock();
-          wait_msgs_.push_back(msg);
+          wait_msgs_.push_back(busy_msg);
           wait_.unlock();
           continue;}
-        if(!msg->load(0)){
-          ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",msg->path>>20,msg->path&0xFFFFF,(uint32_t)msg->hashtype(),msg->svid,msg->msid,msg->len);
+        if(!busy_msg->load(0)){
+          ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",busy_msg->path>>20,busy_msg->path&0xFFFFF,(uint32_t)busy_msg->hashtype(),busy_msg->svid,busy_msg->msid,busy_msg->len);
           exit(-1);}
-        bool valid=process_message(msg); //maybe ERROR should be also returned.
+        bool valid=process_message(busy_msg); //maybe ERROR should be also returned.
         if(valid){
-          msg->print_text("COMMITED");
-          msg->status|=MSGSTAT_COM;
-          node* nod=&srvs_.nodes[msg->svid];
-          nod->msid=msg->msid;
-          nod->mtim=msg->now;
-          memcpy(nod->msha,msg->sigh,sizeof(hash_t));
-          if(msg->svid==opts_.svid && msid_<nod->msid){
+          busy_msg->print_text("COMMITED");
+          busy_msg->status|=MSGSTAT_COM;
+          node* nod=&srvs_.nodes[busy_msg->svid];
+          nod->msid=busy_msg->msid;
+          nod->mtim=busy_msg->now;
+          memcpy(nod->msha,busy_msg->sigh,sizeof(hash_t));
+          if(busy_msg->svid==opts_.svid && msid_<nod->msid){
             ELOG("WARNING !!! increasing local msid by network !!!\n");
             msid_=nod->msid;}
           uint32_t now=time(NULL);
-          uint64_t next=msg->hash.num+1;
+          uint64_t next=busy_msg->hash.num+1;
 	  missing_.lock();
           auto nt=missing_msgs_.lower_bound(next); //speed up next validation
           if(nt!=missing_msgs_.end()){
@@ -1903,21 +1911,21 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         else{
           //FIXME, if own message, try fixing :-(
           //TODO, inform peer if peer==author;
-          ELOG("ERROR, have invalid message %04X:%08X !!!\n",msg->svid,msg->msid);
-          if(msg->status & MSGSTAT_VAL){
-            ELOG("ERROR, failed to validate valid message %04X:%08X, fatal\n",msg->svid,msg->msid);
+          ELOG("ERROR, have invalid message %04X:%08X !!!\n",busy_msg->svid,busy_msg->msid);
+          if(busy_msg->status & MSGSTAT_VAL){
+            ELOG("ERROR, failed to validate valid message %04X:%08X, fatal\n",busy_msg->svid,busy_msg->msid);
             exit(-1);} //FIXME, die gently
-          //if(!(msg->status & MSGSTAT_BAD)){
-          //  msg->remove();} //save under new name (as failed)
-          bad_insert(msg);
+          //if(!(busy_msg->status & MSGSTAT_BAD)){
+          //  busy_msg->remove();} //save under new name (as failed)
+          bad_insert(busy_msg);
 #ifdef DEBUG
           exit(-1); //only for debugging
 #endif
           continue;}
-        if(msg->path<srvs_.now){
-          DLOG("MOVING message %04X:%08X to %08X/ after validation\n",msg->svid,msg->msid,srvs_.now);
-          msg->move(srvs_.now);}
-        msg->unload(0);
+        if(busy_msg->path<srvs_.now){
+          DLOG("MOVING message %04X:%08X to %08X/ after validation\n",busy_msg->svid,busy_msg->msid,srvs_.now);
+          busy_msg->move(srvs_.now);}
+        busy_msg->unload(0);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
 #ifdef DEBUG
@@ -1926,11 +1934,11 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           boost::this_thread::sleep(boost::posix_time::seconds(seconds));
           RETURN_ON_SHUTDOWN();
 #endif
-          update_candidates(msg);
-          update(msg);}
+          update_candidates(busy_msg);
+          update(busy_msg);}
         else{
           ldc_.lock();
-          ldc_msgs_.erase(msg->hash.num);
+          ldc_msgs_.erase(busy_msg->hash.num);
           ldc_.unlock();}}}
   }
 
@@ -3813,6 +3821,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         DLOG("STOPing validation to start block\n");
         do_validate=0;
         threadpool.join_all();
+        busy_msgs_.clear();
         DLOG("STOPed validation to start block\n");
         //create message hash
         //last_svid_dbl_set();
@@ -3848,6 +3857,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         DLOG("STOPing validation to finish block\n");
         do_validate=0;
         threadpool.join_all();
+        busy_msgs_.clear();
         DLOG("STOPed validation to finish block\n");
         RETURN_ON_SHUTDOWN();
         finish_block();
@@ -3999,6 +4009,7 @@ private:
   int do_validate; // keep validation threads running
   //uint32_t maxnow; // do not process messages if time >= maxnow
   candidate_ptr winner; // elected candidate
+  std::set<message_ptr> busy_msgs_; // messages in validation
   std::set<peer_ptr> peers_;
   std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates, TODO should be map of message_ptr
   message_queue wait_msgs_;
@@ -4010,15 +4021,6 @@ private:
   message_map cnd_msgs_; //_CND messages (block candidates)
   message_map blk_msgs_; //_BLK messages (blocks) or messages in a block when syncing
   message_map dbl_msgs_; //_DBL messages (double spend)
-  boost::mutex cand_;
-  boost::mutex wait_;
-  boost::mutex check_;
-  boost::mutex bad_;
-  boost::mutex missing_;
-  boost::mutex txs_;
-  boost::mutex ldc_;
-  boost::mutex cnd_;
-  boost::mutex blk_;
 
   // voting
   std::map<uint16_t,uint64_t> electors;
@@ -4043,6 +4045,15 @@ private:
   bool iamvip;
   bool block_only;
 
+  boost::mutex cand_;
+  boost::mutex wait_;
+  boost::mutex check_;
+  boost::mutex bad_;
+  boost::mutex missing_;
+  boost::mutex txs_;
+  boost::mutex ldc_;
+  boost::mutex cnd_;
+  boost::mutex blk_;
   boost::mutex dbls_;
   boost::mutex dbl_;
   boost::mutex deposit_;
