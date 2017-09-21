@@ -983,6 +983,12 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           continue;}
         if(tm->second->status & MSGSTAT_DAT){
           ELOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+          wait_.lock();
+          for(auto wm=wait_msgs_.begin();wm!=wait_msgs_.end();wm++){
+            if((*wm)==tm->second){
+              wait_msgs_.erase(wm);
+                break;}}
+          wait_.unlock();
           //the queue is not efficient this way, because of consecutive tasks from same node
           check_.lock(); //maybe not needed if no validators
           check_msgs_.push_front(tm->second);
@@ -1000,6 +1006,12 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             bad_recover(tm->second);
             tm->second->move(LAST_block);
             tm->second->status|=MSGSTAT_VAL;
+            wait_.lock();
+            for(auto wm=wait_msgs_.begin();wm!=wait_msgs_.end();wm++){
+              if((*wm)==tm->second){
+                wait_msgs_.erase(wm);
+                  break;}}
+            wait_.unlock();
             check_.lock(); //maybe not needed if no validators
             check_msgs_.push_front(tm->second);
             check_.unlock();
