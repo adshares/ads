@@ -1695,6 +1695,7 @@ Aborted
       for(uint32_t i=0;i<num_add;i++,d+=sizeof(msidsvidhash_t)){
         uint64_t key=0;
         memcpy(((char*)&key)+2,d,6);
+        peer_block_del.erase(key);
         peer_block_all[key]=*(hash_s*)(d+6);
         peer_block_add[key]=*(hash_s*)(d+6);}
       hash_t tmp_hash;

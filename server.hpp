@@ -903,7 +903,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       char tex2[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(tex1,last_block_message.hash,SHA256_DIGEST_LENGTH);
       ed25519_key2text(tex2,cand.hash,SHA256_DIGEST_LENGTH);
-      ELOG("FATAL hash mismatch\n%.64s\n%.64s\n",tex1,tex2);
+      ELOG("FATAL hash mismatch\n%.64s\n%.64s\nblk/%03X/%05X/log.txt\n",
+        tex1,tex2,srvs_.now>>20,srvs_.now&0xFFFFF);
       exit(-1);}
     wait_.lock(); //maybe not needed if no validators
     wait_msgs_.insert(wait_msgs_.begin(),check_msgs_.begin(),check_msgs_.end());
@@ -1192,9 +1193,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     for(uint32_t j=0;j<VIP_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],srvs_.nodes[svid_rank[j]].weight);
-      electors[svid_rank[j]]=srvs_.nodes[svid_rank[j]].weight;
-      votes_max+=srvs_.nodes[svid_rank[j]].weight;}
+      uint64_t score=(uint64_t)(((float)last_srvs_.nodes[svid_rank[j]].weight/(float)TOTALMASS+1.0)*1000000.0);
+      ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],score);
+      electors[svid_rank[j]]=score;
+      votes_max+=score;}
     extern candidate_ptr nullcnd;
     winner=nullcnd;
     ELOG("ELECTOR max:%016lX\n",votes_max);
@@ -3651,14 +3653,14 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       std::set<uint64_t> mis;
       for(auto jt=add.begin();jt!=add.end();){
         auto it=jt++;
-        //del.erase(it->first);
+        assert(del.find(it->first)==del.end()); //TODO, remove later
         auto me=LAST_block_all_msgs.find(it->first); //is this ready ???
         if(me!=LAST_block_all_msgs.end()){
           if(!memcmp(me->second->sigh,it->second.hash,sizeof(hash_t))){
             add.erase(it);} // no need to add this message we have it
           else{
             mis.insert(it->first);
-            del.insert(it->first);}
+            del.insert(me->first);}
           continue;}
         uint32_t msid=(it->first>>16) & 0xFFFFFFFFL;
         if(msid==0xFFFFFFFF){ //dbl spend marker
