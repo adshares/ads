@@ -1248,17 +1248,20 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     if(mynow<=got+MAX_MSGWAIT){
       mtx_.unlock();
       return(0);}
+    std::vector<uint16_t> peers;
     for(auto k=know.begin();k!=know.end();k++){
       auto s=sent.find(*k);
       if(s==sent.end()){
-        got=mynow;
-        //sent.insert(*k); //will be also inserted by peer::handle_write after message submitted + deliver(,)
-        //FIXME, will not be inserted if peer has dicsonnected
-        mtx_.unlock();
-        DLOG("REQUEST for %04X:%08X from %04X\n",svid,msid,*k);
-        return(*k);}}
+        peers.push_back(*k);}}
     mtx_.unlock();
-    return(0);
+    if(peers.empty()){
+      return(0);}
+    uint16_t peer=peers[((uint64_t)random())%peers.size()];
+    got=mynow;
+    //sent.insert(*k); //will be also inserted by peer::handle_write after message submitted + deliver(,)
+    //FIXME, will not be inserted if peer has dicsonnected
+    DLOG("REQUEST for %04X:%08X from %04X\n",svid,msid,peer);
+    return(peer);
   }
 
   uint32_t data_len()

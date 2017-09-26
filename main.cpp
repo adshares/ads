@@ -104,7 +104,7 @@ int main(int argc, char* argv[])
     o.stop();
     s.stop(); }
   catch (std::exception& e){
-    ELOG("Exception: %s\n",e.what());}
+    ELOG("MAIN Exception: %s\n",e.what());}
   fclose(stdlog);
   unlink(".lock");
   return(0);
@@ -191,15 +191,19 @@ void server::peer_set(std::set<peer_ptr>& peers)
 }
 void server::peer_clean() //LOCK: peer_ missing_ mtx_
 {	std::set<peer_ptr> remove;
+	std::set<uint16_t> svids;
         peer_.lock();
 	for(auto pi=peers_.begin();pi!=peers_.end();pi++){
 		if((*pi)->killme){
 			remove.insert(*pi);
-			peers_.erase(*pi);}}
+			peers_.erase(*pi);}
+		else{
+			svids.insert((*pi)->svid);}}
 	peer_.unlock();
 	for(auto pi=remove.begin();pi!=remove.end();pi++){
 		DLOG("KILL PEER %04X\n",(*pi)->svid);
-		missing_sent_remove((*pi)->svid);
+		if(svids.find((*pi)->svid)==svids.end()){
+			missing_sent_remove((*pi)->svid);}
 		(*pi)->stop();}
 }
 void server::disconnect(uint16_t svid)

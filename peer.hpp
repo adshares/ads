@@ -277,7 +277,7 @@ Aborted
     try{
       boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (send_sync): %s\n",svid,e.what());
       leave();}
     pio_.unlock();
     if(put_msg->len!=message::header_length){
@@ -649,7 +649,7 @@ Aborted
       try{
         len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));}
       catch (std::exception& e){
-        DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+        DLOG("%04X CATCH asio error (handle_read_headers): %s\n",svid,e.what());
         free(data);
         leave();
         return;}
@@ -1036,7 +1036,7 @@ Aborted
     try{
       len=boost::asio::read(socket_,boost::asio::buffer(peer_nods,peer_hs.head.nod*sizeof(node_t)));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (handle_read_servers): %s\n",svid,e.what());
       free(peer_svsi);
       free(peer_nods);
       leave();
@@ -1150,7 +1150,7 @@ Aborted
     try{
       len=boost::asio::read(socket_,boost::asio::buffer(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (authenticate): %s\n",svid,e.what());
       free(peer_svsi);
       return(0);}
     if(len!=(int)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))){
@@ -1385,7 +1385,7 @@ Aborted
         return;}
       sync_finish();}
     catch (std::exception& e){
-      ELOG("%04X CATCH error %s\n",svid,e.what());}
+      ELOG("%04X CATCH error (sync_start): %s\n",svid,e.what());}
   }
 
   void write_serv_del() // send only info about missing messages first
@@ -1416,9 +1416,10 @@ Aborted
     try{
       boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (write_serv_del): %s\n",svid,e.what());
       leave();
-      throw("ERROR in write_serv_del()\n");}
+      //throw("ERROR in write_serv_del()\n");
+      }
     return;
   }
 
@@ -1427,11 +1428,11 @@ Aborted
     try{
       len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,2));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());}
+      DLOG("%04X CATCH asio error (read_peer_del 1): %s\n",svid,e.what());}
     if(2!=len){
       ELOG("%04X READ read_peer_del error\n",svid);
       leave();
-      throw("ERROR in read_peer_del\n");
+      //throw("ERROR in read_peer_del\n");
       return;}
     assert(read_msg_->data!=NULL);
     memcpy(&peer_del,read_msg_->data,2);
@@ -1447,11 +1448,11 @@ Aborted
         len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len));}
       catch (std::exception& e){
         len=0;
-        DLOG("%04X CATCH asio error: %s\n",svid,e.what());}
+        DLOG("%04X CATCH asio error (read_peer_del 2): %s\n",svid,e.what());}
       if((int)read_msg_->len!=len){
         ELOG("%04X READ read_peer_del error\n",svid);
         leave();
-        throw("ERROR in read_peer_del\n");
+        //throw("ERROR in read_peer_del\n");
         return;}
       DLOG("%04X PEER read peer del\n",svid);
       for(int i=0;i<peer_del;i++){
@@ -1463,7 +1464,7 @@ Aborted
         if(dsvid>=srvs_.nodes.size()){
           ELOG("%04X ERROR read_peer_del peersvid %04X\n",svid,dsvid);
           leave();
-          throw("ERROR in read_peer_del\n");
+          //throw("ERROR in read_peer_del\n");
           return;}
         DLOG("%04X PEER del %04X:%08X\n",svid,dsvid,dmsid);}}
     return;
@@ -1506,9 +1507,10 @@ Aborted
     try{
       boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (write_serv_add): %s\n",svid,e.what());
       leave();
-      throw("ERROR in write_serv_add()\n");}
+      //throw("ERROR in write_serv_add()\n");
+      }
     return;
   }
 
@@ -1517,11 +1519,11 @@ Aborted
     try{
       len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,4));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());}
+      DLOG("%04X CATCH asio error (read_peer_add 1): %s\n",svid,e.what());}
     if(4!=len){
       ELOG("%04X READ read_peer_add error\n",svid);
       leave();
-      throw("ERROR in read_peer_add\n");
+      //throw("ERROR in read_peer_add\n");
       return(true);}
     memcpy(&peer_add,read_msg_->data,4);
     if(!peer_add){
@@ -1535,11 +1537,11 @@ Aborted
         len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len));}
       catch (std::exception& e){
         len=0;
-        DLOG("%04X CATCH asio error: %s\n",svid,e.what());}
+        DLOG("%04X CATCH asio error (read_peer_add 2): %s\n",svid,e.what());}
       if((int)read_msg_->len!=len){
         ELOG("%04X READ read_peer_add error\n",svid);
         leave();
-        throw("ERROR in read_peer_add\n");
+        //throw("ERROR in read_peer_add\n");
         return(true);}}
 
     DLOG("%04X PEER read peer add\n",svid);
@@ -1576,7 +1578,7 @@ Aborted
       if(*(uint16_t*)(((char*)&key)+6)>=srvs_.nodes.size()){
         ELOG("%04X ERROR read_peer_missing_messages peersvid %04X\n",svid,*(uint16_t*)(((char*)&key)+6));
         leave();
-        throw("ERROR in read_peer_add\n");
+        //throw("ERROR in read_peer_add\n");
         return(true);}
       PEER_block_del.erase(key);
       PEER_block_add[key]=*(hash_s*)(read_msg_->data+sizeof(msidsvidhash_t)*i+6);
@@ -1606,9 +1608,10 @@ Aborted
     try{
       boost::asio::write(socket_,boost::asio::buffer(buf,1));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());
+      DLOG("%04X CATCH asio error (write_serv_check): %s\n",svid,e.what());
       leave();
-      throw("ERROR in write_serv_check()\n");}
+      //throw("ERROR in write_serv_check()\n");
+      }
     return;
   }
 
@@ -1618,11 +1621,11 @@ Aborted
     try{
       len=boost::asio::read(socket_,boost::asio::buffer(buf,1));}
     catch (std::exception& e){
-      DLOG("%04X CATCH asio error: %s\n",svid,e.what());}
+      DLOG("%04X CATCH asio error (read_peer_check): %s\n",svid,e.what());}
     if(1!=len){
       ELOG("%04X READ read_peer_check error\n",svid);
       leave();
-      throw("ERROR in read_peer_check\n");
+      //throw("ERROR in read_peer_check\n");
       return(true);}
     DLOG("%04X PEER read peer check\n",svid);
     bool error=buf[0];

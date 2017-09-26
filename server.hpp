@@ -1782,6 +1782,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   void missing_sent_remove(uint16_t svid) //TODO change name to missing_know_send_remove()
   { missing_.lock();
     for(auto mi=missing_msgs_.begin();mi!=missing_msgs_.end();mi++){
+      //mi->second->sent_erase(svid);
       mi->second->know_sent_erase(svid);}
     missing_.unlock();
   }
@@ -3764,7 +3765,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         uint16_t peer=opts_.get_svid(addr);
         if(peer && list.find(peer)==list.end()){
           list.insert(peer);
-          DLOG("TRY CONNECT to %04X (%s)\n",peer,addr.to_str());
+          DLOG("TRY CONNECT to %04X (%s)\n",peer,addr.c_str());
           connect(addr);
           boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
           RETURN_ON_SHUTDOWN();}}
