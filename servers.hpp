@@ -629,7 +629,7 @@ public:
 		hashtree tree(NULL); //FIXME, waste of space
 		vipkeys+=2;
 		for(int n=0;n<num;n++,vipkeys+=32+2){
-			//fprintf(stderr,"...KEY:%016lX (%d<%d)\n",*((uint64_t*)vipkeys),n,num);
+			//DLOG("...KEY:%016lX (%d<%d)\n",*((uint64_t*)vipkeys),n,num);
 			tree.addhash(newhash,vipkeys);}
 		return(!memcmp(newhash,viphash,32));
 	}
@@ -875,7 +875,7 @@ public:
 		sprintf(filename,"blk/%03X.now",head.now>>20);
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){
-			fprintf(stderr,"ERROR writing to %s\n",filename);
+			DLOG("ERROR writing to %s\n",filename);
 			return(false);}
 		lseek(fd,((head.now&0xFFFFF)/BLOCKSEC)*32,SEEK_SET);
 		if(write(fd,head.nowhash,32)!=32){
@@ -889,11 +889,11 @@ public:
 		sprintf(filename,"blk/%03X.now",now>>20);
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){
-			fprintf(stderr,"ERROR opening %s\n",filename);
+			DLOG("ERROR opening %s\n",filename);
 			return(false);}
 		lseek(fd,((now&0xFFFFF)/BLOCKSEC)*32,SEEK_SET);
 		if(read(fd,nowhash,32)!=32){
-			fprintf(stderr,"ERROR reading %s hash %08X\n",filename,now);
+			DLOG("ERROR reading %s hash %08X\n",filename,now);
 			close(fd);
 			return(false);}
 		close(fd);
@@ -1244,12 +1244,12 @@ public:
 	{	char pat[8];
 		ELOG("CLEANING by %04X\n",svid);
 		sprintf(pat,"%04X",svid);
+		for(int i=MAX_UNDO;i<MAX_UNDO+100;i+=10){
 #ifdef DEBUG
-		for(int i=30*24*2;i<10;i+=16){
+			uint32_t path=now-i*BLOCKSEC*(0x400/0x20);
 #else
-		for(int i=5;i<10;i++){
+			uint32_t path=now-i*BLOCKSEC;
 #endif
-			uint32_t path=now-i*BLOCKDIV*BLOCKSEC; // remove from last div periods
 			int fd,dd;
 			struct dirent* dat;
 		 	char pathname[64];

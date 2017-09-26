@@ -723,7 +723,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     uint32_t path;
     uint32_t svid;
     uint64_t *h=(uint64_t*)&msha_;
-    fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+0,h+1,h+2,h+3);
+    fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+3,h+2,h+1,h+0);
     fclose(fp);
     if(svid!=(uint32_t)opts_.svid){
       throw("FATAL ERROR: failed to read correct svid from msid.txt\n");}
@@ -736,7 +736,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(fp==NULL){
       throw("FATAL ERROR: failed to write to msid.txt\n");}
     uint64_t *h=(uint64_t*)&msha_;
-    fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[0],h[1],h[2],h[3]);
+    fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[3],h[2],h[1],h[0]);
     fclose(fp);
   }
 
@@ -1193,7 +1193,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     for(uint32_t j=0;j<VIP_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      uint64_t score=(uint64_t)(((float)last_srvs_.nodes[svid_rank[j]].weight/(float)TOTALMASS+1.0)*1000000.0);
+      uint64_t score=last_srvs_.nodes[svid_rank[j]].weight/2+TOTALMASS/(2*(VIP_MAX+1));
       ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],score);
       electors[svid_rank[j]]=score;
       votes_max+=score;}
@@ -1569,7 +1569,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   int blk_insert(message_ptr msg) // WARNING !!! it deletes old message data if len==message::header_length
   { assert(msg->hash.dat[1]==MSGTYPE_BLK);
     blk_.lock();
-    DLOG("HASH insert:%016lX (BLK)\n",msg->hash.num);
+    DLOG("HASH insert:%016lX (BLK) (len:%d)\n",msg->hash.num,msg->len);
     message_map::iterator it=blk_msgs_.find(msg->hash.num);
     if(it!=blk_msgs_.end()){
       message_ptr osg=it->second;
@@ -3522,16 +3522,20 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(!do_sync){
       ofip_update_block(period_start,srvs_.now,LAST_block_final_msgs,srvs_.div);
       //free(hash);
+      cnd_.lock();
       for(auto mj=cnd_msgs_.begin();mj!=cnd_msgs_.end();){
         auto mi=mj++;
         if(mi->second->msid<last_srvs_.now){
           cnd_msgs_.erase(mi);
           continue;}}
+      cnd_.unlock();
+      blk_.lock();
       for(auto mj=blk_msgs_.begin();mj!=blk_msgs_.end();){
         auto mi=mj++;
         if(mi->second->msid<last_srvs_.now){
           blk_msgs_.erase(mi);
           continue;}}
+      blk_.unlock();
       dbls_.lock();
       dbl_srvs_.clear();
       dbls_.unlock();}
@@ -3760,6 +3764,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         uint16_t peer=opts_.get_svid(addr);
         if(peer && list.find(peer)==list.end()){
           list.insert(peer);
+          DLOG("TRY CONNECT to %04X (%s)\n",peer,addr.to_str());
           connect(addr);
           boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
           RETURN_ON_SHUTDOWN();}}
@@ -3767,10 +3772,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       if(!peer || peer==opts_.svid || !srvs_.nodes[peer].ipv4 || !srvs_.nodes[peer].port){
         //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
         continue;}
-      if(list.find(peer)==list.end()){
+      if(list.find(peer)!=list.end()){
         //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
         continue;}
-      //DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+      DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
       connect(peer);}
   }
 

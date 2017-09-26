@@ -121,7 +121,7 @@ public:
     if(text_type==MSGTYPE_BLK){
       if(mysk==NULL){ // creating message from network
         memcpy(data+4,mypk,64);}
-      else{
+      else{ //not signing vok and vno in header_t
         ed25519_sign(data+4+64+10,sizeof(header_t)-4,mysk,mypk,data+4);} // consider signing also svid,msid,0
       char hash[4*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,data+4,2*SHA256_DIGEST_LENGTH);

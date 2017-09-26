@@ -26,7 +26,7 @@ public:
     clock_thread(NULL)
   { svid=opts_.svid;
     try{
-      fprintf(stderr,"OFFICE %04X open\n",svid);
+      DLOG("OFFICE %04X open\n",svid);
       // prapare local register [this could be in RAM later or be on a RAM disk]
       mkdir("ofi",0755);
       //char filename[64];
@@ -91,7 +91,7 @@ public:
     sprintf(filename,"usr/%04X.dat",svid);
     int gd=open(filename,O_RDONLY);
     if(gd<0){
-      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
     log_.lock();
     log_t alog;
@@ -103,7 +103,7 @@ public:
       user_t u;
       int len=read(gd,&u,sizeof(user_t));
       if(len!=sizeof(user_t)){
-        fprintf(stderr,"ERROR, failed to read %s after %d (%08X) users, fatal\n",filename,user,user);
+        DLOG("ERROR, failed to read %s after %d (%08X) users, fatal\n",filename,user,user);
         exit(-1);}
       // record initial user status
       memcpy(alog.info+ 0,&u.weight,8);
@@ -152,17 +152,17 @@ public:
     sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
     int dd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
     if(dd<0){
-      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
     sprintf(filename,"usr/%04X.dat",svid);
     int gd=open(filename,O_RDONLY);
     if(gd<0){
-      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
     sprintf(filename,"ofi/%04X.dat",svid);
     int ld=open(filename,O_RDONLY);
     if(ld<0){
-      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
     for(uint32_t user=0;user<users;user++){
       user_t u;
@@ -171,7 +171,7 @@ public:
         lseek(ld,user*sizeof(user_t),SEEK_SET);
         len=read(ld,&u,sizeof(user_t));
         if(len!=sizeof(user_t)){
-          fprintf(stderr,"ERROR, failed to read local user %08X, fatal\n",user);
+          DLOG("ERROR, failed to read local user %08X, fatal\n",user);
           exit(-1);}
         if(u.rpath>=now){ // should be a rare case, but maybe possible
           int64_t div=0;
@@ -193,7 +193,7 @@ public:
     sprintf(filename,"ofi/%04X_%08X.div",svid,path); // log dividends, save in user logs later
     dd=open(filename,O_RDONLY);
     if(dd<0){
-      fprintf(stderr,"ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s, fatal\n",filename);
       exit(-1);}
     // read 2 times to prevent double lock
     for(uint32_t user=0;user<users;user++){
@@ -227,14 +227,14 @@ public:
   { for(auto mi=commit_msgs.begin();mi!=commit_msgs.end();mi++){
       uint64_t svms=((uint64_t)(mi->second->svid)<<32)|mi->second->msid;
       mque.push_back(svms);}
-    //fprintf(stderr,"UPDATE LOG processed queue\n");
+    //DLOG("UPDATE LOG processed queue\n");
     if(period_start==now){
       assert(now);
       update_div(now,newdiv);
-      //fprintf(stderr,"UPDATE LOG processed div\n");
+      //DLOG("UPDATE LOG processed div\n");
       div_ready=now;}
     block_ready=now;
-    //fprintf(stderr,"UPDATE LOG return\n");
+    //DLOG("UPDATE LOG return\n");
   }
 
   void process_log(uint32_t now) //FIXME, check here if logs are not duplicated !!! maybe record stored info
@@ -248,7 +248,7 @@ public:
     sprintf(filename,"blk/%03X/%05X/log/time.bin",now>>20,now&0xFFFFF);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0){
-      fprintf(stderr,"ERROR, failed to open log time file %s, fatal\n",filename);
+      DLOG("ERROR, failed to open log time file %s, fatal\n",filename);
       exit(-1);}
     struct stat sb;
     fstat(fd,&sb);
@@ -256,7 +256,7 @@ public:
     uint32_t ntime=time(NULL);
     if(sb.st_size){ // file is ok
 //FIXME, !!! master log hygiene
-      fprintf(stderr,"\nERROR, log time file %s not empty, inform all users about change\n\n",filename);
+      DLOG("\nERROR, log time file %s not empty, inform all users about change\n\n",filename);
       uint32_t otime;
       read(fd,&otime,sizeof(uint32_t));
       log_t alog;
@@ -277,7 +277,7 @@ public:
       sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,bank,msid);
       int fd=open(filename,O_RDONLY);
       if(fd<0){
-        fprintf(stderr,"OFFICE, failed to open log file %s\n",filename);
+        DLOG("OFFICE, failed to open log file %s\n",filename);
         continue;}
       while(1){
         uint32_t user;
@@ -303,7 +303,7 @@ public:
   { //while(run){
     //  if(srv_.msid_>=srv_.start_msid){
     //    break;}
-    //  fprintf(stderr,"OFFICE, wait for server to read last message %08X\n",srv_.start_msid);
+    //  DLOG("OFFICE, wait for server to read last message %08X\n",srv_.start_msid);
     //  boost::this_thread::sleep(boost::posix_time::seconds(2));}
     //if(run){
     //  get_msg(srv_.msid_+1);
@@ -315,15 +315,15 @@ public:
       //TODO, clear hanging clients
       boost::this_thread::sleep(boost::posix_time::seconds(2));
       if(block_ready){
-        fprintf(stderr,"OFFICE, process last block %08X\n",block_ready-BLOCKSEC);
+        DLOG("OFFICE, process last block %08X\n",block_ready-BLOCKSEC);
         if(div_ready){
-          fprintf(stderr,"OFFICE, process dividends @ %08X\n",div_ready);
+          DLOG("OFFICE, process dividends @ %08X\n",div_ready);
           process_div(div_ready);} // process DIVIDENDs
         process_log(block_ready-BLOCKSEC); // process logs
         process_gup(block_ready-BLOCKSEC); // process GET transactions
         process_dep(block_ready-BLOCKSEC); // process PUT remote deposits
         if(block_ready!=srv_.srvs_now()){
-          fprintf(stderr,"ERROR, failed to finish local update on time, fatal\n");
+          DLOG("ERROR, failed to finish local update on time, fatal\n");
           exit(-1);}
         block_ready=0;
         div_ready=0;}
@@ -470,7 +470,7 @@ public:
       lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
       read(offifd_,&nu,sizeof(user_t));
       if((nu.weight<=0) && (nu.stat&USER_STAT_DELETED)){
-        fprintf(stderr,"WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
+        DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
         //FIXME !!!  wrong time !!! must use time from txs
         srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
         lseek(offifd_,-sizeof(user_t),SEEK_CUR);
@@ -513,7 +513,6 @@ public:
     memcpy(ou.pkey,nu.pkey,32);
   //u.status=ustatus[user];
     //assert(u.weight>=0);
-//fprintf(stderr,"\n\nSET USER WRITE\n\n");
     lseek(offifd_,-sizeof(user_t),SEEK_CUR);
     write(offifd_,&ou,sizeof(user_t)); // fix this !!!
     file_.unlock();
@@ -527,8 +526,7 @@ public:
     read(offifd_,&u,sizeof(user_t));
     u.stat|=USER_STAT_DELETED;
     if(u.weight>=0){
-      fprintf(stderr,"WARNNG: network deleted active user %08X\n",user);}
-//fprintf(stderr,"\n\nSET USER WRITE\n\n");
+      DLOG("WARNNG: network deleted active user %08X\n",user);}
     lseek(offifd_,-sizeof(user_t),SEEK_CUR);
     write(offifd_,&u,sizeof(user_t)); // write all ok
     deleted_users.push_back(user);
@@ -538,7 +536,6 @@ public:
   void add_remote_deposit(uint32_t buser,int64_t tmass)
   { dep_t dep={buser,tmass};
     rdep.push(dep);
-//fprintf(stderr,"\n\nADDING REMOTE DEPOSIT\n\n");
   }
 
   void add_deposit(uint32_t buser,int64_t tmass)
@@ -552,7 +549,6 @@ public:
     write(offifd_,&w,sizeof(w));
     //deposit[buser]+=tmass;
     file_.unlock();
-//fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
 
   void add_deposit(usertxs& utxs)
@@ -566,7 +562,6 @@ public:
     write(offifd_,&w,sizeof(w));
     //deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
-//fprintf(stderr,"\n\nADDING local DEPOSIT\n\n");
   }
 
   bool try_account(hash_s* key)
@@ -735,12 +730,12 @@ public:
         ELOG("ERROR, log lseek error\n");
         return(-1);}
       if((r=read(fd,&log,sizeof(log_t)))!=sizeof(log_t)){
-        fprintf(stderr,"ERROR, log read error (%d,%s)\n",r,strerror(errno));
+        DLOG("ERROR, log read error (%d,%s)\n",r,strerror(errno));
         return(-1);}
       if(log.time+MAX_LOG_AGE>=srv_.last_srvs_.now){ // purge first block
         return(0);}
       if((r=fallocate(fd,FALLOC_FL_COLLAPSE_RANGE,0,4096))<0){
-        fprintf(stderr,"ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
+        DLOG("ERROR, log purge failed (%d,%s)\n",r,strerror(errno));
         return(-1);}}
     return(0);
   }
