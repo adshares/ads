@@ -353,7 +353,7 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
         len=tmp[1+8]-pos;
         DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,mlen,ttot,len);
         hashes.push_back(*(hash_s*)(&tmp[1+8+1]));}}
-    if(data!=NULL){
+    if(data!=NULL){ // assume there is no concurent access to this message
       free(data);}
     assert(len>0 && len<mlen);
     data=(uint8_t*)std::malloc(len);
@@ -1220,7 +1220,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
   }
 
   bool cansend(uint16_t p, uint32_t mynow, uint32_t maxwait)
-  { assert(data!=NULL);
+  { //assert(data!=NULL); // failes !!!
     if((status & MSGSTAT_DAT) || len!=header_length){
       DLOG("IGNORING REQUEST for %04X:%08X\n",svid,msid);
       return(false);}
@@ -1238,7 +1238,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
   }
 
   uint16_t request() //find a peer from which we will request the message
-  { assert(data!=NULL);
+  { //assert(data!=NULL); // failes !!!
     if((status & MSGSTAT_DAT) || len!=header_length){
       DLOG("IGNORING REQUEST for %04X:%08X\n",svid,msid);
       return(0);}

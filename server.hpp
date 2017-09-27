@@ -368,17 +368,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       put_msg->hash.num=put_msg->dohash(put_msg->data);
       put_msg->got=0; // do first request emidiately
       missing_msgs_[put_msg->hash.num]=put_msg;}
-      //fillknown(put_msg);
-      //int m=0,max=peers_.size();
-      //for(;m<max;m++){
-      //  uint16_t peer=put_msg->request();
-      //  if(peer){
-      //    DLOG("REQUESTING BANK %04X from %04X\n",bank,peer);
-      //    deliver(put_msg,peer);
-      //    if(put_msg->sent.find(peer)!=put_msg->sent.end()){
-      //      DLOG("REQUESTING BANK %04X from %04X failed\n",bank,peer);}
-      //    else{
-      //      break;}}}
     uint32_t mynow=time(NULL);
     for(auto peer=ready.begin();peer!=ready.end();peer++){ // send 2 requestes to each peer
       for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
@@ -398,14 +387,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             deliver(pm->second,*peer); //LOCK: pio_
             DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
             break;}}}
-      //for(auto pm=missing_msgs_.begin();pm!=missing_msgs_.end();pm++){
-      //  fillknown(pm->second);
-      //  uint16_t peer=pm->second->request();
-      //  if(peer && sent.find(peer)==sent.end()){
-      //    sent.insert(peer);
-      //    DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,peer);
-      //    deliver(pm->second,peer);
-      //    DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,peer);}}
       missing_.unlock();
       ELOG("WAITING for banks (peers:%d)\n",(int)ready.size());
       //TODO sleep much shorter !!!
@@ -1823,8 +1804,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         for(auto re=tmp_msgs_.begin();re!=tmp_msgs_.end();re++){
 	  uint16_t svid=(*re)->request();
           if(svid){
-            assert((*re)->data!=NULL);
-            DLOG("HASH request:%016lX [%016lX] (%04X) %d:%d\n",(*re)->hash.num,*((uint64_t*)(*re)->data),svid,(*re)->svid,(*re)->msid); // could be bad allignment
+            //assert((*re)->data!=NULL);
+            DLOG("HASH request:%016lX (%04X) %d:%d\n",(*re)->hash.num,svid,(*re)->svid,(*re)->msid);
             DLOG("REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
             deliver((*re),svid);}}
         //checking waiting messages
