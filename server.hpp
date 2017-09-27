@@ -3741,6 +3741,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       if(peers_.size()>=MIN_PEERS || peers_.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
         continue;}
 #endif
+      list.clear();
       peers_known(list);
       for(std::string addr : opts_.peer){
         uint16_t peer=opts_.get_svid(addr);
