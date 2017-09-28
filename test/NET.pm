@@ -13,7 +13,10 @@ our @nodes=( # define directories for each node
   "/tmp/esc/n1",
   "/tmp/esc/n2",
   "/tmp/esc/n3",
-  "/tmp/esc/n4");
+  "/tmp/esc/n4",
+  "/tmp/esc/n5",
+  "/tmp/esc/n6",
+  "/tmp/esc/n7");
 our $bin=".."; # lookup this directory for the executables (escd, esc)
 our $peers="/tmp/esc"; # store list of running nodes in this directory
 our $escd="./escd"; # not used
