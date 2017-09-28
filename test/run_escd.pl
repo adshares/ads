@@ -63,7 +63,10 @@ if($svid>1){
   if(!-d "$ndir/key"){
     mkdir("$ndir/key")||die"ERROR: failed to create $ndir/key directory\n";}
   if(!-f "$ndir/key/key.txt"){ # copy keys from node 1 if no keys found
-    if(-r "$NET::nodes[0]/key/key.txt"){
+    if(-r "key/key.txt"){
+      system("cp key/key.txt $ndir/key/key.txt")&&
+        die "ERROR: failed to copy key/key.txt to $ndir/key/key.txt\n";}
+    elsif(-r "$NET::nodes[0]/key/key.txt"){
       system("cp $NET::nodes[0]/key/key.txt $ndir/key/key.txt")&&
         die "ERROR: failed to copy $NET::nodes[0]/key/key.txt to $ndir/key/key.txt\n";}
     else{
@@ -78,6 +81,9 @@ if($svid>1){
           die "ERROR: failed to copy $NET::nodes[0]/blk/$1/$2/servers.srv to $ndir/servers.srv\n";}
       else{
         die "ERROR: failed to parse $NET::nodes[0]/msid.txt\n";}}
+    elsif(-r "servers.srv"){
+      system("cp servers.srv $ndir/servers.srv")&&
+        die "ERROR: failed to copy servers.srv to $ndir/servers.srv\n";}
     else{
       die "ERROR: node can not start yet, $NET::nodes[0]/msid.txt missing (maybe start node 1 first)\n";}}}
 
