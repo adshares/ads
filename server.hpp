@@ -1088,7 +1088,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         do_validate=1;
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}}
-    //DLOG("... count votes() ...\n");
     if(do_block==2 && winner->elected_accept()){
       ELOG("CANDIDATE winner accepted\n");
       do_block=3;
@@ -1099,9 +1098,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)||now>srvs_.now+BLOCKSEC+(VIP_MAX*VOTE_DELAY)){
         ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());}
       else{
-        //DLOG("--- count votes() ---\n");
         DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));
-        //DLOG("+++ count votes() +++\n");
         }}
     if(do_vote && cnd1->accept() && cnd1->peers.size()>1){
       ELOG("CANDIDATE proposal accepted\n");
@@ -1110,7 +1107,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY){
       ELOG("CANDIDATE proposing\n");
       write_candidate(cand);}
-    //DLOG(",,, count votes() ,,,\n");
   }
 
   void add_electors(header_t& head,svsi_t* peer_svsi)
@@ -1174,7 +1170,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     for(uint32_t j=0;j<VIP_MAX && j<svid_rank.size();j++){
       if(svid_rank[j]==opts_.svid){
         do_vote=1+j;}
-      uint64_t score=last_srvs_.nodes[svid_rank[j]].weight/2+TOTALMASS/(2*(VIP_MAX+1));
+      //uint64_t score=last_srvs_.nodes[svid_rank[j]].weight/2+TOTALMASS/(2*(VIP_MAX+1));
+      uint64_t score=(last_srvs_.nodes[svid_rank[j]].weight+TOTALMASS)/(2*(VIP_MAX+1));
       ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],score);
       electors[svid_rank[j]]=score;
       votes_max+=score;}
@@ -3606,11 +3603,30 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     //update(msg);
   }
 
-  void write_candidate(const hash_s& last_message)
+  void write_candidate(const hash_s& cand_hash)
   { do_vote=0;
     hash_t empty;
-    message_ptr msg(new message(MSGTYPE_CND,last_message.hash,sizeof(hash_t),opts_.svid,srvs_.now,skey,pkey,empty)); //FIXME, consider msid=0 ???
+    cand_.lock(); //lock only candidates
+    auto ca=candidates_.find(cand_hash);
+    assert(ca!=candidates_.end());
+    cand_.unlock();
+    message_ptr msg(new message(MSGTYPE_CND,cand_hash.hash,sizeof(hash_t),opts_.svid,srvs_.now,skey,pkey,empty)); //FIXME, consider msid=0 ???
 //FIXME, is hash ok ?
+    if(!ca->second->msg_add.empty() || !ca->second->msg_del.empty()){ // same function as in peer.hpp
+      uint32_t num_add=ca->second->msg_add.size();
+      uint32_t num_del=ca->second->msg_del.size();
+      msg->len=message::data_offset+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6;
+      msg->data=(uint8_t*)realloc(msg->data,msg->len); // throw if no RAM ???
+      memcpy(msg->data+message::data_offset+sizeof(hash_t),&num_del,4);
+      memcpy(msg->data+message::data_offset+sizeof(hash_t)+4,&num_add,4);
+      uint8_t* d=msg->data+message::data_offset+sizeof(hash_t)+4+4;
+      for(auto it=ca->second->msg_del.begin();it!=ca->second->msg_del.end();it++,d+=6){
+        memcpy(d,((char*)&(*it))+2,6);}
+      for(auto it=ca->second->msg_add.begin();it!=ca->second->msg_add.end();it++,d+=sizeof(msidsvidhash_t)){
+        memcpy(d,((char*)&it->first)+2,6);
+        memcpy(d+6,&it->second.hash,sizeof(hash_t));}
+      DLOG("0000 CHANGE CAND LENGTH! [len:%d->%d]\n",(int)(message::data_offset+sizeof(hash_t)),msg->len);
+      assert((uint32_t)(d-msg->data)==msg->len);}
     if(!cnd_insert(msg)){
       ELOG("FATAL message insert error for own message, dying !!!\n");
       exit(-1);}
