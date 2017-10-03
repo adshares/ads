@@ -1718,6 +1718,7 @@ Aborted
       uint32_t num_del=c_ptr->msg_del.size();
       read_msg_->len=message::data_offset+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6;
       read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len); // throw if no RAM ???
+      memcpy(read_msg_->data+1,&read_msg_->len,3); // remember length
       memcpy(read_msg_->data+message::data_offset+sizeof(hash_t),&num_del,4);
       memcpy(read_msg_->data+message::data_offset+sizeof(hash_t)+4,&num_add,4);
       uint8_t* d=read_msg_->data+message::data_offset+sizeof(hash_t)+4+4;
@@ -1729,8 +1730,9 @@ Aborted
       DLOG("%04X CHANGE CAND LENGTH! [len:%d->%d]\n",svid,oldlen,read_msg_->len);
       assert((uint32_t)(d-read_msg_->data)==read_msg_->len);}
     else{
-      read_msg_->len=message::data_offset+sizeof(hash_t);
-      read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len);}
+      read_msg_->len=message::data_offset+sizeof(hash_t); // remember length
+      read_msg_->data=(uint8_t*)realloc(read_msg_->data,read_msg_->len);
+      memcpy(read_msg_->data+1,&read_msg_->len,3);}
     if(oldlen!=read_msg_->len){
       DLOG("%04X STORE DIFFERENT CAND LENGTH [len:%d->%d]\n",svid,oldlen,read_msg_->len);
       memcpy(read_msg_->data+1,&read_msg_->len,3);}

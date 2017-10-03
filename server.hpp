@@ -3617,6 +3617,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       uint32_t num_del=ca->second->msg_del.size();
       msg->len=message::data_offset+sizeof(hash_t)+4+4+num_add*sizeof(msidsvidhash_t)+num_del*6;
       msg->data=(uint8_t*)realloc(msg->data,msg->len); // throw if no RAM ???
+      memcpy(msg->data+1,&msg->len,3); // remember lentgh
       memcpy(msg->data+message::data_offset+sizeof(hash_t),&num_del,4);
       memcpy(msg->data+message::data_offset+sizeof(hash_t)+4,&num_add,4);
       uint8_t* d=msg->data+message::data_offset+sizeof(hash_t)+4+4;
