@@ -702,6 +702,16 @@ public:
   { return(srv_.last_srvs_.now);
   }
 
+  uint32_t last_nodes()
+  { return(srv_.last_srvs_.nodes.size());
+  }
+
+  uint32_t last_users(uint32_t bank)
+  { if(bank>=srv_.last_srvs_.nodes.size()){
+      return(0);}
+    return(srv_.last_srvs_.nodes[bank].users);
+  }
+
 //LOG handling
 
 //FIXME, log handling should go to office.hpp or better to log.hpp

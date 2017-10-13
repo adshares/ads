@@ -32,9 +32,12 @@
 #define TXSTYPE_TXS 20	/* return transaction + hash path */
 #define TXSTYPE_VIP 21	/* return vip public keys */
 #define TXSTYPE_SIG 22	/* return block signatures */
-
+#define TXSTYPE_NDS 23	/* return nodes (servers.srv) */
+#define TXSTYPE_NOD 24	/* return users of a node */
+#define TXSTYPE_MGS 25	/* return list of messages */
+#define TXSTYPE_MSG 26	/* return message */
 //end
-#define TXSTYPE_MAX 23  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
+#define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
 const char* txsname[TXSTYPE_MAX]={
 	"empty",		//0
@@ -59,7 +62,11 @@ const char* txsname[TXSTYPE_MAX]={
 	"get_blocks",		//19
 	"get_transaction",	//20
 	"get_vipkeys",		//21
-	"get_signatures"};	//22
+	"get_signatures",	//22
+	"get_nodes",		//23
+	"get_accounts",		//24
+	"get_message_list",	//25
+	"get_message"};		//26
 
 const char* logname[TXSTYPE_MAX]={
 	"node_started",		//0
@@ -84,7 +91,11 @@ const char* logname[TXSTYPE_MAX]={
 	"unknown",		//19
 	"unknown",		//20
 	"unknown",		//21
-	"unknown"};		//22
+	"unknown",		//22
+	"unknown",		//23
+	"unknown",		//24
+	"unknown",		//25
+	"unknown"};		//26
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
 	1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
@@ -110,6 +121,10 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4+4+2,		//20:TXS /bbank=node_ buser=node-msid_ amsid=position/
 	1+2+4+4+32,		//21:VIP /tinfo=vip_hash/
 	1+2+4+4+4,		//22:SIG /amsid=blk_number/
+	1+2+4+4+4,		//22:NDS /amsid=blk_number/
+	1+2+4+4+4+2,		//22:NOD /amsid=blk_number/
+	1+2+4+4+4,		//22:MGS /amsid=blk_number/
+	1+2+4+4+4+2+4,		//22:MSG /amsid=blk_number buser=node_msid/
 	1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
 	
 class usertxs :
@@ -280,7 +295,7 @@ public:
 			memcpy(data+1+6 ,&ttime,4);
 			memcpy(data+1+10, tinfo,32); // vip hash
 			return;}
-		if(ttype==TXSTYPE_SIG){
+		if(ttype==TXSTYPE_SIG || ttype==TXSTYPE_NDS || ttype==TXSTYPE_MGS){
 			size=len+64;
 			data=(uint8_t*)std::malloc(size);
 			data[0]=ttype;
@@ -288,6 +303,27 @@ public:
 			memcpy(data+1+2 ,&auser,4);
 			memcpy(data+1+6 ,&ttime,4);
 			memcpy(data+1+10,&amsid,4); // block number
+			return;}
+		if(ttype==TXSTYPE_NOD){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10,&amsid,4); // block number
+			memcpy(data+1+14,&bbank,2);
+			return;}
+		if(ttype==TXSTYPE_MSG){
+			size=len+64;
+			data=(uint8_t*)std::malloc(size);
+			data[0]=ttype;
+			memcpy(data+1   ,&abank,2);
+			memcpy(data+1+2 ,&auser,4);
+			memcpy(data+1+6 ,&ttime,4);
+			memcpy(data+1+10,&amsid,4); // block number
+			memcpy(data+1+14,&bbank,2);
+			memcpy(data+1+16,&buser,4); // node-msid
 			return;}
 		if(ttype==TXSTYPE_BKY){ // for BKY, office adds old key
 			size=len+64;
@@ -450,11 +486,26 @@ public:
 			memcpy(&ttime,txs+1+6 ,4);
 			memcpy( tinfo,txs+1+10,32); // vip hash
 			return(true);}
-		if(ttype==TXSTYPE_SIG){
+		if(ttype==TXSTYPE_SIG || ttype==TXSTYPE_NDS || ttype==TXSTYPE_MGS){
 			memcpy(&abank,txs+1+0 ,2);
 			memcpy(&auser,txs+1+2 ,4);
 			memcpy(&ttime,txs+1+6 ,4);
 			memcpy(&amsid,txs+1+10,4); // block number
+			return(true);}
+		if(ttype==TXSTYPE_NOD){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy(&amsid,txs+1+10,4); // block number
+			memcpy(&bbank,txs+1+14,2);
+			return(true);}
+		if(ttype==TXSTYPE_MSG){
+			memcpy(&abank,txs+1+0 ,2);
+			memcpy(&auser,txs+1+2 ,4);
+			memcpy(&ttime,txs+1+6 ,4);
+			memcpy(&amsid,txs+1+10,4); // block number
+			memcpy(&bbank,txs+1+14,2);
+			memcpy(&buser,txs+1+16,4); // node-msid
 			return(true);}
 
 		if(ttype==TXSTYPE_SUS || ttype==TXSTYPE_UUS){

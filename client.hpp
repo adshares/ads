@@ -389,20 +389,99 @@ public:
 
     if(*buf==TXSTYPE_VIP){
       int len=0;
-      char* buf=NULL;
+      char* data=NULL;
       servers srvs_;
-      srvs_.load_vip(len,buf,utxs.tinfo);
+      srvs_.load_vip(len,data,utxs.tinfo);
       if(!len){
         char hash[65]; hash[64]='\0';
         ed25519_key2text(hash,srvs_.viphash,32);
         DLOG("ERROR, failed to provide vip keys %.64s\n",hash);
         return;}
-      boost::asio::write(socket_,boost::asio::buffer(buf,len+4));
-      free(buf);
+      boost::asio::write(socket_,boost::asio::buffer(data,len+4));
+      free(data);
       return;}
 
-    if(*buf==TXSTYPE_SIG){ //TODO, add
+    if(*buf==TXSTYPE_SIG){
+      uint32_t nok=0;
+      uint32_t nno=0;
+      uint8_t *data=NULL;
+      servers srvs_;
+      srvs_.read_signatures(utxs.amsid,data,nok,nno); // path=utxs.amsid
+      boost::asio::write(socket_,boost::asio::buffer(data,8+nok*sizeof(svsi_t)+4+nno*sizeof(svsi_t)));
+      free(data);
+      return;}
 
+    if(*buf==TXSTYPE_NDS){
+      //TODO, check access credentials
+      uint32_t len=0;
+      uint8_t *data=NULL;
+      servers srvs_;
+      srvs_.read_servers(utxs.amsid,data,len); // path=utxs.amsid
+      boost::asio::write(socket_,boost::asio::buffer(data,4+len));
+      free(data);
+      return;}
+
+    if(*buf==TXSTYPE_NOD){
+      //TODO, check access credentials
+      uint32_t path=offi_.last_path()+BLOCKSEC;
+      if(utxs.amsid!=path){
+        uint32_t error=1; // ERROR: bad path
+        boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&error,4));
+        return;}
+      if(utxs.bbank>offi_.last_nodes()){
+        uint32_t error=2; // ERROR: bad node
+        boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&error,4));
+        return;}
+      char filename[64];
+      sprintf(filename,"usr/%04X.dat",utxs.bbank);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        uint32_t error=3; // ERROR: bank not found
+        boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&error,4));
+        return;}
+      sprintf(filename,"blk/%03X/%05X/und/%04X.dat",path>>20,path&0xFFFFF,utxs.bbank);
+      int ud=open(filename,O_RDONLY);
+      if(ud<0){
+        uint32_t error=4; // ERROR: undo not found
+        boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&error,4));
+        close(fd);
+        return;}
+      uint32_t users=offi_.last_users(utxs.bbank);
+      uint32_t len=users*sizeof(user_t);
+      uint8_t *data=(uint8_t*)malloc(4+len);
+      uint8_t *dp=data+4;
+      for(uint32_t user=0;user<users;user++,dp+=sizeof(user_t)){
+        user_t u;
+        u.msid=0;
+        read(fd,dp,sizeof(user_t));
+        read(ud,&u,sizeof(user_t));
+        if(u.msid!=0){
+          memcpy(dp,&u,sizeof(user_t));}}
+      close(ud);
+      close(fd);
+      memcpy(data,&len,4);
+      boost::asio::write(socket_,boost::asio::buffer(data,4+len));
+      free(data);
+      return;}
+
+    if(*buf==TXSTYPE_MGS){
+      //TODO, check access credentials
+      uint32_t len=0;
+      uint8_t *data=NULL;
+      servers srvs_;
+      srvs_.read_messagelist(utxs.amsid,data,len); // path=utxs.amsid
+      boost::asio::write(socket_,boost::asio::buffer(data,4+len));
+      free(data);
+      return;}
+
+    if(*buf==TXSTYPE_MSG){
+      //TODO, check access credentials
+      message_ptr msg(new message(MSGTYPE_MSG,utxs.amsid,utxs.bbank,utxs.buser)); //overloads got with size !!!
+      if(!(msg->status & MSGSTAT_SAV)){
+        uint32_t null=0;
+        boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&null,4));}
+      else{
+        boost::asio::write(socket_,boost::asio::buffer(msg->data,msg->got));}
       return;}
 
     if(usera.msid!=utxs.amsid){

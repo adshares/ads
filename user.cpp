@@ -175,6 +175,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
   uint32_t to_status=0;
+  uint32_t to_block=0;
   uint32_t now=time(NULL);
   usertxs_ptr txs=NULL;
   std::stringstream ss;
@@ -215,6 +216,9 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
   if(json_status){
     to_status=json_status.get();}
+  boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
+  if(json_block){
+    to_block=json_block.get();}
 
   deduct=0;
   fee=0;
@@ -264,18 +268,22 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   else if(!run.compare(txsname[TXSTYPE_VIP])){
     boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
     if(json_viphash && !parse_key(to_info,json_viphash,32)){
-      return(NULL);}
-    uint32_t to_block=0;
-    boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
-    if(json_block){
-      to_block=json_block.get();} //                              !!!!!!!!                             !!!!!!!
+      return(NULL);} //                                           !!!!!!!!                             !!!!!!!
     txs=boost::make_shared<usertxs>(TXSTYPE_VIP,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
-  else if(!run.compare(txsname[TXSTYPE_SIG])){
-    uint32_t to_block=0;
-    boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
-    if(json_block){
-      to_block=json_block.get();} //                              !!!!!!!!
+  else if(!run.compare(txsname[TXSTYPE_SIG])){ //                 !!!!!!!!
     txs=boost::make_shared<usertxs>(TXSTYPE_SIG,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_NDS])){ //                 !!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_NDS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_NOD])){ //                 !!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_NOD,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_MGS])){ //                 !!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);}
+  else if(!run.compare(txsname[TXSTYPE_MSG])){
+    uint32_t to_node_msid=0;
+    boost::optional<uint32_t> json_node_msid=pt.get_optional<uint32_t>("node_msid");
+    if(json_node_msid){
+      to_node_msid=json_node_msid.get();} //                      !!!!!!!!             !!!!!!!!!!!!
+    txs=boost::make_shared<usertxs>(TXSTYPE_MSG,sts.bank,sts.user,to_block,now,to_bank,to_node_msid,to_mass,to_info,(const char*)NULL);}
   else if(!run.compare("send_again")){
     boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
     if(json_data){
@@ -404,6 +412,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   return(txs);
 }
 
+/*
 //usertxs_ptr run(settings& sts,std::string& line)
 usertxs_ptr run(settings& sts,const char* line,int len) // this function is obsolete, only json input should be allowed now
 { uint32_t to_bank=0; //actually uint16_t
@@ -478,6 +487,7 @@ usertxs_ptr run(settings& sts,const char* line,int len) // this function is obso
   else{
     return(NULL);}
 }
+*/
 
 static char* mydate(uint32_t now)
 { time_t lnow=now;
@@ -1400,6 +1410,155 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         pt.add_child("vipkeys",viptree);
         free(buf);}
 
+      else if(txs->ttype==TXSTYPE_SIG){ // print signatures
+        char sigh[129]; sigh[128]='\0';
+        uint32_t path=0;
+        uint32_t nok=0;
+        uint32_t nno=0;
+        boost::asio::read(socket,boost::asio::buffer(&path,sizeof(uint32_t)));
+        if(path!=txs->amsid){
+          fprintf(stderr,"ERROR, bad block number %d/%08X (<>%d/%08X)\n",path,path,txs->amsid,txs->amsid);
+          goto END;} //nice :-)
+        boost::asio::read(socket,boost::asio::buffer(&nok,sizeof(uint32_t)));
+        if(nok){
+          svsi_t sigs[nok]; //assume nok will not be too large
+          boost::asio::read(socket,boost::asio::buffer(sigs,nok*sizeof(svsi_t)));
+          boost::property_tree::ptree psigs;
+          for(uint32_t n=0;n<nok;n++){
+            uint16_t *p=(uint16_t*)&sigs[n][0];
+            ed25519_key2text(sigh,&sigs[n][2],64);
+            boost::property_tree::ptree sig;
+            sig.put("node",*p);
+            sig.put("signature",sigh);
+            psigs.push_back(std::make_pair("",sig));}
+          pt.add_child("signatures",psigs);}
+        boost::asio::read(socket,boost::asio::buffer(&nno,sizeof(uint32_t)));
+        if(nno){
+          svsi_t sigs[nno]; //assume nno will not be too large
+          boost::asio::read(socket,boost::asio::buffer(sigs,nno*sizeof(svsi_t)));
+          boost::property_tree::ptree psigs;
+          for(uint32_t n=0;n<nno;n++){
+            uint16_t *p=(uint16_t*)&sigs[n][0];
+            ed25519_key2text(sigh,&sigs[n][2],64);
+            boost::property_tree::ptree sig;
+            sig.put("node",*p);
+            sig.put("signature",sigh);
+            psigs.push_back(std::make_pair("",sig));}
+          pt.add_child("fork_signatures",psigs);}}
+
+      else if(txs->ttype==TXSTYPE_NDS){ // print nodes, consider archiving
+        uint32_t len;
+        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+        if(!len){
+          goto END;}
+        char buf[len];
+        boost::asio::read(socket,boost::asio::buffer(buf,len));
+        mkdir("srv",0755);
+        char filename[64];
+        sprintf(filename,"srv/%08X.tmp",txs->amsid);
+        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        if(fd<0){
+          goto END;}
+        write(fd,buf,len);
+        close(fd);
+        servers srv;
+        if(srv.data_read(filename,true)!=(int)txs->amsid){
+          goto END;}
+        char hash[65]; hash[64]='\0';
+        boost::property_tree::ptree psrv;
+        psrv.put("now",srv.now);
+        psrv.put("msg",srv.nod);
+        psrv.put("nod",srv.nod);
+        psrv.put("div",srv.nod);
+        ed25519_key2text(hash,srv.oldhash,32);
+        psrv.put("oldhash",hash);
+        ed25519_key2text(hash,srv.minhash,32);
+        psrv.put("minhash",hash);
+        ed25519_key2text(hash,srv.msghash,32);
+        psrv.put("msghash",hash);
+        ed25519_key2text(hash,srv.nodhash,32);
+        psrv.put("nodhash",hash);
+        ed25519_key2text(hash,srv.viphash,32);
+        psrv.put("viphash",hash);
+        ed25519_key2text(hash,srv.nowhash,32);
+        psrv.put("nowhash",hash);
+        psrv.put("vok",srv.vok);
+        psrv.put("vno",srv.vno);
+        psrv.put("vtot",srv.vtot);
+        boost::property_tree::ptree nodes;
+        for(uint32_t n=0;n<srv.nodes.size();n++){
+          boost::property_tree::ptree node;
+          ed25519_key2text(hash,srv.nodes[n].pk,32);
+          psrv.put("pk",hash);
+          ed25519_key2text(hash,(uint8_t*)&srv.nodes[n].hash[0],32);
+          psrv.put("hash",hash);
+          ed25519_key2text(hash,srv.nodes[n].msha,32);
+          psrv.put("msha",hash);
+          node.put("msid",srv.nodes[n].msid);
+          node.put("mtim",srv.nodes[n].mtim);
+          node.put("weight",srv.nodes[n].weight);
+          node.put("status",srv.nodes[n].status);
+          node.put("users",srv.nodes[n].users);
+          node.put("port",srv.nodes[n].port);
+          node.put("ipv4",srv.nodes[n].ipv4);
+          nodes.push_back(std::make_pair("",node));}
+        psrv.add_child("nodes",nodes);
+        pt.add_child("block",psrv);}
+
+      else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node
+        uint32_t len;
+        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+        if(!len){
+          goto END;}
+        char buf[len];
+        boost::asio::read(socket,boost::asio::buffer(buf,len));
+        user_t* userp=(user_t*)buf;
+        uint32_t usern=len/sizeof(user_t);
+        boost::property_tree::ptree users;
+        for(uint32_t n=0;n<usern;n++,userp++){
+          boost::property_tree::ptree user;
+          print_user(*userp,user,true,true,txs->bbank,n,sts);
+          users.push_back(std::make_pair("",user));}
+        pt.add_child("accounts",users);}
+
+      else if(txs->ttype==TXSTYPE_MGS){ // print message list, consider archiving
+        uint32_t len;
+        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+        if(!len || (len-32)%(2+4+32)){
+          goto END;}
+        uint8_t msghash[32];
+        char buf[len];
+        char *bufp=buf;
+        char *end=buf+len;
+        boost::asio::read(socket,boost::asio::buffer(buf,len));
+        char hash[65]; hash[64]='\0';
+        ed25519_key2text(hash,(uint8_t*)buf,32);
+        pt.put("msghash",hash);
+        bufp+=32;
+        hashtree tree;
+        boost::property_tree::ptree msghashes;
+        for(;bufp<end;bufp+=2+4+32){
+          boost::property_tree::ptree msghash;
+          uint16_t svid=*(uint16_t*)(bufp);
+          msghash.put("svid",svid);
+          uint32_t msid=*(uint32_t*)(bufp+2);
+          msghash.put("msid",msid);
+          ed25519_key2text(hash,(uint8_t*)bufp+6,32);
+          msghash.put("hash",hash);
+          tree.update((uint8_t*)bufp+6);
+          msghashes.push_back(std::make_pair("",msghash));}
+        tree.finish(msghash);
+        if(memcmp(buf,msghash,32)){
+          ed25519_key2text(hash,msghash,32);
+          pt.put("msghash_calculated",hash);
+          pt.put("confirmed","no");}
+        else{
+          pt.put("confirmed","yes");}
+        pt.add_child("msghashes",msghashes);}
+
+      else if(txs->ttype==TXSTYPE_MSG){ // print message
+        }
+
       else{
         int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
         if(len!=sizeof(user_t)){
@@ -1481,7 +1640,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               pt.put("tx.id",tx_id);}
             else{
               fprintf(stderr,"MSID:%08X MPOS:%04X\n",m.msid,m.mpos);}}}}
-    socket.close();
+    END:socket.close();
     if(sts.json){
       boost::property_tree::write_json(std::cout,pt,sts.nice);}}
   catch (std::exception& e){
@@ -1511,14 +1670,14 @@ int main(int argc, char* argv[])
   //fprintf(stderr,"Lf size:%ld ; Ld size:%ld\n",sizeof(long double),sizeof(long long int));
 #endif
   try{
-    if(!sts.exec.empty()){
-      int64_t deduct=0;
-      int64_t fee=0;
-      usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length()); //FIXME, use only run_json
-      if(txs==NULL){
-        std::cerr << "ERROR\n";}
-      talk(endpoint_iterator,socket,sts,txs,deduct,fee);
-      return(0);}
+    //if(!sts.exec.empty()){
+    //  int64_t deduct=0;
+    //  int64_t fee=0;
+    //  usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length()); //FIXME, use only run_json
+    //  if(txs==NULL){
+    //    std::cerr << "ERROR\n";}
+    //  talk(endpoint_iterator,socket,sts,txs,deduct,fee);
+    //  return(0);}
     //std::string line;
     char line[0x10000];line[0xffff]='\0';
     usertxs_ptr txs;
@@ -1529,21 +1688,23 @@ int main(int argc, char* argv[])
       if(line[0]=='\n' || line[0]=='#'){
         continue;}
       int len=strlen(line);
-      if(!sts.json && isalpha(line[0])){
-        sts.json=false;
-        if(line[len-1]=='\n'){
-          line[len-1]='\0';
-          len--;}
-        txs=run(sts,line,len);} //FIXME, use only run_json
-      else{
-        sts.json=true;
+      //if(!sts.json && isalpha(line[0])){
+      //  sts.json=false;
+      //  if(line[len-1]=='\n'){
+      //    line[len-1]='\0';
+      //    len--;}
+      //  txs=run(sts,line,len);
+      //  } //FIXME, use only run_json
+      //else{
+        sts.json=true; //obsolete !!!
         if(sts.mlin){
           while(len && 0xffff-len>1 && NULL!=fgets(line+len,0xffff-len,stdin)){
             //if(line[len]==',' && line[len+1]=='\n'){
             //  line[len]=' ';
             //  break;}
             len+=strlen(line+len);}}
-        txs=run_json(sts,line,deduct,fee);}
+        txs=run_json(sts,line,deduct,fee);
+      //}
       if(txs==NULL){
         break;}
       talk(endpoint_iterator,socket,sts,txs,deduct,fee);}}

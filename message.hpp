@@ -146,6 +146,47 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
     hash.num=dohash(mysvid);
   }
 
+  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
+	len(header_length),
+	msid(mmsid),
+	path(mpath),
+	svid(msvid),
+	peer(msvid),
+	status(0)
+  { data=NULL;
+    hash.dat[1]=type;
+    if(!load(0)){ //sets len ... assume this is invoked only by server during sync
+      ELOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
+      return;}
+    //load should get hash_tree
+    memcpy(&now,data+4+64+6,4);
+    got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
+    assert(mmsid<=max_msid);
+    assert(len<=max_length);
+    assert(data!=NULL);
+    if(check_signature(svpk,msvid,msha)){
+      ELOG("ERROR, failed to confirm signature of recycled message %04X:%08X [len:%d]\n",svid,msid,len);
+      status=0;}
+  }
+
+  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid) : //loaded message
+	len(header_length),
+	msid(mmsid),
+	path(mpath),
+	svid(msvid),
+	peer(msvid),
+	status(0)
+  { data=NULL;
+    hash.dat[1]=type;
+    got=load(0); //overloading got with size !!!
+  }
+
+  ~message()
+  { if(data!=NULL){
+      free(data);
+      data=NULL;}
+  }
+
   //TODO, compute hashsvid,hashmsid,hashtnum as in hash_tree()
   bool hash_tree_fast(uint8_t* outsigh,uint8_t* indata,uint32_t inlen,uint16_t insvid,uint32_t inmsid)
   { assert(indata[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
@@ -394,37 +435,6 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
       exit(-1);}
     ed25519_sign2(msha,32,sigh,32,mysk,mypk,data+4);
     hash.num=dohash(svid); //assert svid==opts_.svid
-  }
-
-  message(uint8_t type,uint32_t mpath,uint16_t msvid,uint32_t mmsid,hash_t svpk,hash_t msha) : //recycled message
-	len(header_length),
-	msid(mmsid),
-	path(mpath),
-	svid(msvid),
-	peer(msvid),
-	status(0)
-  { data=NULL;
-    hash.dat[1]=type;
-    if(!load(0)){ //sets len ... assume this is invoked only by server during sync
-      ELOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
-      return;}
-    //load should get hash_tree
-    memcpy(&now,data+4+64+6,4);
-    got=now; //TODO, if You plan resubmission check if the message is not too old and recreate if needed
-    assert(mmsid<=max_msid);
-    assert(len<=max_length);
-    assert(data!=NULL);
-    if(check_signature(svpk,msvid,msha)){
-      ELOG("ERROR, failed to confirm signature of recycled message %04X:%08X [len:%d]\n",svid,msid,len);
-      status=0;}
-    //else{
-    //  memcpy(msha,sigh,sizeof(hash_t));}
-  }
-
-  ~message()
-  { if(data!=NULL){
-      free(data);
-      data=NULL;}
   }
 
   void hashtype(uint8_t type)
@@ -793,7 +803,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     ELOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
-  int load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
+  uint32_t load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
   { 
     mtx_.lock();
     busy.insert(who);
@@ -841,7 +851,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     status|=MSGSTAT_DAT | MSGSTAT_SAV; //load() succeeded so massage is saved
     mtx_.unlock();
     DLOG("%04X LOAD %04X:%08X (len:%d) %s\n",who,svid,msid,len,filename);
-    return(1);
+    return((uint32_t)sb.st_size);
   }
 
   void unload(int16_t who)

@@ -368,21 +368,29 @@ public:
 
 	void get()
 	{	get(0);
-		//std::ifstream ifs("servers.txt");
-		//if(ifs.is_open()){
-		//	boost::archive::text_iarchive ia(ifs);
-		//	ia >> (*this);}
 	}
 	void get(uint32_t path)
 	{	char filename[64]="servers.srv";
 	 	if(path>0){
-			//assert(now==path);
 			sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);}
 		data_read(filename,true);
-		//std::ifstream ifs(filename);
-		//if(ifs.is_open()){
-		//	boost::archive::text_iarchive ia(ifs);
-		//	ia >> (*this);}
+	}
+	void read_servers(uint32_t path,uint8_t* &data,uint32_t &len) // read file for user
+	{	char filename[64]="servers.srv";
+	 	if(path>0){
+			sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);}
+		int fd=open(filename,O_RDONLY);
+		if(fd>=0){
+			struct stat sb;
+			fstat(fd,&sb);
+			len=sb.st_size;
+			data=(uint8_t*)malloc(4+len);
+			read(fd,data+4,len);
+			close(fd);}
+		else{
+			len=0;
+			data=(uint8_t*)malloc(4);}
+		memcpy(data,&len,4);
 	}
 	void put()
 	{	char filename[64]="servers.srv";
@@ -396,6 +404,25 @@ public:
 		//	oa << (*this);}
 		//else{
 		//	ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
+	}
+	void read_messagelist(uint32_t path,uint8_t* &data,uint32_t &len) // read file for user
+	{	char filename[64];
+		sprintf(filename,"blk/%03X/%05X/msglist.dat",path>>20,path&0xFFFFF);
+		int fd=open(filename,O_RDONLY);
+		if(fd>=0){
+			uint32_t msgnum=0;
+			read(fd,&msgnum,4);
+			//struct stat sb;
+			//fstat(fd,&sb);
+			//len=sb.st_size;
+                        len=32+msgnum*(2+4+32);
+			data=(uint8_t*)malloc(4+len);
+			memcpy(data,&len,4);
+			read(fd,data,len);
+			close(fd);}
+		else{
+			len=0;
+			data=(uint8_t*)malloc(4);}
 	}
 	//TODO, *msg* should go to message.hpp
 	/*bool msg_check(std::map<uint64_t,message_ptr>& map)
@@ -427,6 +454,8 @@ public:
 		int fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd<0){ //trow or something :-)
 			return(false);}
+		uint32_t msgnum=map.size();
+		write(fd,&msgnum,4); // added to make reading the file easier by user.cpp
 		write(fd,msghash,SHA256_DIGEST_LENGTH);
 		int n=0;
 		for(auto it=map.begin();it!=map.end();it++){
@@ -452,6 +481,9 @@ public:
 		int fd=open(filename,O_RDONLY);
 		if(fd<0){
 			return(0);}
+		//uint32_t msgnum;
+		//read(fd,&msgnum,4); // not used
+		lseek(fd,4,SEEK_SET);
 		int len=read(fd,data,SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
 		close(fd);
 		return(len);
@@ -493,7 +525,7 @@ public:
 #pragma pack()
 			assert(sizeof(tmp)==32+2+4);
 			//uint8_t tmp[32+2+4]; // do not read own hash
-			lseek(fd,32+(2+4+32)*(mnum)-32,SEEK_SET);
+			lseek(fd,4+32+(2+4+32)*(mnum)-32,SEEK_SET);
 			read(fd,(char*)&tmp,32+2+4); // do not read own hash
 			//if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
 			if(tmp.svid!=svid || tmp.msid!=msid){
@@ -511,7 +543,7 @@ public:
 #pragma pack()
 			assert(sizeof(tmp)==2+4+32+2+4+32);
 			//uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
-			lseek(fd,32+(2+4+32)*(mnum),SEEK_SET);
+			lseek(fd,4+32+(2+4+32)*(mnum),SEEK_SET);
 			read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
 			//if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
 			if(tmp.svid1!=svid || tmp.msid1!=msid){
@@ -526,7 +558,7 @@ public:
 			else{
 				DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
 		uint32_t htot;
-		lseek(fd,32+(2+4+32)*msg,SEEK_SET);
+		lseek(fd,4+32+(2+4+32)*msg,SEEK_SET);
 		read(fd,&htot,4); //needed only for debugging
 		std::vector<uint32_t>add;
 		hashtree tree;
@@ -534,7 +566,7 @@ public:
 		for(auto n : add){
 			DLOG("HASHTREE add %d\n",n);
 			assert(n<htot);
-			lseek(fd,32+(2+4+32)*msg+4+32*n,SEEK_SET);
+			lseek(fd,4+32+(2+4+32)*msg+4+32*n,SEEK_SET);
 			hash_s phash;
 			read(fd,phash.hash,32);
 			hashes.push_back(phash);}
@@ -1014,14 +1046,36 @@ public:
 			if(!sb.st_size){
 				return false;}
 			nok=sb.st_size/sizeof(svsi_t);
-			data=(uint8_t*)malloc(8+sb.st_size);
+			data=(uint8_t*)malloc(8+nok*sizeof(svsi_t));
 			memcpy(data+0,&path,4);
 			memcpy(data+4,&nok,4);
 			read(fd,data+8,nok*sizeof(svsi_t));
 			close(fd);
 			return true;}
 		else{
+			nok=0;
+			data=NULL;
 			return false;}
+	}
+	void read_signatures(uint32_t path,uint8_t* &data,uint32_t &nok,uint32_t &nno)
+	{	if(!get_signatures(path,data,nok)){
+			nno=0;
+			return;}
+		int fd;
+		char filename[64];
+		sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
+		fd=open(filename,O_RDONLY);
+		if(fd>=0){
+			struct stat sb;
+			fstat(fd,&sb);
+			nno=sb.st_size/sizeof(svsi_t);
+			data=(uint8_t*)realloc(data,8+nok*sizeof(svsi_t)+4+nno*sizeof(svsi_t));
+			read(fd,data+8+nok*sizeof(svsi_t)+4,nno*sizeof(svsi_t));
+			close(fd);}
+		else{
+			nno=0;
+			data=(uint8_t*)realloc(data,8+nok*sizeof(svsi_t)+4);}
+		memcpy(data+8+nok*sizeof(svsi_t),&nno,4);
 	}
 	bool get_signatures(uint32_t path,uint8_t* data,int nok,int nno) // does not use any local data
 	{	int fd;
