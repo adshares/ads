@@ -1557,6 +1557,53 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         pt.add_child("msghashes",msghashes);}
 
       else if(txs->ttype==TXSTYPE_MSG){ // print message
+        uint32_t len;
+        boost::asio::read(socket,boost::asio::buffer(&len,4));
+        if(!len || (len & 0xFF) != MSGTYPE_MSG || len<<8 < message::data_offset){
+          goto END;}
+        char buf[(len<<8)];
+        memcpy(buf,&len,4);
+        len<<=8;
+        boost::asio::read(socket,boost::asio::buffer(buf+4,len-4));
+        message_ptr msg(new message(len,(uint8_t*)buf));
+        msg->read_head();
+        pt.put("block",txs->amsid);
+        pt.put("svid",msg->svid);
+        pt.put("msid",msg->msid);
+        pt.put("time",msg->now);
+        pt.put("length",msg->len);
+        if(!msg->hash_tree_fast(msg->sigh,msg->data,msg->len,msg->svid,msg->msid)){
+          goto END;}
+        char hash[65]; hash[64]='\0';
+        ed25519_key2text(hash,msg->sigh,32);
+        pt.put("hash",hash);
+        //parse and print message
+        uint8_t* p=msg->data+message::data_offset;
+        uint8_t* end=msg->data+msg->len;
+        uint32_t l;
+        assert(p<end);
+        boost::property_tree::ptree transactions;
+        for(;p<end;p+=l){
+          usertxs utxs;
+          if(!utxs.parse((char*)p)){
+            pt.put("parse_error","true");
+            break;}
+          l=utxs.size;
+          boost::property_tree::ptree transaction;
+          transaction.put("ttype",utxs.ttype);
+          transaction.put("abank",utxs.abank);
+          transaction.put("auser",utxs.auser);
+          transaction.put("amsid",utxs.amsid);
+          transaction.put("ttime",utxs.ttime);
+          transaction.put("bbank",utxs.bbank);
+          transaction.put("buser",utxs.buser);
+          transaction.put("tmass",utxs.tmass);
+          transaction.put("size" ,utxs.size);
+          ed25519_key2text(hash,utxs.tinfo,32);
+          transaction.put("tinfo",hash);
+          transactions.push_back(std::make_pair("",transaction));}
+        pt.add_child("transactions",transactions);
+        //TODO,check if message in message list
         }
 
       else{

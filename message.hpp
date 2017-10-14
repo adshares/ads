@@ -178,7 +178,8 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
 	status(0)
   { data=NULL;
     hash.dat[1]=type;
-    got=load(0); //overloading got with size !!!
+    //got=load(0); //overloading got with size !!!
+    load(0); //overloading got with size !!!
   }
 
   ~message()
@@ -190,7 +191,7 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
   //TODO, compute hashsvid,hashmsid,hashtnum as in hash_tree()
   bool hash_tree_fast(uint8_t* outsigh,uint8_t* indata,uint32_t inlen,uint16_t insvid,uint32_t inmsid)
   { assert(indata[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
-    assert(insvid);
+    assert(insvid); //FIXME, insvid==0 for block message
     assert(inmsid);
     hash_t hash; //strict aliasing ???
     uint16_t* hashsvid=(uint16_t*)hash;
@@ -274,7 +275,7 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
   bool hash_tree()
   { assert(data!=NULL);
     assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
-    assert(svid);
+    assert(svid); //FIXME, svid==0 for block message
     assert(msid);
     hash_s ha;
     hashtree tree;

@@ -481,7 +481,7 @@ public:
         uint32_t null=0;
         boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&null,4));}
       else{
-        boost::asio::write(socket_,boost::asio::buffer(msg->data,msg->got));}
+        boost::asio::write(socket_,boost::asio::buffer(msg->data,msg->len));}
       return;}
 
     if(usera.msid!=utxs.amsid){
