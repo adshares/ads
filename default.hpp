@@ -6,14 +6,15 @@
 # define BLOCKDIV 0x4 /* number of blocks for dividend update */
 # define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
 # define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
+# define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
 #else
 # define BLOCKSEC 0x400 /* block period in seconds (17min) */
 # define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
 # define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
 # define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
+# define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #endif
 #define VIP_MAX 63 /* maximum number of VIP servers */
-#define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define TOTALMASS 0x4000000000000000L /* total balance (target) */
 #define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
 #define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/

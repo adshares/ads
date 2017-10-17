@@ -844,7 +844,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           //FIXME :-( overwrites info about peer inventory :-(
           tm->second=lm->second;}
         if(tm->second->status & MSGSTAT_BAD){
-          //bad_recover(tm->second); !!! must do this later !!!
           recover.insert(tm->second);}
         tm->second->status|=MSGSTAT_VAL;
         if(tm->second->path && tm->second->path!=LAST_block){
@@ -1437,6 +1436,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       msg->bad_recover();}
     else{
       msg->status &= ~MSGSTAT_BAD;
+      if(!msg->path){
+        msg->path=LAST_block;}
       msg->save();}
     bad_.unlock();
   }

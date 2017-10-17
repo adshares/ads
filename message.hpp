@@ -912,6 +912,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
   int save() //TODO, consider locking
   { if(!(status & MSGSTAT_DAT)){
       return(0);}
+    if(!path){
+      ELOG("ERROR, saving %04X:%08X [l:%d], no path\n",svid,msid,len);
+      return(0);}
     char filename[128];
     makefilename(filename,path,"msg");
     //assert(data!=NULL);
