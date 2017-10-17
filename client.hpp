@@ -423,7 +423,7 @@ public:
 
     if(*buf==TXSTYPE_NOD){
       //TODO, check access credentials
-      uint32_t path=offi_.last_path()+BLOCKSEC;
+      uint32_t path=offi_.last_path();
       if(utxs.amsid!=path){
         uint32_t error=1; // ERROR: bad path
         boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&error,4));

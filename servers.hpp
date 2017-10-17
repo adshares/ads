@@ -418,7 +418,7 @@ public:
                         len=32+msgnum*(2+4+32);
 			data=(uint8_t*)malloc(4+len);
 			memcpy(data,&len,4);
-			read(fd,data,len);
+			read(fd,data+4,len);
 			close(fd);}
 		else{
 			len=0;

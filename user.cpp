@@ -175,8 +175,8 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   uint8_t  to_pkey[32];
   uint8_t  to_sign[64];
   uint32_t to_status=0;
-  uint32_t to_block=0;
   uint32_t now=time(NULL);
+  uint32_t to_block=now-(now%BLOCKSEC)-BLOCKSEC;
   usertxs_ptr txs=NULL;
   std::stringstream ss;
   boost::property_tree::ptree pt;
@@ -1411,6 +1411,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         free(buf);}
 
       else if(txs->ttype==TXSTYPE_SIG){ // print signatures
+        pt.put("block",txs->amsid);
         char sigh[129]; sigh[128]='\0';
         uint32_t path=0;
         uint32_t nok=0;
@@ -1447,6 +1448,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           pt.add_child("fork_signatures",psigs);}}
 
       else if(txs->ttype==TXSTYPE_NDS){ // print nodes, consider archiving
+        pt.put("block",txs->amsid);
         uint32_t len;
         boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
         if(!len){
@@ -1503,9 +1505,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           node.put("ipv4",srv.nodes[n].ipv4);
           nodes.push_back(std::make_pair("",node));}
         psrv.add_child("nodes",nodes);
-        pt.add_child("block",psrv);}
+        pt.add_child("block_nodes",psrv);}
 
       else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node
+        pt.put("block",txs->amsid);
         uint32_t len;
         boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
         if(!len){
@@ -1522,9 +1525,11 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         pt.add_child("accounts",users);}
 
       else if(txs->ttype==TXSTYPE_MGS){ // print message list, consider archiving
+        pt.put("block",txs->amsid);
         uint32_t len;
         boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
         if(!len || (len-32)%(2+4+32)){
+          pt.put("error_bad_length",len);
           goto END;}
         uint8_t msghash[32];
         char buf[len];
@@ -1540,9 +1545,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         for(;bufp<end;bufp+=2+4+32){
           boost::property_tree::ptree msghash;
           uint16_t svid=*(uint16_t*)(bufp);
-          msghash.put("svid",svid);
+          msghash.put("node",svid);
           uint32_t msid=*(uint32_t*)(bufp+2);
-          msghash.put("msid",msid);
+          msghash.put("node_msid",msid);
           ed25519_key2text(hash,(uint8_t*)bufp+6,32);
           msghash.put("hash",hash);
           tree.update((uint8_t*)bufp+6);
@@ -1557,17 +1562,18 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         pt.add_child("msghashes",msghashes);}
 
       else if(txs->ttype==TXSTYPE_MSG){ // print message
+        pt.put("block",txs->amsid);
         uint32_t len;
         boost::asio::read(socket,boost::asio::buffer(&len,4));
-        if(!len || (len & 0xFF) != MSGTYPE_MSG || len<<8 < message::data_offset){
+        if(!len || (len & 0xFF) != MSGTYPE_MSG || len>>8 < message::data_offset){
+          pt.put("error_bad_length",len);
           goto END;}
-        char buf[(len<<8)];
+        char buf[(len>>8)];
         memcpy(buf,&len,4);
-        len<<=8;
+        len>>=8;
         boost::asio::read(socket,boost::asio::buffer(buf+4,len-4));
         message_ptr msg(new message(len,(uint8_t*)buf));
         msg->read_head();
-        pt.put("block",txs->amsid);
         pt.put("svid",msg->svid);
         pt.put("msid",msg->msid);
         pt.put("time",msg->now);
