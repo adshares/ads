@@ -1487,11 +1487,11 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       for(uint32_t n=0;n<srv.nodes.size();n++){
         boost::property_tree::ptree node;
         ed25519_key2text(hash,srv.nodes[n].pk,32);
-        psrv.put("pk",hash);
+        node.put("pk",hash);
         ed25519_key2text(hash,(uint8_t*)&srv.nodes[n].hash[0],32);
-        psrv.put("hash",hash);
+        node.put("hash",hash);
         ed25519_key2text(hash,srv.nodes[n].msha,32);
-        psrv.put("msha",hash);
+        node.put("msha",hash);
         node.put("msid",srv.nodes[n].msid);
         node.put("mtim",srv.nodes[n].mtim);
         node.put("balance",srv.nodes[n].weight);
