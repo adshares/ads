@@ -1490,7 +1490,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         psrv.put("msha",hash);
         node.put("msid",srv.nodes[n].msid);
         node.put("mtim",srv.nodes[n].mtim);
-        node.put("weight",srv.nodes[n].weight);
+        node.put("balance",srv.nodes[n].weight);
         node.put("status",srv.nodes[n].status);
         node.put("users",srv.nodes[n].users);
         node.put("port",srv.nodes[n].port);
