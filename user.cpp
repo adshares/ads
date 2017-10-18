@@ -1579,16 +1579,19 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       //parse and print message
       uint8_t* p=msg->data+message::data_offset;
       uint8_t* end=msg->data+msg->len;
+      uint32_t mpos=1;
       uint32_t l;
       assert(p<end);
       boost::property_tree::ptree transactions;
-      for(;p<end;p+=l){
+      for(;p<end;p+=l,mpos++){
         usertxs utxs;
         if(!utxs.parse((char*)p)){
           pt.put("error_parse","true");
           break;}
         l=utxs.size;
         boost::property_tree::ptree transaction;
+        sprintf(hash,"%04X:%08X:%04X",msg->svid,msg->msid,mpos);
+        transaction.put("id",hash);
         transaction.put("ttype",utxs.ttype);
         transaction.put("abank",utxs.abank);
         transaction.put("auser",utxs.auser);
