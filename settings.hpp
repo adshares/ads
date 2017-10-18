@@ -18,8 +18,6 @@ public:
 		bank(0),
 		user(0),
 		msid(0),
-		json(true),
-		mlin(false),
 		nice(true),
 		olog(true),
 		drun(false),
@@ -35,8 +33,6 @@ public:
 	uint16_t bank;		// my bank
 	uint32_t user;		// my account
 	int msid;		// my last message id
-	bool json;
-	bool mlin;
 	bool nice;
 	bool olog;
 	bool drun;
@@ -50,7 +46,6 @@ public:
 	std::string pkey;
 //	std::string snew;
 //	std::string sold;
-	std::string exec;
 	std::string hash;	// my last message hash
 	uint32_t lastlog;	// placeholder for last requested log entry
 
@@ -164,20 +159,14 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				("port,P", boost::program_options::value<int>(&port)->default_value(9080),			"node port (for clients)")
 				("host,H", boost::program_options::value<std::string>(&host)->default_value("127.0.0.1"),	"node hostname or ip")
 				("address,A", boost::program_options::value<std::string>(&addr),				"address (don't use with --bank, --user)")
-				("bank,b", boost::program_options::value<uint16_t>(&bank),					"node id (don't use with --addr)")
-				("user,u", boost::program_options::value<uint32_t>(&user),					"user id (don't use with --addr)")
+				("bank,b", boost::program_options::value<uint16_t>(&bank),					"node id (don't use with --address)")
+				("user,u", boost::program_options::value<uint32_t>(&user),					"user id (don't use with --address)")
 				("msid,i", boost::program_options::value<int>(&msid),						"last message id")
-//				("json,j", boost::program_options::value<bool>(&json)->default_value(false),			"expect json input and output")
-//				("mlin,m", boost::program_options::value<bool>(&mlin)->default_value(false),			"allow json with multiple lines, depreciated")
 				("nice,n", boost::program_options::value<bool>(&nice)->default_value(true),			"request pretty json")
-				("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"log submitted transactions")
+				("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
 				("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
-				("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hext format / 32bytes]")
-				("secret,s", boost::program_options::value<std::string>(&skey),					"passphrase or private key [64chars in hext format / 32bytes]")
-//				("pkey,k", boost::program_options::value<std::string>(&pkey),					"public key [64chars in hext format / 32bytes]")
-//				("snew,n", boost::program_options::value<std::string>(&snew),					"new secret key [32bytes]")
-//				("sold,o", boost::program_options::value<std::string>(&sold),					"old secret key [32bytes]")
-				("exec,e", boost::program_options::value<std::string>(&exec),					"command to execute")
+				("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
+				("secret,s", boost::program_options::value<std::string>(&skey),					"passphrase or private key [64chars in hex format / 32bytes]")
 				;
 			boost::program_options::options_description cmdline_options;
 			cmdline_options.add(generic).add(config);
@@ -261,8 +250,6 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				std::cerr << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
 			else{
 				std::cerr << "WARNING: last message id missing!" << std::endl;}
-			if (vm.count("mlin")){
-				std::cerr << "MultiLine: " << vm["mlin"].as<bool>() << std::endl;}
 			if (vm.count("nice")){
 				std::cerr << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
 			if (vm.count("olog")){

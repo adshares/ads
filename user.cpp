@@ -75,7 +75,7 @@ bool parse_mpt(std::string& text,uint32_t& to_bank,const char* line,int end)
 
 //bool parse_bank(uint16_t& to_bank,boost::optional<std::string>& json_bank)
 //{ std::string str_bank=json_bank.get();
-bool parse_bank(uint16_t& to_bank,std::string str_bank)
+/*bool parse_bank(uint16_t& to_bank,std::string str_bank)
 { char *endptr;
   if(str_bank.length()!=4){
     fprintf(stderr,"ERROR: parse_bank(%s) bad length (required 4)\n",str_bank.c_str());
@@ -87,7 +87,7 @@ bool parse_bank(uint16_t& to_bank,std::string str_bank)
     perror("ERROR: strtol");
     return(false);}
   return(true);
-}
+}*/
 
 bool parse_user(uint32_t& to_user,std::string str_user)
 { char *endptr;
@@ -198,15 +198,15 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   boost::optional<std::string> json_mass=pt.get_optional<std::string>("amount");
   if(json_mass && !parse_amount(to_mass,json_mass.get())){
     return(NULL);}
-  boost::optional<std::string> json_bank=pt.get_optional<std::string>("node");
-  if(json_bank && !parse_bank(to_bank,json_bank.get())){
-    return(NULL);}
   boost::optional<std::string> json_user=pt.get_optional<std::string>("id");
   if(json_user && !parse_user(to_user,json_user.get())){
     return(NULL);}
   boost::optional<std::string> json_acnt=pt.get_optional<std::string>("address");
   if(json_acnt && !sts.parse_acnt(to_bank,to_user,json_acnt.get())){
     return(NULL);}
+  boost::optional<uint16_t> json_bank=pt.get_optional<uint16_t>("node");
+  if(json_bank){
+    to_bank=json_bank.get();}
   boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
   if(json_from){
     to_from=json_from.get();}
@@ -510,63 +510,58 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid)
   return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
-void print_user(user_t& u,boost::property_tree::ptree& pt,bool json,bool local,uint32_t bank,uint32_t user,settings& sts)
+void print_user(user_t& u,boost::property_tree::ptree& pt,bool local,uint32_t bank,uint32_t user,settings& sts)
 { char pkey[65];
   char hash[65];
   ed25519_key2text(pkey,u.pkey,32);
   ed25519_key2text(hash,u.hash,32);
   pkey[64]='\0';
   hash[64]='\0';
-  if(!json){
-    fprintf(stderr,
-      "msid:%08X time:%08X stat:%04X node:%04X user:%08X lpath:%08X rpath:%08X balance:%016lX\npkey:%.64s\nhash:%.64s\n",
-      u.msid,u.time,u.stat,u.node,u.user,u.lpath,u.rpath,u.weight,pkey,hash);}
+  uint16_t suffix=sts.crc_acnt(bank,user);
+  char ucnt[19]="";
+  char acnt[19];
+  sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
+  if(u.node){
+    suffix=sts.crc_acnt(u.node,u.user);
+    sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);}
+  if(local){
+    pt.put("account.address",acnt);
+    pt.put("account.node",bank);
+    pt.put("account.id",user);
+    pt.put("account.msid",u.msid);
+    pt.put("account.time",u.time);
+    pt.put("account.date",mydate(u.time));
+    pt.put("account.status",u.stat);
+    pt.put("account.paired_node",u.node);
+    pt.put("account.paired_id",u.user);
+    if((u.node || u.user) && (u.node != bank || u.user != user)){
+      pt.put("account.paired_address",ucnt);}
+    pt.put("account.local_change",u.lpath);
+    pt.put("account.remote_change",u.rpath);
+    pt.put("account.balance",print_amount(u.weight));
+    pt.put("account.public_key",pkey);
+    pt.put("account.hash",hash);}
   else{
-    uint16_t suffix=sts.crc_acnt(bank,user);
-    char ucnt[19]="";
-    char acnt[19];
-    sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
-    if(u.node){
-      suffix=sts.crc_acnt(u.node,u.user);
-      sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);}
-    if(local){
-      pt.put("account.address",acnt);
-      pt.put("account.node",bank);
-      pt.put("account.id",user);
-      pt.put("account.msid",u.msid);
-      pt.put("account.time",u.time);
-      pt.put("account.date",mydate(u.time));
-      pt.put("account.status",u.stat);
-      pt.put("account.paired_node",u.node);
-      pt.put("account.paired_id",u.user);
-      if((u.node || u.user) && (u.node != bank || u.user != user)){
-        pt.put("account.paired_address",ucnt);}
-      pt.put("account.local_change",u.lpath);
-      pt.put("account.remote_change",u.rpath);
-      pt.put("account.balance",print_amount(u.weight));
-      pt.put("account.public_key",pkey);
-      pt.put("account.hash",hash);}
+    pt.put("network_account.address",acnt);
+    pt.put("network_account.node",bank);
+    pt.put("network_account.id",user);
+    pt.put("network_account.msid",u.msid);
+    pt.put("network_account.time",u.time);
+    pt.put("network_account.date",mydate(u.time));
+    pt.put("network_account.status",u.stat);
+    pt.put("network_account.paired_node",u.node);
+    pt.put("network_account.paired_id",u.user);
+    if((u.node || u.user) && (u.node != bank || u.user != user)){
+      pt.put("network_account.paired_address",ucnt);}
+    pt.put("network_account.local_change",u.lpath);
+    pt.put("network_account.remote_change",u.rpath);
+    pt.put("network_account.balance",print_amount(u.weight));
+    pt.put("network_account.public_key",pkey);
+    pt.put("network_account.hash",hash);
+    if(!check_csum(u,bank,user)){
+      pt.put("network_account.checksum","true");}
     else{
-      pt.put("network_account.address",acnt);
-      pt.put("network_account.node",bank);
-      pt.put("network_account.id",user);
-      pt.put("network_account.msid",u.msid);
-      pt.put("network_account.time",u.time);
-      pt.put("network_account.date",mydate(u.time));
-      pt.put("network_account.status",u.stat);
-      pt.put("network_account.paired_node",u.node);
-      pt.put("network_account.paired_id",u.user);
-      if((u.node || u.user) && (u.node != bank || u.user != user)){
-        pt.put("network_account.paired_address",ucnt);}
-      pt.put("network_account.local_change",u.lpath);
-      pt.put("network_account.remote_change",u.rpath);
-      pt.put("network_account.balance",print_amount(u.weight));
-      pt.put("network_account.public_key",pkey);
-      pt.put("network_account.hash",hash);
-      if(!check_csum(u,bank,user)){
-        pt.put("network_account.checksum","true");}
-      else{
-        pt.put("network_account.checksum","false");}}}
+      pt.put("network_account.checksum","false");}}
 }
 
 void print_log(boost::property_tree::ptree& pt,settings& sts)
@@ -591,197 +586,191 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
   boost::property_tree::ptree logtree;
   while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)){
     if(ulog.time<sts.lastlog){
-fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
+      //fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
       continue;}
     char info[65];
     info[64]='\0';
     ed25519_key2text(info,ulog.info,32);
-    if(!sts.json){
-      fprintf(stderr,"%08X ?%04X b%04X u%08X m%08X x%08X y%08X v%016lX i%64s\n",
-        ulog.time,ulog.type,ulog.node,ulog.user,ulog.umid,ulog.nmid,ulog.mpos,ulog.weight,info);}
-    else{
-      boost::property_tree::ptree logentry;
-      uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
-      char acnt[19];
-      uint16_t txst=ulog.type&0xFF;
-      sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
-      logentry.put("time",ulog.time);
-      logentry.put("date",mydate(ulog.time));
-      logentry.put("type_no",ulog.type);
-      // FIXME: properly flag confirmed transactions, which will not be rolled back
-      logentry.put("confirmed", 1);
-      if(txst<TXSTYPE_MAX){
-        logentry.put("type",logname[txst]);}
-      if(ulog.type & 0x4000){ //errors
-        if(txst==TXSTYPE_NON){ //node start
-          logentry.put("account.error","logerror");
-          logentry.put("account.newtime",ulog.time);
-          logentry.put("account.newdate",mydate(ulog.time));
-          logentry.put("account.badtime",ulog.nmid);
-          logentry.put("account.baddate",mydate(ulog.nmid));
-          logentry.put("account.badblock",ulog.mpos);
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}}
-      if(ulog.type & 0x8000){ //incomming network transactions (responses) except _GET
-        if(txst==TXSTYPE_NON){ //node start
-          logentry.put("node_start_msid",ulog.nmid);
-          logentry.put("node_start_block",ulog.mpos);
-          int64_t weight;
-          uint8_t hash[8];
-          uint32_t lpath;
-          uint32_t rpath;
-          uint8_t pkey[6];
-          uint16_t stat;
-          memcpy(&weight,ulog.info+ 0,8);
-          memcpy(   hash,ulog.info+ 8,8);
-          memcpy( &lpath,ulog.info+16,4);
-          memcpy( &rpath,ulog.info+20,4);
-          memcpy(   pkey,ulog.info+24,6);
-          memcpy(  &stat,ulog.info+30,2);
-          char hash_hex[17];hash_hex[16]='\0';
-          ed25519_key2text(hash_hex,hash,8);
-          char pkey_hex[13];pkey_hex[12]='\0';
-          ed25519_key2text(pkey_hex,pkey,6);
-          logentry.put("account.balance",print_amount(weight));
-          logentry.put("account.local_change",lpath);
-          logentry.put("account.remote_change",rpath);
-          logentry.put("account.hash_prefix_8",hash_hex);
-          logentry.put("account.public_key_prefix_6",pkey_hex);
-          logentry.put("account.status",stat);
-          logentry.put("account.msid",ulog.umid);
-          logentry.put("account.node",ulog.node);
-          logentry.put("account.id",ulog.user);
-          logentry.put("dividend",print_amount(ulog.weight));
-          uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
-          char acnt[19]="";
-          sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
-          logentry.put("account.address",acnt);
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}
-        if(txst==TXSTYPE_DIV){ //dividend
-          logentry.put("node_msid",ulog.nmid);
-          logentry.put("node_block",ulog.mpos);
-          logentry.put("dividend",print_amount(ulog.weight));
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}
-        if(txst==TXSTYPE_FEE){ //bank profit
-          logentry.put("profit",print_amount(ulog.weight));
-          if(ulog.nmid){ // bank profit on transactions
-            logentry.put("node",ulog.node);
-            logentry.put("node_msid",ulog.nmid);
-            if(ulog.nmid==sts.bank){
-              int64_t fee;
-              int64_t div;
-              //int64_t put; //FIXME, useless !!!
-              memcpy(&fee,ulog.info+ 0,8);
-              memcpy(&div,ulog.info+ 8,8);
-              //memcpy(&put,ulog.info+16,8); //FIXME, useless !!!
-              logentry.put("profit_fee",print_amount(fee));
-              logentry.put("profit_div",print_amount(div));
-              //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
-              }}
-          else{ // bank profit at block end
-            logentry.put("node_block",ulog.mpos);
-            int64_t div;
-            int64_t usr;
-            int64_t get;
-            int64_t fee;
-            memcpy(&div,ulog.info+ 0,8);
-            memcpy(&usr,ulog.info+ 8,8);
-            memcpy(&get,ulog.info+16,8);
-            memcpy(&fee,ulog.info+24,8);
-            logentry.put("profit_div",print_amount(div));
-            logentry.put("profit_usr",print_amount(usr));
-            logentry.put("profit_get",print_amount(get));
-            logentry.put("fee",print_amount(fee));}
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}
-        if(txst==TXSTYPE_UOK){ //creare remote account
+    boost::property_tree::ptree logentry;
+    uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
+    char acnt[19];
+    uint16_t txst=ulog.type&0xFF;
+    sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
+    logentry.put("time",ulog.time);
+    logentry.put("date",mydate(ulog.time));
+    logentry.put("type_no",ulog.type);
+    // FIXME: properly flag confirmed transactions, which will not be rolled back
+    logentry.put("confirmed", 1);
+    if(txst<TXSTYPE_MAX){
+      logentry.put("type",logname[txst]);}
+    if(ulog.type & 0x4000){ //errors
+      if(txst==TXSTYPE_NON){ //node start
+        logentry.put("account.error","logerror");
+        logentry.put("account.newtime",ulog.time);
+        logentry.put("account.newdate",mydate(ulog.time));
+        logentry.put("account.badtime",ulog.nmid);
+        logentry.put("account.baddate",mydate(ulog.nmid));
+        logentry.put("account.badblock",ulog.mpos);
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}}
+    if(ulog.type & 0x8000){ //incomming network transactions (responses) except _GET
+      if(txst==TXSTYPE_NON){ //node start
+        logentry.put("node_start_msid",ulog.nmid);
+        logentry.put("node_start_block",ulog.mpos);
+        int64_t weight;
+        uint8_t hash[8];
+        uint32_t lpath;
+        uint32_t rpath;
+        uint8_t pkey[6];
+        uint16_t stat;
+        memcpy(&weight,ulog.info+ 0,8);
+        memcpy(   hash,ulog.info+ 8,8);
+        memcpy( &lpath,ulog.info+16,4);
+        memcpy( &rpath,ulog.info+20,4);
+        memcpy(   pkey,ulog.info+24,6);
+        memcpy(  &stat,ulog.info+30,2);
+        char hash_hex[17];hash_hex[16]='\0';
+        ed25519_key2text(hash_hex,hash,8);
+        char pkey_hex[13];pkey_hex[12]='\0';
+        ed25519_key2text(pkey_hex,pkey,6);
+        logentry.put("account.balance",print_amount(weight));
+        logentry.put("account.local_change",lpath);
+        logentry.put("account.remote_change",rpath);
+        logentry.put("account.hash_prefix_8",hash_hex);
+        logentry.put("account.public_key_prefix_6",pkey_hex);
+        logentry.put("account.status",stat);
+        logentry.put("account.msid",ulog.umid);
+        logentry.put("account.node",ulog.node);
+        logentry.put("account.id",ulog.user);
+        logentry.put("dividend",print_amount(ulog.weight));
+        uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
+        char acnt[19]="";
+        sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
+        logentry.put("account.address",acnt);
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}
+      if(txst==TXSTYPE_DIV){ //dividend
+        logentry.put("node_msid",ulog.nmid);
+        logentry.put("node_block",ulog.mpos);
+        logentry.put("dividend",print_amount(ulog.weight));
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}
+      if(txst==TXSTYPE_FEE){ //bank profit
+        logentry.put("profit",print_amount(ulog.weight));
+        if(ulog.nmid){ // bank profit on transactions
           logentry.put("node",ulog.node);
+          logentry.put("node_msid",ulog.nmid);
+          if(ulog.nmid==sts.bank){
+            int64_t fee;
+            int64_t div;
+            //int64_t put; //FIXME, useless !!!
+            memcpy(&fee,ulog.info+ 0,8);
+            memcpy(&div,ulog.info+ 8,8);
+            //memcpy(&put,ulog.info+16,8); //FIXME, useless !!!
+            logentry.put("profit_fee",print_amount(fee));
+            logentry.put("profit_div",print_amount(div));
+            //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
+            }}
+        else{ // bank profit at block end
           logentry.put("node_block",ulog.mpos);
-          if(ulog.user){
-            logentry.put("account",ulog.user);
-            logentry.put("address",acnt);
-            if(ulog.umid){
-              logentry.put("request","accepted");}
-            else{
-              logentry.put("request","late");}}
-          else{
-            logentry.put("request","failed");
-            logentry.put("amount",print_amount(ulog.weight));}
-          logentry.put("public_key",info);
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}
-        if(txst==TXSTYPE_BNK){
-          logentry.put("node_block",ulog.mpos);
-          if(ulog.node){
-            logentry.put("node",ulog.node);
+          int64_t div;
+          int64_t usr;
+          int64_t get;
+          int64_t fee;
+          memcpy(&div,ulog.info+ 0,8);
+          memcpy(&usr,ulog.info+ 8,8);
+          memcpy(&get,ulog.info+16,8);
+          memcpy(&fee,ulog.info+24,8);
+          logentry.put("profit_div",print_amount(div));
+          logentry.put("profit_usr",print_amount(usr));
+          logentry.put("profit_get",print_amount(get));
+          logentry.put("fee",print_amount(fee));}
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}
+      if(txst==TXSTYPE_UOK){ //creare remote account
+        logentry.put("node",ulog.node);
+        logentry.put("node_block",ulog.mpos);
+        if(ulog.user){
+          logentry.put("account",ulog.user);
+          logentry.put("address",acnt);
+          if(ulog.umid){
             logentry.put("request","accepted");}
           else{
-            logentry.put("request","failed");
-            logentry.put("amount",print_amount(ulog.weight));}
-          logentry.put("public_key",info);
-          logtree.push_back(std::make_pair("",logentry));
-          continue;}}
-      logentry.put("node",ulog.node);
-      logentry.put("account",ulog.user);
-      logentry.put("address",acnt);
-      //if(!ulog.nmid && !ulog.mpos){
-      if(!ulog.nmid){
-        logentry.put("node_block",ulog.mpos);}
+            logentry.put("request","late");}}
+        else{
+          logentry.put("request","failed");
+          logentry.put("amount",print_amount(ulog.weight));}
+        logentry.put("public_key",info);
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}
+      if(txst==TXSTYPE_BNK){
+        logentry.put("node_block",ulog.mpos);
+        if(ulog.node){
+          logentry.put("node",ulog.node);
+          logentry.put("request","accepted");}
+        else{
+          logentry.put("request","failed");
+          logentry.put("amount",print_amount(ulog.weight));}
+        logentry.put("public_key",info);
+        logtree.push_back(std::make_pair("",logentry));
+        continue;}}
+    logentry.put("node",ulog.node);
+    logentry.put("account",ulog.user);
+    logentry.put("address",acnt);
+    if(!ulog.nmid){
+      logentry.put("node_block",ulog.mpos);}
+    else{
+      logentry.put("node_msid",ulog.nmid);
+      logentry.put("node_mpos",ulog.mpos);
+      logentry.put("account_msid",ulog.umid);}
+    logentry.put("amount",print_amount(ulog.weight));
+    //FIXME calculate fee
+    if(txst==TXSTYPE_PUT){
+      int64_t amass=fabsl(ulog.weight);
+      if(ulog.node==sts.bank){
+        logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));}
       else{
-        logentry.put("node_msid",ulog.nmid);
-        logentry.put("node_mpos",ulog.mpos);
-        logentry.put("account_msid",ulog.umid);}
-      logentry.put("amount",print_amount(ulog.weight));
-      //FIXME calculate fee
-      if(txst==TXSTYPE_PUT){
-        int64_t amass=fabsl(ulog.weight);
+        logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));}
+      logentry.put("message",info);}
+    else{
+      int64_t weight;
+      int64_t deduct;
+      int64_t fee;
+      uint16_t stat;
+      uint8_t key[6];
+      memcpy(&weight,ulog.info+ 0,8);
+      memcpy(&deduct,ulog.info+ 8,8);
+      memcpy(   &fee,ulog.info+16,8);
+      memcpy(  &stat,ulog.info+24,2);
+      memcpy(    key,ulog.info+26,6);
+      char key_hex[13];key_hex[12]='\0';
+      ed25519_key2text(key_hex,key,6);
+      logentry.put("sender_balance",print_amount(weight));
+      logentry.put("sender_amount",print_amount(deduct));
+      if(txst==TXSTYPE_MPT){
         if(ulog.node==sts.bank){
-	  logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));}
+          logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
         else{
-	  logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));}
-        logentry.put("message",info);}
+          logentry.put("sender_fee",
+            print_amount(TXS_MPT_FEE(ulog.weight)+TXS_LNG_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
+        logentry.put("sender_fee_total",print_amount(fee));
+        key_hex[2*5]='\0';
+        logentry.put("sender_public_key_prefix_5",key_hex);}
       else{
-        int64_t weight;
-        int64_t deduct;
-        int64_t fee;
-        uint16_t stat;
-        uint8_t key[6];
-        memcpy(&weight,ulog.info+ 0,8);
-        memcpy(&deduct,ulog.info+ 8,8);
-        memcpy(   &fee,ulog.info+16,8);
-        memcpy(  &stat,ulog.info+24,2);
-        memcpy(    key,ulog.info+26,6);
-        char key_hex[13];key_hex[12]='\0';
-        ed25519_key2text(key_hex,key,6);
-        logentry.put("sender_balance",print_amount(weight));
-        logentry.put("sender_amount",print_amount(deduct));
-        if(txst==TXSTYPE_MPT){
-          if(ulog.node==sts.bank){
-            logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
-          else{
-            logentry.put("sender_fee",
-              print_amount(TXS_MPT_FEE(ulog.weight)+TXS_LNG_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));}
-          logentry.put("sender_fee_total",print_amount(fee));
-          key_hex[2*5]='\0';
-          logentry.put("sender_public_key_prefix_5",key_hex);}
-        else{
-          logentry.put("sender_fee",print_amount(fee));
-          logentry.put("sender_public_key_prefix_6",key_hex);}
-        logentry.put("sender_status",stat);}
-      char tx_id[64];
-      if(ulog.type & 0x8000){
-        logentry.put("inout","in");
-        sprintf(tx_id,"%04X%08X%04X",ulog.node,ulog.nmid,ulog.mpos);}
-      else{
-        logentry.put("inout","out");
-        sprintf(tx_id,"%04X%08X%04X",sts.bank,ulog.nmid,ulog.mpos);}
-      logentry.put("id",tx_id);
-      logtree.push_back(std::make_pair("",logentry));}}
+        logentry.put("sender_fee",print_amount(fee));
+        logentry.put("sender_public_key_prefix_6",key_hex);}
+      logentry.put("sender_status",stat);}
+    char tx_id[64];
+    if(ulog.type & 0x8000){
+      logentry.put("inout","in");
+      sprintf(tx_id,"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);}
+    else{
+      logentry.put("inout","out");
+      sprintf(tx_id,"%04X:%08X:%04X",sts.bank,ulog.nmid,ulog.mpos);}
+    logentry.put("id",tx_id);
+    logtree.push_back(std::make_pair("",logentry));}
   close(fd);
-  if(sts.json){
-    pt.add_child("log",logtree);}
+  pt.add_child("log",logtree);
 }
 
 void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts)
@@ -844,7 +833,7 @@ void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree&
     memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
     memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t)); //FIXME, this should be uint16_t
     char tx_id[64];
-    sprintf(tx_id,"%04X%08X%04X",utxs.abank,nmid,mpos);
+    sprintf(tx_id,"%04X:%08X:%04X",utxs.abank,nmid,mpos);
     blogentry.put("node_msid",nmid);
     blogentry.put("node_mpos",mpos);
     blogentry.put("id",tx_id);
@@ -991,24 +980,32 @@ void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data)
   pt.put("network_tx.signature",&signtext[0]);
 }
 
+void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
+{ char blockhex[9];
+  blockhex[8]='\0';
+  sprintf(blockhex,"%08X",blocktime);
+  pt.put("block_time_hex",blockhex);
+  pt.put("block_time",blocktime);
+}
+
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 { char buf[0xff];
   boost::property_tree::ptree pt;
   boost::property_tree::ptree logpt;
   try{
-    if(!sts.json){
-      txs->print_head();
-      txs->print();}
-    // tx_data
+    uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     char* tx_data=(char*)malloc(2*txs->size+1);
     tx_data[2*txs->size]='\0';
     ed25519_key2text(tx_data,txs->data,txs->size);
     pt.put("tx.data",tx_data);
     logpt.put("tx.data",tx_data);
     free(tx_data);
-    // tx_user_hashin
-    // calculate tx_user_hashout
-    uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+    uint32_t now=time(NULL);
+    now-=now%BLOCKSEC;
+    pt.put("current_block_time",now);
+    pt.put("previous_block_time",now-BLOCKSEC);
+
     if(txs->ttype<TXSTYPE_INF){
       char tx_user_hashin[65];tx_user_hashin[64]='\0';
       ed25519_key2text(tx_user_hashin,sts.ha,32);
@@ -1038,6 +1035,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
+
 
     if(txs->ttype==TXSTYPE_BLG){ //FIXME, not tested !!!
       boost::property_tree::ptree blogtree;
@@ -1103,14 +1101,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             close(fd);}
           std::cerr << "Read Broadcast Exception: " << e.what() << "\n";
           return;}}
-      char blockhex[9];
-      blockhex[8]='\0';
-      sprintf(blockhex,"%08X",path);
-      pt.put("block_time_hex",blockhex);
-      pt.put("block_time",path);
+      print_blocktime(pt,path);
       pt.add_child("broadcast",blogtree);
-      if(sts.json){
-        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
 
     if(txs->ttype==TXSTYPE_TXS){
@@ -1177,8 +1170,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         if(memcmp(nhash,block.nowhash,32)){
           fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X:%08X:%04X\n",svid,msid,tnum);
           return;}
-	//store confirmation and transaction in repository
-//FIXME, create directories
+        //store confirmation and transaction in repository
         sprintf(filename,"txs/%02X",dir[1]);
         mkdir(filename,0755);
         sprintf(filename,"txs/%02X/%02X",dir[1],dir[0]);
@@ -1191,7 +1183,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         mkdir(filename,0755);
         sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
         mkdir(filename,0755);
-        sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],tnum);
+        sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",
+          dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],tnum);
         int ld=open(filename,O_WRONLY|O_CREAT,0644);
         if(ld<0){
           fprintf(stderr,"ERROR opening %s\n",filename);}
@@ -1207,505 +1200,499 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         read(fd,data,res.len+res.hnum*32);
         close(fd);
         print_txs(pt,res,data);}
-      if(sts.json){
-        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+      boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
 
     if(!node_connect(endpoint_iterator,socket)){
       return;}
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
 
-      if(txs->ttype==TXSTYPE_BLK){
-        fprintf(stderr,"PROCESSING BLOCKS\n");
-        hash_t viphash;
-        hash_t oldhash;
-        servers block;
-        char* firstkeys=NULL; //FIXME, free !!!
-        int firstkeyslen=0;
-        //read first vipkeys if needed
-        if(!txs->amsid){ // amsid = to_from
-          mkdir("blk",0755);
-          mkdir("vip",0755);
-          mkdir("txs",0755);
-          boost::asio::read(socket,boost::asio::buffer(&firstkeyslen,4));
-          if(firstkeyslen<=0){
-            fprintf(stderr,"ERROR, failed to read VIP keys for first hash\n");
-            socket.close();
-            return;}
-          else{
-            fprintf(stderr,"READ VIP keys for first hash (len:%d)\n",firstkeyslen);}
-          firstkeys=(char*)std::malloc(4+firstkeyslen);
-          memcpy(firstkeys,&firstkeyslen,4); //probably not needed
-          boost::asio::read(socket,boost::asio::buffer(firstkeys+4,firstkeyslen));}
-        //read headers
-        int num;
-        boost::asio::read(socket,boost::asio::buffer(&num,4));
-        if(num<=0){
-          fprintf(stderr,"ERROR, failed to read blocks since %08X\n",txs->amsid);
+    if(txs->ttype==TXSTYPE_BLK){
+      fprintf(stderr,"PROCESSING BLOCKS\n");
+      hash_t viphash;
+      hash_t oldhash;
+      servers block;
+      char* firstkeys=NULL; //FIXME, free !!!
+      int firstkeyslen=0;
+      //read first vipkeys if needed
+      if(!txs->amsid){ // amsid = to_from
+        mkdir("blk",0755);
+        mkdir("vip",0755);
+        mkdir("txs",0755);
+        boost::asio::read(socket,boost::asio::buffer(&firstkeyslen,4));
+        if(firstkeyslen<=0){
+          fprintf(stderr,"ERROR, failed to read VIP keys for first hash\n");
           socket.close();
           return;}
         else{
-          fprintf(stderr,"READ %d blocks since %08X\n",num,txs->amsid);}
-        header_t* headers=(header_t*)std::malloc(num*sizeof(header_t)); //FIXME, free !!!
-        assert(headers!=NULL);
-        boost::asio::read(socket,boost::asio::buffer((char*)headers,num*sizeof(header_t)));
-        //load last header
-        if(firstkeys!=NULL){ //store first vip keys
-          memcpy(viphash,headers->viphash,32);
-          char hash[65]; hash[64]='\0';
-          ed25519_key2text(hash,viphash,32);
-          if(!block.vip_check(viphash,(uint8_t*)firstkeys+4,firstkeyslen/(2+32))){
-            fprintf(stderr,"ERROR, failed to check %d VIP keys for hash %s\n",firstkeyslen/(2+32),hash);
-            socket.close();
-            return;}
-          char filename[128];
-          sprintf(filename,"vip/%64s.vip",hash);
-          int fd=open(filename,O_WRONLY|O_CREAT,0644);
-          if(fd<0){
-            fprintf(stderr,"ERROR opening %s, fatal\n",filename);
-            socket.close();
-            return;}
-          write(fd,firstkeys+4,firstkeyslen);
-          close(fd);
-          memcpy(oldhash,headers->nowhash,32);
-          block.loadhead(*headers);
-          if(memcmp(oldhash,block.nowhash,32)){
-            fprintf(stderr,"ERROR, failed to confirm first header hash, fatal\n");
-            socket.close();
-            return;}
-          memcpy(oldhash,headers->oldhash,32);
-          block.write_start();}
-        else{
-          block.now=0;
-          block.header_get();
-          if(block.now+BLOCKSEC!=headers->now){ // do not accept download random blocks
-            fprintf(stderr,"ERROR, failed to get correct block (%08X), fatal\n",block.now+BLOCKSEC);
-            socket.close();
-            return;}
-          memcpy(viphash,block.viphash,32);
-          memcpy(oldhash,block.nowhash,32);
-          block.load_vip(firstkeyslen,firstkeys,viphash);}
-        //read signatures
-        char* sigdata=NULL;
-        union {uint64_t big;uint32_t small[2];} inf;
-        uint32_t& signum=inf.small[1];
-        boost::asio::read(socket,boost::asio::buffer(&inf.big,8));
-        if(signum){
-          fprintf(stderr,"INFO get %d signatures for header %08X\n",signum,headers[num-1].now);
-          sigdata=(char*)std::malloc(8+signum*sizeof(svsi_t)); //FIXME, free
-          assert(sigdata!=NULL);
-          memcpy(sigdata,&inf.big,8);
-          boost::asio::read(socket,boost::asio::buffer(sigdata+8,signum*sizeof(svsi_t)));}
-        else{
-          fprintf(stderr,"ERROR, failed to get signatures for header %08X\n",headers[num-1].now);
-          socket.close();
-          return;}
-        //read new viphash if different from last
-        int lastkeyslen=0;
-        boost::asio::read(socket,boost::asio::buffer(&lastkeyslen,4));
-        if(lastkeyslen>0){
-          char* lastkeys=(char*)std::malloc(4+lastkeyslen);
-          boost::asio::read(socket,boost::asio::buffer(lastkeys+4,lastkeyslen));
-          char hash[65]; hash[64]='\0';
-          ed25519_key2text(hash,headers[num-1].viphash,32);
-          if(!block.vip_check(headers[num-1].viphash,(uint8_t*)lastkeys+4,lastkeyslen/(2+32))){
-            fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
-            socket.close();
-            free(lastkeys);
-            return;}
-          char filename[128];
-          sprintf(filename,"vip/%64s.vip",hash);
-          int fd=open(filename,O_WRONLY|O_CREAT,0644);
-          if(fd<0){
-            fprintf(stderr,"ERROR opening %s, fatal\n",filename);
-            socket.close();
-            free(lastkeys);
-            return;}
-          write(fd,lastkeys+4,lastkeyslen);
-          close(fd);
-          free(lastkeys);}
+          fprintf(stderr,"READ VIP keys for first hash (len:%d)\n",firstkeyslen);}
+        firstkeys=(char*)std::malloc(4+firstkeyslen);
+        memcpy(firstkeys,&firstkeyslen,4); //probably not needed
+        boost::asio::read(socket,boost::asio::buffer(firstkeys+4,firstkeyslen));}
+      //read headers
+      int num;
+      boost::asio::read(socket,boost::asio::buffer(&num,4));
+      if(num<=0){
+        fprintf(stderr,"ERROR, failed to read blocks since %08X\n",txs->amsid);
         socket.close();
-        //validate chain
-        for(int n=0;n<num;n++){
-          if(n<num-1 && memcmp(viphash,headers[n].viphash,32)){
-            fprintf(stderr,"ERROR failed to match viphash for header %08X, fatal\n",headers[n].now);
-            return;}
-          if(memcmp(oldhash,headers[n].oldhash,32)){
-            fprintf(stderr,"ERROR failed to match oldhash for header %08X, fatal\n",headers[n].now);
-            return;}
-          memcpy(oldhash,headers[n].nowhash,32);
-          block.loadhead(headers[n]);
-          if(memcmp(oldhash,block.nowhash,32)){
-            fprintf(stderr,"ERROR failed to confirm nowhash for header %08X, fatal\n",headers[n].now);
-            return;}}
-        //validate last block using firstkeys
-        std::map<uint16_t,hash_s> vipkeys;
-        for(int i=0;i<firstkeyslen;i+=2+32){
-          uint16_t svid=*((uint16_t*)(&firstkeys[i+4]));
-          vipkeys[svid]=*((hash_s*)(&firstkeys[i+2+4]));}
-        int vok=0;
-        for(int i=0;i<(int)signum;i++){
-          uint16_t svid=*((uint16_t*)(&sigdata[i*sizeof(svsi_t)+8]));
-          uint8_t* sig=(uint8_t*)sigdata+i*sizeof(svsi_t)+2+8;
-          auto it=vipkeys.find(svid);
-          if(it==vipkeys.end()){
-            char hash[65]; hash[64]='\0';
-            ed25519_key2text(hash,sig,32);
-            fprintf(stderr,"ERROR vipkey (%d) not found %s\n",svid,hash);
-            continue;}
-          if(!ed25519_sign_open((const unsigned char*)(&headers[num-1]),sizeof(header_t)-4,it->second.hash,sig)){
-            vok++;}
-          else{
-            char hash[65]; hash[64]='\0';
-            ed25519_key2text(hash,sig,32);
-            fprintf(stderr,"ERROR vipkey (%d) failed %s\n",svid,hash);}}
-        if(2*vok<(int)vipkeys.size()){
-          fprintf(stderr,"ERROR failed to confirm enough signature for header %08X (2*%d<%d)\n",
-            headers[num-1].now,vok,(int)vipkeys.size());
-          return;}
-        else{
-          fprintf(stderr,"CONFIRMED enough signature for header %08X (2*%d>=%d)\n",
-            headers[num-1].now,vok,(int)vipkeys.size());}
-        // save hashes
-        for(int n=0;n<num;n++){ //would be faster if avoiding open/close but who cares
-          block.save_nowhash(headers[n]);}
-        // update last confirmed header position
-        fprintf(stderr,"SAVED %d headers from %08X to %08X\n",num,headers[0].now,headers[num-1].now);
-        block.header_last();} //FIXME, check what needs to be freed
-
-      else if(txs->ttype==TXSTYPE_VIP){
+        return;}
+      else{
+        fprintf(stderr,"READ %d blocks since %08X\n",num,txs->amsid);}
+      header_t* headers=(header_t*)std::malloc(num*sizeof(header_t)); //FIXME, free !!!
+      assert(headers!=NULL);
+      boost::asio::read(socket,boost::asio::buffer((char*)headers,num*sizeof(header_t)));
+      //load last header
+      if(firstkeys!=NULL){ //store first vip keys
+        memcpy(viphash,headers->viphash,32);
         char hash[65]; hash[64]='\0';
-        ed25519_key2text(hash,txs->tinfo,32);
-        int len;
-        boost::asio::read(socket,boost::asio::buffer(&len,4));
-        if(len<=0){
-          fprintf(stderr,"ERROR, failed to read VIP keys for hash %s\n",hash);
-          socket.close();
-          return;}
-        char* buf=(char*)std::malloc(len);
-        boost::asio::read(socket,boost::asio::buffer(buf,len));
-        servers block;
-        if(!block.vip_check(txs->tinfo,(uint8_t*)buf,len/(2+32))){
-          fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
+        ed25519_key2text(hash,viphash,32);
+        if(!block.vip_check(viphash,(uint8_t*)firstkeys+4,firstkeyslen/(2+32))){
+          fprintf(stderr,"ERROR, failed to check %d VIP keys for hash %s\n",firstkeyslen/(2+32),hash);
           socket.close();
           return;}
         char filename[128];
         sprintf(filename,"vip/%64s.vip",hash);
-        mkdir("vip",0755);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0){
           fprintf(stderr,"ERROR opening %s, fatal\n",filename);
           socket.close();
           return;}
-        write(fd,buf,len);
+        write(fd,firstkeys+4,firstkeyslen);
         close(fd);
-        fprintf(stderr,"INFO, stored VIP keys in %s\n",filename);
-        pt.put("viphash",hash);
-        boost::property_tree::ptree viptree;
-        for(char* p=buf;p<buf+len;p+=32){
-          ed25519_key2text(hash,(uint8_t*)p,32);
-          boost::property_tree::ptree vipkey;
-          vipkey.put("",hash);
-          viptree.push_back(std::make_pair("",vipkey));}
-        pt.add_child("vipkeys",viptree);
-        free(buf);}
-
-      else if(txs->ttype==TXSTYPE_SIG){ // print signatures
-        pt.put("block",txs->amsid);
-        char sigh[129]; sigh[128]='\0';
-        uint32_t path=0;
-        uint32_t nok=0;
-        uint32_t nno=0;
-        boost::asio::read(socket,boost::asio::buffer(&path,sizeof(uint32_t)));
-        if(path!=txs->amsid){
-          fprintf(stderr,"ERROR, bad block number %d/%08X (<>%d/%08X)\n",path,path,txs->amsid,txs->amsid);
-          goto END;} //nice :-)
-        boost::asio::read(socket,boost::asio::buffer(&nok,sizeof(uint32_t)));
-        if(nok){
-          svsi_t sigs[nok]; //assume nok will not be too large
-          boost::asio::read(socket,boost::asio::buffer(sigs,nok*sizeof(svsi_t)));
-          boost::property_tree::ptree psigs;
-          for(uint32_t n=0;n<nok;n++){
-            uint16_t *p=(uint16_t*)&sigs[n][0];
-            ed25519_key2text(sigh,&sigs[n][2],64);
-            boost::property_tree::ptree sig;
-            sig.put("node",*p);
-            sig.put("signature",sigh);
-            psigs.push_back(std::make_pair("",sig));}
-          pt.add_child("signatures",psigs);}
-        boost::asio::read(socket,boost::asio::buffer(&nno,sizeof(uint32_t)));
-        if(nno){
-          svsi_t sigs[nno]; //assume nno will not be too large
-          boost::asio::read(socket,boost::asio::buffer(sigs,nno*sizeof(svsi_t)));
-          boost::property_tree::ptree psigs;
-          for(uint32_t n=0;n<nno;n++){
-            uint16_t *p=(uint16_t*)&sigs[n][0];
-            ed25519_key2text(sigh,&sigs[n][2],64);
-            boost::property_tree::ptree sig;
-            sig.put("node",*p);
-            sig.put("signature",sigh);
-            psigs.push_back(std::make_pair("",sig));}
-          pt.add_child("fork_signatures",psigs);}}
-
-      else if(txs->ttype==TXSTYPE_NDS){ // print nodes, consider archiving
-        pt.put("block",txs->amsid);
-        uint32_t len;
-        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
-        if(!len){
-          goto END;}
-        char buf[len];
-        boost::asio::read(socket,boost::asio::buffer(buf,len));
-        mkdir("srv",0755);
-        char filename[64];
-        sprintf(filename,"srv/%08X.tmp",txs->amsid);
+        memcpy(oldhash,headers->nowhash,32);
+        block.loadhead(*headers);
+        if(memcmp(oldhash,block.nowhash,32)){
+          fprintf(stderr,"ERROR, failed to confirm first header hash, fatal\n");
+          socket.close();
+          return;}
+        memcpy(oldhash,headers->oldhash,32);
+        block.write_start();}
+      else{
+        block.now=0;
+        block.header_get();
+        if(block.now+BLOCKSEC!=headers->now){ // do not accept download random blocks
+          fprintf(stderr,"ERROR, failed to get correct block (%08X), fatal\n",block.now+BLOCKSEC);
+          socket.close();
+          return;}
+        memcpy(viphash,block.viphash,32);
+        memcpy(oldhash,block.nowhash,32);
+        block.load_vip(firstkeyslen,firstkeys,viphash);}
+      //read signatures
+      char* sigdata=NULL;
+      union {uint64_t big;uint32_t small[2];} inf;
+      uint32_t& signum=inf.small[1];
+      boost::asio::read(socket,boost::asio::buffer(&inf.big,8));
+      if(signum){
+        fprintf(stderr,"INFO get %d signatures for header %08X\n",signum,headers[num-1].now);
+        sigdata=(char*)std::malloc(8+signum*sizeof(svsi_t)); //FIXME, free
+        assert(sigdata!=NULL);
+        memcpy(sigdata,&inf.big,8);
+        boost::asio::read(socket,boost::asio::buffer(sigdata+8,signum*sizeof(svsi_t)));}
+      else{
+        fprintf(stderr,"ERROR, failed to get signatures for header %08X\n",headers[num-1].now);
+        socket.close();
+        return;}
+      //read new viphash if different from last
+      int lastkeyslen=0;
+      boost::asio::read(socket,boost::asio::buffer(&lastkeyslen,4));
+      if(lastkeyslen>0){
+        char* lastkeys=(char*)std::malloc(4+lastkeyslen);
+        boost::asio::read(socket,boost::asio::buffer(lastkeys+4,lastkeyslen));
+        char hash[65]; hash[64]='\0';
+        ed25519_key2text(hash,headers[num-1].viphash,32);
+        if(!block.vip_check(headers[num-1].viphash,(uint8_t*)lastkeys+4,lastkeyslen/(2+32))){
+          fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
+          socket.close();
+          free(lastkeys);
+          return;}
+        char filename[128];
+        sprintf(filename,"vip/%64s.vip",hash);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0){
-          goto END;}
-        write(fd,buf,len);
+          fprintf(stderr,"ERROR opening %s, fatal\n",filename);
+          socket.close();
+          free(lastkeys);
+          return;}
+        write(fd,lastkeys+4,lastkeyslen);
         close(fd);
-        servers srv;
-        if(srv.data_read(filename,true)!=(int)txs->amsid){
-          goto END;}
-        char hash[65]; hash[64]='\0';
-        boost::property_tree::ptree psrv;
-        psrv.put("now",srv.now);
-        psrv.put("msg",srv.nod);
-        psrv.put("nod",srv.nod);
-        psrv.put("div",srv.nod);
-        ed25519_key2text(hash,srv.oldhash,32);
-        psrv.put("oldhash",hash);
-        ed25519_key2text(hash,srv.minhash,32);
-        psrv.put("minhash",hash);
-        ed25519_key2text(hash,srv.msghash,32);
-        psrv.put("msghash",hash);
-        ed25519_key2text(hash,srv.nodhash,32);
-        psrv.put("nodhash",hash);
-        ed25519_key2text(hash,srv.viphash,32);
-        psrv.put("viphash",hash);
-        ed25519_key2text(hash,srv.nowhash,32);
-        psrv.put("nowhash",hash);
-        psrv.put("vok",srv.vok);
-        psrv.put("vno",srv.vno);
-        psrv.put("vtot",srv.vtot);
-        boost::property_tree::ptree nodes;
-        for(uint32_t n=0;n<srv.nodes.size();n++){
-          boost::property_tree::ptree node;
-          ed25519_key2text(hash,srv.nodes[n].pk,32);
-          psrv.put("pk",hash);
-          ed25519_key2text(hash,(uint8_t*)&srv.nodes[n].hash[0],32);
-          psrv.put("hash",hash);
-          ed25519_key2text(hash,srv.nodes[n].msha,32);
-          psrv.put("msha",hash);
-          node.put("msid",srv.nodes[n].msid);
-          node.put("mtim",srv.nodes[n].mtim);
-          node.put("weight",srv.nodes[n].weight);
-          node.put("status",srv.nodes[n].status);
-          node.put("users",srv.nodes[n].users);
-          node.put("port",srv.nodes[n].port);
-          node.put("ipv4",srv.nodes[n].ipv4);
-          nodes.push_back(std::make_pair("",node));}
-        psrv.add_child("nodes",nodes);
-        pt.add_child("block_nodes",psrv);}
-
-      else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node
-        pt.put("block",txs->amsid);
-        uint32_t len;
-        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
-        if(!len){
-          goto END;}
-        char buf[len];
-        boost::asio::read(socket,boost::asio::buffer(buf,len));
-        user_t* userp=(user_t*)buf;
-        uint32_t usern=len/sizeof(user_t);
-        boost::property_tree::ptree users;
-        for(uint32_t n=0;n<usern;n++,userp++){
-          boost::property_tree::ptree user;
-          print_user(*userp,user,true,true,txs->bbank,n,sts);
-          users.push_back(std::make_pair("",user));}
-        pt.add_child("accounts",users);}
-
-      else if(txs->ttype==TXSTYPE_MGS){ // print message list, consider archiving
-        pt.put("block",txs->amsid);
-        uint32_t len;
-        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
-        if(!len || (len-32)%(2+4+32)){
-          pt.put("error_bad_length",len);
-          goto END;}
-        uint8_t msghash[32];
-        char buf[len];
-        char *bufp=buf;
-        char *end=buf+len;
-        boost::asio::read(socket,boost::asio::buffer(buf,len));
-        char hash[65]; hash[64]='\0';
-        ed25519_key2text(hash,(uint8_t*)buf,32);
-        pt.put("msghash",hash);
-        bufp+=32;
-        hashtree tree;
-        boost::property_tree::ptree msghashes;
-        for(;bufp<end;bufp+=2+4+32){
-          boost::property_tree::ptree msghash;
-          uint16_t svid=*(uint16_t*)(bufp);
-          msghash.put("node",svid);
-          uint32_t msid=*(uint32_t*)(bufp+2);
-          msghash.put("node_msid",msid);
-          ed25519_key2text(hash,(uint8_t*)bufp+6,32);
-          msghash.put("hash",hash);
-          tree.update((uint8_t*)bufp+6);
-          msghashes.push_back(std::make_pair("",msghash));}
-        tree.finish(msghash);
-        if(memcmp(buf,msghash,32)){
-          ed25519_key2text(hash,msghash,32);
-          pt.put("msghash_calculated",hash);
-          pt.put("confirmed","no");}
+        free(lastkeys);}
+      socket.close();
+      //validate chain
+      for(int n=0;n<num;n++){
+        if(n<num-1 && memcmp(viphash,headers[n].viphash,32)){
+          fprintf(stderr,"ERROR failed to match viphash for header %08X, fatal\n",headers[n].now);
+          return;}
+        if(memcmp(oldhash,headers[n].oldhash,32)){
+          fprintf(stderr,"ERROR failed to match oldhash for header %08X, fatal\n",headers[n].now);
+          return;}
+        memcpy(oldhash,headers[n].nowhash,32);
+        block.loadhead(headers[n]);
+        if(memcmp(oldhash,block.nowhash,32)){
+          fprintf(stderr,"ERROR failed to confirm nowhash for header %08X, fatal\n",headers[n].now);
+          return;}}
+      //validate last block using firstkeys
+      std::map<uint16_t,hash_s> vipkeys;
+      for(int i=0;i<firstkeyslen;i+=2+32){
+        uint16_t svid=*((uint16_t*)(&firstkeys[i+4]));
+        vipkeys[svid]=*((hash_s*)(&firstkeys[i+2+4]));}
+      int vok=0;
+      for(int i=0;i<(int)signum;i++){
+        uint16_t svid=*((uint16_t*)(&sigdata[i*sizeof(svsi_t)+8]));
+        uint8_t* sig=(uint8_t*)sigdata+i*sizeof(svsi_t)+2+8;
+        auto it=vipkeys.find(svid);
+        if(it==vipkeys.end()){
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,sig,32);
+          fprintf(stderr,"ERROR vipkey (%d) not found %s\n",svid,hash);
+          continue;}
+        if(!ed25519_sign_open((const unsigned char*)(&headers[num-1]),sizeof(header_t)-4,it->second.hash,sig)){
+          vok++;}
         else{
-          pt.put("confirmed","yes");}
-        pt.add_child("msghashes",msghashes);}
-
-      else if(txs->ttype==TXSTYPE_MSG){ // print message
-        pt.put("block",txs->amsid);
-        uint32_t len;
-        boost::asio::read(socket,boost::asio::buffer(&len,4));
-        if(!len || (len & 0xFF) != MSGTYPE_MSG || len>>8 < message::data_offset){
-          pt.put("error_bad_length",len);
-          goto END;}
-        char buf[(len>>8)];
-        memcpy(buf,&len,4);
-        len>>=8;
-        boost::asio::read(socket,boost::asio::buffer(buf+4,len-4));
-        message_ptr msg(new message(len,(uint8_t*)buf));
-        msg->read_head();
-        pt.put("svid",msg->svid);
-        pt.put("msid",msg->msid);
-        pt.put("time",msg->now);
-        pt.put("length",msg->len);
-        if(!msg->hash_tree_fast(msg->sigh,msg->data,msg->len,msg->svid,msg->msid)){
-          goto END;}
-        char hash[65]; hash[64]='\0';
-        ed25519_key2text(hash,msg->sigh,32);
-        pt.put("hash",hash);
-        //parse and print message
-        uint8_t* p=msg->data+message::data_offset;
-        uint8_t* end=msg->data+msg->len;
-        uint32_t l;
-        assert(p<end);
-        boost::property_tree::ptree transactions;
-        for(;p<end;p+=l){
-          usertxs utxs;
-          if(!utxs.parse((char*)p)){
-            pt.put("parse_error","true");
-            break;}
-          l=utxs.size;
-          boost::property_tree::ptree transaction;
-          transaction.put("ttype",utxs.ttype);
-          transaction.put("abank",utxs.abank);
-          transaction.put("auser",utxs.auser);
-          transaction.put("amsid",utxs.amsid);
-          transaction.put("ttime",utxs.ttime);
-          transaction.put("bbank",utxs.bbank);
-          transaction.put("buser",utxs.buser);
-          transaction.put("tmass",utxs.tmass);
-          transaction.put("size" ,utxs.size);
-          ed25519_key2text(hash,utxs.tinfo,32);
-          transaction.put("tinfo",hash);
-          transactions.push_back(std::make_pair("",transaction));}
-        pt.add_child("transactions",transactions);
-        //TODO,check if message in message list
-        }
-
+          char hash[65]; hash[64]='\0';
+          ed25519_key2text(hash,sig,32);
+          fprintf(stderr,"ERROR vipkey (%d) failed %s\n",svid,hash);}}
+      if(2*vok<(int)vipkeys.size()){
+        fprintf(stderr,"ERROR failed to confirm enough signature for header %08X (2*%d<%d)\n",
+          headers[num-1].now,vok,(int)vipkeys.size());
+        return;}
       else{
-        int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-        if(len!=sizeof(user_t)){
-          std::cerr<<"ERROR reading confirmation\n";}
-        else{
-          user_t myuser;
-          memcpy(&myuser,buf,sizeof(user_t));
-          if(txs->ttype==TXSTYPE_INF){
-            print_user(myuser,pt,sts.json,true,txs->bbank,txs->buser,sts);}
-          else{
-            print_user(myuser,pt,sts.json,true,sts.bank,sts.user,sts);}
-          if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
-            if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
-              std::cerr<<"ERROR transaction failed (bad msid)\n";}
-            if(memcmp(sts.pk,myuser.pkey,32)){
-              if(txs->ttype==TXSTYPE_KEY){
-                std::cerr<<"PKEY changed\n";}
-              else{
-                char tx_user_public_key[65];tx_user_public_key[64]='\0';
-                ed25519_key2text(tx_user_public_key,myuser.pkey,32);
-                logpt.put("tx.account_public_key_new",tx_user_public_key);
-                std::cerr<<"PKEY differs\n";}}
-            if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
-              //TODO, validate hashout, check if correct
-              char tx_user_hashout[65];tx_user_hashout[64]='\0';
-              ed25519_key2text(tx_user_hashout,myuser.hash,32);
-              logpt.put("tx.account_hashout",tx_user_hashout);
-              if(memcmp(myuser.hash,hashout,32)){
-                pt.put("error.text","hash mismatch");}}
-            sts.msid=myuser.msid;
-            memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+        fprintf(stderr,"CONFIRMED enough signature for header %08X (2*%d>=%d)\n",
+          headers[num-1].now,vok,(int)vipkeys.size());}
+      // save hashes
+      for(int n=0;n<num;n++){ //would be faster if avoiding open/close but who cares
+        block.save_nowhash(headers[n]);}
+      // update last confirmed header position
+      fprintf(stderr,"SAVED %d headers from %08X to %08X\n",num,headers[0].now,headers[num-1].now);
+      block.header_last();} //FIXME, check what needs to be freed
+
+    else if(txs->ttype==TXSTYPE_VIP){
+      char hash[65]; hash[64]='\0';
+      ed25519_key2text(hash,txs->tinfo,32);
+      int len;
+      boost::asio::read(socket,boost::asio::buffer(&len,4));
+      if(len<=0){
+        fprintf(stderr,"ERROR, failed to read VIP keys for hash %s\n",hash);
+        socket.close();
+        return;}
+      char* buf=(char*)std::malloc(len);
+      boost::asio::read(socket,boost::asio::buffer(buf,len));
+      servers block;
+      if(!block.vip_check(txs->tinfo,(uint8_t*)buf,len/(2+32))){
+        fprintf(stderr,"ERROR, failed to check VIP keys for hash %s\n",hash);
+        socket.close();
+        return;}
+      char filename[128];
+      sprintf(filename,"vip/%64s.vip",hash);
+      mkdir("vip",0755);
+      int fd=open(filename,O_WRONLY|O_CREAT,0644);
+      if(fd<0){
+        fprintf(stderr,"ERROR opening %s, fatal\n",filename);
+        socket.close();
+        return;}
+      write(fd,buf,len);
+      close(fd);
+      fprintf(stderr,"INFO, stored VIP keys in %s\n",filename);
+      pt.put("viphash",hash);
+      boost::property_tree::ptree viptree;
+      for(char* p=buf;p<buf+len;p+=32){
+        ed25519_key2text(hash,(uint8_t*)p,32);
+        boost::property_tree::ptree vipkey;
+        vipkey.put("",hash);
+        viptree.push_back(std::make_pair("",vipkey));}
+      pt.add_child("vipkeys",viptree);
+      free(buf);}
+
+    else if(txs->ttype==TXSTYPE_SIG){ // print signatures
+      print_blocktime(pt,txs->amsid);
+      char sigh[129]; sigh[128]='\0';
+      uint32_t path=0;
+      uint32_t nok=0;
+      uint32_t nno=0;
+      boost::asio::read(socket,boost::asio::buffer(&path,sizeof(uint32_t)));
+      if(path!=txs->amsid){
+        fprintf(stderr,"ERROR, bad block number %d/%08X (<>%d/%08X)\n",path,path,txs->amsid,txs->amsid);
+        goto END;} //nice :-)
+      boost::asio::read(socket,boost::asio::buffer(&nok,sizeof(uint32_t)));
+      if(nok){
+        svsi_t sigs[nok]; //assume nok will not be too large
+        boost::asio::read(socket,boost::asio::buffer(sigs,nok*sizeof(svsi_t)));
+        boost::property_tree::ptree psigs;
+        for(uint32_t n=0;n<nok;n++){
+          uint16_t *p=(uint16_t*)&sigs[n][0];
+          ed25519_key2text(sigh,&sigs[n][2],64);
+          boost::property_tree::ptree sig;
+          sig.put("node",*p);
+          sig.put("signature",sigh);
+          psigs.push_back(std::make_pair("",sig));}
+        pt.add_child("signatures",psigs);}
+      boost::asio::read(socket,boost::asio::buffer(&nno,sizeof(uint32_t)));
+      if(nno){
+        svsi_t sigs[nno]; //assume nno will not be too large
+        boost::asio::read(socket,boost::asio::buffer(sigs,nno*sizeof(svsi_t)));
+        boost::property_tree::ptree psigs;
+        for(uint32_t n=0;n<nno;n++){
+          uint16_t *p=(uint16_t*)&sigs[n][0];
+          ed25519_key2text(sigh,&sigs[n][2],64);
+          boost::property_tree::ptree sig;
+          sig.put("node",*p);
+          sig.put("signature",sigh);
+          psigs.push_back(std::make_pair("",sig));}
+        pt.add_child("fork_signatures",psigs);}}
+
+    else if(txs->ttype==TXSTYPE_NDS){ // print nodes, consider archiving
+      print_blocktime(pt,txs->amsid);
+      uint32_t len;
+      boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+      if(!len){
+        goto END;}
+      char buf[len];
+      boost::asio::read(socket,boost::asio::buffer(buf,len));
+      mkdir("srv",0755);
+      char filename[64];
+      sprintf(filename,"srv/%08X.tmp",txs->amsid);
+      int fd=open(filename,O_WRONLY|O_CREAT,0644);
+      if(fd<0){
+        goto END;}
+      write(fd,buf,len);
+      close(fd);
+      servers srv;
+      if(srv.data_read(filename,true)!=(int)txs->amsid){
+        goto END;}
+      char hash[65]; hash[64]='\0';
+      boost::property_tree::ptree psrv;
+      psrv.put("now",srv.now);
+      psrv.put("msg",srv.nod);
+      psrv.put("nod",srv.nod);
+      psrv.put("div",srv.nod);
+      ed25519_key2text(hash,srv.oldhash,32);
+      psrv.put("oldhash",hash);
+      ed25519_key2text(hash,srv.minhash,32);
+      psrv.put("minhash",hash);
+      ed25519_key2text(hash,srv.msghash,32);
+      psrv.put("msghash",hash);
+      ed25519_key2text(hash,srv.nodhash,32);
+      psrv.put("nodhash",hash);
+      ed25519_key2text(hash,srv.viphash,32);
+      psrv.put("viphash",hash);
+      ed25519_key2text(hash,srv.nowhash,32);
+      psrv.put("nowhash",hash);
+      psrv.put("vok",srv.vok);
+      psrv.put("vno",srv.vno);
+      psrv.put("vtot",srv.vtot);
+      boost::property_tree::ptree nodes;
+      for(uint32_t n=0;n<srv.nodes.size();n++){
+        boost::property_tree::ptree node;
+        ed25519_key2text(hash,srv.nodes[n].pk,32);
+        psrv.put("pk",hash);
+        ed25519_key2text(hash,(uint8_t*)&srv.nodes[n].hash[0],32);
+        psrv.put("hash",hash);
+        ed25519_key2text(hash,srv.nodes[n].msha,32);
+        psrv.put("msha",hash);
+        node.put("msid",srv.nodes[n].msid);
+        node.put("mtim",srv.nodes[n].mtim);
+        node.put("weight",srv.nodes[n].weight);
+        node.put("status",srv.nodes[n].status);
+        node.put("users",srv.nodes[n].users);
+        node.put("port",srv.nodes[n].port);
+        node.put("ipv4",srv.nodes[n].ipv4);
+        nodes.push_back(std::make_pair("",node));}
+      psrv.add_child("nodes",nodes);
+      pt.add_child("block_nodes",psrv);}
+
+    else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node
+      print_blocktime(pt,txs->amsid);
+      uint32_t len;
+      boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+      if(!len){
+        goto END;}
+      char buf[len];
+      boost::asio::read(socket,boost::asio::buffer(buf,len));
+      user_t* userp=(user_t*)buf;
+      uint32_t usern=len/sizeof(user_t);
+      boost::property_tree::ptree users;
+      for(uint32_t n=0;n<usern;n++,userp++){
+        boost::property_tree::ptree user;
+        print_user(*userp,user,true,txs->bbank,n,sts);
+        users.push_back(std::make_pair("",user));}
+      pt.add_child("accounts",users);}
+
+    else if(txs->ttype==TXSTYPE_MGS){ // print message list, consider archiving
+      print_blocktime(pt,txs->amsid);
+      uint32_t len;
+      boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+      if(!len || (len-32)%(2+4+32)){
+        pt.put("error_bad_length",len);
+        goto END;}
+      uint8_t msghash[32];
+      char buf[len];
+      char *bufp=buf;
+      char *end=buf+len;
+      boost::asio::read(socket,boost::asio::buffer(buf,len));
+      char hash[65]; hash[64]='\0';
+      ed25519_key2text(hash,(uint8_t*)buf,32);
+      pt.put("msghash",hash);
+      bufp+=32;
+      hashtree tree;
+      boost::property_tree::ptree msghashes;
+      for(;bufp<end;bufp+=2+4+32){
+        boost::property_tree::ptree msghash;
+        uint16_t svid=*(uint16_t*)(bufp);
+        msghash.put("node",svid);
+        uint32_t msid=*(uint32_t*)(bufp+2);
+        msghash.put("node_msid",msid);
+        ed25519_key2text(hash,(uint8_t*)bufp+6,32);
+        msghash.put("hash",hash);
+        tree.update((uint8_t*)bufp+6);
+        msghashes.push_back(std::make_pair("",msghash));}
+      tree.finish(msghash);
+      if(memcmp(buf,msghash,32)){
+        ed25519_key2text(hash,msghash,32);
+        pt.put("msghash_calculated",hash);
+        pt.put("confirmed","no");}
+      else{
+        pt.put("confirmed","yes");}
+      pt.add_child("messages",msghashes);}
+
+    else if(txs->ttype==TXSTYPE_MSG){ // print message
+      print_blocktime(pt,txs->amsid);
+      uint32_t len;
+      boost::asio::read(socket,boost::asio::buffer(&len,4));
+      if(!len || (len & 0xFF) != MSGTYPE_MSG || len>>8 < message::data_offset){
+        pt.put("error_bad_length",len);
+        goto END;}
+      char buf[(len>>8)];
+      memcpy(buf,&len,4);
+      len>>=8;
+      boost::asio::read(socket,boost::asio::buffer(buf+4,len-4));
+      message_ptr msg(new message(len,(uint8_t*)buf));
+      msg->read_head();
+      pt.put("node",msg->svid);
+      pt.put("node_msid",msg->msid);
+      pt.put("time",msg->now);
+      pt.put("length",msg->len);
+      if(!msg->hash_tree_fast(msg->sigh,msg->data,msg->len,msg->svid,msg->msid)){
+        goto END;}
+      char hash[65]; hash[64]='\0';
+      char signtext[129]; signtext[128]='\0';
+      ed25519_key2text(hash,msg->sigh,32);
+      pt.put("hash",hash);
+      //parse and print message
+      uint8_t* p=msg->data+message::data_offset;
+      uint8_t* end=msg->data+msg->len;
+      uint32_t l;
+      assert(p<end);
+      boost::property_tree::ptree transactions;
+      for(;p<end;p+=l){
+        usertxs utxs;
+        if(!utxs.parse((char*)p)){
+          pt.put("error_parse","true");
+          break;}
+        l=utxs.size;
+        boost::property_tree::ptree transaction;
+        transaction.put("ttype",utxs.ttype);
+        transaction.put("abank",utxs.abank);
+        transaction.put("auser",utxs.auser);
+        transaction.put("amsid",utxs.amsid);
+        transaction.put("ttime",utxs.ttime);
+        transaction.put("bbank",utxs.bbank);
+        transaction.put("buser",utxs.buser);
+        transaction.put("amount",utxs.tmass);
+        ed25519_key2text(hash,utxs.tinfo,32);
+        transaction.put("message",hash);
+        ed25519_key2text(signtext,utxs.get_sig((char*)p),64);
+        transaction.put("signature",signtext);
+        transaction.put("size" ,utxs.size);
+        transactions.push_back(std::make_pair("",transaction));}
+      pt.add_child("network_txs",transactions);
+      //TODO,check if message in message list
+      }
+
+    else{
+      int len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+      if(len!=sizeof(user_t)){
+        std::cerr<<"ERROR reading confirmation\n";}
+      else{
+        user_t myuser;
+        memcpy(&myuser,buf,sizeof(user_t));
         if(txs->ttype==TXSTYPE_INF){
-          try{
-            len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
-            if(len!=sizeof(user_t)){
-              std::cerr<<"ERROR reading global info\n";}
-            else{
-              user_t myuser;
-              memcpy(&myuser,buf,sizeof(user_t));
-              print_user(myuser,pt,sts.json,false,txs->bbank,txs->buser,sts);}}
-          catch (std::exception& e){
-            fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
-        else if(txs->ttype==TXSTYPE_LOG){
-          int len;
-          if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
-            std::cerr<<"ERROR reading log length\n";
-            socket.close();
-            return;}
-          if(!len){
-            fprintf(stderr,"No new log entries\n");}
-          else{
-            log_t* log=(log_t*)std::malloc(len);
-            if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
-              std::cerr<<"ERROR reading log\n";
-              free(log);
-              socket.close();
-              return;}
-            save_log(log,len,txs->ttime,sts);
-            free(log);}
-          print_log(pt,sts);}
+          print_user(myuser,pt,true,txs->bbank,txs->buser,sts);}
         else{
-          struct {uint32_t msid;uint32_t mpos;} m;
-          if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
-            std::cerr<<"ERROR reading transaction confirmation\n";
+          print_user(myuser,pt,true,sts.bank,sts.user,sts);}
+        if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)){
+          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid){
+            std::cerr<<"ERROR transaction failed (bad msid)\n";}
+          if(memcmp(sts.pk,myuser.pkey,32)){
+            if(txs->ttype==TXSTYPE_KEY){
+              std::cerr<<"PKEY changed\n";}
+            else{
+              char tx_user_public_key[65];tx_user_public_key[64]='\0';
+              ed25519_key2text(tx_user_public_key,myuser.pkey,32);
+              logpt.put("tx.account_public_key_new",tx_user_public_key);
+              std::cerr<<"PKEY differs\n";}}
+          if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG){
+            //TODO, validate hashout, check if correct
+            char tx_user_hashout[65];tx_user_hashout[64]='\0';
+            ed25519_key2text(tx_user_hashout,myuser.hash,32);
+            logpt.put("tx.account_hashout",tx_user_hashout);
+            if(memcmp(myuser.hash,hashout,32)){
+              pt.put("error.text","hash mismatch");}}
+          sts.msid=myuser.msid;
+          memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+      if(txs->ttype==TXSTYPE_INF){
+        try{
+          len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
+          if(len!=sizeof(user_t)){
+            std::cerr<<"ERROR reading global info\n";}
+          else{
+            user_t myuser;
+            memcpy(&myuser,buf,sizeof(user_t));
+            print_user(myuser,pt,false,txs->bbank,txs->buser,sts);}}
+        catch (std::exception& e){
+          fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
+      else if(txs->ttype==TXSTYPE_LOG){
+        int len;
+        if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
+          std::cerr<<"ERROR reading log length\n";
+          socket.close();
+          return;}
+        if(!len){
+          fprintf(stderr,"No new log entries\n");}
+        else{
+          log_t* log=(log_t*)std::malloc(len);
+          if(len!=(int)boost::asio::read(socket,boost::asio::buffer((char*)log,len))){ // exception will cause leak
+            std::cerr<<"ERROR reading log\n";
+            free(log);
             socket.close();
             return;}
-          else{
-            //sts.msid=m.msid;
-            // save outgoing message log
-            logpt.put("tx.node_msid",m.msid);
-            logpt.put("tx.node_mpos",m.mpos);
-            if(sts.olog){
-              out_log(logpt,sts.bank,sts.user);}
-            if(sts.json){
-              char tx_id[64];
-              sprintf(tx_id,"%04X:%08X:%04X",sts.bank,m.msid,m.mpos);
-              pt.put("tx.node_msid",m.msid);
-              pt.put("tx.node_mpos",m.mpos);
-              pt.put("tx.id",tx_id);}
-            else{
-              fprintf(stderr,"MSID:%08X MPOS:%04X\n",m.msid,m.mpos);}}}}
+          save_log(log,len,txs->ttime,sts);
+          free(log);}
+        print_log(pt,sts);}
+      else{
+        struct {uint32_t msid;uint32_t mpos;} m;
+        if(sizeof(m)!=boost::asio::read(socket,boost::asio::buffer(&m,sizeof(m)))){
+          std::cerr<<"ERROR reading transaction confirmation\n";
+          socket.close();
+          return;}
+        else{
+          logpt.put("tx.node_msid",m.msid);
+          logpt.put("tx.node_mpos",m.mpos);
+          if(sts.olog){
+            out_log(logpt,sts.bank,sts.user);}
+          char tx_id[64];
+          sprintf(tx_id,"%04X:%08X:%04X",sts.bank,m.msid,m.mpos);
+          pt.put("tx.node_msid",m.msid);
+          pt.put("tx.node_mpos",m.mpos);
+          pt.put("tx.id",tx_id);}}}
+
     END:socket.close();
-    if(sts.json){
-      boost::property_tree::write_json(std::cout,pt,sts.nice);}}
+    boost::property_tree::write_json(std::cout,pt,sts.nice);}
   catch (std::exception& e){
     std::cerr << "Talk Exception: " << e.what() << "\n";
     // exit with error code to enable sane bash scripting
-    if(!isatty(fileno(stdin))) {
-      if(sts.json){
-        boost::property_tree::write_json(std::cout,pt,sts.nice);}
+    if(!isatty(fileno(stdin))){
+      boost::property_tree::write_json(std::cout,pt,sts.nice);
       fprintf(stderr,"EXIT\n");
-      exit(-1);
-    }
-  }
+      exit(-1);}}
 }
 
 //TODO add timeout
@@ -1720,44 +1707,16 @@ int main(int argc, char* argv[])
   boost::asio::ip::tcp::socket socket(io_service);
 #if INTPTR_MAX == INT64_MAX
   assert(sizeof(long double)==16);
-  //fprintf(stderr,"Lf size:%ld ; Ld size:%ld\n",sizeof(long double),sizeof(long long int));
 #endif
   try{
-    //if(!sts.exec.empty()){
-    //  int64_t deduct=0;
-    //  int64_t fee=0;
-    //  usertxs_ptr txs=run(sts,sts.exec.c_str(),sts.exec.length()); //FIXME, use only run_json
-    //  if(txs==NULL){
-    //    std::cerr << "ERROR\n";}
-    //  talk(endpoint_iterator,socket,sts,txs,deduct,fee);
-    //  return(0);}
-    //std::string line;
     char line[0x10000];line[0xffff]='\0';
     usertxs_ptr txs;
-    //while (std::getline(std::cin,line)){
     while(NULL!=fgets(line,0xffff,stdin)){
       int64_t deduct=0;
       int64_t fee=0;
       if(line[0]=='\n' || line[0]=='#'){
         continue;}
-      int len=strlen(line);
-      //if(!sts.json && isalpha(line[0])){
-      //  sts.json=false;
-      //  if(line[len-1]=='\n'){
-      //    line[len-1]='\0';
-      //    len--;}
-      //  txs=run(sts,line,len);
-      //  } //FIXME, use only run_json
-      //else{
-        sts.json=true; //obsolete !!!
-        if(sts.mlin){
-          while(len && 0xffff-len>1 && NULL!=fgets(line+len,0xffff-len,stdin)){
-            //if(line[len]==',' && line[len+1]=='\n'){
-            //  line[len]=' ';
-            //  break;}
-            len+=strlen(line+len);}}
-        txs=run_json(sts,line,deduct,fee);
-      //}
+      txs=run_json(sts,line,deduct,fee);
       if(txs==NULL){
         break;}
       talk(endpoint_iterator,socket,sts,txs,deduct,fee);}}
