@@ -1479,6 +1479,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       psrv.put("vok",srv.vok);
       psrv.put("vno",srv.vno);
       psrv.put("vtot",srv.vtot);
+      if(!((srv.now/BLOCKSEC)%BLOCKDIV)){
+        psrv.put("pay","true");}
+      else{
+        psrv.put("pay","false");}
       boost::property_tree::ptree nodes;
       for(uint32_t n=0;n<srv.nodes.size();n++){
         boost::property_tree::ptree node;
@@ -1497,7 +1501,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         node.put("ipv4",srv.nodes[n].ipv4);
         nodes.push_back(std::make_pair("",node));}
       psrv.add_child("nodes",nodes);
-      pt.add_child("block_nodes",psrv);}
+      pt.add_child("block",psrv);}
 
     else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node
       print_blocktime(pt,txs->amsid);

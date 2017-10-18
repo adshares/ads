@@ -63,7 +63,7 @@ const char* txsname[TXSTYPE_MAX]={
 	"get_transaction",	//20
 	"get_vipkeys",		//21
 	"get_signatures",	//22
-	"get_nodes",		//23
+	"get_block",		//23
 	"get_accounts",		//24
 	"get_message_list",	//25
 	"get_message"};		//26
