@@ -191,7 +191,8 @@ typedef struct log_s { //TODO, consider reducing the log to only txid (uint64_t)
 	uint8_t info[32];
 } log_t;
 typedef uint8_t svsi_t[2+(2*SHA256_DIGEST_LENGTH)]; // server_id + signature
-typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
+//typedef union {uint64_t v64;uint32_t v32[2];uint16_t v16[4];} ppi_t;
+typedef union {uint64_t v64;uint16_t v16[4];} ppi_t;
 typedef struct {uint32_t auser;uint32_t buser;uint8_t pkey[32];} get_t;
 typedef struct {uint32_t auser;uint16_t node;uint32_t user;uint32_t time;int64_t delta;} gup_t;
 typedef struct {uint32_t auser;int64_t weight;} dep_t;
