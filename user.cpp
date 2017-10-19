@@ -36,6 +36,7 @@
 #include "default.hpp"
 #include "ed25519/ed25519.h"
 #include "hash.hpp"
+#include "hlog.hpp"
 #include "user.hpp"
 #include "settings.hpp"
 #include "message.hpp"
@@ -1449,7 +1450,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       boost::asio::read(socket,boost::asio::buffer(buf,len));
       mkdir("srv",0755);
       char filename[64];
-      sprintf(filename,"srv/%08X.tmp",txs->amsid);
+      sprintf(filename,"srv/%08X.tmp",txs->amsid); //FIXME, do not save temp files !!!
       int fd=open(filename,O_WRONLY|O_CREAT,0644);
       if(fd<0){
         goto END;}
@@ -1501,6 +1502,22 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         node.put("ipv4",srv.nodes[n].ipv4);
         nodes.push_back(std::make_pair("",node));}
       psrv.add_child("nodes",nodes);
+      const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      if(memcmp(srv.nodes[0].hash,zero,32)){ //read hlog
+        boost::property_tree::ptree log;
+        boost::asio::read(socket,boost::asio::buffer(&len,sizeof(uint32_t)));
+        if(!len){
+          goto END;}
+        char buf[len];
+        boost::asio::read(socket,boost::asio::buffer(buf,len));
+        sprintf(filename,"srv/%08X.hlg",txs->amsid); //FIXME, do not save temp files !!!
+        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        if(fd<0){
+          goto END;}
+        write(fd,buf,len);
+        close(fd);
+        hlog hlg(log,filename);
+        psrv.add_child("log",log);}
       pt.add_child("block",psrv);}
 
     else if(txs->ttype==TXSTYPE_NOD){ // print accounts of a node

@@ -1956,6 +1956,13 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     return(p->v16[3]);
   }
 
+  uint64_t ppi_txid(const uint64_t& ppi)
+  { ppi_t *p=(ppi_t*)&ppi;
+    p->v16[3]=p->v16[0];
+    p->v32[0]=last_srvs_.nodes[p->v16[3]].msid+p->v16[1];
+    return(p->v64); // msid,svid,tpos
+  }
+
   bool remove_message(message_ptr msg)
   { if(msg->svid==opts_.svid){
 #ifdef DOUBLE_SPEND
@@ -2914,10 +2921,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     myget_fee=0;
     uint32_t lpos=1;
     std::map<uint64_t,log_t> log;
-    hlog hlg(srvs_.now,true);
+    hlog hlg(srvs_.now);
 
     //match remote account transactions
-    std::map<uin_t,uint32_t,uin_cmp> uin; //waiting remote account requests
+    std::map<uin_t,std::deque<uint64_t>,uin_cmp> uin; //waiting remote account requests
     for(auto it=blk_usr.begin();it!=blk_usr.end();it++){
       uint16_t abank=ppi_abank(it->first);
       auto tx=&it->second;
@@ -2927,7 +2934,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
         tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]}};
       DLOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
-      uin[nuin]++;}
+      uin[nuin].push_back(ppi_txid(it->first));}
     blk_usr.clear();
     for(auto it=blk_uok.begin();it!=blk_uok.end();it++){ //send funds from matched transactions to new account
       uint16_t abank=ppi_abank(it->first);
@@ -2937,7 +2944,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         tx->pkey[ 8],tx->pkey[ 9],tx->pkey[10],tx->pkey[11],tx->pkey[12],tx->pkey[13],tx->pkey[14],tx->pkey[15],
         tx->pkey[16],tx->pkey[17],tx->pkey[18],tx->pkey[19],tx->pkey[20],tx->pkey[21],tx->pkey[22],tx->pkey[23],
         tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]}};
-      if(uin.find(nuin)!=uin.end() && uin[nuin]>0){
+      if(uin.find(nuin)!=uin.end() && !uin[nuin].empty()){
         union {uint64_t big;uint32_t small[2];} to;
         to.small[0]=tx->auser;
         to.small[1]=abank;
@@ -2958,9 +2965,10 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           alog.weight=0;
           memcpy(alog.info,tx->pkey,32);
           log[key]=alog;}
-          //put_log(tx->bbank,tx->buser,alog); //put_blklog
         DLOG("REMOTE user request %04X %04X %08X matched\n",abank,tx->bbank,tx->buser);
-        uin[nuin]--;}
+        uint64_t usr_txid=uin[nuin].front();
+        uin[nuin].pop_front();
+        hlg.save_uso(tx->buser,tx->auser,usr_txid,ppi_txid(it->first));}
       else{
         DLOG("REMOTE user request %04X %04X %08X not found\n",abank,tx->bbank,tx->buser);
         if(tx->bbank==opts_.svid){ // no matching _USR transaction found
@@ -2976,12 +2984,11 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           alog.mpos=srvs_.now;
           alog.weight=0;
           memcpy(alog.info,tx->pkey,32);
-          log[key]=alog;}}}
-        //put_log(tx->bbank,tx->buser,alog); //put_blklog
+          log[key]=alog;}
+        hlg.save_uok(tx->bbank,tx->buser,tx->auser,ppi_txid(it->first));}}
     blk_uok.clear();
     for(auto it=uin.begin();it!=uin.end();it++){ //send back funds from unmatched transactions
-      uint32_t n=it->second;
-      for(;n>0;n--){
+      while(!it->second.empty()){
         DLOG("REMOTE user request %04X %04X %08X unmatched\n",it->first.bbank,it->first.abank,it->first.auser);
         union {uint64_t big;uint32_t small[2];} to;
         to.small[0]=it->first.auser;
@@ -3002,12 +3009,16 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           alog.mpos=srvs_.now;
           alog.weight=USER_MIN_MASS;
           memcpy(alog.info,it->first.pkey,32);
-          log[key]=alog;}}}
-          //put_log(it->first.abank,it->first.auser,alog); //put_blklog
+          log[key]=alog;}
+        uint64_t usr_txid=it->second.front();
+        it->second.pop_front();
+        hlg.save_usr(it->first.auser,it->first.bbank,usr_txid);}}
 
     //reset DBL status
     if(!blk_bky.empty()){
       for(auto it=blk_bky.begin();it!=blk_bky.end();it++){
+        if(srvs_.nodes[it->second].status & SERVER_DBL){
+          hlg.save_bky(it->second,ppi_txid(it->first));}
         srvs_.nodes[it->second].status &= ~SERVER_DBL;}
       blk_bky.clear();}
 
@@ -3020,6 +3031,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         uint16_t abank=ppi_abank(it->first);
         uint16_t bbank=ppi_bbank(it->first);
         uint32_t status=it->second;
+        hlg.save_sbs(bbank,status,ppi_txid(it->first));
         if(lbbank!=bbank){
           srvs_.nodes[lbbank].status |=
               (uint32_t)(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)))<<24;
@@ -3044,6 +3056,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         uint16_t abank=ppi_abank(it->first);
         uint16_t bbank=ppi_bbank(it->first);
         uint32_t status=it->second;
+        hlg.save_ubs(bbank,status,ppi_txid(it->first));
         if(lbbank!=bbank){
           srvs_.nodes[lbbank].status &=
               (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))))<<24;
@@ -3121,6 +3134,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             memcpy(alog.info,u.pkey,32);
             log[key]=alog;}
             //put_log(abank,auser,alog); //put_blklog
+          hlg.save_bnk(auser,0,ppi_txid(it->first));
           continue;}
         update.insert(peer);
         if(abank==opts_.svid){
@@ -3138,6 +3152,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           memcpy(alog.info,u.pkey,32);
           log[key]=alog;}
           //put_log(abank,auser,alog); //put_blklog
+        hlg.save_bnk(auser,peer,ppi_txid(it->first));
         close(fd);}
       //BLK_END:
       blk_bnk.clear();}
@@ -3236,14 +3251,23 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           g.user=u.user;
           g.time=u.time;
           g.delta=delta;
-          ofip_gup_push(g);}}}
+          ofip_gup_push(g);}
+        hlg.save_get(tx->auser,bbank,tx->buser,ppi_txid(it->first));}}
     blk_get.clear();
-
     if(svid){
       if(fd>=0){ // always true
         close(fd);}
       srvs_.save_undo(svid,undo,0);
       undo.clear();}
+
+    hash_t hash;
+    int total;
+    hlg.finish(hash,total);
+    if(total){
+      memcpy(srvs_.nodes[0].hash,hash,SHA256_DIGEST_LENGTH);}
+    else{
+      bzero(srvs_.nodes[0].hash,SHA256_DIGEST_LENGTH);}
+
     del_msglog(srvs_.now,0,0);
     put_msglog(srvs_.now,0,0,log);
   }

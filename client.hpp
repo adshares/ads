@@ -415,10 +415,16 @@ public:
       //TODO, check access credentials
       uint32_t len=0;
       uint8_t *data=NULL;
+      uint8_t *hash=NULL;
       servers srvs_;
-      srvs_.read_servers(utxs.amsid,data,len); // path=utxs.amsid
+      srvs_.read_servers(utxs.amsid,data,len,hash); // path=utxs.amsid
       boost::asio::write(socket_,boost::asio::buffer(data,4+len));
       free(data);
+      const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      if(memcmp(srvs_.nodes[0].hash,zero,32)){ //read hlog
+        hlog hlg(utxs.amsid);
+        hlg.load();
+        boost::asio::write(socket_,boost::asio::buffer(hlg.data,4+hlg.total));}
       return;}
 
     if(*buf==TXSTYPE_NOD){

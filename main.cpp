@@ -10,6 +10,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/program_options.hpp>
+#include <boost/property_tree/json_parser.hpp>
 //#include <boost/serialization/list.hpp>
 //#include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
