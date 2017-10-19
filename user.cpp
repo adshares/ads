@@ -1462,9 +1462,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       char hash[65]; hash[64]='\0';
       boost::property_tree::ptree psrv;
       psrv.put("now",srv.now);
-      psrv.put("msg",srv.nod);
+      psrv.put("msg",srv.msg);
       psrv.put("nod",srv.nod);
-      psrv.put("div",srv.nod);
+      psrv.put("div",srv.div);
       ed25519_key2text(hash,srv.oldhash,32);
       psrv.put("oldhash",hash);
       ed25519_key2text(hash,srv.minhash,32);

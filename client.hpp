@@ -415,16 +415,21 @@ public:
       //TODO, check access credentials
       uint32_t len=0;
       uint8_t *data=NULL;
-      uint8_t *hash=NULL;
+      const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+      uint8_t *hash=(uint8_t*)zero;
       servers srvs_;
       srvs_.read_servers(utxs.amsid,data,len,hash); // path=utxs.amsid
       boost::asio::write(socket_,boost::asio::buffer(data,4+len));
       free(data);
-      const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-      if(memcmp(srvs_.nodes[0].hash,zero,32)){ //read hlog
+      if(memcmp(hash,zero,32)){ //read hlog
+        //DLOG("DEBUG, constructing blk/%03X/%05X/hlog.hlg",utxs.amsid>>20,utxs.amsid&0xFFFFF);
         hlog hlg(utxs.amsid);
+        //DLOG("DEBUG, loading blk/%03X/%05X/hlog.hlg",utxs.amsid>>20,utxs.amsid&0xFFFFF);
         hlg.load();
-        boost::asio::write(socket_,boost::asio::buffer(hlg.data,4+hlg.total));}
+        //DLOG("DEBUG, sending blk/%03X/%05X/hlog.hlg",utxs.amsid>>20,utxs.amsid&0xFFFFF);
+        boost::asio::write(socket_,boost::asio::buffer(hlg.data,4+hlg.total));
+        //DLOG("DEBUG, sent blk/%03X/%05X/hlog.hlg",utxs.amsid>>20,utxs.amsid&0xFFFFF);
+        }
       return;}
 
     if(*buf==TXSTYPE_NOD){

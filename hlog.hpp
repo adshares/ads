@@ -116,7 +116,9 @@ public:
 
   void read_uso(boost::property_tree::ptree& pt)
   { blg_uso_t log;
+    log.type=HLOG_USO;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_USO);
     pt.put("name","create_account_confirmed");
     pt.put("auser",log.auser);
@@ -137,7 +139,9 @@ public:
 
   void read_uok(boost::property_tree::ptree& pt)
   { blg_uok_t log;
+    log.type=HLOG_UOK;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_UOK);
     pt.put("name","create_account_late");
     pt.put("abank",log.abank);
@@ -158,7 +162,9 @@ public:
 
   void read_usr(boost::property_tree::ptree& pt)
   { blg_usr_t log;
+    log.type=HLOG_USR;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_USR);
     pt.put("name","create_account_failed");
     pt.put("auser",log.auser);
@@ -177,7 +183,9 @@ public:
 
   void read_bky(boost::property_tree::ptree& pt)
   { blg_bky_t log;
+    log.type=HLOG_BKY;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_BKY);
     pt.put("name","node_unlocked");
     pt.put("bbank",log.bbank);
@@ -194,7 +202,9 @@ public:
 
   void read_sbs(boost::property_tree::ptree& pt)
   { blg_sbs_t log;
+    log.type=HLOG_SBS;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_SBS);
     pt.put("name","set_node_status");
     pt.put("bbank",log.bbank);
@@ -213,7 +223,9 @@ public:
 
   void read_ubs(boost::property_tree::ptree& pt)
   { blg_ubs_t log;
+    log.type=HLOG_UBS;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_UBS);
     pt.put("name","unset_node_status");
     pt.put("bbank",log.bbank);
@@ -232,7 +244,9 @@ public:
 
   void read_bnk(boost::property_tree::ptree& pt)
   { blg_bnk_t log;
+    log.type=HLOG_BNK;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_BNK);
     pt.put("name","create_node");
     pt.put("auser",log.auser);
@@ -251,7 +265,9 @@ public:
 
   void read_get(boost::property_tree::ptree& pt)
   { blg_get_t log;
+    log.type=HLOG_GET;
     read(fd,(char*)&log+1,sizeof(log)-1);
+    SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_GET);
     pt.put("name","retrieve_funds");
     pt.put("auser",log.auser);
