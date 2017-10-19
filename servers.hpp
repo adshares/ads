@@ -375,7 +375,7 @@ public:
 			sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);}
 		data_read(filename,true);
 	}
-	void read_servers(uint32_t path,uint8_t* &data,uint32_t &len) // read file for user
+	void read_servers(uint32_t path,uint8_t* &data,uint32_t &len,uint8_t* &hash) // read file for user
 	{	char filename[64]="servers.srv";
 	 	if(path>0){
 			sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);}
@@ -386,7 +386,25 @@ public:
 			len=sb.st_size;
 			data=(uint8_t*)malloc(4+len);
 			read(fd,data+4,len);
-			close(fd);}
+			close(fd);
+			//not a nice hack !!!
+			hash=data+4
+				+sizeof(uint32_t) //version
+				+sizeof(uint32_t) //now
+				+sizeof(uint32_t) //msg
+				+sizeof(uint32_t) //nod
+				+sizeof(uint32_t) //div
+				+SHA256_DIGEST_LENGTH //oldhash
+				+SHA256_DIGEST_LENGTH //minhash
+				+SHA256_DIGEST_LENGTH //msghash
+				+SHA256_DIGEST_LENGTH //nodhash
+				+SHA256_DIGEST_LENGTH //viphash
+				+SHA256_DIGEST_LENGTH //nowhash
+				+sizeof(uint16_t) //vok
+				+sizeof(uint16_t) //vno
+				+sizeof(uint16_t) //vtot
+				+SHA256_DIGEST_LENGTH; //node[0].pk
+			}
 		else{
 			len=0;
 			data=(uint8_t*)malloc(4);}
@@ -797,7 +815,7 @@ public:
 		head.vok=vok;
 		head.vno=vno;
 	}
-	int data_read(const char* filename,bool read_nodes)
+	int data_read(const char* filename,bool read_nodes) //on change check read_servers()!!!
 	{	uint32_t version;
 		int fd=open(filename,O_RDONLY);
                 if(fd<0){ DLOG("ERROR, failed to read servers from %s\n",filename);
