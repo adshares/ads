@@ -3264,6 +3264,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     int total;
     hlg.finish(hash,total);
     if(total){
+      DLOG("DEBUG, written %d bytes to hlog\n",total);
       memcpy(srvs_.nodes[0].hash,hash,SHA256_DIGEST_LENGTH);}
     else{
       bzero(srvs_.nodes[0].hash,SHA256_DIGEST_LENGTH);}

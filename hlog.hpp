@@ -99,9 +99,11 @@ public:
 
   bool save(char* buf,int len)
   { if(fd<0){
-      fd=open(filename,O_WRONLY,0644);
+      fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
       if(fd<0){
-        return(false);}}
+        ELOG("ERROR, failed to open %s\n",filename);
+        return(false);}
+      DLOG("DEBUG, opened %s\n",filename);}
     SHA256_Update(&sha256,buf,len);
     total+=len;
     return(write(fd,buf,len)==len);
