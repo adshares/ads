@@ -804,7 +804,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     ELOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
   }
 
-  uint32_t load(int16_t who) //TODO, consider locking , FIXME, this is not processing the data correctly, check scenarios
+  uint32_t load(int16_t who) //FIXME, this is not processing the data correctly, check scenarios
   { 
     mtx_.lock();
     busy.insert(who);
@@ -870,7 +870,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
           (uint32_t)hashtype(),svid,msid,len);}
       else{
         if(data!=NULL && (status & MSGSTAT_SAV)){ //will only unload messages that are saved
-          DLOG("%04X UNLOAD %04X:%08X (len:%d)\n",who,svid,msid,len);
+          DLOG("%04X UNLOAD %04X:%08X (len:%d, path:%08X)\n",who,svid,msid,len,path);
           free(data);
           data=NULL;}}}
     mtx_.unlock();
@@ -909,12 +909,13 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
 
 
   //FIXME, check again the time of saving, consider free'ing data after save
-  int save() //TODO, consider locking
+  int save()
   { if(!(status & MSGSTAT_DAT)){
       return(0);}
     if(!path){
       ELOG("ERROR, saving %04X:%08X [l:%d], no path\n",svid,msid,len);
       return(0);}
+    boost::lock_guard<boost::mutex> lock(mtx_);
     char filename[128];
     makefilename(filename,path,"msg");
     //assert(data!=NULL);
@@ -1029,11 +1030,14 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
     return 0;
   }
 
-  int move(uint32_t nextpath) //TODO, consider locking
+  int move(uint32_t nextpath)
   { char oldname[128];
     char newname[128];
     if(!path || path==nextpath){
+      makefilename(oldname,path,"msg");
+      DLOG("NO MOVE of %s from %08X to %08X\n",oldname,path,nextpath);
       return(0);}
+    boost::lock_guard<boost::mutex> lock(mtx_);
     int r=0;
     if(status & MSGSTAT_SAV){
       r=-1;

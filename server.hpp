@@ -1536,7 +1536,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       msg->path=msg->msid; // this is the block time!!!
       assert(msg->peer==msg->svid);
       DLOG("DEBUG, storing own cnd message\n");
-      //msg->save(); //too sort to waste disk space
       cnd_.unlock();
       cnd_validate(msg);
       return(1);}
@@ -1582,7 +1581,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       msg->path=msg->msid; // this is the block time!!!
       assert(msg->peer==msg->svid);
       DLOG("DEBUG, storing own blk message\n");
-      //msg->save(); //too short to waste disk space
       blk_.unlock();
       blk_validate(msg);
       return(1);}
@@ -1590,7 +1588,6 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       blk_msgs_[msg->hash.num]=msg;
       msg->path=msg->msid; // this is the block time!!!
       DLOG("DEBUG, storing peer's %04X blk message\n",msg->svid);
-      //msg->save(); //too short to waste disk space
       blk_.unlock();
       blk_validate(msg);
       return(1);}
@@ -1881,7 +1878,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           wait_.unlock();
           continue;}
         if(!busy_msg->load(0)){
-          ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d]\n",busy_msg->path>>20,busy_msg->path&0xFFFFF,(uint32_t)busy_msg->hashtype(),busy_msg->svid,busy_msg->msid,busy_msg->len);
+          ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d], fatal\n",busy_msg->path>>20,busy_msg->path&0xFFFFF,(uint32_t)busy_msg->hashtype(),busy_msg->svid,busy_msg->msid,busy_msg->len);
+//FIXME, prevent fatal errors, mark message as missing ...
           exit(-1);}
         bool valid=process_message(busy_msg); //maybe ERROR should be also returned.
         if(valid){
