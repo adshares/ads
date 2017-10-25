@@ -111,6 +111,7 @@ public:
     assert(mymsid<=max_msid); // this server can not send any more messages
     assert(len<=max_length);
     assert(data!=NULL);
+    assert(text_type==MSGTYPE_INI || mysvid); // READONLY ok
     data[0]=text_type;
     memcpy(data+1,&len,3); //assume bigendian :-)
     //this will be the signature
@@ -131,8 +132,11 @@ public:
       ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
       hash_signature();}
     else if(text_type==MSGTYPE_INI){
-DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
-      ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
+      //DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
+      if(mysvid){ // READONLY ok
+        ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);}
+      else{
+        bzero(data+4,64);}
       hash_signature();}
     else{
       assert(text_type==MSGTYPE_MSG);
@@ -155,7 +159,7 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
 	status(0)
   { data=NULL;
     hash.dat[1]=type;
-    if(!load(0)){ //sets len ... assume this is invoked only by server during sync
+    if(!load(msvid)){ //sets len ... assume this is invoked only by server during sync
       ELOG("ERROR, failed to load recycled message %04X:%08X [len:%d]\n",svid,msid,len);
       return;}
     //load should get hash_tree
@@ -178,8 +182,6 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
 	status(0)
   { data=NULL;
     hash.dat[1]=type;
-    //got=load(0); //overloading got with size !!!
-    load(0); //overloading got with size !!!
   }
 
   ~message()
@@ -510,6 +512,7 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
     assert(sent.empty());
     got=time(NULL);
     assert(data!=NULL);
+    peer=peer_svid; // set source of message
     if(data[0]==MSGTYPE_INI){
       len=0;
       memcpy(&len,data+1,3);
@@ -521,10 +524,10 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
         ELOG("ERROR: realloc failed \n");
         return 0;}
       return 2;}
-    if(!peer_svid){ // peer not authenticated yet
-      DLOG("ERROR: peer not authenticated\n"); // TODO, ban ip
-      return 0;}
-    peer=peer_svid; // set source of message
+    //do these checks later
+    //if(!peer_svid){ // peer not authenticated yet READONLY ok
+    //  DLOG("ERROR: peer not authenticated\n"); // TODO, ban ip
+    //  return 0;}
     if( data[0]==MSGTYPE_PUT||
         data[0]==MSGTYPE_GET||
         data[0]==MSGTYPE_CNP||
@@ -659,14 +662,18 @@ DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
     if(data[0]==MSGTYPE_MSG || data[0]==MSGTYPE_INI || data[0]==MSGTYPE_CND || data[0]==MSGTYPE_DBL || data[0]==MSGTYPE_BLK){
       memcpy(&svid,data+4+64+0,2);
       memcpy(&msid,data+4+64+2,4);
-      memcpy( &now,data+4+64+6,4);}
+      memcpy( &now,data+4+64+6,4);
+      return;}
     //if(data[0]==MSGTYPE_USR){ // double message //TODO untested !!!
     //  memcpy(&svid,data+4+0,2);
     //  memcpy(&msid,data+4+2,4);}
     if(data[0]==MSGTYPE_DBL){ // double message //TODO untested !!!
       memcpy(&svid,data+4+32+4+64+0,2);
       memcpy(&msid,data+4+32+4+64+2,4);
-      memcpy( &now,data+4+32+4+64+6,4);}
+      memcpy( &now,data+4+32+4+64+6,4);
+      return;}
+    ELOG("ERROR, getting unexpected message type in read_head :-( \n");
+    //exit(-1);
   }
 
   int check_signature(const uint8_t* svpk,uint16_t mysvid,const uint8_t* msha)
@@ -839,7 +846,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)svpk);
       data=NULL;}
     struct stat sb;
     fstat(fd,&sb);
-    data=(uint8_t*)std::malloc(sb.st_size);
+    data=(uint8_t*)malloc(sb.st_size); //do not throw
     read(fd,data,sb.st_size);
     close(fd);
     if(len==header_length){

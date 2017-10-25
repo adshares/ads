@@ -501,7 +501,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           ldc_.lock();
           ldc_msgs_[jt->first]=jt->second;
           ldc_.unlock();
-          if(jt->second->load(0)){ // will be unloaded by the validator
+          if(jt->second->load(opts_.svid)){ // will be unloaded by the validator
             if(!jt->second->sigh_check()){
               jt->second->read_head(); //to get 'now'
               DLOG("LOADING TXS %04X:%08X from path:%08X\n",
@@ -1010,12 +1010,12 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       for(auto mp=signnew.begin();mp!=signnew.end();mp++){
         msid++;
         assert(msid==(*mp)->msid);
-        (*mp)->load(0);
+        (*mp)->load(opts_.svid);
         (*mp)->signnewtime(ntime,skey,pkey,msha);
         (*mp)->status &= ~MSGSTAT_BAD;
         memcpy(msha,(*mp)->sigh,sizeof(hash_t));
         (*mp)->save();
-        (*mp)->unload(0);
+        (*mp)->unload(opts_.svid);
         check_.lock(); //maybe not needed if no validators
         check_msgs_.push_back((*mp));
         check_.unlock();
@@ -1065,7 +1065,11 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         (now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)))){
       uint64_t x=(cnd2!=nullcnd?cnd2->score:0);
       if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)){
-        ELOG("CANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n",
+
+//FIXME, enter panic state !!! READONLY ok
+//FIXME, maybe must resync
+
+        ELOG("\n\nCANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n\n\n",
           cnd1->score,x,votes_max,votes_counted);}
       else{
         ELOG("CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
@@ -1177,6 +1181,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     extern candidate_ptr nullcnd;
     winner=nullcnd;
     ELOG("ELECTOR max:%016lX\n",votes_max);
+// READNLY ? if readonly server and not enough electors ... resync !
 #ifdef DEBUG
     if(electors.size()<electors_old && electors.size()<srvs_.vtot/2){
       ELOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
@@ -1318,8 +1323,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     if(msg1->msid<=last_srvs_.nodes[msg1->svid].msid){ //ignore too old messages
       DLOG("DROP dbl spend message creation from old message (%04X:%08X)\n",msg1->svid,msg1->msid);
       return;}
-    msg1->load(0xffff); // could use opts_.svid instead of 0xffff (can not use 0!)
-    msg2->load(0xffff); // could use opts_.svid instead of 0xffff (can not use 0!)
+    msg1->load(BANK_MAX);
+    msg2->load(BANK_MAX);
     assert(msg1->data[0]==msg2->data[0]);
     hash_t msha={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     if(msg2->data[0]==MSGTYPE_MSG){
@@ -1329,8 +1334,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         message_ptr pre=message_svidmsid(msg2->svid,msg2->msid-1);
         if(pre==nullmsg || !(pre->status & (MSGSTAT_DAT|MSGSTAT_VAL))){
           ELOG("ERROR loading message %04X:%08X before double spend\n",msg2->svid,msg2->msid-1);
-          msg1->unload(0xffff);
-          msg2->unload(0xffff);
+          msg1->unload(BANK_MAX);
+          msg2->unload(BANK_MAX);
           return;}
         else{
           memcpy(msha,pre->sigh,32);}}}
@@ -1349,8 +1354,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     dbl_msg->hash.num=dbl_msg->dohash();
     //memcpy(dbl_msg->sigh,msg1->sigh,32); //store sigh from first received message 
     dbl_msg->null_signature(); //this way update will only send 1 version per msid on the network
-    msg1->unload(0xffff);
-    msg2->unload(0xffff);
+    msg1->unload(BANK_MAX);
+    msg2->unload(BANK_MAX);
     dbl_.lock();
     dbl_msgs_[dbl_msg->hash.num]=dbl_msg;
     dbl_.unlock();
@@ -1478,7 +1483,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         missing_msgs_erase(msg);
         if(!known_dbl(osg->svid)){
           double_spend(osg);}
-        osg->unload(0);
+        osg->unload(opts_.svid);
         return(1);}
       else{ // update info about peer inventory
         dbl_.unlock();
@@ -1627,7 +1632,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(!osg->save()){ //FIXME, change path
           DLOG("HASH insert:%016lX (TXS) [len:%d] SAVE FAILED, ABORT!\n",osg->hash.num,osg->len);
           exit(-1);}
-        osg->unload(0);
+        osg->unload(opts_.svid);
         if(osg->now>=srvs_.now+BLOCKSEC){
           DLOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ ???\n",osg->hash.num,osg->len,osg->now);
           wait_.lock();
@@ -1670,7 +1675,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           ELOG("ERROR, failed to save own message %08X, fatal\n",msg->msid);
           exit(-1);}
         txs_.unlock();
-        msg->unload(0);
+        msg->unload(opts_.svid);
         if(!(msg->status & MSGSTAT_BAD)){ // only during DOUBLE_SPEND tests
           if(msg->now>=srvs_.now+BLOCKSEC){
             DLOG("HASH insert:%016lX (TXS) [len:%d] delay to %08X/ own message\n", //FIXME, fatal in start !!!
@@ -1877,7 +1882,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           wait_msgs_.push_back(busy_msg);
           wait_.unlock();
           continue;}
-        if(!busy_msg->load(0)){
+        if(!busy_msg->load(opts_.svid)){
           ELOG("ERROR, failed to load blk/%03X/%05X/%02x_%04x_%08x.msg [len:%d], fatal\n",busy_msg->path>>20,busy_msg->path&0xFFFFF,(uint32_t)busy_msg->hashtype(),busy_msg->svid,busy_msg->msid,busy_msg->len);
 //FIXME, prevent fatal errors, mark message as missing ...
           exit(-1);}
@@ -1917,7 +1922,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(busy_msg->path<srvs_.now){
           DLOG("MOVING message %04X:%08X to %08X/ after validation\n",busy_msg->svid,busy_msg->msid,srvs_.now);
           busy_msg->move(srvs_.now);}
-        busy_msg->unload(0);
+        busy_msg->unload(opts_.svid);
         if(!do_sync){
           //simulate delay, FIXME, remove after sync tests
 #ifdef DEBUG
@@ -2044,7 +2049,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }*/
 
   bool undo_message(message_ptr msg) //FIXME, this is single threaded, remove locks
-  { if(!msg->load(0)){
+  { if(!msg->load(opts_.svid)){
       ELOG("ERROR, failed to load message !!!\n");
       exit(-1);}
     assert(msg->data!=NULL);
@@ -2220,7 +2225,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
       write(fd,&it->second,sizeof(user_t));}
     close(fd);
     del_msglog(srvs_.now,msg->svid,msg->msid);
-    msg->unload(0);
+    msg->unload(opts_.svid);
     msg->status &= ~MSGSTAT_COM;
     return(true);
   }
@@ -3608,8 +3613,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         hs.msid=srvs_.nodes[peer].msid;}
       else{
         memcpy(hs.msha,last_srvs_.nodes[peer].msha,SHA256_DIGEST_LENGTH);
-        hs.msid=last_srvs_.nodes[peer].msid;}}
-    else{
+        hs.msid=last_srvs_.nodes[peer].msid;}
+    }
+    else{ // READONLY ok
       //if(do_fast){ // force sync if '-f 1'
       //  hs.vno=0xFFFF;}
       bzero(hs.msha,SHA256_DIGEST_LENGTH);
@@ -3661,7 +3667,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
 #endif
 
   uint32_t write_message(std::string line) // assume single threaded
-  { if(srvs_.nodes[opts_.svid].msid!=msid_){
+  { assert(opts_.svid); // READONLY ok
+    if(srvs_.nodes[opts_.svid].msid!=msid_){
       DLOG("ERROR, wrong network msid, postponing message write\n");
       return(0);}
     memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
@@ -3680,7 +3687,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }
 
   void write_candidate(const hash_s& cand_hash)
-  { do_vote=0;
+  { if(!opts_.svid){ // READONLY ok
+      return;}
+    do_vote=0;
     hash_t empty;
     cand_.lock(); //lock only candidates
     auto ca=candidates_.find(cand_hash);
@@ -3797,7 +3806,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }
 
   void write_header()
-  { header_t head;
+  { if(!opts_.svid){ //READONLY ok
+      return;}
+    header_t head;
     last_srvs_.header(head);
     hash_t empty;
     message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),opts_.svid,head.now,skey,pkey,empty));

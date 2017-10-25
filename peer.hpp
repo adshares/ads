@@ -5,7 +5,7 @@ class peer : public boost::enable_shared_from_this<peer>
 {
 public:
   peer(server& srv,bool in,servers& srvs,options& opts) :
-      svid(0),
+      svid(BANK_MAX),
       do_sync(1), //remove, use peer_hs.do_sync
       killme(false),
       busy(0),
@@ -216,7 +216,7 @@ public:
     if(!msg->sent_emplace(svid)){
       DLOG("%04X REJECTING download request for %0X4:%08X (late)\n",svid,msg->svid,msg->msid);
       return;}
-    if(msg->len!=message::header_length && !msg->load(svid)){ // sets busy[svid]
+    if(msg->len!=message::header_length && !msg->load(svid)){ // sets busy[svid] READONLY ok
       DLOG("%04X ERROR failed to load message %0X4:%08X\n",svid,msg->svid,msg->msid);
       return;}
     assert(msg->data!=NULL);
@@ -230,6 +230,7 @@ public:
         DLOG("%04X WARNING, truncating cnd message\n",svid);
         message_ptr put_msg(new message(4+64+10+sizeof(hash_t),msg->data));
         memcpy(put_msg->data+1,&put_msg->len,3); //FIXME, make this a change_length function in message.hpp
+        assert(msg->svid);
         put_msg->svid=msg->svid; //just for reporting
         put_msg->msid=msg->msid; //just for reporting
         put_msg->sent.insert(svid);
@@ -346,6 +347,10 @@ Aborted
       ELOG("%04X READ header error\n",svid);
       leave();
       return;}
+    if(svid==BANK_MAX && read_msg_->data[0]!=MSGTYPE_INI){ // READONLY ok
+      ELOG("%04X READ illegal header during startup (%d)\n",svid,(int)read_msg_->data[0]);
+      leave();
+      return;}
     busy=0; // any incomming data resets the busy flag indicating a responsive peer
     bytes_in+=read_msg_->len;
     files_in++;
@@ -357,13 +362,16 @@ Aborted
         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
         boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    if(read_msg_->len==message::header_length){
-      if(!read_msg_->svid || srvs_.nodes.size()<=read_msg_->svid ||
-          server_.last_srvs_.nodes.size()<=read_msg_->svid){
+    if(read_msg_->len==message::header_length){ //short ping message
+      if(srvs_.nodes.size()<=read_msg_->svid || server_.last_srvs_.nodes.size()<=read_msg_->svid){ // READONLY ok
         ELOG("%04X ERROR message from unknown server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
         leave();
         return;}
       if(read_msg_->data[0]==MSGTYPE_PUT || read_msg_->data[0]==MSGTYPE_CNP || read_msg_->data[0]==MSGTYPE_BLP || read_msg_->data[0]==MSGTYPE_DBP){
+        if(!read_msg_->svid){ // READONLY ok
+          ELOG("%04X ERROR illegal message from readonly server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+          leave();
+          return;}
         DLOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
         if(read_msg_->data[0]==MSGTYPE_PUT){
           read_msg_->data[0]=MSGTYPE_GET;}
@@ -393,10 +401,14 @@ Aborted
 #endif
             deliver(read_msg_);}}} // request message if not known (inserted)
       else if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_CNG || read_msg_->data[0]==MSGTYPE_BLG || read_msg_->data[0]==MSGTYPE_DBG){
+        if(!read_msg_->svid){ // READONLY ok
+          ELOG("%04X ERROR illegal message from readonly server %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+          leave();
+          return;}
         DLOG("%04X HASH %016lX [%016lX]\n",svid,read_msg_->hash.num,*((uint64_t*)read_msg_->data)); // could be bad allignment
 	if(do_sync){
           read_msg_->path=peer_path;
-          if(read_msg_->load(svid)){
+          if(read_msg_->load(svid)){ //READONLY ok
             DLOG("%04X PROVIDING MESSAGE %04X:%08X %02X (len:%d) (in sync)\n",svid,read_msg_->svid,read_msg_->msid,read_msg_->hash.dat[1],read_msg_->len);
             send_sync(read_msg_);} //deliver will not work in do_sync mode
           else{
@@ -420,7 +432,7 @@ Aborted
           else{// concider loading from db if available
             DLOG("%04X MESSAGE %04X:%08X not found, concider loading from db\n\n\n",svid,
               read_msg_->svid,read_msg_->msid);}}}
-      else if(read_msg_->data[0]==MSGTYPE_HEA){
+      else if(read_msg_->data[0]==MSGTYPE_HEA){ // READONLY ok , accept svid==0 below
 	write_headers();}
       else if(read_msg_->data[0]==MSGTYPE_NHR){
 	write_headers();}
@@ -913,7 +925,6 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    //read_msg_->read_head();
     uint16_t bank=read_msg_->svid;
     if(!bank || bank>=server_.last_srvs_.nodes.size()){
       ELOG("%04X ERROR reading bank %04X (bad num)\n",svid,bank);
@@ -1092,7 +1103,7 @@ Aborted
       ed25519_key2text(hash,peer_hs.msha,SHA256_DIGEST_LENGTH);
       ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);}
     if(incoming_){
-      message_ptr sync_msg=server_.write_handshake(svid,sync_hs); // sets sync_hs
+      message_ptr sync_msg=server_.write_handshake(svid,sync_hs); // sets sync_hs, READONLY ok
       sync_msg->print("; send welcome");
       send_sync(sync_msg);}
     if(peer_hs.head.now==sync_hs.head.now){
@@ -1183,8 +1194,20 @@ Aborted
       leave();
       return;}
     read_msg_->read_head();
-    if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){
-      ELOG("%04X ERROR reading head\n",svid);
+    if(!read_msg_->svid && svid==BANK_MAX){ // READONLY ok
+      if(!authenticate()){
+        ELOG("%04X NOT authenticated\n",svid);
+        leave();
+        return;}
+      busy=0; // make peer available for download traffic
+      ELOG("%04X CONTINUE after authentication\n",svid);
+      read_msg_ = boost::make_shared<message>();
+      boost::asio::async_read(socket_,
+        boost::asio::buffer(read_msg_->data,message::header_length),
+        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+      return;}
+    if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){ // READONLY ok
+      ELOG("%04X ERROR reading head (bad svid %04X)\n",svid,read_msg_->svid);
       leave();
       return;}
     assert(read_msg_->data[0]!=MSGTYPE_BLK);
@@ -1243,7 +1266,7 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    if(!svid){ // FIXME, move this to 'start()'
+    if(svid==BANK_MAX){ // READONLY ok
       if(!authenticate()){
         ELOG("%04X NOT authenticated\n",svid);
         leave();
@@ -1272,7 +1295,7 @@ Aborted
 
   void handle_read_block(const boost::system::error_code& error)
   { DLOG("%04X BLOCK, got BLOCK\n",svid);
-    if(error || !svid){
+    if(error){ // READONLY ok
       ELOG("%04X READ error %d %s (BLOCK)\n",svid,error.value(),error.message().c_str());
       leave();
       return;}

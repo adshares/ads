@@ -488,6 +488,7 @@ public:
     if(*buf==TXSTYPE_MSG){
       //TODO, check access credentials
       message_ptr msg(new message(MSGTYPE_MSG,utxs.amsid,utxs.bbank,utxs.buser)); //overloads got with size !!!
+      msg->load(BANK_MAX);
       if(!(msg->status & MSGSTAT_SAV)){
         uint32_t null=0;
         boost::asio::write(socket_,boost::asio::buffer((uint8_t*)&null,4));}
