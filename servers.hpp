@@ -298,6 +298,40 @@ public:
 		return(false);
 	}
 
+	void find_more_keys(uint8_t* pkey,std::map<uint16_t,nodekey_t> &nkeys)
+	{	char key[65];
+		key[64]='\0';
+		ed25519_key2text(key,pkey,32);
+		char filename[128];
+		sprintf(filename,"key/%s.txt",key);
+		FILE* fp=fopen(filename,"r");
+		if(fp==NULL){
+			return;}
+		char line[128];
+		line[127]='\0';
+		while(fgets(line,127,fp)>0){
+			if(line[0]=='#' || strlen(line)<64){
+				continue;}
+			uint16_t node;
+			nodekey_t nkey;
+			if(sscanf(line,"%hd %64s",&node,key)!=2){
+				ELOG("ERROR, parsing %s: %s\n",filename,line);
+				continue;}
+			ed25519_text2key(nkey.skey,key,32);
+			if(!node || node>=nodes.size()){
+				ELOG("ERROR, parsing %s, bad node %d\n",filename,node);
+				continue;}
+			//TODO, in the future we should run nkey.skey=skey^nkey.skey;
+			ed25519_publickey(nkey.skey,nkey.pkey);
+			if(memcmp(nkey.pkey,nodes[node].pk,32)){
+				ed25519_key2text(key,nkey.pkey,32);
+				ELOG("ERROR, parsing %s, bad pkey %s for node %d\n",filename,key,node);
+				continue;}
+			DLOG("%04X signing for this node\n",node); 
+			nkeys[node]=nkey;}
+		fclose(fp);
+	}
+
 	bool check_nodehash(uint16_t peer)
 	{	assert(peer);
                 char filename[64];

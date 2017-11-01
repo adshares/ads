@@ -217,6 +217,10 @@ typedef struct msidhash_s {
 	uint32_t msid;
 	hash_t sigh;
 } msidhash_t;
+typedef struct nodekey_s {
+	hash_t skey;
+	hash_t pkey;
+} nodekey_t;
 #pragma pack()
 
 typedef struct uin_cmp {

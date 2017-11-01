@@ -225,7 +225,10 @@ const char* server::peers_list()
 		return("");}
 	for(auto pi=peers.begin();pi!=peers.end();pi++){
 		list+=",";
-		list+=std::to_string((*pi)->svid);
+		if((*pi)->svid!=BANK_MAX){
+			list+=std::to_string((*pi)->svid);}
+		else{
+			list+="-";}
 		if((*pi)->killme){
 			list+="*";}}
 	return(list.c_str()+1);

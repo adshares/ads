@@ -41,11 +41,11 @@ public:
 			config.add_options()
 				("init,n", boost::program_options::value<bool>(&init)->default_value(0),			"start new chain")
 				("fast,f", boost::program_options::value<bool>(&fast)->default_value(0),			"fast sync without history")
-				("mins,m", boost::program_options::value<int>(&mins)->default_value(0),				"minimum number of offered block signatures to start sync (0:max/2)")
+				("mins,m", boost::program_options::value<int>(&mins)->default_value(VIP_MAX/2),				"minimum number of offered block signatures to start sync (0:max/2)")
 				("offi,o", boost::program_options::value<int>(&offi)->default_value(std::atoi(OFFICE_PORT)),	"office port (for clients)")
 				("port,p", boost::program_options::value<int>(&port)->default_value(std::atoi(SERVER_PORT)),	"service port (for peers)")
 				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"service address or hostname")
-				("svid,i", boost::program_options::value<int>(&svid),						"service id (assigned by the network)")
+				("svid,i", boost::program_options::value<int>(&svid)->default_value(0),						"service id (assigned by the network)")
 				//("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
 				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
 				("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (irreversable!)")
@@ -88,10 +88,11 @@ public:
 				std::cout << "Service svid: " << vm["svid"].as<int>() << std::endl;}
 			else{
 				if(!init){
-					std::cout << "ERROR: Service svid missing!" << std::endl;
-					exit(1);}
-				std::cout << "Service svid: 1 (default)" << std::endl;
-				svid=1;}
+					std::cout << "Service svid: 0 (read only)" << std::endl;
+					svid=0;}
+				else{
+					std::cout << "Service svid: 1 (init node)" << std::endl;
+					svid=1;}}
 			/*if (vm.count("skey")){
 				char pktext[2*32+1]; pktext[2*32]='\0';
 				if(skey.length()!=64){

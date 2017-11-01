@@ -83,6 +83,8 @@ public:
   void init(uint32_t myusers)
   { memcpy(pkey,srv_.pkey,32);
     users=myusers; //FIXME !!! this maybe incorrect !!!
+    if(!myusers){
+      return;}
     //msid=srv_.msid_;
   //deposit.resize(users); //a buffer to enable easy resizing of the account vector
   //ustatus.resize(users); //a buffer to enable easy resizing of the account vector
@@ -91,7 +93,7 @@ public:
     sprintf(filename,"usr/%04X.dat",svid);
     int gd=open(filename,O_RDONLY);
     if(gd<0){
-      DLOG("ERROR, failed to open %s, fatal\n",filename);
+      DLOG("ERROR, failed to open %s in init, fatal\n",filename);
       exit(-1);}
     log_.lock();
     log_t alog;

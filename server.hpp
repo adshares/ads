@@ -48,14 +48,19 @@ public:
     start_path=path;
     start_msid=msid_;
     last_srvs_.get(path);
-    if(!last_srvs_.nodes.size()){
-      if(!opts_.init){
+    if(opts_.svid){
+      if(!last_srvs_.nodes.size()){
+        if(!opts_.init){
+          ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
+          exit(-1);}
+        ELOG("CREATING first node\n");}
+      else if((int)last_srvs_.nodes.size()<=(int)opts_.svid){
         ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
-        exit(-1);}
-      ELOG("CREATING first node\n");}
-    else if((int)last_srvs_.nodes.size()<=(int)opts_.svid){
-      ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
-      exit(-1);}
+        exit(-1);}}
+    else{
+      int fd=open_bank(0);
+      if(fd>=0){
+        close(fd);}}
     if(last_srvs_.nodes.size()){
       last_srvs_.update_vipstatus();
       bank_fee.resize(last_srvs_.nodes.size());}
@@ -101,6 +106,21 @@ public:
       if(!do_fast){ //always sync on do_fast
         do_sync=0;}}
     else{
+      if(!last_srvs_.nodes.size()){ // READONLY ok init
+        assert(!opts_.svid);
+        struct stat sb;   
+        uint32_t now=time(NULL);
+        now-=now%BLOCKSEC-BLOCKSEC; // move 2 blocks back to force sync on connect
+        if(stat("usr/0001.dat",&sb)>=0){ // database exists, do not overwrite
+          ELOG("ERROR reading servers for path %08X\n",path);
+          exit(-1);}
+        path=0;
+        lastpath=0;
+        start_path=0;
+        start_msid=0;
+        msid_=0;
+        ELOG("START with read only database\n");
+        last_srvs_.init(now-BLOCKSEC);}
       srvs_=last_srvs_;
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       period_start=srvs_.nextblock();} //changes now!
@@ -108,17 +128,23 @@ public:
     ELOG("START @ %08X with MSID: %08X\n",path,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
-    if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
-      ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
-      exit(-1);} 
-    iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-    pkey=srvs_.nodes[opts_.svid].pk;
-DLOG("INI:%016lX\n",*(uint64_t*)pkey);
-    if(!last_srvs_.find_key(pkey,skey)){
-      char pktext[2*32+1]; pktext[2*32]='\0';
-      ed25519_key2text(pktext,pkey,32);
-      ELOG("ERROR: failed to find secret key for key:\n%.64s\n",pktext);
-      exit(-1);}
+    if(!opts_.svid){ // READONLY ok
+      iamvip=false;
+      bzero(skey,SHA256_DIGEST_LENGTH);
+      pkey=skey;}
+    else{
+      if(last_srvs_.nodes.size()<=(unsigned)opts_.svid){ 
+        ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
+        exit(-1);} 
+      iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
+      pkey=srvs_.nodes[opts_.svid].pk;
+      //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
+      if(!last_srvs_.find_key(pkey,skey)){
+        char pktext[2*32+1]; pktext[2*32]='\0';
+        ed25519_key2text(pktext,pkey,32);
+        ELOG("ERROR: failed to find secret key for key:\n%.64s\n",pktext);
+        exit(-1);}
+      last_srvs_.find_more_keys(pkey,nkeys);}
 
     if(!opts_.init){
       if(!undo_bank()){//check database consistance
@@ -138,35 +164,20 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
           if(last_srvs_.now<now-(BLOCKSEC*MAX_UNDO) && !do_fast){
             ELOG("WARNING, possibly missing too much history for full resync\n");}
           do_sync=1;}}}
-    //ofip_init(last_srvs_.nodes[opts_.svid].users); //must do this after recycling messages !!!
 
-    //FIXME, move this to a separate thread that will keep a minimum number of connections
     ioth_ = new boost::thread(boost::bind(&server::iorun, this));
-    //for(std::string addr : opts_.peer){
-    //  connect(addr);
-    //  boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
-    //  RETURN_ON_SHUTDOWN();}
     peers_thread = new boost::thread(boost::bind(&server::peers, this));
 
     if(do_sync){
-      //if(opts_.fast){ //FIXME, do slow sync after fast sync
       if(do_fast){ //FIXME, do slow sync after fast sync
         while(do_fast>1){ // fast_sync changes the status, FIXME use future/promis
           boost::this_thread::sleep(boost::posix_time::seconds(1));
-          //boost::this_thread::sleep(boost::posix_time::milliseconds(50));
           RETURN_ON_SHUTDOWN();}
         do_fast=0;
-        //wait for all user files to arrive
         load_banks();
-	srvs_.write_start();}
-      //else{
-      //  do_fast=0;}
+        srvs_.write_start();}
       ELOG("START syncing headers\n");
-      load_chain(); // sets do_sync=0;
-      //svid_msgs_.clear();
-      }
-    //load old messages or check/modify
-    //pkey=srvs_.nodes[opts_.svid].pk; //FIXME, is this needed ? srvs_ is overwritten in fast sync :-(
+      load_chain();} // sets do_sync=0;
 
     RETURN_ON_SHUTDOWN();
     recyclemsid(lastpath+BLOCKSEC);
@@ -203,7 +214,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   }
 
   void recyclemsid(uint32_t lastpath)
-  { uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
+  { if(!opts_.svid){ // READONLY ok , this test is not needed
+      return;}
+    uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_){
       ELOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
@@ -681,8 +694,9 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         srvs_=last_srvs_; //FIXME, create a copy function
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
-        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-        pkey=srvs_.nodes[opts_.svid].pk; //FIXME, is this needed and safe ?
+        if(opts_.svid && opts_.svid<(int)srvs_.nodes.size()){
+          iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
+          pkey=srvs_.nodes[opts_.svid].pk;} //FIXME, is this needed and safe ?
         do_fast=1;
         headers_.unlock();
         return(1);}
@@ -2878,7 +2892,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(!srvs_.find_key(it->second.hash,skey)){
           ELOG("ERROR, failed to change to new bank key, fatal!\n");
           exit(-1);}
-        pkey=srvs_.nodes[node].pk;}}
+        pkey=srvs_.nodes[node].pk;
+        last_srvs_.find_more_keys(pkey,nkeys);}}
     blk_bnk.insert(txs_bnk.begin(),txs_bnk.end());
     blk_get.insert(txs_get.begin(),txs_get.end());
     blk_usr.insert(txs_usr.begin(),txs_usr.end());
@@ -3607,7 +3622,7 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   message_ptr write_handshake(uint16_t peer,handshake_t& hs)
   { last_srvs_.header(hs.head); //
     last_srvs_.header_print(hs.head);
-    if(peer){
+    if(peer && peer<srvs_.nodes.size()){ // READONLY ok
       if(!do_sync){
         memcpy(hs.msha,srvs_.nodes[peer].msha,SHA256_DIGEST_LENGTH);
         hs.msid=srvs_.nodes[peer].msid;}
@@ -3818,6 +3833,18 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
     DLOG("SENDING block (update)\n");
     //deliver(msg);
     update(msg); //send, even if I am not VIP
+    //sign for other nodes
+    for(auto it=nkeys.begin();it!=nkeys.end();it++){
+      uint16_t node=it->first;
+      if(memcmp(last_srvs_.nodes[node].pk,it->second.pkey,32)){
+        continue;}
+      message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),node,head.now,
+        it->second.skey,it->second.pkey,empty));
+      if(!blk_insert(msg)){
+        ELOG("ERROR signing for %d\n",node);
+        continue;}
+      DLOG("SENDING block signed by %d\n",node);
+      update(msg);}
 // save signature in signature lists
 //FIXME, save only if I am important
   }
@@ -3986,6 +4013,8 @@ DLOG("INI:%016lX\n",*(uint64_t*)pkey);
   bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
+    if(!opts_.svid){
+      return(false);}
 //#ifdef DEBUG
     if((!(opts_.svid%2) && !(rand()%4)) || now==srvs_.now+del) // send message every 4s
 //#else
@@ -4128,7 +4157,7 @@ private:
   message_map blk_msgs_; //_BLK messages (blocks) or messages in a block when syncing
   message_map dbl_msgs_; //_DBL messages (double spend)
 
-  // voting
+  std::map<uint16_t,nodekey_t> nkeys;
   std::map<uint16_t,uint64_t> electors;
   uint64_t votes_max;
   int do_vote;

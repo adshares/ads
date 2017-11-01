@@ -27,6 +27,11 @@ public:
       BLOCK_PEER(false)
   { read_msg_ = boost::make_shared<message>();
     iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+    struct timeval tv;
+    tv.tv_sec=8;
+    tv.tv_usec=0;
+    setsockopt(socket_.native(),SOL_SOCKET,SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(socket_.native(),SOL_SOCKET,SO_SNDTIMEO, &tv, sizeof(tv));
   }
 
   ~peer()
@@ -1151,7 +1156,7 @@ Aborted
       ELOG("%04X PEER not in sync\n",svid);
       return(0);}
     //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins))
-    if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+    if(peer_hs.head.vok*2<server_.last_srvs_.vtot && peer_hs.head.vok<opts_.mins){
       ELOG("%04X PEER not enough signatures\n",svid);
       return(0);}
     DLOG("%04X Authenticated, expecting sync data (%u bytes)\n",svid,
@@ -1171,7 +1176,7 @@ Aborted
     DLOG("%04X BLOCK sigatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
     server_.last_srvs_.check_signatures(peer_hs.head,peer_svsi);//TODO, check if server_.last_srvs_ has public keys
     //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
-    if(peer_hs.head.vok<server_.last_srvs_.vtot/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+    if(peer_hs.head.vok*2<server_.last_srvs_.vtot && peer_hs.head.vok<opts_.mins){
       ELOG("%04X READ not enough signatures after validaiton\n",svid);
       free(peer_svsi);
       return(0);}
@@ -1189,6 +1194,7 @@ Aborted
 
   void handle_read_body(const boost::system::error_code& error)
   { extern message_ptr nullmsg;
+    assert(read_msg_->data[0]!=MSGTYPE_BLK);
     if(error){
       ELOG("%04X ERROR reading message\n",svid);
       leave();
@@ -1206,66 +1212,66 @@ Aborted
         boost::asio::buffer(read_msg_->data,message::header_length),
         boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
       return;}
-    if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){ // READONLY ok
-      ELOG("%04X ERROR reading head (bad svid %04X)\n",svid,read_msg_->svid);
-      leave();
-      return;}
-    assert(read_msg_->data[0]!=MSGTYPE_BLK);
-    uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
-    if(read_msg_->data[0]==MSGTYPE_MSG){
-      if(server_.last_srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid){
-        DLOG("%04X IGNORE message with too old msid %04X:%08X<=%08X\n",svid,
-          read_msg_->svid,read_msg_->msid,server_.last_srvs_.nodes[read_msg_->svid].msid);
-        read_msg_ = boost::make_shared<message>();
-        boost::asio::async_read(socket_,
-          boost::asio::buffer(read_msg_->data,message::header_length),
-          boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+
+    if(opts_.mins || svid!=BANK_MAX || !server_.do_sync){
+      if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()){ // READONLY ok
+        ELOG("%04X ERROR reading head (bad svid %04X)\n",svid,read_msg_->svid);
+        leave();
         return;}
-      if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1){
-        message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
-        if(prev!=nullmsg && (prev->status & (MSGSTAT_DAT|MSGSTAT_VAL))){
-          msha=prev->sigh;}
-        else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
-          msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}
-        else{
-          DLOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
-            read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
+      uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
+      if(read_msg_->data[0]==MSGTYPE_MSG){
+        if(server_.last_srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid){
+          DLOG("%04X IGNORE message with too old msid %04X:%08X<=%08X\n",svid,
+            read_msg_->svid,read_msg_->msid,server_.last_srvs_.nodes[read_msg_->svid].msid);
           read_msg_ = boost::make_shared<message>();
           boost::asio::async_read(socket_,
             boost::asio::buffer(read_msg_->data,message::header_length),
             boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
           return;}
-        DLOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
-          read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);}
-      if(!read_msg_->hash_tree()){
-        DLOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+        if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1){
+          message_ptr prev=server_.message_svidmsid(read_msg_->svid,read_msg_->msid-1);
+          if(prev!=nullmsg && (prev->status & (MSGSTAT_DAT|MSGSTAT_VAL))){
+            msha=prev->sigh;}
+          else if(server_.last_srvs_.nodes[read_msg_->svid].msid==read_msg_->msid-1){
+            msha=server_.last_srvs_.nodes[read_msg_->svid].msha;}
+          else{
+            DLOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
+              read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
+            read_msg_ = boost::make_shared<message>();
+            boost::asio::async_read(socket_,
+              boost::asio::buffer(read_msg_->data,message::header_length),
+              boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            return;}
+          DLOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
+            read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);}
+        if(!read_msg_->hash_tree()){
+          DLOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
+          read_msg_ = boost::make_shared<message>();
+          boost::asio::async_read(socket_,
+            boost::asio::buffer(read_msg_->data,message::header_length),
+            boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+          return;}}
+      else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND){
+        read_msg_->hash_signature();}
+      if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
+        //FIXME, this can be also a double spend, do not loose it
+        ELOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
+          srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);
+        if(read_msg_->data[0]!=MSGTYPE_MSG){
+          leave();
+          return;}
+        if(read_msg_->msid==server_.last_srvs_.nodes[read_msg_->svid].msid+1){
+          leave();
+          return;}
+        DLOG("%04X store message %04X:%08X with bad signature (dbl?)\n",svid,read_msg_->svid,read_msg_->msid);
+        read_msg_->status|=MSGSTAT_SIG;
+        server_.bad_insert(read_msg_);
         read_msg_ = boost::make_shared<message>();
         boost::asio::async_read(socket_,
           boost::asio::buffer(read_msg_->data,message::header_length),
           boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         return;}}
-    //else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND || read_msg_->data[0]==MSGTYPE_BLK)
-    else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND){
-      read_msg_->hash_signature();}
-    //assert(read_msg_->hash.dat[1]!=MSGTYPE_BLK);
-    if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)){
-      //FIXME, this can be also a double spend, do not loose it
-      ELOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
-        srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);
-      if(read_msg_->data[0]!=MSGTYPE_MSG){
-        leave();
-        return;}
-      if(read_msg_->msid==server_.last_srvs_.nodes[read_msg_->svid].msid+1){
-        leave();
-        return;}
-      DLOG("%04X store message %04X:%08X with bad signature (dbl?)\n",svid,read_msg_->svid,read_msg_->msid);
-      read_msg_->status|=MSGSTAT_SIG;
-      server_.bad_insert(read_msg_);
-      read_msg_ = boost::make_shared<message>();
-      boost::asio::async_read(socket_,
-        boost::asio::buffer(read_msg_->data,message::header_length),
-        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
-      return;}
+
     if(svid==BANK_MAX){ // READONLY ok
       if(!authenticate()){
         ELOG("%04X NOT authenticated\n",svid);
