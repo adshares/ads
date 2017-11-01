@@ -1209,6 +1209,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
 
     if(txs->ttype==TXSTYPE_BLK){
+      boost::property_tree::ptree blockElement;
+      boost::property_tree::ptree blockChild;
+
       fprintf(stderr,"PROCESSING BLOCKS\n");
       hash_t viphash;
       hash_t oldhash;
@@ -1239,6 +1242,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         return;}
       else{
         fprintf(stderr,"READ %d blocks since %08X\n",num,txs->amsid);}
+      pt.put("updated_blocks", num);
       header_t* headers=(header_t*)std::malloc(num*sizeof(header_t)); //FIXME, free !!!
       assert(headers!=NULL);
       boost::asio::read(socket,boost::asio::buffer((char*)headers,num*sizeof(header_t)));
@@ -1328,9 +1332,19 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           return;}
         memcpy(oldhash,headers[n].nowhash,32);
         block.loadhead(headers[n]);
+
+        // send list of updated blocks
+        // there is a dedicated function for hex?
+        char blockId[5];
+        sprintf(blockId, "%08X", headers[n].now);
+        blockElement.put_value(blockId);
+        blockChild.push_back(std::make_pair("",blockElement));
+
         if(memcmp(oldhash,block.nowhash,32)){
           fprintf(stderr,"ERROR failed to confirm nowhash for header %08X, fatal\n",headers[n].now);
           return;}}
+
+      pt.put_child("blocks", blockChild);
       //validate last block using firstkeys
       std::map<uint16_t,hash_s> vipkeys;
       for(int i=0;i<firstkeyslen;i+=2+32){
