@@ -42,12 +42,12 @@ public:
     mkdir("inx",0755); // create dir for bank message indeces
     mkdir("blk",0755); // create dir for blocks
     mkdir("vip",0755); // create dir for blocks
-    uint32_t path=readmsid()-opts_.back*BLOCKSEC; // reads msid_ and path, FIXME, do not read msid, read only path
-    uint32_t lastpath=path;
+    uint32_t lastpath=readmsid()-opts_.back*BLOCKSEC;//reads msid_ and path, FIXME, do not read msid, read only path
+    //uint32_t lastpath=path;
     //remember start status
-    start_path=path;
+    start_path=lastpath;
     start_msid=msid_;
-    last_srvs_.get(path);
+    last_srvs_.get(lastpath);
     if(opts_.svid){
       if(!last_srvs_.nodes.size()){
         if(!opts_.init){
@@ -71,9 +71,9 @@ public:
       now-=now%BLOCKSEC;
       if(stat("usr/0001.dat",&sb)>=0){
         if(!last_srvs_.nodes.size()){
-          ELOG("ERROR reading servers for path %08X\n",path);
+          ELOG("ERROR reading servers for path %08X\n",lastpath);
           exit(-1);}
-        ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",path,msid_);
+        ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",lastpath,msid_);
         if(!undo_bank()){
           ELOG("ERROR loading initial database, fatal\n");
           exit(-1);}
@@ -92,7 +92,7 @@ public:
           srvs_.msgl_put(empty,NULL);
           finish_block();}}
       else{
-        path=0;
+        //path=0;
         lastpath=0;
         start_path=0;
         start_msid=0;
@@ -110,22 +110,25 @@ public:
         assert(!opts_.svid);
         struct stat sb;   
         uint32_t now=time(NULL);
-        now-=now%BLOCKSEC+BLOCKSEC; // move 2 blocks back to force sync on connect
+        now-=now%BLOCKSEC+BLOCKSEC; // move 1 block back to force sync on connect
+        //now-=now%BLOCKSEC;
         if(stat("usr/0001.dat",&sb)>=0){ // database exists, do not overwrite
-          ELOG("ERROR reading servers for path %08X\n",path);
+          ELOG("ERROR reading servers for path %08X\n",lastpath);
           exit(-1);}
-        path=0;
+        //path=0;
         lastpath=0;
         start_path=0;
         start_msid=0;
         msid_=0;
         ELOG("START with read only database\n");
-        last_srvs_.init(now-BLOCKSEC);}
+        last_srvs_.init(now-BLOCKSEC);
+        last_srvs_.update_vipstatus();
+        bank_fee.resize(last_srvs_.nodes.size());}
       srvs_=last_srvs_;
       memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
       period_start=srvs_.nextblock();} //changes now!
 
-    ELOG("START @ %08X with MSID: %08X\n",path,msid_);
+    ELOG("START @ %08X with MSID: %08X\n",lastpath,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
     if(!opts_.svid){ // READONLY ok
@@ -694,6 +697,7 @@ public:
         srvs_=last_srvs_; //FIXME, create a copy function
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
+        bank_fee.resize(last_srvs_.nodes.size());
         if(opts_.svid && opts_.svid<(int)srvs_.nodes.size()){
           iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
           pkey=srvs_.nodes[opts_.svid].pk;} //FIXME, is this needed and safe ?
