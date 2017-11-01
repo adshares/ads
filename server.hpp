@@ -110,7 +110,7 @@ public:
         assert(!opts_.svid);
         struct stat sb;   
         uint32_t now=time(NULL);
-        now-=now%BLOCKSEC-BLOCKSEC; // move 2 blocks back to force sync on connect
+        now-=now%BLOCKSEC+BLOCKSEC; // move 2 blocks back to force sync on connect
         if(stat("usr/0001.dat",&sb)>=0){ // database exists, do not overwrite
           ELOG("ERROR reading servers for path %08X\n",path);
           exit(-1);}

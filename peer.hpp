@@ -1097,7 +1097,7 @@ Aborted
     if(read_msg_->now>now+2 || read_msg_->now<now-2){
       ELOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
       return(0);}
-    if(peer_hs.msid>server_.msid_){ //FIXME, we will check this later, maybe not needed here
+    if(peer_hs.msid!=0xFFFFFFFF && peer_hs.msid>server_.msid_){ //FIXME, we will check this later, maybe not needed here
       ELOG("%04X WARNING, possible message loss (my msid peer:%08X>me:%08X)\n",svid,peer_hs.msid,server_.msid_);}
     if(peer_hs.msid && peer_hs.msid==server_.msid_ && server_.msid_==srvs_.nodes[opts_.svid].msid &&
        memcmp(peer_hs.msha,srvs_.nodes[opts_.svid].msha,SHA256_DIGEST_LENGTH)){ //FIXME, we should check this later, maybe not needed
@@ -1111,6 +1111,7 @@ Aborted
       message_ptr sync_msg=server_.write_handshake(svid,sync_hs); // sets sync_hs, READONLY ok
       sync_msg->print("; send welcome");
       send_sync(sync_msg);}
+    //if(peer_hs.head.now==sync_hs.head.now && peer_hs.msid!=0xFFFFFFFF && sync_hs.msid!=0xFFFFFFFF){
     if(peer_hs.head.now==sync_hs.head.now){
       if(memcmp(peer_hs.head.oldhash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH)){
         char hash[2*SHA256_DIGEST_LENGTH];
