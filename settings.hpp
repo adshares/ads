@@ -17,7 +17,7 @@ public:
 		port(0),
 		bank(0),
 		user(0),
-		msid(0),
+		msid(1),
 		nice(true),
 		olog(true),
 		drun(false),
@@ -156,12 +156,12 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				;
 			boost::program_options::options_description config("Configuration [command_line + config_file]");
 			config.add_options()
-				("port,P", boost::program_options::value<int>(&port)->default_value(9080),			"node port (for clients)")
+				("port,P", boost::program_options::value<int>(&port)->default_value(std::atoi(OFFICE_PORT)),	"node port (for clients)")
 				("host,H", boost::program_options::value<std::string>(&host)->default_value("127.0.0.1"),	"node hostname or ip")
 				("address,A", boost::program_options::value<std::string>(&addr),				"address (don't use with --bank, --user)")
 				("bank,b", boost::program_options::value<uint16_t>(&bank),					"node id (don't use with --address)")
 				("user,u", boost::program_options::value<uint32_t>(&user),					"user id (don't use with --address)")
-				("msid,i", boost::program_options::value<int>(&msid),						"last message id")
+				("msid,i", boost::program_options::value<int>(&msid)->default_value(1),				"last message id")
 				("nice,n", boost::program_options::value<bool>(&nice)->default_value(true),			"request pretty json")
 				("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
 				("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
@@ -186,32 +186,33 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				std::cerr << "Version 1.0\n";
 				exit(0);}
 
-			std::string line;
-			if (vm.count("secret")){
-				line = vm["secret"].as<std::string>();
-			} else {
-				std::cerr << "ENTER passphrase or private key\n";
-				std::getline(std::cin,line);
-				boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
-				if(line.empty()){
-					std::cerr << "ERROR, failed to read passphrase\n";
-					exit(1);}
+			if(vm.count("bank") || vm.count("address")){
+				std::string line;
+				if (vm.count("secret")){
+					line = vm["secret"].as<std::string>();
+				} else {
+					std::cerr << "ENTER passphrase or private key\n";
+					std::getline(std::cin,line);
+					boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
+					if(line.empty()){
+						std::cerr << "ERROR, failed to read passphrase\n";
+						exit(1);}
+				}
+				if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
+					skey = line;
+					ed25519_text2key(sk,skey.c_str(),32);
+					ed25519_publickey(sk,pk);
+					ed25519_key2text(pktext,pk,32);
+				} else {
+					SHA256_CTX sha256;
+					SHA256_Init(&sha256);
+					SHA256_Update(&sha256,line.c_str(),line.length());
+					SHA256_Final(sk,&sha256);
+					ed25519_publickey(sk,pk);
+					ed25519_key2text(pktext,pk,32);
+				}
+				std::cerr << "Public key: " << std::string(pktext) << std::endl;
 			}
-
-			if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
-				skey = line;
-				ed25519_text2key(sk,skey.c_str(),32);
-				ed25519_publickey(sk,pk);
-				ed25519_key2text(pktext,pk,32);
-			} else {
-				SHA256_CTX sha256;
-				SHA256_Init(&sha256);
-				SHA256_Update(&sha256,line.c_str(),line.length());
-				SHA256_Final(sk,&sha256);
-				ed25519_publickey(sk,pk);
-				ed25519_key2text(pktext,pk,32);
-			}
-			std::cerr << "Public key: " << std::string(pktext) << std::endl;
 
 			if(vm.count("port")){
 				std::cerr << "Bank port: " << vm["port"].as<int>() << std::endl;}
@@ -238,18 +239,19 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 			}
 			if (vm.count("bank")){
 				std::cerr << "Bank   id: " << vm["bank"].as<uint16_t>() << std::endl;}
-			else{
-				std::cerr << "ERROR: bank id missing! Specify --bank or --address" << std::endl;
-				exit(1);}
+			//else{
+			//	std::cerr << "ERROR: bank id missing! Specify --bank or --address" << std::endl;
+			//	exit(1);}
 			if (vm.count("user")){
 				std::cerr << "User   id: " << vm["user"].as<uint32_t>() << std::endl;}
-			else{
-				std::cerr << "ERROR: user id missing! Specify --user or --address" << std::endl;
-				exit(1);}
+			//else{
+			//	std::cerr << "ERROR: user id missing! Specify --user or --address" << std::endl;
+			//	exit(1);}
 			if (vm.count("msid")){
 				std::cerr << "LastMsgId: " << vm["msid"].as<int>() << std::endl;}
 			else{
-				std::cerr << "WARNING: last message id missing!" << std::endl;}
+				if(vm.count("user")){
+					std::cerr << "WARNING: last message id missing!" << std::endl;}}
 			if (vm.count("nice")){
 				std::cerr << "PrettyOut: " << vm["nice"].as<bool>() << std::endl;}
 			if (vm.count("olog")){
@@ -262,9 +264,9 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 					exit(1);}
 				ed25519_text2key(ha,hash.c_str(),32);}
 			else{
-				std::cerr << "WARNING: last hash missing!" << std::endl;}
+				if(vm.count("user")){
+					std::cerr << "WARNING: last hash missing!" << std::endl;}}
 			}
-
 
 		catch(std::exception &e){
 			std::cerr << "Exception: " << e.what() << std::endl;

@@ -127,12 +127,15 @@ public:
     if(!offi_.get_user(usera,utxs.abank,utxs.auser)){
       DLOG("ERROR: read user failed\n");
       return;}
-    if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
-      DLOG("ERROR: bad signature\n");
-      return;}
-    if(*buf==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf)){
-      DLOG("ERROR: bad second signature\n");
-      return;}
+    if(offi_.svid){
+      if(utxs.wrong_sig((uint8_t*)buf,(uint8_t*)usera.hash,(uint8_t*)usera.pkey)){
+        DLOG("ERROR: bad signature\n");
+        return;}
+      if(*buf==TXSTYPE_KEY && utxs.wrong_sig2((uint8_t*)buf)){
+        DLOG("ERROR: bad second signature\n");
+        return;}}
+    else{
+      bzero((void*)&usera,sizeof(user_t));}
     if(diff>1 && *buf!=TXSTYPE_BLG){
       DLOG("ERROR: time in the future (%d>1s)\n",diff);
       return;}
@@ -161,10 +164,11 @@ public:
         boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       else{
         boost::asio::write(socket_,boost::asio::buffer(&usera,sizeof(user_t)));}
-      if(!offi_.get_user_global(userb,utxs.bbank,utxs.buser)){
-        DLOG("FAILED to get global user info %08X:%04X\n",utxs.bbank,utxs.buser);
-        return;}
-      boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));
+      if(utxs.bbank){
+        if(!offi_.get_user_global(userb,utxs.bbank,utxs.buser)){
+          DLOG("FAILED to get global user info %08X:%04X\n",utxs.bbank,utxs.buser);
+          return;}
+        boost::asio::write(socket_,boost::asio::buffer(&userb,sizeof(user_t)));}
       return;}
     if(utxs.abank!=offi_.svid){
       DLOG("ERROR: bad bank\n");
@@ -496,9 +500,13 @@ public:
         boost::asio::write(socket_,boost::asio::buffer(msg->data,msg->len));}
       return;}
 
+    if(!offi_.svid){
+      return;}
+
     if(usera.msid!=utxs.amsid){
       DLOG("ERROR: bad msid %08X<>%08X\n",usera.msid,utxs.amsid);
       return;}
+
     //commit trasaction
     if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=utxs.auser || usera.node!=utxs.abank)){//check account lock
       if(*buf!=TXSTYPE_PUT || utxs.abank!=utxs.bbank || utxs.auser!=utxs.buser || utxs.tmass!=0){

@@ -574,7 +574,30 @@ public:
 	}
 
 	void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk)
-	{	if(ttype==TXSTYPE_CON){
+	{	switch(ttype){
+			case TXSTYPE_CON:
+			case TXSTYPE_UOK:
+				return;
+			case TXSTYPE_INF:
+			case TXSTYPE_LOG:
+			case TXSTYPE_BLG:
+			case TXSTYPE_BLK:
+			case TXSTYPE_TXS:
+			case TXSTYPE_VIP:
+			case TXSTYPE_SIG:
+			case TXSTYPE_NDS:
+			case TXSTYPE_NOD:
+			case TXSTYPE_MGS:
+			case TXSTYPE_MSG:
+				ed25519_sign(data,txslen[ttype],sk,pk,data+txslen[ttype]);
+			case TXSTYPE_BRO:
+				ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
+			case TXSTYPE_MPT:
+				ed25519_sign2(hash,32,data,txslen[TXSTYPE_MPT]+bbank*(6+8),sk,pk,data+txslen[TXSTYPE_MPT]+bbank*(6+8));
+			default:
+				ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);}
+	}
+	/*{	if(ttype==TXSTYPE_CON){
 			return;}
 	 	if(ttype==TXSTYPE_UOK){
 			return;}
@@ -594,7 +617,50 @@ public:
 			ed25519_sign2(hash,32,data,txslen[TXSTYPE_MPT]+bbank*(6+8),sk,pk,data+txslen[TXSTYPE_MPT]+bbank*(6+8));
 			return;}
 		ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
+	}*/
+
+	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
+	{	switch(ttype){
+			case TXSTYPE_CON:
+			case TXSTYPE_UOK:
+				return(0);
+			case TXSTYPE_INF:
+			case TXSTYPE_LOG:
+			case TXSTYPE_BLG:
+			case TXSTYPE_BLK:
+			case TXSTYPE_TXS:
+			case TXSTYPE_VIP:
+			case TXSTYPE_SIG:
+			case TXSTYPE_NDS:
+			case TXSTYPE_NOD:
+			case TXSTYPE_MGS:
+			case TXSTYPE_MSG:
+				return(ed25519_sign_open(buf,txslen[ttype],pk,buf+txslen[ttype]));
+			case TXSTYPE_BRO:
+				return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));
+			case TXSTYPE_MPT:
+				return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_MPT]+bbank*(6+8),pk,buf+txslen[TXSTYPE_MPT]+bbank*(6+8)));
+			default:
+				return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));}
 	}
+	/*{	if(ttype==TXSTYPE_CON){
+			return(0);}
+	 	if(ttype==TXSTYPE_UOK){
+			return(0);}
+
+		if(ttype==TXSTYPE_INF){
+			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
+		if(ttype==TXSTYPE_LOG){
+			return(ed25519_sign_open(buf,txslen[TXSTYPE_LOG],pk,buf+txslen[TXSTYPE_LOG]));}
+		if(ttype==TXSTYPE_BLG){
+			return(ed25519_sign_open(buf,txslen[TXSTYPE_BLG],pk,buf+txslen[TXSTYPE_BLG]));}
+
+		if(ttype==TXSTYPE_BRO){
+			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));}
+		if(ttype==TXSTYPE_MPT){
+			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_MPT]+bbank*(6+8),pk,buf+txslen[TXSTYPE_MPT]+bbank*(6+8)));}
+		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
+	}*/
 
 	int sign2(uint8_t* sig) // additional signature to validate public key
 	{	assert(ttype==TXSTYPE_KEY);
@@ -602,22 +668,9 @@ public:
 		return(wrong_sig2(data));
 	}
 
-	int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk)
-	{	if(ttype==TXSTYPE_CON){
-			return(0);}
-	 	if(ttype==TXSTYPE_UOK){
-			return(0);}
-		if(ttype==TXSTYPE_INF){
-			return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
-		if(ttype==TXSTYPE_LOG){
-			return(ed25519_sign_open(buf,txslen[TXSTYPE_LOG],pk,buf+txslen[TXSTYPE_LOG]));}
-		if(ttype==TXSTYPE_BLG){
-			return(ed25519_sign_open(buf,txslen[TXSTYPE_BLG],pk,buf+txslen[TXSTYPE_BLG]));}
-		if(ttype==TXSTYPE_BRO){
-			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));}
-		if(ttype==TXSTYPE_MPT){
-			return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_MPT]+bbank*(6+8),pk,buf+txslen[TXSTYPE_MPT]+bbank*(6+8)));}
-		return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
+	int wrong_sig2(uint8_t* buf) // additional signature to validate public key
+	{	assert(ttype==TXSTYPE_KEY);
+		return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
 	}
 
 	int sign_mlen2()
@@ -626,11 +679,6 @@ public:
 		if(ttype==TXSTYPE_MPT){
 			return(txslen[TXSTYPE_MPT]+bbank*(6+8));}
 		return(txslen[ttype]);
-	}
-
-	int wrong_sig2(uint8_t* buf) // additional signature to validate public key
-	{	assert(ttype==TXSTYPE_KEY);
-		return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
 	}
 
 	void print_head()

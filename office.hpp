@@ -18,7 +18,7 @@ public:
     acceptor_(io_service_,endpoint_),
     srv_(srv),
     opts_(opts),
-    offifd_(0),
+    offifd_(-1),
     message_sent(0),
     message_tnum(0),
     next_io_service_(0),
@@ -27,21 +27,22 @@ public:
   { svid=opts_.svid;
     try{
       DLOG("OFFICE %04X open\n",svid);
-      // prapare local register [this could be in RAM later or be on a RAM disk]
-      mkdir("ofi",0755);
-      //char filename[64];
-      sprintf(ofifilename,"ofi/%04X.dat",svid);
-      offifd_=open(ofifilename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
-      if(offifd_<0){
-        ELOG("ERROR, failed to open office register\n");}
-      mklogdir(opts_.svid);
-      mklogfile(opts_.svid,0);}
+      if(svid){
+        // prapare local register [this could be in RAM later or be on a RAM disk]
+        mkdir("ofi",0755);
+        //char filename[64];
+        sprintf(ofifilename,"ofi/%04X.dat",svid);
+        offifd_=open(ofifilename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
+        if(offifd_<0){
+          ELOG("ERROR, failed to open office register\n");}
+        mklogdir(opts_.svid);
+        mklogfile(opts_.svid,0);}}
     catch (std::exception& e){
       ELOG("Office.Open error: %s\n",e.what());}
   }
 
   ~office()
-  { if(offifd_){
+  { if(offifd_>=0){
       close(offifd_);}
     ELOG("Office down\n");
   }
@@ -84,6 +85,7 @@ public:
   { memcpy(pkey,srv_.pkey,32);
     users=myusers; //FIXME !!! this maybe incorrect !!!
     if(!myusers){
+      assert(!svid);
       return;}
     //msid=srv_.msid_;
   //deposit.resize(users); //a buffer to enable easy resizing of the account vector
@@ -150,7 +152,9 @@ public:
   }
 
   void update_div(uint32_t now,uint32_t newdiv)
-  { char filename[64];
+  { if(!svid){
+      return;}
+    char filename[64];
     sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
     int dd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
     if(dd<0){
@@ -190,7 +194,9 @@ public:
   }
 
   void process_div(uint32_t path)
-  { int dd=-1;
+  { if(!svid){
+      return;}
+    int dd=-1;
     char filename[64];
     sprintf(filename,"ofi/%04X_%08X.div",svid,path); // log dividends, save in user logs later
     dd=open(filename,O_RDONLY);
@@ -240,7 +246,9 @@ public:
   }
 
   void process_log(uint32_t now) //FIXME, check here if logs are not duplicated !!! maybe record stored info
-  { uint32_t lpos=0;
+  { if(!svid){
+      return;}
+    uint32_t lpos=0;
     const uint32_t maxl=0xffff;
     std::map<uint64_t,log_t> log;
     mque.push_back(0); //FIXME, remove later
@@ -336,6 +344,7 @@ public:
         file_.unlock();
 #endif
         continue;}
+      assert(svid);
       if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now){
 	DLOG("WARNING, waiting for more messages\n");
         continue;}
@@ -362,7 +371,7 @@ public:
       message_sent=now;}
   }
 
-  bool check_account(uint16_t cbank,uint32_t cuser)
+  /*bool check_account(uint16_t cbank,uint32_t cuser)
   { if(cbank==svid && cuser<users){
       return(true);}
     if(srv_.last_srvs_.nodes.size()<=cbank){
@@ -370,10 +379,12 @@ public:
     if(srv_.last_srvs_.nodes[cbank].users<=cuser){
       return(false);}
     return(true);
-  }
+  }*/
 
   void process_gup(uint32_t now)
-  { user_t u;
+  { if(!svid){
+      return;}
+    user_t u;
     while(!gup.empty()){
       gup_t& cgup=gup.top();
       assert(cgup.auser<users);
@@ -394,7 +405,9 @@ public:
   }
 
   void process_dep(uint32_t now)
-  { user_t u;
+  { if(!svid){
+      return;}
+    user_t u;
     while(!rdep.empty()){
       dep_t& dep=rdep.top();
       assert(dep.auser<users);
@@ -424,6 +437,9 @@ public:
   { u.msid=0;
     if(cbank!=svid){
       return(get_user_global(u,cbank,cuser));}
+    if(!svid){
+      bzero((void*)&u,sizeof(user_t));
+      return(true);}
     if(cuser>=users){
       return(false);}
     //file_.lock(); //FIXME, could use read only access without lock
@@ -448,7 +464,8 @@ public:
   }
 
   void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) //create account on remote request
-  { if(!try_account((hash_s*)pkey)){
+  { assert(svid);
+    if(!try_account((hash_s*)pkey)){
       ELOG("ERROR: failed to open account (pkey known)\n");
       return;}
     uint32_t ltime=time(NULL);
@@ -463,7 +480,8 @@ public:
   }
 
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
-  { uint32_t nuser;
+  { assert(svid);
+    uint32_t nuser;
     user_t nu;
     file_.lock();
     while(!deleted_users.empty()){
@@ -536,12 +554,14 @@ public:
   }
 
   void add_remote_deposit(uint32_t buser,int64_t tmass)
-  { dep_t dep={buser,tmass};
+  { assert(svid);
+    dep_t dep={buser,tmass};
     rdep.push(dep);
   }
 
   void add_deposit(uint32_t buser,int64_t tmass)
-  { const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
+  { assert(svid);
+    const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
     int64_t w;
     file_.lock();
     lseek(offifd_,buser*sizeof(user_t)+dep_off,SEEK_SET);
@@ -554,7 +574,8 @@ public:
   }
 
   void add_deposit(usertxs& utxs)
-  { const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
+  { assert(svid);
+    const int dep_off=(char*)&user_tmp.weight-(char*)&user_tmp;
     int64_t w;
     file_.lock();
     lseek(offifd_,utxs.buser*sizeof(user_t)+dep_off,SEEK_SET);
@@ -567,7 +588,8 @@ public:
   }
 
   bool try_account(hash_s* key)
-  { account_.lock();
+  { assert(svid);
+    account_.lock();
     if(accounts_.find(*key)!=accounts_.end()){
       account_.unlock();
       return(false);}
@@ -591,7 +613,8 @@ public:
   }
 
   void add_key(hash_s* key,uint32_t user)
-  { account_.lock();
+  { assert(svid);
+    account_.lock();
     accounts_[*key]=user;
     account_.unlock();
   }
@@ -621,7 +644,8 @@ public:
   }
 
   bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
-  { if(!run){ return(false);}
+  { assert(svid);
+    if(!run){ return(false);}
     int len=utxs.size;
     file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX){
@@ -666,6 +690,8 @@ public:
 
   bool lock_user(uint32_t cuser) //WARNING, ddos attack against user, use alternative protections
   { //users_[cuser & 0xff].lock();
+    if(!svid){
+      return(true);}
     users_.lock();
     if(users_lock.size()>CLIENT_POOL*2){
       users_.unlock();
@@ -680,6 +706,8 @@ public:
 
   void unlock_user(uint32_t cuser)
   { //users_[cuser & 0xff].unlock();
+    if(!svid){
+      return;}
     users_.lock();
     users_lock.erase(cuser);
     users_.unlock();
@@ -693,7 +721,7 @@ public:
   bool check_user(uint16_t peer,uint32_t uid)
   { if(peer!=svid){
       return(srv_.last_srvs_.check_user(peer,uid));} //use last_srvs_ for safety
-    return(uid<users);
+    return(uid<users || !svid);
   }
 
   bool find_key(uint8_t* pkey,uint8_t* skey)
@@ -718,7 +746,8 @@ public:
 
 //FIXME, log handling should go to office.hpp or better to log.hpp
   void mklogdir(uint16_t svid)
-  { char filename[64];
+  { assert(svid);
+    char filename[64];
     sprintf(filename,"log/%04X",svid);
     mkdir("log",0755); // create dir for user history
     mkdir(filename,0755);
@@ -728,7 +757,9 @@ public:
   // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
 #ifdef FALLOC_FL_COLLAPSE_RANGE
   int purge_log(int fd,uint32_t user) // this is ext4 specific !!!
-  { log_t log;
+  { if(!svid){
+      return(0);}
+    log_t log;
     assert(!(4096%sizeof(log_t)));
     int r,size=lseek(fd,0,SEEK_END); // maybe stat would be faster
     if(size%sizeof(log_t)){
@@ -763,7 +794,8 @@ public:
   void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) {}
 #else
   void mklogfile(uint16_t svid,uint32_t user)
-  { char filename[64];
+  { assert(svid);
+    char filename[64];
     sprintf(filename,"log/%04X/%03X",svid,user>>20);
     mkdir(filename,0755);
     sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
@@ -776,7 +808,8 @@ public:
     close(fd);
   }
   void put_log(uint32_t user,log_t& log) //single user, called by office and client
-  { char filename[64];
+  { assert(svid);
+    char filename[64];
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(fd<0){
@@ -789,7 +822,8 @@ public:
     close(fd);
   }
   void put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) //many users, called by office and client
-  { uint32_t luser=MAX_USERS;
+  { assert(svid);
+    uint32_t luser=MAX_USERS;
     int fd=-1;
     if(log.empty()){
       return;}
@@ -820,21 +854,24 @@ public:
 #endif
 
   void put_ulog(uint32_t user,log_t& log) //single user, called by client
-  { log_.lock();
+  { assert(svid);
+    log_.lock();
     log.time=time(NULL);
     put_log(user,log);
     log_.unlock();
   }
 
   void put_ulog(std::map<uint64_t,log_t>& log) //single user, called by client
-  { log_.lock();
+  { assert(svid);
+    log_.lock();
     uint32_t ntime=time(NULL);
     put_log(log,ntime);
     log_.unlock();
   }
 
   bool fix_log(uint16_t svid,uint32_t user)
-  { char filename[64];
+  { assert(svid);
+    char filename[64];
     struct stat sb;
     sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
@@ -883,7 +920,9 @@ public:
   //bool get_lastlog(uint16_t svid,uint32_t user,log_t& slog)
 
   bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog)
-  { char filename[64];
+  { if(!svid){
+      return(true);}
+    char filename[64];
     struct stat sb;
     if(from==0xffffffff){
       fix_log(svid,user);}
