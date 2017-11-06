@@ -17,7 +17,7 @@ public:
 		port(0),
 		bank(0),
 		user(0),
-		msid(1),
+		msid(0),
 		nice(true),
 		olog(true),
 		drun(false),
@@ -161,7 +161,7 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				("address,A", boost::program_options::value<std::string>(&addr),				"address (don't use with --bank, --user)")
 				("bank,b", boost::program_options::value<uint16_t>(&bank),					"node id (don't use with --address)")
 				("user,u", boost::program_options::value<uint32_t>(&user),					"user id (don't use with --address)")
-				("msid,i", boost::program_options::value<int>(&msid)->default_value(1),				"last message id")
+				("msid,i", boost::program_options::value<int>(&msid)->default_value(0),				"last message id")
 				("nice,n", boost::program_options::value<bool>(&nice)->default_value(true),			"request pretty json")
 				("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
 				("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
