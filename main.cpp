@@ -328,6 +328,19 @@ void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& erro
 		new_peer->stop();}
 	start_accept();
 }
+void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator)
+{	try{
+		DLOG("TRY connecting to address %s:%d\n",
+                  iterator->endpoint().address().to_string().c_str(),iterator->endpoint().port());
+		peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
+		peer_.lock();
+		peers_.insert(new_peer);
+		peer_.unlock();
+		boost::asio::async_connect(new_peer->socket(),iterator,
+			boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));}
+	catch (std::exception& e){
+		DLOG("Connection: %s\n",e.what());}
+}
 void server::connect(std::string peer_address)
 {	try{
 		DLOG("TRY connecting to address %s\n",peer_address.c_str());
