@@ -3784,7 +3784,7 @@ public:
           mis.insert(it->first);
           continue;}
         message_ptr pm=message_svidmsid(svid,msid); //LOCK: txs_
-        if(pm==nullmsg || !(pm->status & (MSGSTAT_DAT)) || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
+        if(pm==nullmsg || !(pm->status & (MSGSTAT_COM)) || memcmp(pm->sigh,it->second.hash,sizeof(hash_t))){
           mis.insert(it->first);
           continue;}}
       DLOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",
