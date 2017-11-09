@@ -23,11 +23,9 @@ public:
 	int port;
 	int svid;
 	std::string addr;
+	std::string dnsa;
 	uint32_t ipv4;
 	int back;
-	//std::string skey;
-	//ed25519_secret_key sk;
-	//ed25519_public_key pk; // calculated
 	std::vector<std::string> peer;
 
 	void get(int ac, char *av[])
@@ -41,12 +39,12 @@ public:
 			config.add_options()
 				("init,n", boost::program_options::value<bool>(&init)->default_value(0),			"start new chain")
 				("fast,f", boost::program_options::value<bool>(&fast)->default_value(0),			"fast sync without history")
-				("mins,m", boost::program_options::value<int>(&mins)->default_value(VIP_MAX/2),				"minimum number of offered block signatures to start sync (0:max/2)")
+				("mins,m", boost::program_options::value<int>(&mins)->default_value(VIP_MAX/2),			"minimum number of offered block signatures to start sync (0:max/2)")
 				("offi,o", boost::program_options::value<int>(&offi)->default_value(std::atoi(OFFICE_PORT)),	"office port (for clients)")
 				("port,p", boost::program_options::value<int>(&port)->default_value(std::atoi(SERVER_PORT)),	"service port (for peers)")
 				("addr,a", boost::program_options::value<std::string>(&addr)->default_value("127.0.0.1"),	"service address or hostname")
-				("svid,i", boost::program_options::value<int>(&svid)->default_value(0),						"service id (assigned by the network)")
-				//("skey,s", boost::program_options::value<std::string>(&skey),					"service secret key [64chars in hext format / 32bytes]")
+				("svid,i", boost::program_options::value<int>(&svid)->default_value(0),				"service id (assigned by the network)")
+				("dnsa,d", boost::program_options::value<std::string>(&dnsa)->default_value(SERVER_DNSA),	"host name of adshares nodes")
 				("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
 				("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (irreversable!)")
 				;
@@ -80,7 +78,7 @@ public:
 			if (vm.count("addr")){
 				std::cout << "Service addr: " << vm["addr"].as<std::string>() << std::endl;
 				struct in_addr adds;
-				if(inet_aton(addr.c_str(),&adds)){
+				if(inet_aton(addr.c_str(),&adds)){ //FIXME, check if this accepts "localhost"
 					ipv4=adds.s_addr;}
 				else{
 					std::cout << "Service addr: ERROR parsing my ip" << std::endl;}}
@@ -93,6 +91,8 @@ public:
 				else{
 					std::cout << "Service svid: 1 (init node)" << std::endl;
 					svid=1;}}
+			if (vm.count("dnsa")){
+				std::cerr << "Adshares nodes: " << vm["dnsa"].as<std::string>() << std::endl;}
 			/*if (vm.count("skey")){
 				char pktext[2*32+1]; pktext[2*32]='\0';
 				if(skey.length()!=64){

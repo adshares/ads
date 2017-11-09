@@ -590,10 +590,13 @@ public:
 			case TXSTYPE_MGS:
 			case TXSTYPE_MSG:
 				ed25519_sign(data,txslen[ttype],sk,pk,data+txslen[ttype]);
+				break;
 			case TXSTYPE_BRO:
 				ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
+				break;
 			case TXSTYPE_MPT:
 				ed25519_sign2(hash,32,data,txslen[TXSTYPE_MPT]+bbank*(6+8),sk,pk,data+txslen[TXSTYPE_MPT]+bbank*(6+8));
+				break;
 			default:
 				ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);}
 	}

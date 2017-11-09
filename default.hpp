@@ -39,8 +39,9 @@
 //#define PATHSHIFT 5
 
 #define SERVER_TYPE 1
-#define OFFICE_PORT "9081"
-#define SERVER_PORT "9091"
+#define OFFICE_PORT "9091"
+#define SERVER_PORT "8081"
+#define SERVER_DNSA "esc.adshares.net"
 #define MAXCLIENTS 128
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 

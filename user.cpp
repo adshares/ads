@@ -418,83 +418,6 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   return(txs);
 }
 
-/*
-//usertxs_ptr run(settings& sts,std::string& line)
-usertxs_ptr run(settings& sts,const char* line,int len) // this function is obsolete, only json input should be allowed now
-{ uint32_t to_bank=0; //actually uint16_t
-  uint32_t to_user=0;
-   int64_t to_mass=0;
-  uint64_t to_idat[4]={0,0,0,0};
-  uint8_t *to_info=(uint8_t*)to_idat;
-  uint32_t now=time(NULL);
-  if(!strncmp(line,"ME::",4)){ // get info about me
-    usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"INF:%X:%X",&to_bank,&to_user)){ // get info about a different user
-    usertxs_ptr txs(new usertxs(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"LOG:%X",&now)){ // get info about me and my log from 'now'
-    usertxs_ptr txs(new usertxs(TXSTYPE_LOG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(!strncmp(line,"BRO:",4)){ // broadcast message
-    usertxs_ptr txs(new usertxs(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,len-4,to_user,to_mass,to_info,line+4));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(!strncmp(line,"MPT:",4)){ // send funds to multiple to-accounts
-    std::string text;
-    if(!parse_mpt(text,to_bank,line,len) || !to_bank){
-      return(NULL);}
-    usertxs_ptr txs(new usertxs(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,text.c_str()));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"PUT:%X:%X:%lX:%lX:%lX:%lX:%lX",&to_bank,&to_user,&to_mass,&to_idat[0],&to_idat[1],&to_idat[2],&to_idat[3])){ // send funds
-    usertxs_ptr txs(new usertxs(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"USR:%X",&to_bank)){ // create new user @ to_bank
-    usertxs_ptr txs(new usertxs(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(!strncmp(line,"BNK:",4)){ // create new bank
-    usertxs_ptr txs(new usertxs(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"GET:%X:%X",&to_bank,&to_user)){ // retreive funds
-    usertxs_ptr txs(new usertxs(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(!strncmp(line,"KEY:",4)){ // change user key
-    if(len<4+2*32+1*2*64){
-      fprintf(stderr,"ERROR, bad KEY format; should be:\nKEY:new_public_key:empty_string_signature\n");
-      return(NULL);}
-    hash_t key;
-    ed25519_signature sig;
-    ed25519_text2key(key,line+4,32); // do not send last hash
-    ed25519_text2key(sig,line+4+2*32+1,64); // do not send last hash
-    usertxs_ptr txs(new usertxs(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    if(txs->sign2(sig)){
-      fprintf(stderr,"ERROR, bad new KEY empty string signature\n");
-      return(NULL);}
-    return(txs);}
-  else if(!strncmp(line,"BKY:",4)){ // change bank key
-    hash_t key;
-    ed25519_text2key(key,line+4,32); // do not send last hash
-    usertxs_ptr txs(new usertxs(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)key));
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else if(sscanf(line,"BLG:%X",&now)){ // get last broadcast log from block before now
-    usertxs_ptr txs(new usertxs(TXSTYPE_BLG,sts.bank,sts.user,now)); //now==0xffffffff => fix log file if needed
-    txs->sign(sts.ha,sts.sk,sts.pk);
-    return(txs);}
-  else{
-    return(NULL);}
-}
-*/
-
 static char* mydate(uint32_t now)
 { time_t lnow=now;
   static char text[64];
@@ -924,7 +847,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
     if(!connected){
       boost::asio::ip::tcp::resolver::iterator end;
       while (endpoint_iterator != end){
-        std::cerr<<"CONNECTING\n";
+        std::cerr<<"CONNECTING to " << endpoint_iterator->endpoint().address().to_string() << "\n";
         socket.connect(*endpoint_iterator, error);
         if(!error){
           break;}
@@ -1041,7 +964,6 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     if(sts.drun){
       boost::property_tree::write_json(std::cout,pt,sts.nice);
       return;}
-
 
     if(txs->ttype==TXSTYPE_BLG){ //FIXME, not tested !!!
       boost::property_tree::ptree blogtree;

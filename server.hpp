@@ -3784,7 +3784,7 @@ public:
           mis.insert(it->first);
           continue;}
         message_ptr pm=message_svidmsid(svid,msid); //LOCK: txs_
-        if(pm==nullmsg || !(pm->status & (MSGSTAT_DAT)) || memcmp(pm->sigh,it->second.hash,sizeof(hash_t)) || !(pm->status & MSGSTAT_DAT)){
+        if(pm==nullmsg || !(pm->status & (MSGSTAT_COM)) || memcmp(pm->sigh,it->second.hash,sizeof(hash_t))){
           mis.insert(it->first);
           continue;}}
       DLOG("%04X SAVE CANDIDATE add:%d del:%d mis:%d failed:%d\n",
@@ -3862,22 +3862,56 @@ public:
       if(peer && list.find(peer)==list.end()){
         connect(addr);
         boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
+        list.clear();
+        peers_known(list);
         RETURN_ON_SHUTDOWN();}}
+    if(!opts_.init){
+      try{
+        if(!list.size() && last_srvs_.nodes.size()<=2 && opts_.dnsa.size()){ // load peers from DNS if no servers
+          boost::asio::ip::tcp::resolver resolver(io_service_);
+          boost::asio::ip::tcp::resolver::query query(opts_.dnsa.c_str(),SERVER_PORT);
+          boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
+          boost::asio::ip::tcp::resolver::iterator end;
+          std::map<uint32_t,boost::asio::ip::tcp::resolver::iterator> endpoints;
+          while(iterator != end){
+            srandom(time(NULL));
+            uint32_t r=random()%0xFFFFFFFF;
+            endpoints[r]=iterator++;}
+          for(auto ep=endpoints.begin();ep!=endpoints.end();ep++){
+            DLOG("TRY CONNECT to dns peer (%s:%d)\n",ep->second->endpoint().address().to_string().c_str(),
+              ep->second->endpoint().port());
+            connect(ep->second);
+            boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait before connecting to more peers
+            RETURN_ON_SHUTDOWN();
+            peers_known(list);
+#ifdef DEBUG
+            if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+              break;}
+#else
+            if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+              break;}
+#endif
+            list.clear();}}}
+      catch (std::exception& e){
+        std::cerr << "DNS Connect Exception: " << e.what() << "\n";}
+      if(last_srvs_.nodes.size()<=2){
+        ELOG("FAILED to connect to any peers, fatal\n");
+        SHUTDOWN_AND_RETURN();}}
     while(1){
       boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
       RETURN_ON_SHUTDOWN();
       peer_clean(); //cleans all peers with killme==true
       //uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       //now-=now%BLOCKSEC;
-#ifdef DEBUG
-      if(peers_.size()>=2 || peers_.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
-        continue;}
-#else
-      if(peers_.size()>=MIN_PEERS || peers_.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
-        continue;}
-#endif
       list.clear();
       peers_known(list);
+#ifdef DEBUG
+      if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+        continue;}
+#else
+      if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+        continue;}
+#endif
       for(std::string addr : opts_.peer){
         uint16_t peer=opts_.get_svid(addr);
         if(peer && list.find(peer)==list.end()){
@@ -4088,6 +4122,7 @@ public:
   //void svid_msid_rollback(message_ptr msg);
   void start_accept();
   void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
+  void connect(boost::asio::ip::tcp::resolver::iterator& iterator);
   void connect(std::string peer_address);
   void connect(uint16_t svid);
   void fillknown(message_ptr msg);
