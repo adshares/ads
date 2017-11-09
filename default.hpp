@@ -234,10 +234,14 @@ typedef struct hash_cmp {
 #define RETURN_ON_SHUTDOWN() {extern bool finish;if(finish){return;}}
 #define SHUTDOWN_AND_RETURN_VAL(val) {std::raise(SIGABRT);return(val);}
 #define SHUTDOWN_AND_RETURN() {std::raise(SIGABRT);return;}
+#ifndef ELOG
 #define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stdout,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#endif
 #ifndef NDEBUG
 //consider printing thread id
+#ifndef DLOG
 #define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stdout,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#endif
 #else
 #define DLOG(...)
 #endif

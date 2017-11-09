@@ -112,7 +112,7 @@ public:
   static char* txid(const uint64_t& ppi)
   { static char text[20];
     ppi_t *p=(ppi_t*)&ppi;
-    sprintf(text,"%04X:%08X:%04X",p->v16[2],p->v32[0],p->v16[3]);
+    sprintf(text,"%04X%08X%04X",p->v16[2],p->v32[0],p->v16[3]);
     return(text);
   }
 
