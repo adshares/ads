@@ -33,6 +33,11 @@
 #include <sstream>
 #include <stack>
 #include <vector>
+
+#define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+
+
 #include "default.hpp"
 #include "ed25519/ed25519.h"
 #include "hash.hpp"
@@ -208,18 +213,18 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
   boost::optional<uint16_t> json_bank=pt.get_optional<uint16_t>("node");
   if(json_bank){
     to_bank=json_bank.get();}
-  boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
+  boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
   if(json_from){
-    to_from=json_from.get();}
+    to_from=std::stoul(json_from.get(), nullptr, 16);}
   boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
   if(json_msid){
     sts.msid=json_msid.get();}
   boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
   if(json_status){
     to_status=json_status.get();}
-  boost::optional<uint32_t> json_block=pt.get_optional<uint32_t>("block");
+  boost::optional<std::string> json_block=pt.get_optional<std::string>("block");
   if(json_block){
-    to_block=json_block.get();}
+    to_block=std::stoul(json_block.get(), nullptr, 16);}
 
   deduct=0;
   fee=0;
@@ -255,9 +260,9 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
       if(block.now){
         to_from=block.now+BLOCKSEC;}}
     uint32_t to_to=0;
-    boost::optional<uint32_t> json_to=pt.get_optional<uint32_t>("to");
+    boost::optional<std::string> json_to=pt.get_optional<std::string>("to");
     if(json_to){
-      to_to=json_to.get();} //                                    !!!!!!!             !!!!!
+      to_to=std::stoul(json_to.get(), nullptr, 16);} //                                    !!!!!!!             !!!!!
     txs=boost::make_shared<usertxs>(TXSTYPE_BLK,sts.bank,sts.user,to_from,now,to_bank,to_to,to_mass,to_info,(const char*)NULL);}
   else if(!run.compare(txsname[TXSTYPE_TXS])){
     uint32_t node_msid=0;
@@ -531,7 +536,7 @@ void print_user(user_t& u,boost::property_tree::ptree& pt,bool local,uint32_t ba
     pt.put("account.id",user);
     pt.put("account.msid",u.msid);
     pt.put("account.time",u.time);
-    pt.put("account.date",mydate(u.time));
+//    pt.put("account.date",mydate(u.time));
     pt.put("account.status",u.stat);
     pt.put("account.paired_node",u.node);
     pt.put("account.paired_id",u.user);
@@ -764,10 +769,10 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
     char tx_id[64];
     if(ulog.type & 0x8000){
       logentry.put("inout","in");
-      sprintf(tx_id,"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);}
+      sprintf(tx_id,"%04X%08X%04X",ulog.node,ulog.nmid,ulog.mpos);}
     else{
       logentry.put("inout","out");
-      sprintf(tx_id,"%04X:%08X:%04X",sts.bank,ulog.nmid,ulog.mpos);}
+      sprintf(tx_id,"%04X%08X%04X",sts.bank,ulog.nmid,ulog.mpos);}
     logentry.put("id",tx_id);
     logtree.push_back(std::make_pair("",logentry));}
   close(fd);
@@ -834,7 +839,7 @@ void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree&
     memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
     memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t)); //FIXME, this should be uint16_t
     char tx_id[64];
-    sprintf(tx_id,"%04X:%08X:%04X",utxs.abank,nmid,mpos);
+    sprintf(tx_id,"%04X%08X%04X",utxs.abank,nmid,mpos);
     blogentry.put("node_msid",nmid);
     blogentry.put("node_mpos",mpos);
     blogentry.put("id",tx_id);
@@ -942,7 +947,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
 
 void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data)
 { char txid[64];
-  sprintf(txid,"%04X:%08X:%04X",res.node,res.msid,res.tnum);
+  sprintf(txid,"%04X%08X%04X",res.node,res.msid,res.tnum);
   pt.put("network_tx.id",&txid[0]);
   pt.put("network_tx.block_id",res.path);
   pt.put("network_tx.node_id",res.node);
@@ -1127,7 +1132,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         //fprintf(stderr,"read txspath for %s\n",filename);
         boost::asio::read(socket,boost::asio::buffer(&res,sizeof(txspath_t)));
         if(!res.len){
-          fprintf(stderr,"ERROR, failed to read transaction path for txid %04X:%08X:%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to read transaction path for txid %04X%08X%04X\n",svid,msid,tnum);
           socket.close();
           return;}
         uint8_t data[res.len+res.hnum*32];
@@ -1138,10 +1143,10 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         //fprintf(stderr,"close socket for %s\n",filename);
         socket.close();
         if(!res.path){
-          fprintf(stderr,"ERROR, got empty block for txid %04X:%08X:%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, got empty block for txid %04X%08X%04X\n",svid,msid,tnum);
           return;}
         if(res.node!=svid || res.msid!=msid || res.tnum!=tnum){
-          fprintf(stderr,"ERROR, got wrong transaction %04X:%08X:%04X for txid %04X:%08X:%04X\n",
+          fprintf(stderr,"ERROR, got wrong transaction %04X%08X%04X for txid %04X%08X%04X\n",
             res.node,res.msid,res.tnum,svid,msid,tnum);
           return;}
         servers block;
@@ -1161,7 +1166,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         *hashmsid^=msid;
         *hashtnum^=tnum;
         if(memcmp(nhash,data+res.len,32)){
-          fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X:%08X:%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X%08X%04X\n",svid,msid,tnum);
           return;}
         std::vector<hash_s> hashes(res.hnum);
         for(int i=0;i<res.hnum;i++){
@@ -1169,7 +1174,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         hashtree tree;
         tree.hashpathrun(nhash,hashes);
         if(memcmp(nhash,block.nowhash,32)){
-          fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X:%08X:%04X\n",svid,msid,tnum);
+          fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X%08X%04X\n",svid,msid,tnum);
           return;}
         //store confirmation and transaction in repository
         sprintf(filename,"txs/%02X",dir[1]);
@@ -1335,7 +1340,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
 
         // send list of updated blocks
         // there is a dedicated function for hex?
-        char blockId[5];
+        char blockId[9];
         sprintf(blockId, "%08X", headers[n].now);
         blockElement.put_value(blockId);
         blockChild.push_back(std::make_pair("",blockElement));
@@ -1475,10 +1480,15 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         goto END;}
       char hash[65]; hash[64]='\0';
       boost::property_tree::ptree psrv;
-      psrv.put("now",srv.now);
-      psrv.put("msg",srv.msg);
-      psrv.put("nod",srv.nod);
-      psrv.put("div",srv.div);
+
+      char blockhex[9];
+      blockhex[8]='\0';
+      sprintf(blockhex,"%08X",srv.now);
+      psrv.put("id", blockhex);
+      psrv.put("time",srv.now);
+      psrv.put("message_count",srv.msg);
+
+
       ed25519_key2text(hash,srv.oldhash,32);
       psrv.put("oldhash",hash);
       ed25519_key2text(hash,srv.minhash,32);
@@ -1491,29 +1501,43 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       psrv.put("viphash",hash);
       ed25519_key2text(hash,srv.nowhash,32);
       psrv.put("nowhash",hash);
-      psrv.put("vok",srv.vok);
-      psrv.put("vno",srv.vno);
-      psrv.put("vtot",srv.vtot);
+      psrv.put("vote_yes",srv.vok);
+      psrv.put("vote_no",srv.vno);
+      psrv.put("vote_total",srv.vtot);
+
+      psrv.put("dividend_balance",print_amount(srv.div));
       if(!((srv.now/BLOCKSEC)%BLOCKDIV)){
-        psrv.put("pay","true");}
+        psrv.put("dividend_pay","true");}
       else{
-        psrv.put("pay","false");}
+        psrv.put("dividend_pay","false");}
+
+      psrv.put("node_count",srv.nod);
       boost::property_tree::ptree nodes;
       for(uint32_t n=0;n<srv.nodes.size();n++){
         boost::property_tree::ptree node;
+
+        char nodehex[5];
+        nodehex[4]='\0';
+        sprintf(nodehex,"%04X",n);
+        node.put("id", nodehex);
+
         ed25519_key2text(hash,srv.nodes[n].pk,32);
-        node.put("pk",hash);
+        node.put("public_key",hash);
         ed25519_key2text(hash,(uint8_t*)&srv.nodes[n].hash[0],32);
         node.put("hash",hash);
         ed25519_key2text(hash,srv.nodes[n].msha,32);
-        node.put("msha",hash);
+        node.put("message_hash",hash);
         node.put("msid",srv.nodes[n].msid);
         node.put("mtim",srv.nodes[n].mtim);
-        node.put("balance",srv.nodes[n].weight);
+        node.put("balance", print_amount(srv.nodes[n].weight));
         node.put("status",srv.nodes[n].status);
-        node.put("users",srv.nodes[n].users);
+        node.put("account_count",srv.nodes[n].users);
         node.put("port",srv.nodes[n].port);
-        node.put("ipv4",srv.nodes[n].ipv4);
+
+        struct in_addr ip_addr;
+        ip_addr.s_addr = srv.nodes[n].ipv4;
+        node.put("ipv4", inet_ntoa(ip_addr));
+
         nodes.push_back(std::make_pair("",node));}
       psrv.add_child("nodes",nodes);
       const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -1548,7 +1572,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       for(uint32_t n=0;n<usern;n++,userp++){
         boost::property_tree::ptree user;
         print_user(*userp,user,true,txs->bbank,n,sts);
-        users.push_back(std::make_pair("",user));}
+        users.push_back(std::make_pair("",user.get_child("account")));}
       pt.add_child("accounts",users);}
 
     else if(txs->ttype==TXSTYPE_MGS){ // print message list, consider archiving
@@ -1572,7 +1596,13 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       for(;bufp<end;bufp+=2+4+32){
         boost::property_tree::ptree msghash;
         uint16_t svid=*(uint16_t*)(bufp);
-        msghash.put("node",svid);
+
+
+        char nodehex[5];
+	nodehex[4]='\0';
+	sprintf(nodehex,"%04X",svid);
+	msghash.put("node_id", nodehex);
+
         uint32_t msid=*(uint32_t*)(bufp+2);
         msghash.put("node_msid",msid);
         ed25519_key2text(hash,(uint8_t*)bufp+6,32);
@@ -1625,23 +1655,39 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           break;}
         l=utxs.size;
         boost::property_tree::ptree transaction;
-        sprintf(hash,"%04X:%08X:%04X",msg->svid,msg->msid,mpos);
+        sprintf(hash,"%04X%08X%04X",msg->svid,msg->msid,mpos);
         transaction.put("id",hash);
-        transaction.put("ttype",utxs.ttype);
+        transaction.put("type",utxs.ttype);
+
         transaction.put("abank",utxs.abank);
         transaction.put("auser",utxs.auser);
         transaction.put("amsid",utxs.amsid);
         transaction.put("ttime",utxs.ttime);
         transaction.put("bbank",utxs.bbank);
         transaction.put("buser",utxs.buser);
-        transaction.put("amount",utxs.tmass);
+
+        transaction.put("amount",print_amount(utxs.tmass));
+        transaction.put("sender_fee",print_amount(1));
+        uint16_t suffix=sts.crc_acnt(utxs.abank,utxs.auser);
+        char acnt[19];
+        sprintf(acnt,"%04X-%08X-%04X",utxs.abank,utxs.auser,suffix);
+        if(utxs.abank != 0 || utxs.auser != 0) {
+        	transaction.put("sender_address",acnt);
+        }
+        suffix=sts.crc_acnt(utxs.bbank,utxs.buser);
+	sprintf(acnt,"%04X-%08X-%04X",utxs.bbank,utxs.buser,suffix);
+	if(utxs.bbank != 0 || utxs.buser != 0) {
+		transaction.put("target_address",acnt);
+	}
+
+
         ed25519_key2text(hash,utxs.tinfo,32);
         transaction.put("message",hash);
         ed25519_key2text(signtext,utxs.get_sig((char*)p),64);
         transaction.put("signature",signtext);
         transaction.put("size" ,utxs.size);
         transactions.push_back(std::make_pair("",transaction));}
-      pt.add_child("network_txs",transactions);
+      pt.add_child("transactions",transactions);
       //TODO,check if message in message list
       }
 
@@ -1717,7 +1763,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
           if(sts.olog){
             out_log(logpt,sts.bank,sts.user);}
           char tx_id[64];
-          sprintf(tx_id,"%04X:%08X:%04X",sts.bank,m.msid,m.mpos);
+          sprintf(tx_id,"%04X%08X%04X",sts.bank,m.msid,m.mpos);
           pt.put("tx.node_msid",m.msid);
           pt.put("tx.node_mpos",m.mpos);
           pt.put("tx.id",tx_id);}}}
