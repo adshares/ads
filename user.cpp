@@ -1402,13 +1402,17 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         goto END;}
       if(txs->amsid && srv.now!=txs->amsid){
         goto END;}
-      pt.put("block_prev",srv.now-BLOCKSEC);
-      pt.put("block_next",srv.now+BLOCKSEC);
-      char hash[65]; hash[64]='\0';
-      boost::property_tree::ptree psrv;
 
       char blockhex[9];
       blockhex[8]='\0';
+      sprintf(blockhex,"%08X",srv.now-BLOCKSEC);
+      pt.put("block_prev",blockhex);
+      sprintf(blockhex,"%08X",srv.now+BLOCKSEC);
+      pt.put("block_next",blockhex);
+
+      char hash[65]; hash[64]='\0';
+      boost::property_tree::ptree psrv;
+
       sprintf(blockhex,"%08X",srv.now);
       psrv.put("id", blockhex);
       psrv.put("time",srv.now);
