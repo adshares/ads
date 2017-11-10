@@ -1393,8 +1393,12 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       write(fd,buf,len);
       close(fd);
       servers srv;
-      if(srv.data_read(filename,true)!=(int)txs->amsid){
+      if(!srv.data_read(filename,true)){
         goto END;}
+      if(txs->amsid && srv.now!=txs->amsid){
+        goto END;}
+      pt.put("block_prev",srv.now-BLOCKSEC);
+      pt.put("block_next",srv.now+BLOCKSEC);
       char hash[65]; hash[64]='\0';
       boost::property_tree::ptree psrv;
       psrv.put("now",srv.now);

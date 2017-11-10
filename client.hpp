@@ -422,6 +422,8 @@ public:
       const uint8_t zero[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
       uint8_t *hash=(uint8_t*)zero;
       servers srvs_;
+      if(!utxs.amsid){
+        utxs.amsid=srvs_.read_start();}
       srvs_.read_servers(utxs.amsid,data,len,hash); // path=utxs.amsid
       boost::asio::write(socket_,boost::asio::buffer(data,4+len));
       free(data);
