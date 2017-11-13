@@ -342,7 +342,7 @@ void server::start_accept()
 }
 void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error)
 {	uint32_t now=time(NULL);
-	if (now<srvs_.now+BLOCKSEC){
+	if (now>=srvs_.now+BLOCKSEC){
 		DLOG("WARNING: dropping peer connection while creating new block\n");
 		new_peer->stop();}
 	else{
