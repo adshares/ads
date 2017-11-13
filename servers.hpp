@@ -1182,23 +1182,14 @@ public:
 			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
 			close(fd);}
 	}
-
-	void add_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash ".../sig_%.64s.dat"
-	{	int fd;
-		char filename[64];
-		sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
-		fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(fd>=0){
-			write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
-			close(fd);}
-		sprintf(filename,"blk/%03X/%05X/signatures.no",head.now>>20,head.now&0xFFFFF);
-		fd=open(filename,O_WRONLY|O_CREAT,0644);
-		if(fd>=0){
-			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
+	void del_signatures()
+	{	char filename[64];
+		sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);
+		int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+                if(fd>=0){
 			close(fd);}
 	}
-
-	void check_signatures(header_t& head,svsi_t* svsi)
+	void check_signatures(header_t& head,svsi_t* svsi,bool save)
 	{	int i=0,j=0;
 		for(;i<head.vok;i++){
 			uint8_t* data=(uint8_t*)&svsi[i];
@@ -1217,7 +1208,7 @@ public:
 				ELOG("BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
 				header_print(head);
 				continue;}
-			else{
+			else if(save){
 				save_signature(svid,data+2,true);}
 			if(j!=i){
 				memcpy(svsi+j,svsi+i,sizeof(svsi_t));}

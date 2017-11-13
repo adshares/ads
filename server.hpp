@@ -4019,9 +4019,26 @@ public:
         busy_msgs_.clear();
         DLOG("STOPed validation to start block\n");
         if(last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins){ // '<' not '<='
-          ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
-            last_srvs_.vok,last_srvs_.vtot/2,last_srvs_.vok,opts_.mins);
-          SHUTDOWN_AND_RETURN();}
+          uint8_t* data;
+          uint32_t nok;
+          header_t head;
+          last_srvs_.header(head);
+          last_srvs_.get_signatures(last_srvs_.now,data,nok);
+          head.vok=nok;
+          head.vno=0;
+          if(head.vok<=last_srvs_.vok){
+            free(data);
+            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
+              last_srvs_.vok,last_srvs_.vtot/2,last_srvs_.vok,opts_.mins);
+            SHUTDOWN_AND_RETURN();}
+          //overwriting old signatures list
+          last_srvs_.del_signatures();
+          last_srvs_.check_signatures(head,(svsi_t*)(data+8),true);
+          free(data);
+          if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins){ // '<' not '<='
+            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
+              head.vok,last_srvs_.vtot/2,head.vok,opts_.mins);
+            SHUTDOWN_AND_RETURN();}}
         //create message hash
         //last_svid_dbl_set();
         //svid_.lock();
