@@ -98,6 +98,7 @@ int main(int argc, char* argv[])
   try{
     int signal=SIGUSR1;
     while(signal==SIGUSR1){
+      finish=false;
       std::future<int> fut=prom.get_future();
       server s(opt);
       office o(opt,s);
@@ -110,8 +111,7 @@ int main(int argc, char* argv[])
         ELOG("Shutting down\n");}
       o.stop();
       s.stop();
-      prom=std::promise<int>();
-      finish=false;}}
+      prom=std::promise<int>();}}
   catch (std::exception& e){
     ELOG("MAIN Exception: %s\n",e.what());}
   fclose(stdlog);
