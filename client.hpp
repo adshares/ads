@@ -65,7 +65,7 @@ public:
 
   void handle_read_txs(const boost::system::error_code& error)
   { if(error){
-      DLOG("ERROR: read txs error\n");
+      DLOG("ERROR: read txs error [type:%d,len:%d]\n",(int)*buf,len);
       offi_.leave(shared_from_this());
       return;}
     bzero(&utxs,sizeof(usertxs));
