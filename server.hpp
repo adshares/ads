@@ -4018,7 +4018,7 @@ public:
         threadpool.join_all();
         busy_msgs_.clear();
         DLOG("STOPed validation to start block\n");
-        if(last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins){ // '<' not '<='
+        if(!do_sync && last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins){ // '<' not '<='
           uint8_t* data;
           uint32_t nok;
           header_t head;
@@ -4028,16 +4028,16 @@ public:
           head.vno=0;
           if(head.vok<=last_srvs_.vok){
             free(data);
-            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
-              last_srvs_.vok,last_srvs_.vtot/2,last_srvs_.vok,opts_.mins);
+            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d) for %08X\n",
+              last_srvs_.vok,last_srvs_.vtot/2,last_srvs_.vok,opts_.mins,last_srvs_.now);
             SHUTDOWN_AND_RETURN();}
           //overwriting old signatures list
           last_srvs_.del_signatures();
           last_srvs_.check_signatures(head,(svsi_t*)(data+8),true);
           free(data);
           if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins){ // '<' not '<='
-            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
-              head.vok,last_srvs_.vtot/2,head.vok,opts_.mins);
+            ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d) for %08X\n",
+              head.vok,last_srvs_.vtot/2,head.vok,opts_.mins,last_srvs_.now);
             SHUTDOWN_AND_RETURN();}}
         //create message hash
         //last_svid_dbl_set();
