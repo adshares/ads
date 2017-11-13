@@ -505,6 +505,10 @@ public:
     if(!offi_.svid){
       return;}
 
+    if(offi_.readonly){ //FIXME, notify user.cpp about errors !!!
+      DLOG("OFFICE: reject transaction in readonly mode (todo: add notification)\n");
+      return;}
+
     if(usera.msid!=utxs.amsid){
       DLOG("ERROR: bad msid %08X<>%08X\n",usera.msid,utxs.amsid);
       return;}

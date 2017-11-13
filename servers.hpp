@@ -1062,15 +1062,15 @@ public:
 	{	static boost::mutex local_;
 		boost::lock_guard<boost::mutex> lock(local_);
 		char filename[64];
-		sprintf(filename,"blk/%03X/%05X/signatures.txt",now>>20,now&0xFFFFF);
-		char hash[4*SHA256_DIGEST_LENGTH];
-		ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
-		FILE *fp=fopen(filename,"a");
-		if(fp==NULL){
-			DLOG("ERROR, creating blk/%03X/%05X/signatures.ok, very bad :-(",now>>20,now&0xFFFFF);
-			return;}
-		fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
-		fclose(fp);
+		//sprintf(filename,"blk/%03X/%05X/signatures.txt",now>>20,now&0xFFFFF);
+		//char hash[4*SHA256_DIGEST_LENGTH];
+		//ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
+		//FILE *fp=fopen(filename,"a");
+		//if(fp==NULL){
+		//	DLOG("ERROR, creating blk/%03X/%05X/signatures.ok, very bad :-(",now>>20,now&0xFFFFF);
+		//	return;}
+		//fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
+		//fclose(fp);
 		if(ok){
 			DLOG("BLOCK ok\n");
 			vok++;
@@ -1080,10 +1080,24 @@ public:
 			DLOG("BLOCK differs\n");
 			vno++;
 			sprintf(filename,"blk/%03X/%05X/signatures.no",now>>20,now&0xFFFFF);}
+		svsi_t old;
 		svsi_t da;
 		memcpy(da,&svid,2);
 		memcpy(da+2,sig,2*SHA256_DIGEST_LENGTH);
-		int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+		//int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+		int fd=open(filename,O_RDWR|O_CREAT,0644);
+		int num=0;
+		while(read(fd,&old,sizeof(svsi_t))==sizeof(svsi_t)){
+			num++;
+			if(!memcmp(&old,&da,sizeof(svsi_t))){
+				close(fd);
+				return;}}
+		if(ok){
+			if(num+1<vok){
+				vok=num+1;}}
+		else{
+			if(num+1<vno){
+				vno=num+1;}}
                 write(fd,da,sizeof(svsi_t));
 		close(fd);
 	}
@@ -1158,6 +1172,21 @@ public:
 	{	int fd;
 		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
+		fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+		if(fd>=0){
+			write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
+			close(fd);}
+		sprintf(filename,"blk/%03X/%05X/signatures.no",head.now>>20,head.now&0xFFFFF);
+		fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+		if(fd>=0){
+			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
+			close(fd);}
+	}
+
+	void add_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash ".../sig_%.64s.dat"
+	{	int fd;
+		char filename[64];
+		sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
 		fd=open(filename,O_WRONLY|O_CREAT,0644);
 		if(fd>=0){
 			write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
@@ -1168,6 +1197,7 @@ public:
 			write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
 			close(fd);}
 	}
+
 	void check_signatures(header_t& head,svsi_t* svsi)
 	{	int i=0,j=0;
 		for(;i<head.vok;i++){
@@ -1187,6 +1217,8 @@ public:
 				ELOG("BLOCK SIGNATURE failed %.*s (%d)\n",4*SHA256_DIGEST_LENGTH,hash,svid);
 				header_print(head);
 				continue;}
+			else{
+				save_signature(svid,data+2,true);}
 			if(j!=i){
 				memcpy(svsi+j,svsi+i,sizeof(svsi_t));}
 			j++;}

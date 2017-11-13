@@ -92,7 +92,7 @@ public:
 					std::cout << "Service svid: 1 (init node)" << std::endl;
 					svid=1;}}
 			if (vm.count("dnsa")){
-				std::cerr << "Adshares nodes: " << vm["dnsa"].as<std::string>() << std::endl;}
+				std::cout << "Adshares nodes: " << vm["dnsa"].as<std::string>() << std::endl;}
 			/*if (vm.count("skey")){
 				char pktext[2*32+1]; pktext[2*32]='\0';
 				if(skey.length()!=64){

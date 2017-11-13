@@ -12,6 +12,8 @@ class office
 public:
   //office(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts,server& srv) :
   office(options& opts,server& srv) :
+    readonly(true),
+    run(false),
     endpoint_(boost::asio::ip::tcp::v4(),opts.offi),
     io_service_(),
     work_(io_service_),
@@ -465,6 +467,9 @@ public:
 
   void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) //create account on remote request
   { assert(svid);
+    if(readonly){
+      ELOG("ERROR: failed to open account (readonly)\n");
+      return;}
     if(!try_account((hash_s*)pkey)){
       ELOG("ERROR: failed to open account (pkey known)\n");
       return;}
@@ -646,6 +651,8 @@ public:
   bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
   { assert(svid);
     if(!run){ return(false);}
+    if(readonly){
+      DLOG("OFFICE: adding message in readonly state!\n");}
     int len=utxs.size;
     file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX){
@@ -961,10 +968,11 @@ public:
   uint16_t svid;
   hash_t pkey; // local copy for managing updates
   std::stack<gup_t> gup; // GET results
+  bool readonly;
 private:
+  bool run;
   char ofifilename[64];
   const user_t user_tmp={};
-  bool run;
   uint32_t div_ready;
   uint32_t block_ready;
   uint32_t users; //number of users of the bank

@@ -25,7 +25,8 @@ public:
     votes_max(0.0),
     do_vote(0),
     do_block(0),
-    block_only(true)
+    block_only(true),
+    panic(false)
   {
   }
 
@@ -1078,15 +1079,15 @@ public:
         DLOG("CANDIDATE proposing\n");
         write_candidate(cand);}
       return;}
-    if(do_block<2 && (
+    if(do_block==1 && (
         (cnd1->score>(cnd2!=nullcnd?cnd2->score:0)+(votes_max-votes_counted))||
         (now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)))){
       uint64_t x=(cnd2!=nullcnd?cnd2->score:0);
       if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)){
-
-//FIXME, enter panic state !!! READONLY ok
-//FIXME, maybe must resync
-
+        panic=true;
+        if(!ofip_isreadonly()){
+          ELOG("LATE CANDIDATE !!!, set office readonly\n");
+          ofip_readonly();}
         ELOG("\n\nCANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n\n\n",
           cnd1->score,x,votes_max,votes_counted);}
       else{
@@ -1768,14 +1769,23 @@ public:
     //blk_.unlock();
     DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
     update(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
+    if(last_srvs_.vok>last_srvs_.vtot/2 && opts_.svid){
+      uint32_t now=time(NULL);
+      if(now<srvs_.now+BLOCKSEC){
+        panic=false;
+        ofip_readwrite();}}
+    if(no){
+      ELOG("\n\nBLOCK from %04X! differs\n\n\n",msg->svid);}
+      //if(msg->peer==msg->svid){
+      //  //FIXME, in the future, do not disconnect, peer will try syncing again
+      //  ELOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
+      //  disconnect(msg->svid);}
     if(last_srvs_.vno>last_srvs_.vtot/2){
       ELOG("BAD BLOCK consensus :-( must resync :-( \n"); // FIXME, do not exit, initiate sync
-      exit(-1);}
-    if(no){
-      if(msg->peer==msg->svid){
-        //FIXME, in the future, do not disconnect, peer will try syncing again
-        ELOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
-        disconnect(msg->svid);}}
+      panic=false;
+      ofip_readonly();
+      opts_.back=1; //restart 1 block back
+      RESTART_AND_RETURN();}
   }
 
   void missing_sent_remove(uint16_t svid) //TODO change name to missing_know_send_remove()
@@ -3894,23 +3904,32 @@ public:
             list.clear();}}}
       catch (std::exception& e){
         std::cerr << "DNS Connect Exception: " << e.what() << "\n";}
+      boost::this_thread::sleep(boost::posix_time::seconds(2));
       if(last_srvs_.nodes.size()<=2){
         ELOG("FAILED to connect to any peers, fatal\n");
         SHUTDOWN_AND_RETURN();}}
     while(1){
-      boost::this_thread::sleep(boost::posix_time::seconds(5)); //will be interrupted to return
+      if(panic){
+        boost::this_thread::sleep(boost::posix_time::seconds(1));}
+      else{
+        boost::this_thread::sleep(boost::posix_time::seconds(5));}
       RETURN_ON_SHUTDOWN();
       peer_clean(); //cleans all peers with killme==true
       //uint32_t now=time(NULL)+5; // do not connect if close to block creation time
       //now-=now%BLOCKSEC;
       list.clear();
       peers_known(list);
+      if(panic){
+        if(list.size()>=2*MIN_PEERS || list.size()>(srvs_.nodes.size()-2)){
+          continue;}}
 #ifdef DEBUG
-      if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
-        continue;}
+      else{
+        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+          continue;}}
 #else
-      if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
-        continue;}
+      else{
+        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/){
+          continue;}}
 #endif
       for(std::string addr : opts_.peer){
         uint16_t peer=opts_.get_svid(addr);
@@ -3988,12 +4007,21 @@ public:
         ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
           ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);}
+      if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2){ // '<' not '<='
+        panic=true;
+        if(!ofip_isreadonly()){
+          ELOG("LATE SIGNATURES !!!, set office readonly\n");
+          ofip_readonly();}}
       if(now>=(srvs_.now+BLOCKSEC) && do_block==0){
         DLOG("STOPing validation to start block\n");
         do_validate=0;
         threadpool.join_all();
         busy_msgs_.clear();
         DLOG("STOPed validation to start block\n");
+        if(last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins){ // '<' not '<='
+          ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d)\n",
+            last_srvs_.vok,last_srvs_.vtot/2,last_srvs_.vok,opts_.mins);
+          SHUTDOWN_AND_RETURN();}
         //create message hash
         //last_svid_dbl_set();
         //svid_.lock();
@@ -4051,7 +4079,7 @@ public:
   bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) // will be obsolete if we start tolerating empty blocks
   { static uint32_t do_hallo=0;
     static uint32_t del=0;
-    if(!opts_.svid){
+    if(!opts_.svid || ofip_isreadonly()){
       return(false);}
 //#ifdef DEBUG
     if((!(opts_.svid%2) && !(rand()%4)) || now==srvs_.now+del) // send message every 4s
@@ -4139,6 +4167,9 @@ public:
   void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
   void ofip_delete_user(uint32_t user);
   void ofip_change_pkey(uint8_t* user);
+  void ofip_readwrite();
+  void ofip_readonly();
+  bool ofip_isreadonly();
 
   //FIXME, move this to servers.hpp
   //std::set<uint16_t> last_svid_dbl; //list of double spend servers in last block
@@ -4218,6 +4249,7 @@ private:
   std::set<uint16_t> dbl_srvs_; //list of detected double servers
   bool iamvip;
   bool block_only;
+  bool panic;
 
   boost::mutex cand_;
   boost::mutex wait_;

@@ -71,15 +71,14 @@ void signal_handler(int signal)
       fflush(stdlog);}
     std::signal(SIGABRT,SIG_DFL);
     abort();}
-  if(signal==SIGINT || signal==SIGQUIT || signal==SIGTERM){
+  if(signal==SIGINT || signal==SIGQUIT || signal==SIGTERM || signal==SIGUSR1){
     if(!finish){
       prom.set_value(signal);
       finish=true;}}
 }
 
 int main(int argc, char* argv[])
-{ std::future<int> fut=prom.get_future();
-  std::signal(SIGINT,signal_handler);
+{ std::signal(SIGINT,signal_handler);
   std::signal(SIGQUIT,signal_handler);
   std::signal(SIGABRT,signal_handler);
   std::signal(SIGTERM,signal_handler);
@@ -87,7 +86,7 @@ int main(int argc, char* argv[])
   //std::signal(SIGHUP,signal_handler); //maybe used by asio
   //std::signal(SIGILL,signal_handler);
   //std::signal(SIGFPE,signal_handler);
-  //std::signal(SIGUSR1,signal_handler);
+  std::signal(SIGUSR1,signal_handler);
   //std::signal(SIGUSR2,signal_handler);
   stdlog=fopen("log.txt","w");
   options opt;
@@ -97,14 +96,22 @@ int main(int argc, char* argv[])
   fprintf(lock,"%s:%d/%d\n",opt.addr.c_str(),opt.port,opt.svid);
   fclose(lock);
   try{
-    server s(opt);
-    office o(opt,s);
-    s.ofip=&o;
-    s.start();
-    fut.get();
-    ELOG("Shutting down\n");
-    o.stop();
-    s.stop(); }
+    int signal=SIGUSR1;
+    while(signal==SIGUSR1){
+      std::future<int> fut=prom.get_future();
+      server s(opt);
+      office o(opt,s);
+      s.ofip=&o;
+      s.start();
+      signal=fut.get();
+      if(signal==SIGUSR1){
+        ELOG("\n\nRESTARTING\n\n\n");}
+      else{
+        ELOG("Shutting down\n");}
+      o.stop();
+      s.stop();
+      prom=std::promise<int>();
+      finish=false;}}
   catch (std::exception& e){
     ELOG("MAIN Exception: %s\n",e.what());}
   fclose(stdlog);
@@ -184,6 +191,15 @@ void server::ofip_delete_user(uint32_t auser)
 void server::ofip_change_pkey(uint8_t* pkey)
 {	memcpy(ofip->pkey,pkey,32);
 }
+void server::ofip_readwrite()
+{	ofip->readonly=false;
+}
+void server::ofip_readonly()
+{	ofip->readonly=true;
+}
+bool server::ofip_isreadonly()
+{	return(ofip->readonly);
+}
 
 // server <-> peer
 void server::peer_set(std::set<peer_ptr>& peers)
@@ -207,6 +223,12 @@ void server::peer_clean() //LOCK: peer_ missing_ mtx_
 		if(svids.find((*pi)->svid)==svids.end()){
 			missing_sent_remove((*pi)->svid);}
 		(*pi)->stop();}
+	if(svids.empty() && !opts_.init && !do_sync){
+		ELOG("ERROR: no peers, panic\n");
+		panic=true;
+		if(!ofip_isreadonly()){
+			ELOG("ERROR: no peers, set office readonly\n");
+			ofip_readonly();}}
 }
 void server::disconnect(uint16_t svid)
 {	std::set<peer_ptr> peers;
@@ -319,13 +341,18 @@ void server::start_accept()
 	acceptor_.async_accept(new_peer->socket(),boost::bind(&server::peer_accept,this,new_peer,boost::asio::placeholders::error));
 }
 void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error)
-{	if (!error){
-		peer_.lock();
-		peers_.insert(new_peer);
-		peer_.unlock();
-		new_peer->accept();}
-	else{
+{	uint32_t now=time(NULL);
+	if (now<srvs_.now+BLOCKSEC){
+		DLOG("WARNING: dropping peer connection while creating new block\n");
 		new_peer->stop();}
+	else{
+		if (!error){
+			peer_.lock();
+			peers_.insert(new_peer);
+			peer_.unlock();
+			new_peer->accept();}
+		else{
+			new_peer->stop();}}
 	start_accept();
 }
 void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator)

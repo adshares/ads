@@ -12,6 +12,7 @@ public:
       peer_io_service_(),
       work_(peer_io_service_),
       socket_(peer_io_service_),
+      iothp_(NULL),
       server_(srv),
       incoming_(in),
       srvs_(srvs),
@@ -63,7 +64,8 @@ public:
     //iothp_->interrupt();
     //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     //DLOG("%04X PEER JOIN\n",svid);
-    iothp_->join(); //try joining yourself error
+    if(iothp_ != NULL){
+      iothp_->join();} //try joining yourself error
     //DLOG("%04X PEER CLOSE\n",svid);
     socket_.close();
     //socket_.release(NULL);
