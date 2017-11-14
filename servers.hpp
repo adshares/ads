@@ -1058,48 +1058,52 @@ public:
 		ed25519_key2text(hash,head.nowhash,SHA256_DIGEST_LENGTH);
 		ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
 	}
-	void save_signature(uint16_t svid,uint8_t* sig,bool ok)
-	{	static boost::mutex local_;
-		boost::lock_guard<boost::mutex> lock(local_);
+	void save_signature(uint32_t path,uint16_t svid,uint8_t* sig,bool ok)
+	{	extern boost::mutex siglock;
+		boost::lock_guard<boost::mutex> lock(siglock);
 		char filename[64];
-		//sprintf(filename,"blk/%03X/%05X/signatures.txt",now>>20,now&0xFFFFF);
+		//sprintf(filename,"blk/%03X/%05X/signatures.txt",path>>20,path&0xFFFFF);
 		//char hash[4*SHA256_DIGEST_LENGTH];
 		//ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
 		//FILE *fp=fopen(filename,"a");
 		//if(fp==NULL){
-		//	DLOG("ERROR, creating blk/%03X/%05X/signatures.ok, very bad :-(",now>>20,now&0xFFFFF);
+		//	DLOG("ERROR, creating blk/%03X/%05X/signatures.ok, very bad :-(",path>>20,path&0xFFFFF);
 		//	return;}
 		//fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
 		//fclose(fp);
 		if(ok){
-			DLOG("BLOCK ok\n");
-			vok++;
-			sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);}
+			//vok++;
+			sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
+			DLOG("BLOCK ok (%s)\n",filename);}
 		else{
 //FIXME, no point to save "no-" signatures without corresponding block
-			DLOG("BLOCK differs\n");
-			vno++;
-			sprintf(filename,"blk/%03X/%05X/signatures.no",now>>20,now&0xFFFFF);}
+			//vno++;
+			sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
+			DLOG("BLOCK differs (%s)\n",filename);}
 		svsi_t old;
 		svsi_t da;
 		memcpy(da,&svid,2);
 		memcpy(da+2,sig,2*SHA256_DIGEST_LENGTH);
 		//int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
 		int fd=open(filename,O_RDWR|O_CREAT,0644);
+		if(fd<0){
+			DLOG("ERROR, failed to save signatures in %s\n",filename);
+			return;}
 		int num=0;
 		while(read(fd,&old,sizeof(svsi_t))==sizeof(svsi_t)){
 			num++;
 			if(!memcmp(&old,&da,sizeof(svsi_t))){
 				close(fd);
 				return;}}
-		if(ok){
-			if(num+1<vok){
-				vok=num+1;}}
-		else{
-			if(num+1<vno){
-				vno=num+1;}}
                 write(fd,da,sizeof(svsi_t));
 		close(fd);
+		if(path==now){
+			if(ok){
+				if(num+1<vok){
+					vok=num+1;}}
+			else{
+				if(num+1<vno){
+					vno=num+1;}}}
 	}
 	bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok) // does not use any local data
 	{	int fd;
@@ -1169,7 +1173,9 @@ public:
 		return true;
 	}
 	void put_signatures(header_t& head,svsi_t* svsi) //FIXME, save in a file named based on nowhash ".../sig_%.64s.dat"
-	{	int fd;
+	{	extern boost::mutex siglock;
+		boost::lock_guard<boost::mutex> lock(siglock);
+	 	int fd;
 		char filename[64];
 		sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
 		fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
@@ -1209,7 +1215,7 @@ public:
 				header_print(head);
 				continue;}
 			else if(save){
-				save_signature(svid,data+2,true);}
+				save_signature(head.now,svid,data+2,true);}
 			if(j!=i){
 				memcpy(svsi+j,svsi+i,sizeof(svsi_t));}
 			j++;}

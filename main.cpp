@@ -55,6 +55,7 @@
 
 bool finish=false;
 boost::mutex flog;
+boost::mutex siglock;
 FILE* stdlog=NULL;
 candidate_ptr nullcnd;
 message_ptr nullmsg;
@@ -104,8 +105,11 @@ int main(int argc, char* argv[])
       office o(opt,s);
       s.ofip=&o;
       s.start();
+      opt.back=0;
       signal=fut.get();
       if(signal==SIGUSR1){
+        opt.fast=false;
+        opt.init=false;
         ELOG("\n\nRESTARTING\n\n\n");}
       else{
         ELOG("Shutting down\n");}

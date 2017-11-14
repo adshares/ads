@@ -1768,7 +1768,7 @@ public:
     header_t* h=(header_t*)(msg->data+4+64+10); 
     bool no=memcmp(h->nowhash,last_srvs_.nowhash,sizeof(hash_t));
     //blk_.lock();
-    last_srvs_.save_signature(msg->svid,msg->data+4,!no);
+    last_srvs_.save_signature(last_srvs_.now,msg->svid,msg->data+4,!no);
     //blk_.unlock();
     DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
     update(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
@@ -3911,11 +3911,7 @@ public:
       if(last_srvs_.nodes.size()<=2){
         ELOG("FAILED to connect to any peers, fatal\n");
         SHUTDOWN_AND_RETURN();}}
-    while(1){
-      if(panic){
-        boost::this_thread::sleep(boost::posix_time::seconds(1));}
-      else{
-        boost::this_thread::sleep(boost::posix_time::seconds(5));}
+    for(;;boost::this_thread::sleep(boost::posix_time::seconds(panic?1:5))){
       RETURN_ON_SHUTDOWN();
       peer_clean(); //cleans all peers with killme==true
       //uint32_t now=time(NULL)+5; // do not connect if close to block creation time
