@@ -230,6 +230,13 @@ void server::peer_clean() //LOCK: peer_ missing_ mtx_
 			ELOG("ERROR: no peers, set office readonly\n");
 			ofip_readonly();}}
 }
+void server::peer_killall()
+{	std::set<peer_ptr> peers;
+        peer_set(peers);
+	DLOG("KILL ALL PEERS\n");
+	for(auto pi=peers.begin();pi!=peers.end();pi++){
+		(*pi)->stop();}
+}
 void server::disconnect(uint16_t svid)
 {	std::set<peer_ptr> peers;
         peer_set(peers);

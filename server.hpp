@@ -206,14 +206,15 @@ public:
     io_service_.stop();
     if(ioth_!=NULL){
       ioth_->join();}
-    threadpool.join_all();
-    busy_msgs_.clear(); // not needed
+    //busy_msgs_.clear(); // not needed
     if(peers_thread!=NULL){
       peers_thread->interrupt();
       peers_thread->join();}
     if(clock_thread!=NULL){
       clock_thread->interrupt();
       clock_thread->join();}
+    threadpool.join_all();
+    peer_killall();
     DLOG("Server shutdown completed\n");
   }
 
@@ -440,6 +441,7 @@ public:
     uint32_t now=time(NULL);
     now-=now%BLOCKSEC;
     do_validate=1;
+    RETURN_ON_SHUTDOWN();
     for(int v=0;v<VALIDATORS;v++){
       threadpool.create_thread(boost::bind(&server::validator, this));}
 //FIXME, must start with a matching nowhash and load serv_
@@ -1108,6 +1110,7 @@ public:
       LAST_block_final(best);
       if(!winner->elected_accept()){
         do_validate=1;
+        RETURN_ON_SHUTDOWN();
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}}
     if(do_block==2 && winner->elected_accept()){
@@ -3960,9 +3963,9 @@ public:
     block_only=false;
     if(!do_validate){
       do_validate=1;
+      RETURN_ON_SHUTDOWN();
       for(int v=0;v<VALIDATORS;v++){
         threadpool.create_thread(boost::bind(&server::validator, this));}}
-
     //TODO, consider validating local messages faster to limit delay in this region
     //finish recycle submitted office messages
     while(msid_>srvs_.nodes[opts_.svid].msid){
@@ -4064,6 +4067,7 @@ public:
         std::set<uint64_t> msg_del; // could be also svid_msha
         save_candidate(srvs_.now,cand,msg_add,msg_del,opts_.svid); // do after prepare_poll
         do_validate=1;
+        RETURN_ON_SHUTDOWN();
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}
       if(do_block>0 && do_block<3){
@@ -4086,6 +4090,7 @@ public:
         do_block=0;
         do_validate=1;
         block_only=false;
+        RETURN_ON_SHUTDOWN();
         for(int v=0;v<VALIDATORS;v++){
           threadpool.create_thread(boost::bind(&server::validator, this));}}
       boost::this_thread::sleep(boost::posix_time::seconds(1));
@@ -4155,6 +4160,7 @@ public:
   //void leave(peer_ptr participant);
   void peer_set(std::set<peer_ptr>& peers);
   void peer_clean();
+  void peer_killall();
   void disconnect(uint16_t svid);
   const char* peers_list();
   void peers_known(std::set<uint16_t>& list);
