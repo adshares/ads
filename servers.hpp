@@ -1099,10 +1099,10 @@ public:
 		close(fd);
 		if(path==now){
 			if(ok){
-				if(num+1<vok){
+				if(num+1!=vok){
 					vok=num+1;}}
 			else{
-				if(num+1<vno){
+				if(num+1!=vno){
 					vno=num+1;}}}
 	}
 	bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok) // does not use any local data
