@@ -171,6 +171,15 @@ char* print_amount(int64_t amount)
 #error Unknown pointer size or missing size macros!
 #endif
 
+uint32_t hexdec(std::string str, uint32_t fallback = 0)
+{
+	try {
+		return std::stoul(str, nullptr, 16);
+	} catch(std::exception &ex) {
+		return fallback;
+	}
+}
+
 usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
@@ -215,7 +224,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     to_bank=json_bank.get();}
   boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
   if(json_from){
-    to_from=std::stoul(json_from.get(), nullptr, 16);}
+    to_from=hexdec(json_from.get());}
   boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
   if(json_msid){
     sts.msid=json_msid.get();}
@@ -224,7 +233,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     to_status=json_status.get();}
   boost::optional<std::string> json_block=pt.get_optional<std::string>("block");
   if(json_block){
-    to_block=std::stoul(json_block.get(), nullptr, 16);}
+    to_block=hexdec(json_block.get());}
 
   deduct=0;
   fee=0;
@@ -262,7 +271,7 @@ usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
     uint32_t to_to=0;
     boost::optional<std::string> json_to=pt.get_optional<std::string>("to");
     if(json_to){
-      to_to=std::stoul(json_to.get(), nullptr, 16);} //                                    !!!!!!!             !!!!!
+      to_to=hexdec(json_to.get());} //                                    !!!!!!!             !!!!!
     txs=boost::make_shared<usertxs>(TXSTYPE_BLK,sts.bank,sts.user,to_from,now,to_bank,to_to,to_mass,to_info,(const char*)NULL);}
   else if(!run.compare(txsname[TXSTYPE_TXS])){
     uint32_t node_msid=0;
