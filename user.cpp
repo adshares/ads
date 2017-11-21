@@ -945,10 +945,13 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     pt.put("previous_block_time",now-BLOCKSEC);
 
     if(txs->ttype<TXSTYPE_INF){
+      pt.put("tx.account_msid",sts.msid);
+      logpt.put("tx.account_msid",sts.msid);
       char tx_user_hashin[65];tx_user_hashin[64]='\0';
       ed25519_key2text(tx_user_hashin,sts.ha,32);
       pt.put("tx.account_hashin",tx_user_hashin);
       logpt.put("tx.account_hashin",tx_user_hashin);
+
       char tx_user_hashout[65];tx_user_hashout[64]='\0';
       SHA256_CTX sha256;
       SHA256_Init(&sha256);
@@ -963,9 +966,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       //FIXME calculate deduction and fee
       pt.put("tx.deduct",print_amount(deduct));
       pt.put("tx.fee",print_amount(fee));}
-    else{
-      pt.put("tx.account_msid",sts.msid);
-      logpt.put("tx.account_msid",sts.msid);}
+
     if(sts.msid==1){
       char tx_user_public_key[65];tx_user_public_key[64]='\0';
       ed25519_key2text(tx_user_public_key,sts.pk,32);
