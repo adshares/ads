@@ -180,6 +180,15 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0)
 	}
 }
 
+/**
+   Function which is parsing json input data ant transform it to usertxs
+
+   @param[out]      sts is a client settings
+   @param[in]       line is a JSON data.
+   @param[in]       deduct is a ....
+   @param[in]       fee is command fee.
+   @return struct with user command data.
+ */
 usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
 { uint16_t to_bank=0;
   uint32_t to_user=0;

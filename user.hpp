@@ -126,14 +126,21 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 	1+2+4+4+4,		//22:MGS /amsid=blk_number/
 	1+2+4+4+4+2+4,		//22:MSG /amsid=blk_number buser=node_msid/
 	1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
-	
-class usertxs :
-  public boost::enable_shared_from_this<usertxs>
+
+
+/**
+*  @brief Class tha keeping data for user commands
+*/
+class usertxs
 {
 public:
+    /** command type */
 	uint8_t  ttype;
+    /** node id */
 	uint16_t abank;
+    /** user id */
 	uint32_t auser;
+    /** user id */
 	uint32_t amsid;
 	uint32_t ttime;
 	uint16_t bbank; // also broadcast message len OR number of to_addresses in MPT transaction

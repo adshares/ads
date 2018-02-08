@@ -3,6 +3,11 @@
 
 //this could all go to the office class and we could use just the start() function
 
+/**
+ * \brief Main class for esc client.
+ *         Brief description continued.
+ */
+
 class client : public boost::enable_shared_from_this<client>
 {
 public:
