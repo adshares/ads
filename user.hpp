@@ -40,92 +40,92 @@
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
 const char* txsname[TXSTYPE_MAX]={
-	"empty",		//0
-	"dividend",		//1
-	"account_created",	//2
-	"broadcast",		//3
-	"send_one",		//4
-	"send_many",		//5
-	"create_account",	//6
-	"create_node",		//7
-	"retrieve_funds",	//8
-	"change_account_key",	//9
-	"change_node_key",	//10
-	"set_account_status",	//11 NEW
-	"set_node_status",	//12 NEW
-	"unset_account_status",	//13 NEW
-	"unset_node_status",	//14 NEW
-	"log_account",		//15 NEW
-	"get_account",		//16 also 'get_me'
-	"get_log",		//17
-	"get_broadcast",	//18
-	"get_blocks",		//19
-	"get_transaction",	//20
-	"get_vipkeys",		//21
-	"get_signatures",	//22
-	"get_block",		//23
-	"get_accounts",		//24
-	"get_message_list",	//25
-	"get_message"};		//26
+        "empty",		//0
+        "dividend",		//1
+        "account_created",	//2
+        "broadcast",		//3
+        "send_one",		//4
+        "send_many",		//5
+        "create_account",	//6
+        "create_node",		//7
+        "retrieve_funds",	//8
+        "change_account_key",	//9
+        "change_node_key",	//10
+        "set_account_status",	//11 NEW
+        "set_node_status",	//12 NEW
+        "unset_account_status",	//13 NEW
+        "unset_node_status",	//14 NEW
+        "log_account",		//15 NEW
+        "get_account",		//16 also 'get_me'
+        "get_log",		//17
+        "get_broadcast",	//18
+        "get_blocks",		//19
+        "get_transaction",	//20
+        "get_vipkeys",		//21
+        "get_signatures",	//22
+        "get_block",		//23
+        "get_accounts",		//24
+        "get_message_list",	//25
+        "get_message"};		//26
 
 const char* logname[TXSTYPE_MAX]={
-	"node_started",		//0
-	"unknown",		//1
-	"account_created",	//2
-	"broadcast",		//3
-	"send_one",		//4
-	"send_many",		//5
-	"create_account",	//6
-	"create_node",		//7
-	"retrieve_funds",	//8
-	"change_account_key",	//9
-	"change_node_key",	//10
-	"set_account_status",	//11 NEW
-	"set_node_status",	//12 NEW
-	"unset_account_status",	//13 NEW
-	"unset_node_status",	//14 NEW
-	"log_account",		//15 NEW
-	"dividend",		//16
-	"bank_profit",		//17
-	"unknown",		//18
-	"unknown",		//19
-	"unknown",		//20
-	"unknown",		//21
-	"unknown",		//22
-	"unknown",		//23
-	"unknown",		//24
-	"unknown",		//25
-	"unknown"};		//26
+        "node_started",		//0
+        "unknown",		//1
+        "account_created",	//2
+        "broadcast",		//3
+        "send_one",		//4
+        "send_many",		//5
+        "create_account",	//6
+        "create_node",		//7
+        "retrieve_funds",	//8
+        "change_account_key",	//9
+        "change_node_key",	//10
+        "set_account_status",	//11 NEW
+        "set_node_status",	//12 NEW
+        "unset_account_status",	//13 NEW
+        "unset_node_status",	//14 NEW
+        "log_account",		//15 NEW
+        "dividend",		//16
+        "bank_profit",		//17
+        "unknown",		//18
+        "unknown",		//19
+        "unknown",		//20
+        "unknown",		//21
+        "unknown",		//22
+        "unknown",		//23
+        "unknown",		//24
+        "unknown",		//25
+        "unknown"};		//26
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
-	1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
-	1+2+4,			//1:CON (port,ipv4), (port==0) => bank shutting down , should add office addr:port
-	1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
-	1+2+4+4+4+2,		//3:BRO 'bbank' is message length
-	1+2+4+4+4+2+4+8+32,	//4:PUT, extra parameter = official message (32 byte)
-	1+2+4+4+4+2,		//5:MPT 'bbank' is number of to_accounts
-	1+2+4+4+4+2,		//6:USR
-	1+2+4+4+4,		//7:BNK
-	1+2+4+4+4+2+4,		//8:GET,
-	1+2+4+4+4+32,		//9:KEY
-	1+2+4+4+4+2+32,		//10:BKY CHANGED ! (added bank id), old key appended to undo message
-	1+2+4+4+4+2+4+2,	//11:SUS NEW
-	1+2+4+4+4+2+4,		//12:SBS NEW
-	1+2+4+4+4+2+4+2,	//13:UUS NEW
-	1+2+4+4+4+2+4,		//14:UBS NEW
-	1+2+4+4+4,		//15:SAV NEW , server adds 128 bytes (sizeof(user_t))
-	1+2+4+2+4+4,		//16:INF
-	1+2+4+2+4+4,		//17:LOG
-	1+2+4+4+4,		//18:BLG /amsid=blk_number/
-	1+2+4+4+4+4,		//19:BLK /amsid=blk_from blk_to/
-	1+2+4+4+4+4+2,		//20:TXS /bbank=node_ buser=node-msid_ amsid=position/
-	1+2+4+4+32,		//21:VIP /tinfo=vip_hash/
-	1+2+4+4+4,		//22:SIG /amsid=blk_number/
-	1+2+4+4+4,		//22:NDS /amsid=blk_number/
-	1+2+4+4+4+2,		//22:NOD /amsid=blk_number/
-	1+2+4+4+4,		//22:MGS /amsid=blk_number/
-	1+2+4+4+4+2+4,		//22:MSG /amsid=blk_number buser=node_msid/
-	1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
+        1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
+        1+2+4,			//1:CON (port,ipv4), (port==0) => bank shutting down , should add office addr:port
+        1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
+        1+2+4+4+4+2,		//3:BRO 'bbank' is message length
+        1+2+4+4+4+2+4+8+32,	//4:PUT, extra parameter = official message (32 byte)
+        1+2+4+4+4+2,		//5:MPT 'bbank' is number of to_accounts
+        1+2+4+4+4+2,		//6:USR
+        1+2+4+4+4,		//7:BNK
+        1+2+4+4+4+2+4,		//8:GET,
+        1+2+4+4+4+32,		//9:KEY
+        1+2+4+4+4+2+32,		//10:BKY CHANGED ! (added bank id), old key appended to undo message
+        1+2+4+4+4+2+4+2,	//11:SUS NEW
+        1+2+4+4+4+2+4,		//12:SBS NEW
+        1+2+4+4+4+2+4+2,	//13:UUS NEW
+        1+2+4+4+4+2+4,		//14:UBS NEW
+        1+2+4+4+4,		//15:SAV NEW , server adds 128 bytes (sizeof(user_t))
+        1+2+4+2+4+4,		//16:INF
+        1+2+4+2+4+4,		//17:LOG
+        1+2+4+4+4,		//18:BLG /amsid=blk_number/
+        1+2+4+4+4+4,		//19:BLK /amsid=blk_from blk_to/
+        1+2+4+4+4+4+2,		//20:TXS /bbank=node_ buser=node-msid_ amsid=position/
+        1+2+4+4+32,		//21:VIP /tinfo=vip_hash/
+        1+2+4+4+4,		//22:SIG /amsid=blk_number/
+        1+2+4+4+4,		//22:NDS /amsid=blk_number/
+        1+2+4+4+4+2,		//22:NOD /amsid=blk_number/
+        1+2+4+4+4,		//22:MGS /amsid=blk_number/
+        1+2+4+4+4+2+4,		//22:MSG /amsid=blk_number buser=node_msid/
+        1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
 
 
 /**

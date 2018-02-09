@@ -189,7 +189,7 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0)
    @param[in]       fee is command fee.
    @return struct with user command data.
  */
-usertxs_ptr run_json(settings& sts,char* line,int64_t& deduct,int64_t& fee)
+usertxs_ptr run_json(settings& sts,const char* line,int64_t& deduct,int64_t& fee)
 { uint16_t to_bank=0;
   uint32_t to_user=0;
    int64_t to_mass=0;
