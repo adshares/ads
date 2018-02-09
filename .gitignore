@@ -5,3 +5,7 @@ escd
 .old
 perl
 tmp
+*.user
+src/build/*
+CmakeCache.txt
+
