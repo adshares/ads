@@ -17,7 +17,7 @@ public:
     virtual bool sendData(uint8_t* buff, int size)      = 0;
     virtual bool sendData(std::vector<uint8_t> buff)    = 0;
     virtual bool readData(uint8_t* buff, int size)      = 0;
-    virtual bool readData(char* buff, int size)      = 0;
+    virtual bool readData(char* buff, int size)         = 0;
     virtual bool readData(std::vector<uint8_t>& buff)   = 0;
     virtual ~INetworkClient() = default;
 };
@@ -37,7 +37,6 @@ public:
     virtual bool readData(uint8_t* buff, int size)      override;
     virtual bool readData(char* buff, int size)         override;
     virtual bool readData(std::vector<uint8_t>& buff)   override;
-
 
 
 private:

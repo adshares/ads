@@ -40,6 +40,8 @@ bool NetworkClient::connect()
         }
         catch(std::exception& e)
         {
+            std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+            m_connected = false;
             return false;
         }
 
@@ -61,6 +63,7 @@ bool NetworkClient::disConnect()
         }
         catch(std::exception& e)
         {
+            std::cerr << "NetworkClient Exception: " << e.what() << "\n";
             return false;
         }
 
@@ -78,12 +81,20 @@ bool NetworkClient::reconnect()
 
 bool NetworkClient::sendData(std::vector<uint8_t> buff)
 {
-    if(m_connected && m_socket)
+    try
     {
-        auto size = buff.size();
-        if( boost::asio::write(*m_socket.get(), boost::asio::buffer(std::move(buff))) == size ){
-            return true;
+        if(m_connected && m_socket)
+        {
+            auto size = buff.size();
+            if( boost::asio::write(*m_socket.get(), boost::asio::buffer(std::move(buff))) == size ){
+                return true;
+            }
         }
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
     }
 
     return false;
@@ -91,11 +102,19 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff)
 
 bool NetworkClient::sendData(uint8_t* buff, int size)
 {
-    if(m_connected && m_socket)
+    try
     {
-        if( boost::asio::write(*m_socket.get(), boost::asio::buffer(buff, size)) == (std::size_t)size ){
-            return true;
+        if(m_connected && m_socket)
+        {
+            if( boost::asio::write(*m_socket.get(), boost::asio::buffer(buff, size)) == (std::size_t)size ){
+                return true;
+            }
         }
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
     }
 
     return false;
@@ -103,12 +122,20 @@ bool NetworkClient::sendData(uint8_t* buff, int size)
 
 bool NetworkClient::readData(std::vector<uint8_t>& buff)
 {
-    if(m_connected && m_socket)
+    try
     {
-        auto size = buff.size();
-        if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff)) == size ){
-            return true;
+        if(m_connected && m_socket)
+        {
+            auto size = buff.size();
+            if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff)) == size ){
+                return true;
+            }
         }
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
     }
 
     return false;
@@ -116,11 +143,18 @@ bool NetworkClient::readData(std::vector<uint8_t>& buff)
 
 bool NetworkClient::readData(uint8_t* buff, int size)
 {
-    if(m_connected && m_socket)
-    {
-        if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ){
-            return true;
+    try{
+        if(m_connected && m_socket)
+        {
+            if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ){
+                return true;
+            }
         }
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
     }
 
     return false;
@@ -128,11 +162,18 @@ bool NetworkClient::readData(uint8_t* buff, int size)
 
 bool NetworkClient::readData(char* buff, int size)
 {
-    if(m_connected && m_socket)
-    {
-        if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ){
-            return true;
+    try{
+        if(m_connected && m_socket)
+        {
+            if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ){
+                return true;
+            }
         }
+    }
+    catch(std::exception& e)
+    {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
     }
 
     return false;
