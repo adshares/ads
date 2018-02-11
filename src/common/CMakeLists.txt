@@ -6,10 +6,12 @@ SET (SRCS_LST
           servers.hpp
           hash.hpp
           message.hpp
+          user.hpp
+          user.cpp
           )
 
 
-find_package(Boost REQUIRED COMPONENTS thread system program_options)
+find_package(Boost REQUIRED COMPONENTS serialization thread system program_options)
 
 add_library(common ${SRCS_LST})
 include_directories(common ${Boost_INCLUDE_DIRS})
