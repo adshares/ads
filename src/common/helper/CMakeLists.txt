@@ -1,11 +1,12 @@
 SET (SOURCE
     ${SOURCE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/ascii.cpp
     PARENT_SCOPE
     )
 
 SET (HEADERS
     ${HEADERS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/interfaces.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ascii.h
     PARENT_SCOPE
     )
 

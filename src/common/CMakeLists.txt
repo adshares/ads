@@ -1,9 +1,9 @@
-SET(SRCS_LST
+SET(SOURCE
     networkclient.cpp
     user.cpp
 )
 
-SET(HDR_LST
+SET(HEADERS
     default.hpp
     hlog.hpp
     servers.hpp
@@ -14,10 +14,11 @@ SET(HDR_LST
 )
 
 add_subdirectory(abstraction)
-#add_subdirectory(command)
+add_subdirectory(helper)
+add_subdirectory(command)
 
 
-add_library(common ${SRCS_LST} ${HDR_LST})
+add_library(common ${SOURCE} ${HEADERS})
 
 find_package(Boost REQUIRED COMPONENTS thread system program_options)
 include_directories(common ${Boost_INCLUDE_DIRS})

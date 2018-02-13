@@ -1,0 +1,13 @@
+SET (SOURCE
+    ${SOURCE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/getaccount.cpp
+    PARENT_SCOPE
+    )
+
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/pods.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getaccount.h
+    PARENT_SCOPE
+    )
+

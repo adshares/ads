@@ -31,6 +31,7 @@
 #include <sstream>
 #include <stack>
 #include <vector>
+#include <iostream>
 
 
 #include "default.hpp"
@@ -42,6 +43,8 @@
 #include "message.hpp"
 #include "servers.hpp"
 #include "networkclient.h"
+#include "helper/ascii.h"
+#include "command/getaccount.h"
 
 
 const char* txsname[TXSTYPE_MAX]={
@@ -236,7 +239,7 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0)
 	}
 }
 
-usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlock> &txs2)
+usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> &txs2)
 {
     uint16_t    to_bank=0;
     uint32_t    to_user=0;
@@ -306,15 +309,17 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   if(!run.compare("get_me"))
   {
     txs  = boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
-    txs2.reset( new userblock(sts.bank,sts.user,sts.bank,sts.user,now));
+    txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
   }
   else if(!run.compare(txsname[TXSTYPE_INF]))
   {
     if(!to_bank && !to_user) { // no target account specified
-      txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
+        txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
+        txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
     }
     else{
-      txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
+       txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
+        txs2.reset( new GetAccount(sts.bank,sts.user,to_bank,to_user,now));
     }
   }
   else if(!run.compare(txsname[TXSTYPE_LOG])){
@@ -1003,7 +1008,7 @@ void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
   pt.put("block_time",blocktime);
 }
 
-void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlock>& txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
+void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 {
     boost::property_tree::ptree pt;
     boost::property_tree::ptree logpt;
@@ -1012,22 +1017,19 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlock>& txs
          std::cerr<<"ERROR cannot connect to server\n";
     }
 
-
     if(txs->getType() == TXSTYPE_INF)
     {
-        uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-        char* tx_data=(char*)malloc(2*( txs->getDataSize() + txs->getSignatureSize() )+1);
-        tx_data[2*(txs->getDataSize() +  txs->getSignatureSize())]='\0';
-        ed25519_key2text(tx_data,txs->getData(), txs->getDataSize() + txs->getSignatureSize());
-        pt.put("tx.data",tx_data);
-        logpt.put("tx.data",tx_data);
-        free(tx_data);
+        std::stringstream tx_data;
 
-        uint32_t now=time(NULL);
-        now-=now%BLOCKSEC;
-        pt.put("current_block_time",now);
-        pt.put("previous_block_time",now-BLOCKSEC);
+        Helper::ed25519_key2text(tx_data, txs->getData(), txs->getDataSize() + txs->getSignatureSize());
 
+        pt.put("tx.data",tx_data.str());
+        logpt.put("tx.data",tx_data.str());
+
+        uint32_t now = time(NULL);
+        now -= now%BLOCKSEC;
+        pt.put("current_block_time", now);
+        pt.put("previous_block_time", now - BLOCKSEC);
 
         if(! netClient.sendData(txs->getData(), txs->getDataSize() + txs->getSignatureSize() )){
             return;
@@ -1046,7 +1048,7 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlock>& txs
             print_user(myuser,pt,true,txs->getBankId(),txs->getUserId(),sts);
         }
 
-        boost::property_tree::write_json(std::cout,pt, sts.nice);
+        boost::property_tree::write_json(std::cout, pt, sts.nice);
     }
 
 }
@@ -1060,6 +1062,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     char* tx_data=(char*)malloc(2*txs->size+1);
     tx_data[2*txs->size]='\0';
     ed25519_key2text(tx_data,txs->data,txs->size);
+    //create asa tx.data
     pt.put("tx.data",tx_data);
     logpt.put("tx.data",tx_data);
     free(tx_data);

@@ -1,7 +1,5 @@
 *.out
 *.o
-esc
-escd
 .old
 perl
 tmp

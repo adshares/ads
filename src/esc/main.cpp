@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
                 continue;
             }
 
-            std::unique_ptr<IBlock> t2;
+            std::unique_ptr<IBlockCommand> t2;
 
             txs = run_json(sts, line, deduct, fee, t2);
 
