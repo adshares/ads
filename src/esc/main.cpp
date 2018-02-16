@@ -45,18 +45,18 @@ int main(int argc, char* argv[])
             txs = run_json(sts, line, deduct, fee, t2);
 
             if( !txs ){
-             //   continue;
+                continue;
             }
 
             //temporary solution for reimplementing
-            if(txs->ttype == TXSTYPE_INF )
+            if(txs->ttype == TXSTYPE_INF)
             {
                 talk2(netClient, sts, t2, deduct, fee);
             }
             else
             {
 
-                talk(endpoint_iterator,socket,sts,txs,deduct,fee);
+                talk(endpoint_iterator, socket, sts, txs, deduct, fee);
             }
         }
       }
