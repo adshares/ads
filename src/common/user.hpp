@@ -43,7 +43,7 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
 #include <array>
 
 
-class Block : public IBlockCommand
+class block : public IBlockCommand
 {
 public:
     virtual void sign(uint8_t* hash, uint8_t* sk, uint8_t* pk) override

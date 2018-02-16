@@ -6,21 +6,8 @@
 #include <memory>
 
 #include <boost/asio.hpp>
+#include "abstraction/interfaces.h"
 
-class INetworkClient
-{
-public:
-    //INetworkClient(const std::string& address, const std::string& port);
-    virtual bool connect()      = 0;
-    virtual bool reconnect()    = 0;
-    virtual bool disConnect()   = 0;
-    virtual bool sendData(uint8_t* buff, int size)      = 0;
-    virtual bool sendData(std::vector<uint8_t> buff)    = 0;
-    virtual bool readData(uint8_t* buff, int size)      = 0;
-    virtual bool readData(char* buff, int size)         = 0;
-    virtual bool readData(std::vector<uint8_t>& buff)   = 0;
-    virtual ~INetworkClient() = default;
-};
 
 class NetworkClient : public INetworkClient
 {
@@ -29,9 +16,9 @@ public:
     virtual ~NetworkClient();
 
     // INetworkClient interface
-    virtual bool connect()      override;
-    virtual bool reconnect()    override;
-    virtual bool disConnect()   override;
+    virtual bool connect()                              override;
+    virtual bool reconnect()                            override;
+    virtual bool disConnect()                           override;
     virtual bool sendData(uint8_t* buff, int size)      override;
     virtual bool sendData(std::vector<uint8_t> buff)    override;
     virtual bool readData(uint8_t* buff, int size)      override;

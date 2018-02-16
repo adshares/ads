@@ -41,9 +41,9 @@
 
 struct userinfo
 {
+    userinfo() = default;
     userinfo(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
-        : _ttype(TXSTYPE_INF),
-          _abank(abank),
+        : _abank(abank),
           _auser(auser),
           _bbank(bbank),
           _buser(buser),
@@ -51,27 +51,49 @@ struct userinfo
     {
     }
 
-    uint8_t  _ttype;
-    uint16_t _abank;
-    uint32_t _auser;
-    uint16_t _bbank;
-    uint32_t _buser;
-    uint32_t _ttime;
+    uint8_t  _ttype{TXSTYPE_INF};
+
+    uint16_t _abank{0};
+    uint32_t _auser{0};
+    uint16_t _bbank{0};
+    uint32_t _buser{0};
+    uint32_t _ttime{0};
     //1+2+4+2+4+4,
 
-    //std::array<uint8_t, sizeof()
 } __attribute__((packed));
 
 struct usertxs2
 {
+    usertxs2() = default;
     usertxs2(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
         : _info(abank, auser, bbank, buser, time)
     {
     }
 
-    userinfo _info;
-    unsigned char  _sign[64];
-    //std::array<unsigned char, 64> _sign;
+    userinfo        _info;
+    unsigned char   _sign[64];
+} __attribute__((packed));
+
+
+struct accountkey
+{
+    accountkey() = default;
+    accountkey(uint16_t abank, uint32_t auser, uint32_t time, uint8_t pubkey[32])
+        : _abank(abank),
+          _auser(auser),
+          _ttime(time)
+    {
+        std::copy(pubkey, pubkey+32, _pubkey);
+    }
+
+    uint8_t         _ttype{TXSTYPE_KEY};
+    uint16_t        _abank{0};
+    uint32_t        _auser{0};
+    uint32_t        _ttime{0};
+    uint8_t         _pubkey[32];
+    uint8_t         _pubsign[32];
+    unsigned char   _sign[64];
+    //1+2+4+4+32+32+64,
 
 } __attribute__((packed));
 

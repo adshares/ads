@@ -443,15 +443,22 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     if(!to_num){
       return(NULL);}
     txs=boost::make_shared<usertxs>(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_num,to_user,to_mass,to_info,text.c_str());}
-  else if(!run.compare(txsname[TXSTYPE_PUT])){
+  else if(!run.compare(txsname[TXSTYPE_PUT]))
+  {
     boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
-    if(json_info && !parse_key(to_info,json_info,32)){
-      return(NULL);}
+
+    if(json_info && !parse_key(to_info,json_info,32)) {
+      return(NULL);
+    }
+
     txs=boost::make_shared<usertxs>(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     deduct=to_mass;
     fee=TXS_PUT_FEE(to_mass);
+
     if(sts.bank!=to_bank){
-      fee+=TXS_LNG_FEE(to_mass);}}
+      fee+=TXS_LNG_FEE(to_mass);
+    }
+  }
   else if(!run.compare(txsname[TXSTYPE_USR])){
     if(!to_bank){
       to_bank=sts.bank;}
@@ -473,6 +480,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     fee=TXS_GET_FEE;}
   else if(!run.compare(txsname[TXSTYPE_KEY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
+    //txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
     fee=TXS_KEY_FEE;}
   else if(!run.compare(txsname[TXSTYPE_BKY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
@@ -745,13 +753,15 @@ void print_log(boost::property_tree::ptree& pt,settings& sts)
       logentry.put("account_msid",ulog.umid);}
     logentry.put("amount",print_amount(ulog.weight));
     //FIXME calculate fee
-    if(txst==TXSTYPE_PUT){
+    if(txst==TXSTYPE_PUT)
+    {
       int64_t amass=fabsl(ulog.weight);
       if(ulog.node==sts.bank){
         logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));}
       else{
         logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));}
-      logentry.put("message",info);}
+      logentry.put("message",info);
+    }
     else{
       int64_t weight;
       int64_t deduct;
@@ -1008,10 +1018,23 @@ void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
   pt.put("block_time",blocktime);
 }
 
-void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
+void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee) //len can be deduced from txstype
 {
     boost::property_tree::ptree pt;
     boost::property_tree::ptree logpt;
+
+    uint32_t now = time(NULL);
+    now -= now%BLOCKSEC;
+    pt.put("current_block_time", now);
+    pt.put("previous_block_time", now - BLOCKSEC);
+
+    std::stringstream tx_data;
+
+    Helper::ed25519_key2text(tx_data, txs->getData(), txs->getDataSize() + txs->getSignatureSize());
+
+    pt.put("tx.data",tx_data.str());
+    logpt.put("tx.data",tx_data.str());
+
 
     if(!netClient.reconnect()){
          std::cerr<<"ERROR cannot connect to server\n";
@@ -1019,33 +1042,20 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
 
     if(txs->getType() == TXSTYPE_INF)
     {
-        std::stringstream tx_data;
 
-        Helper::ed25519_key2text(tx_data, txs->getData(), txs->getDataSize() + txs->getSignatureSize());
-
-        pt.put("tx.data",tx_data.str());
-        logpt.put("tx.data",tx_data.str());
-
-        uint32_t now = time(NULL);
-        now -= now%BLOCKSEC;
-        pt.put("current_block_time", now);
-        pt.put("previous_block_time", now - BLOCKSEC);
-
-        if(! netClient.sendData(txs->getData(), txs->getDataSize() + txs->getSignatureSize() )){
-            return;
-        }
-
-        char buf[sizeof(user_t)];
-
-        if(!netClient.readData(buf, sizeof(user_t)))
+        if( !txs->send(netClient) )
         {
             std::cerr<<"ERROR reading global info\n";
         }
         else
         {
             user_t myuser;
-            memcpy(&myuser,buf,sizeof(user_t));
+            memcpy(&myuser,txs->getResponse(), txs->getResponseSize());
+
             print_user(myuser,pt,true,txs->getBankId(),txs->getUserId(),sts);
+
+            sts.msid = myuser.msid;
+            memcpy(sts.ha, myuser.hash, SHA256_DIGEST_LENGTH);
         }
 
         boost::property_tree::write_json(std::cout, pt, sts.nice);
