@@ -36,9 +36,11 @@ public:
   }
 
   ~peer()
-  { if(port||1){
-      uint32_t ntime=time(NULL);
-      DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
+  {
+      if(port||1)
+      {
+        uint32_t ntime=time(NULL);
+        DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
       }
   }
 
