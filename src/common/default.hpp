@@ -2,6 +2,7 @@
 #define DEFAULT_HPP
 
 #include <openssl/sha.h>
+#include <boost/thread/mutex.hpp>
 
 #ifdef DEBUG
 # define BLOCKSEC 0x20 /* block period in seconds */

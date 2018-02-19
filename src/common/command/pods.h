@@ -1,6 +1,7 @@
 #ifndef PODS_H
 #define PODS_H
 
+#include "default.hpp"
 //TODO, change the structure of this data and covert it to an array of structures or array of classes
 
 //bank only
@@ -38,6 +39,19 @@
 #define TXSTYPE_MSG 26	/* return message */
 //end
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
+
+
+struct commandResult
+{
+    uint32_t msid;
+    uint32_t mpos;
+}__attribute__((packed));
+
+struct commandresponse
+{
+    user_t          user;
+    commandResult   result;
+}__attribute__((packed));
 
 struct userinfo
 {
@@ -78,24 +92,26 @@ struct usertxs2
 struct accountkey
 {
     accountkey() = default;
-    accountkey(uint16_t abank, uint32_t auser, uint32_t time, uint8_t pubkey[32])
+    accountkey(uint16_t abank, uint32_t auser, uint32_t namsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64])
         : _abank(abank),
           _auser(auser),
+          _amsid(namsid),
           _ttime(time)
     {
         std::copy(pubkey, pubkey+32, _pubkey);
+        std::copy(pubkeysign, pubkeysign+64, _pubkeysign);
     }
 
     uint8_t         _ttype{TXSTYPE_KEY};
     uint16_t        _abank{0};
     uint32_t        _auser{0};
+    uint32_t        _amsid{0};
     uint32_t        _ttime{0};
     uint8_t         _pubkey[32];
-    uint8_t         _pubsign[32];
     unsigned char   _sign[64];
-    //1+2+4+4+32+32+64,
-
+    uint8_t         _pubkeysign[64];    
 } __attribute__((packed));
+
 
 
 #endif // PODS_H

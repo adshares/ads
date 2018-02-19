@@ -1,6 +1,10 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "candidate.hpp"
+#include "servers.hpp"
+#include "hlog.hpp"
+
 class office;
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;

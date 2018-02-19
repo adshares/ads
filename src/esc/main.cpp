@@ -24,12 +24,12 @@ int main(int argc, char* argv[])
       assert(sizeof(long double)==16);
     #endif
     try{
-        std::string line;
-        usertxs_ptr txs;
 
-        while(cin)
+        usertxs_ptr txs;
+        std::string line;
+
+        while (std::getline(std::cin, line))
         {
-            cin >> line;
             int64_t deduct    = 0;
             int64_t fee       = 0;
 
@@ -44,16 +44,16 @@ int main(int argc, char* argv[])
 
             txs = run_json(sts, line, deduct, fee, t2);
 
-            if( !txs ){
+            if( !txs && ! t2){
                 continue;
             }
 
             //temporary solution for reimplementing
-            if(txs->ttype == TXSTYPE_INF)
+            if(t2)
             {
                 talk2(netClient, sts, t2, deduct, fee);
             }
-            else
+            else if(txs)
             {
 
                 talk(endpoint_iterator, socket, sts, txs, deduct, fee);

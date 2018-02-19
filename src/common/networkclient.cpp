@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include <boost/array.hpp>
-
+#include "helper/ascii.h"
 
 NetworkClient::NetworkClient(const std::string& address, const std::string& port):
     m_query(address, port.c_str()),
@@ -102,6 +102,13 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff)
 
 bool NetworkClient::sendData(uint8_t* buff, int size)
 {
+
+    //std::stringstream tx_data;
+    //Helper::ed25519_key2text(tx_data, buff, size);
+
+    //std::cout << ".................tNetworkClient::sendData" <<std::endl;;
+    //std::cout << tx_data.str() << std::endl;;
+
     try
     {
         if(m_connected && m_socket)

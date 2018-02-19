@@ -3,6 +3,7 @@
 
 #include "command/factory.h"
 #include "command/getaccount.h"
+#include "commandservice.h"
 
 //this could all go to the office class and we could use just the start() function
 
@@ -21,7 +22,8 @@ public:
       m_port(""),
       m_buf(nullptr),
       m_len(0),
-      m_more(0)
+      m_more(0),
+      m_commandService(m_offi, m_socket)
   {
       //read_msg_ = boost::make_shared<message>();
 #ifdef DEBUG
@@ -100,15 +102,20 @@ public:
     }
     bzero(&m_utxs,sizeof(usertxs));
 
-    //TODO new parser to base class
-    m_utxs.parse(m_buf);
-    if(m_command)
-        m_command->setData(m_buf);
-
-
 #ifdef DEBUG
     m_utxs.print_head();
 #endif
+
+    //TODO new parser to base class
+    m_utxs.parse(m_buf);
+    if(m_command)
+    {
+        m_command->setData(m_buf);
+        m_commandService.onExecute(std::move(m_command));
+        return;
+    }
+
+
     if(*m_buf==TXSTYPE_BRO)
     {
       m_buf=(char*)std::realloc(m_buf,m_len + m_utxs.bbank);
@@ -174,15 +181,15 @@ public:
       user_t   usera;
       user_t   userb;
 
-      if( !getFromUser(usera)){
+      if(!getFromUser(usera)){
           return;
       }
 
-      if( !getToUser(userb)){
+      if(!getToUser(userb)){
           return;
       }
 
-      if( !validateCommandTime(startTime)){
+      if(!validateCommandTime(startTime)){
                 return;
       }
 
@@ -703,17 +710,24 @@ public:
       return;}
 
     //commit trasaction
-    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=m_utxs.auser || usera.node!=m_utxs.abank)){//check account lock
-      if(*m_buf!=TXSTYPE_PUT || m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0){
+    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=m_utxs.auser || usera.node!=m_utxs.abank))
+    {
+        //check account lock
+      if(*m_buf!=TXSTYPE_PUT || m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0)
+      {
         DLOG("ERROR: account locked, send 0 to yourself and wait for unlock\n");
-        return;}
-      if(usera.lpath>usera.time){
+        return;
+      }
+      if(usera.lpath>usera.time)
+      {
         DLOG("ERROR: account unlock in porgress\n");
-        return;}
+        return;
+      }
       m_utxs.ttime=usera.time;//lock time not changed
       //need to read data with _INF to confirm unlock !!!
       luser=usera.user;
-      lnode=usera.node;}
+      lnode=usera.node;
+    }
     else if(*m_buf==TXSTYPE_BRO){
       fee=TXS_BRO_FEE(m_utxs.bbank);}
     else if(*m_buf==TXSTYPE_PUT){
@@ -998,6 +1012,7 @@ private:
   int                           m_len;
   int                           m_more;
   usertxs                       m_utxs;
+  CommandService                m_commandService;
 
   std::unique_ptr<IBlockCommand>    m_command;
   uint32_t                          m_msid;

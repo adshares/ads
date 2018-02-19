@@ -31,7 +31,8 @@ public:
 		//sn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 		//pn{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 	{}
-	uint8_t ha[SHA256_DIGEST_LENGTH];
+    //uint8_t ha[SHA256_DIGEST_LENGTH];
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> ha;
 	int port;		// connecting port
 	std::string host;	// connecting host
 	std::string addr;	// my address
@@ -267,7 +268,7 @@ bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::s
 				if(hash.length()!=64){
 					std::cerr << "ERROR: hash wrong length (should be 64): " << vm["hash"].as<std::string>() << std::endl;
 					exit(1);}
-				ed25519_text2key(ha,hash.c_str(),32);}
+                ed25519_text2key(ha.data(), hash.c_str(), 32);}
 			else{
 				if(vm.count("user")){
 					std::cerr << "WARNING: last hash missing!" << std::endl;}}

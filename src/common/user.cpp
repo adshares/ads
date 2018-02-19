@@ -45,6 +45,7 @@
 #include "networkclient.h"
 #include "helper/ascii.h"
 #include "command/getaccount.h"
+#include "command/setaccountkey.h"
 
 
 const char* txsname[TXSTYPE_MAX]={
@@ -275,7 +276,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   if(json_pkey && !parse_key(to_pkey,json_pkey,32)){
     return(NULL);}
   boost::optional<std::string> json_hash=pt.get_optional<std::string>("hash");
-  if(json_hash && !parse_key(sts.ha,json_hash,32)){
+  if(json_hash && !parse_key(sts.ha.data(),json_hash,32)){
     return(NULL);}
   boost::optional<std::string> json_mass=pt.get_optional<std::string>("amount");
   if(json_mass && !parse_amount(to_mass,json_mass.get())){
@@ -308,17 +309,17 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
 
   if(!run.compare("get_me"))
   {
-    txs  = boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
+    //txs  = boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
     txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
   }
   else if(!run.compare(txsname[TXSTYPE_INF]))
   {
     if(!to_bank && !to_user) { // no target account specified
-        txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
+        //txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
         txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
     }
     else{
-       txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
+       //txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
         txs2.reset( new GetAccount(sts.bank,sts.user,to_bank,to_user,now));
     }
   }
@@ -479,8 +480,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     fee=TXS_GET_FEE;}
   else if(!run.compare(txsname[TXSTYPE_KEY])){
-    txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
-    //txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
+    //txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
+    txs2.reset( new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
     fee=TXS_KEY_FEE;}
   else if(!run.compare(txsname[TXSTYPE_BKY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
@@ -502,18 +503,41 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   else{
     fprintf(stderr,"ERROR: run not defined or unknown\n");
     return(NULL);}
-  if(txs==NULL){
-    return(NULL);}
-  txs->sign(sts.ha,sts.sk,sts.pk);
-  if(txs2)
+
+  //if(txs==NULL){
+  //  return(NULL);
+  //}
+
+  if(txs)
   {
-      txs2->sign(sts.ha,sts.sk,sts.pk);
+    txs->sign(sts.ha.data(),sts.sk,sts.pk);
   }
 
-  if(!run.compare(txsname[TXSTYPE_KEY])){
-    if(txs->sign2(to_sign)){
-      fprintf(stderr,"ERROR, bad new KEY empty string signature\n");
-      return(NULL);}}
+  if(txs2)
+  {
+      txs2->sign(sts.ha.data(), sts.sk,sts.pk);
+  }
+
+  if(!run.compare(txsname[TXSTYPE_KEY]) && txs2)
+  {
+    SetAccountKey* keycommand = dynamic_cast<SetAccountKey*>(txs2.get());
+
+    if(keycommand)
+    {
+       if( !keycommand->checkPubKeySignaure() )
+       {
+           fprintf(stderr,"ERROR, bad new KEY empty string signature1\n");
+           txs2.reset();
+           //eturn nullptr;
+       }
+    }
+    else if(txs && txs->sign2(to_sign))
+    {
+      fprintf(stderr,"ERROR, bad new KEY empty string signature2\n");
+      return(NULL);
+    }
+
+  }
   return(txs);
 }
 
@@ -1018,10 +1042,29 @@ void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
   pt.put("block_time",blocktime);
 }
 
+std::array<uint8_t, 32> createhash(std::unique_ptr<IBlockCommand>& txs, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha)
+{
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout{0};
+
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256,txs->getSignature(), txs->getSignatureSize());
+    SHA256_Final(hashout.data(), &sha256);
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, ha.data(), ha.size());
+    SHA256_Update(&sha256, hashout.data(), hashout.size());
+    SHA256_Final(hashout.data(),&sha256);
+
+    return hashout;
+}
+
 void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee) //len can be deduced from txstype
 {
+    //std::cout<< "...........................talk2";
     boost::property_tree::ptree pt;
     boost::property_tree::ptree logpt;
+    //uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
 
     uint32_t now = time(NULL);
     now -= now%BLOCKSEC;
@@ -1036,32 +1079,98 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
     logpt.put("tx.data",tx_data.str());
 
 
+    if(txs->getType() != TXSTYPE_INF)
+    {
+        pt.put("tx.account_msid",sts.msid);
+        logpt.put("tx.account_msid",sts.msid);
+
+        char tx_user_hashin[65];
+        tx_user_hashin[64]='\0';
+
+        ed25519_key2text(tx_user_hashin,sts.ha.data(),32);
+
+        pt.put("tx.account_hashin",tx_user_hashin);
+        logpt.put("tx.account_hashin",tx_user_hashin);
+
+        char tx_user_hashout[65];
+        tx_user_hashout[64]='\0';
+
+        /*SHA256_CTX sha256;
+        SHA256_Init(&sha256);        
+        SHA256_Update(&sha256,txs->getSignature(), txs->getSignatureSize());
+        SHA256_Final(hashout,&sha256);
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256,sts.ha,32);
+        SHA256_Update(&sha256,hashout,32);
+        SHA256_Final(hashout,&sha256);*/
+
+        auto hashout = createhash(txs, sts.ha);
+
+        ed25519_key2text(tx_user_hashout, hashout.data(), 32);
+        pt.put("tx.account_hashout",tx_user_hashout);
+        //FIXME calculate deduction and fee
+        pt.put("tx.deduct",print_amount(deduct));
+        pt.put("tx.fee",print_amount(fee));
+
+        if(sts.msid==1)
+        {
+          char tx_user_public_key[65];
+          tx_user_public_key[64]='\0';
+
+          ed25519_key2text(tx_user_public_key,sts.pk,32);
+          logpt.put("tx.account_public_key",tx_user_public_key);
+        }
+    }
+
     if(!netClient.reconnect()){
          std::cerr<<"ERROR cannot connect to server\n";
     }
 
-    if(txs->getType() == TXSTYPE_INF)
-    {
+    //std::cerr<<"................................ talk2 SEND..\n";
 
-        if( !txs->send(netClient) )
+    if( txs->send(netClient) )
+    {
+        if(txs->getType() == TXSTYPE_INF)
         {
-            std::cerr<<"ERROR reading global info\n";
+            struct
+            {
+                user_t myuser;
+                user_t myuser2;
+            } t;
+
+            memcpy(&t, txs->getResponse(), txs->getResponseSize());
+
+            print_user(t.myuser, pt, true, txs->getBankId(), txs->getUserId(), sts);
+
+            sts.msid = t.myuser.msid;
+            memcpy(sts.ha.data(), t.myuser.hash, SHA256_DIGEST_LENGTH);
+
+            //boost::property_tree::write_json(std::cout, pt, sts.nice);
+
+            print_user(t.myuser2, pt, false, txs->getBankId(), txs->getUserId(), sts);
+
+            sts.msid = t.myuser2.msid;
+            memcpy(sts.ha.data(), t.myuser2.hash, SHA256_DIGEST_LENGTH);
+
+            boost::property_tree::write_json(std::cout, pt, sts.nice);
         }
-        else
+        else if (txs->getType() == TXSTYPE_KEY)
         {
             user_t myuser;
+
             memcpy(&myuser,txs->getResponse(), txs->getResponseSize());
 
-            print_user(myuser,pt,true,txs->getBankId(),txs->getUserId(),sts);
-
-            sts.msid = myuser.msid;
-            memcpy(sts.ha, myuser.hash, SHA256_DIGEST_LENGTH);
+            std::copy(myuser.pkey, myuser.pkey + 32, sts.pk);
+            std::cerr<<"PKEY changed2\n";
         }
-
-        boost::property_tree::write_json(std::cout, pt, sts.nice);
     }
-
+    else
+    {
+        std::cerr<<"ERROR reading global info talk2\n";
+    }
 }
+
+
 
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
 { char buf[0xff];
@@ -1072,6 +1181,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
     char* tx_data=(char*)malloc(2*txs->size+1);
     tx_data[2*txs->size]='\0';
     ed25519_key2text(tx_data,txs->data,txs->size);
+
+    std::cout << tx_data;
     //create asa tx.data
     pt.put("tx.data",tx_data);
     logpt.put("tx.data",tx_data);
@@ -1086,7 +1197,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       pt.put("tx.account_msid",sts.msid);
       logpt.put("tx.account_msid",sts.msid);
       char tx_user_hashin[65];tx_user_hashin[64]='\0';
-      ed25519_key2text(tx_user_hashin,sts.ha,32);
+      ed25519_key2text(tx_user_hashin,sts.ha.data(),32);
       pt.put("tx.account_hashin",tx_user_hashin);
       logpt.put("tx.account_hashin",tx_user_hashin);
 
@@ -1096,7 +1207,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       SHA256_Update(&sha256,txs->get_sig((char*)txs->data),64);
       SHA256_Final(hashout,&sha256);
       SHA256_Init(&sha256);
-      SHA256_Update(&sha256,sts.ha,32);
+      SHA256_Update(&sha256,sts.ha.data(),32);
       SHA256_Update(&sha256,hashout,32);
       SHA256_Final(hashout,&sha256);
       ed25519_key2text(tx_user_hashout,hashout,32);
@@ -1130,7 +1241,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         try{
           if(txs->ttime && txs->ttime!=path){
             txs->change_time(path);
-            txs->sign(sts.ha,sts.sk,sts.pk);}
+            txs->sign(sts.ha.data(), sts.sk, sts.pk);}
           fprintf(stderr,"DEBUG request broadcast from %08X\n",path);
           if(!node_connect(endpoint_iterator,socket)){
             std::cerr<<"ERROR connecting\n";
@@ -1280,7 +1391,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
       return;}
 
     if(!node_connect(endpoint_iterator,socket)){
-      return;}
+      return;}    
+
     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
 
     if(txs->ttype==TXSTYPE_BLK){
@@ -1799,7 +1911,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             if(memcmp(myuser.hash,hashout,32)){
               pt.put("error.text","hash mismatch");}}
           sts.msid=myuser.msid;
-          memcpy(sts.ha,myuser.hash,SHA256_DIGEST_LENGTH);}}
+          memcpy(sts.ha.data(), myuser.hash, SHA256_DIGEST_LENGTH);}}
       if(txs->ttype==TXSTYPE_INF){
         try{
           len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));

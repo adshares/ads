@@ -35,9 +35,14 @@ public:
     virtual std::string                     toString(bool pretty)   override;
     virtual boost::property_tree::ptree     toJson()                override;
 
-private:
+
+    usertxs2& getDataStruct() { return m_data;}
+
+public:
     usertxs2    m_data;
+
     user_t      m_response;
+    user_t      m_globalUser;
 };
 
 #endif // GETACCOUNTCOMMAND_H

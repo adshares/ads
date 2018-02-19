@@ -8,6 +8,7 @@ SET(CMAKE_CXX_FLAGS -pthread)
 # set the final binary dir
 set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
 
+add_definitions(-DDEBUG)
 
 add_subdirectory(common)
 add_subdirectory(esc)

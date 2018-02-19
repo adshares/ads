@@ -8,9 +8,12 @@ set(SRC_LST2
    server.hpp
    main.cpp
    ../ed25519/ed25519.c
+   commandservice.cpp
 )
 
-set(HEADER_FILES2 ../ed25519/ed25519.h)
+set(HEADER_FILES2
+    ../ed25519/ed25519.h
+    commandservice.h)
 
 add_executable(escd ${SRC_LST2} ${HEADER_FILES2})
 target_link_libraries(escd LINK_PUBLIC common)

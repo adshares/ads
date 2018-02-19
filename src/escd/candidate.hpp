@@ -1,6 +1,9 @@
 #ifndef CANDIDATE_HPP
 #define CANDIDATE_HPP
 
+#include <message.hpp>
+#include <servers.hpp>
+
 class candidate :
   public boost::enable_shared_from_this<candidate>
 {

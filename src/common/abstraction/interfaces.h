@@ -46,7 +46,13 @@ public:
     virtual ~ICommand() = default;
 };
 
+/*class ICommandExecute
+{
+public:
+    virtual void onCommand() = 0;
 
+    virtual ~ICommandExecute() = default;
+};*/
 
 
 //TODO avoid boost in the future. All should based on interfaces.
@@ -62,6 +68,11 @@ public:
 
 class IBlockCommand : public ICommand, public IJsonSerialize
 {
+};
+
+class BlockCommand: IBlockCommand
+{
+
 };
 
 #endif // INTERFACES_H

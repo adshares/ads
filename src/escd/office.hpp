@@ -1,6 +1,13 @@
 #ifndef OFFICE_HPP
 #define OFFICE_HPP
 
+#include <mutex>
+#include <stack>
+#include <boost/make_shared.hpp>
+#include "options.hpp"
+#include "server.hpp"
+
+
 class client;
 typedef boost::shared_ptr<client> client_ptr;
 
@@ -450,10 +457,10 @@ public:
   {
     u.msid=0;
 
-    if(cbank!=svid)
-    {
+    if(cbank!=svid){
       return(get_user_global(u,cbank,cuser));
     }
+
     if(!svid)
     {
       bzero((void*)&u,sizeof(user_t));
@@ -470,7 +477,7 @@ public:
       return(false);
     }
 
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    lseek(fd, cuser*sizeof(user_t), SEEK_SET);
     read(fd,&u,sizeof(user_t));
     close(fd);
     //file_.unlock();
@@ -548,7 +555,7 @@ public:
     return(nuser);
   }
 
-  void set_user(uint32_t user,user_t& nu, int64_t deduct)
+  void set_user(uint32_t user, const user_t& nu, int64_t deduct)
   { assert(user<users); // is this safe ???
     user_t ou;
     file_.lock();
@@ -566,8 +573,8 @@ public:
     memcpy(ou.pkey,nu.pkey,32);
   //u.status=ustatus[user];
     //assert(u.weight>=0);
-    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-    write(offifd_,&ou,sizeof(user_t)); // fix this !!!
+    lseek(offifd_, -sizeof(user_t), SEEK_CUR);
+    write(offifd_, &ou, sizeof(user_t)); // fix this !!!
     file_.unlock();
   }
 
@@ -688,7 +695,87 @@ public:
     unlink(filename);
   }
 
-  bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
+
+  //@TODO: check if we need file_ as a lock.
+  bool add_msg(std::unique_ptr<IBlockCommand>& utxs, uint32_t& msid, uint32_t& mpos)
+  {
+    assert(svid);
+
+    if(!run){
+        return(false);
+    }
+
+    if(readonly){
+      DLOG("OFFICE: adding message in readonly state!\n");
+    }
+    //int len=utxs.size;
+    int len = utxs->getDataSize() + utxs->getSignatureSize();
+
+    std::unique_lock<boost::mutex> lock(file_);
+    if(message_tnum>=MESSAGE_TNUM_MAX){
+      ELOG("MESSAGE busy, delaying message addition\n");
+    }
+
+    while(message_tnum>=MESSAGE_TNUM_MAX)
+    {
+      lock.unlock();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+      lock.lock();
+    }
+
+    msid=srv_.msid_+1; // check if no conflict !!!
+    char filename[64];
+    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+
+    if(md<0)
+    {
+      msid=0;
+      mpos=0;
+      ELOG("ERROR, failed to log message %s\n",filename);
+      return false;
+    } // :-( maybe we should throw here something
+
+    write(md, utxs->getData(), utxs->getDataSize() + utxs->getSignatureSize());
+    close(md);
+    //mpos=message.length()+message::data_offset;
+    mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
+    message.append((char*)utxs->getData(), utxs->getDataSize() + utxs->getSignatureSize());
+    //message.append((char*)msg, len);
+
+    /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)
+    {
+      user_t u;
+      lseek(offifd_, utxs._buser*sizeof(user_t),SEEK_SET);
+      read(offifd_, &u, sizeof(user_t));
+
+      if(!u.msid)
+      {
+        file_.unlock();
+        return(false);
+      }
+
+      uint16_t oldstatus = u.stat;
+      if(utxs.getType()==TXSTYPE_SUS)
+      {
+        u.stat|= (uint16_t)utxs.tmass & 0xFFFE ;
+      } // can not change USER_STAT_DELETED
+      else if(utxs.getType()==TXSTYPE_UUS)
+      {
+        u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);
+      } // can not change USER_STAT_DELETED
+      if(oldstatus!=u.stat)
+      {
+        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        write(offifd_,&u,sizeof(user_t));
+      }
+    } // write only stat !!!
+    */
+
+    return true;
+  }
+
+  bool add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos)
   { assert(svid);
     if(!run){ return(false);}
     if(readonly){
