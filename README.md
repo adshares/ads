@@ -89,6 +89,11 @@ cd /tmp/node1/
 To start the first node enter
 
 ```
+mkdir ../node1
+cd ../node1
+echo 'svid=1' > options.cfg
+echo 'offi=9091' >> options.cfg
+echo 'port=8091' >> options.cfg
 ./escd --init 1
 ```
 
@@ -108,7 +113,7 @@ cd /tmp/user0
 Let's create the file containing the connection setting for the user.
 
 ```
-echo 'port=9081' > settings.cfg
+echo 'port=9091' > settings.cfg
 echo 'host=127.0.0.1' >> settings.cfg
 echo 'address=0001-00000000-XXXX' >> settings.cfg
 echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >> settings.cfg
@@ -197,7 +202,7 @@ The secret keys are printed in the lines starting with "SK:". The line starting 
 After this the admin needs a new secret key to connect to its account, so let's fix the settings.txt file.
 
 ```
-echo 'port=9081' > settings.cfg
+echo 'port=9091' > settings.cfg
 echo 'host=127.0.0.1' >> settings.cfg
 echo 'address=0001-00000000-9B6F' >> settings.cfg
 echo 'secret= FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
@@ -245,7 +250,7 @@ Let's connect as the new user after setting up the new environment.
 ```
 mkdir ../user1
 cd ../user1
-echo 'port=9081' > settings.cfg
+echo 'port=9091' > settings.cfg
 echo 'host=127.0.0.1' >> settings.cfg
 echo 'address=0001-00000001-8B4E ' >> settings.cfg
 echo 'secret= 5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings.cfg
@@ -282,10 +287,10 @@ Let's create the directory and the files for the new node
 mkdir ../node2
 cd ../node2
 echo 'svid=2' > options.cfg
-echo 'offi=9082' >> options.cfg
-echo 'port=9092' >> options.cfg
+echo 'offi=9092' >> options.cfg
+echo 'port=8092' >> options.cfg
 echo 'addr=127.0.0.1' >> options.cfg
-echo 'peer=127.0.0.1:9091' >> options.cfg
+echo 'peer=127.0.0.1:8091' >> options.cfg
 mkdir key
 chmod go-rx key/
 echo '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' > key/key.txt
