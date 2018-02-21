@@ -21,8 +21,5 @@ target_link_libraries(escd pthread)
 target_link_libraries(escd ssl)
 target_link_libraries(escd crypto)
 
+install(TARGETS escd RUNTIME DESTINATION bin)
 
-ADD_CUSTOM_COMMAND(TARGET esc
-          POST_BUILD
-          COMMAND ${CMAKE_COMMAND} -E copy  escd ${PROJECT_BINARY_DIR}
-)
