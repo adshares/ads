@@ -697,7 +697,7 @@ public:
 
 
   //@TODO: check if we need file_ as a lock.
-  bool add_msg(std::unique_ptr<IBlockCommand>& utxs, uint32_t& msid, uint32_t& mpos)
+  bool add_msg(IBlockCommand& utxs, uint32_t& msid, uint32_t& mpos)
   {
     assert(svid);
 
@@ -709,7 +709,7 @@ public:
       DLOG("OFFICE: adding message in readonly state!\n");
     }
     //int len=utxs.size;
-    int len = utxs->getDataSize() + utxs->getSignatureSize();
+    int len = utxs.getDataSize() + utxs.getSignatureSize();
 
     std::unique_lock<boost::mutex> lock(file_);
     if(message_tnum>=MESSAGE_TNUM_MAX){
@@ -736,11 +736,11 @@ public:
       return false;
     } // :-( maybe we should throw here something
 
-    write(md, utxs->getData(), utxs->getDataSize() + utxs->getSignatureSize());
+    write(md, utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
     close(md);
     //mpos=message.length()+message::data_offset;
     mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
-    message.append((char*)utxs->getData(), utxs->getDataSize() + utxs->getSignatureSize());
+    message.append((char*)utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
     //message.append((char*)msg, len);
 
     /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)

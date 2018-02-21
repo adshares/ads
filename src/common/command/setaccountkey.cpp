@@ -65,12 +65,12 @@ int SetAccountKey::getType()
 
 void SetAccountKey::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
 {
-    ed25519_sign2(hash, 32, getData(), getDataSize(), sk, pk, m_data._sign);
+    ed25519_sign2(hash, 32, getData(), getDataSize(), sk, pk, getSignature());
 }
 
 bool SetAccountKey::checkSignature(uint8_t* hash, uint8_t* pk)
-{
-    return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 1);
+{    
+    return( ed25519_sign_open2( hash , 32 , getData(), getDataSize(), pk, getSignature() ) == 0);
 }
 
 uint32_t SetAccountKey::getUserId()

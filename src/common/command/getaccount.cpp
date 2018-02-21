@@ -65,8 +65,8 @@ void GetAccount::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
 }
 
 bool GetAccount::checkSignature(uint8_t* hash, uint8_t* pk)
-{
-    return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 1);
+{    
+    return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
 }
 
 uint32_t GetAccount::getUserId()

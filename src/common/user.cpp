@@ -46,6 +46,7 @@
 #include "helper/ascii.h"
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
+#include "helper/hash.h"
 
 
 const char* txsname[TXSTYPE_MAX]={
@@ -1042,29 +1043,11 @@ void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
   pt.put("block_time",blocktime);
 }
 
-std::array<uint8_t, 32> createhash(std::unique_ptr<IBlockCommand>& txs, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha)
-{
-    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout{0};
-
-    SHA256_CTX sha256;
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256,txs->getSignature(), txs->getSignatureSize());
-    SHA256_Final(hashout.data(), &sha256);
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, ha.data(), ha.size());
-    SHA256_Update(&sha256, hashout.data(), hashout.size());
-    SHA256_Final(hashout.data(),&sha256);
-
-    return hashout;
-}
-
 void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee) //len can be deduced from txstype
 {
     //std::cout<< "...........................talk2";
     boost::property_tree::ptree pt;
-    boost::property_tree::ptree logpt;
-    //uint8_t hashout[32]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
+    boost::property_tree::ptree logpt;    
 
     uint32_t now = time(NULL);
     now -= now%BLOCKSEC;
@@ -1077,7 +1060,6 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
 
     pt.put("tx.data",tx_data.str());
     logpt.put("tx.data",tx_data.str());
-
 
     if(txs->getType() != TXSTYPE_INF)
     {
@@ -1095,16 +1077,8 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
         char tx_user_hashout[65];
         tx_user_hashout[64]='\0';
 
-        /*SHA256_CTX sha256;
-        SHA256_Init(&sha256);        
-        SHA256_Update(&sha256,txs->getSignature(), txs->getSignatureSize());
-        SHA256_Final(hashout,&sha256);
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256,sts.ha,32);
-        SHA256_Update(&sha256,hashout,32);
-        SHA256_Final(hashout,&sha256);*/
-
-        auto hashout = createhash(txs, sts.ha);
+        std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+        Helper::create256signhash(txs->getSignature(), txs->getSignatureSize(), sts.ha, hashout);
 
         ed25519_key2text(tx_user_hashout, hashout.data(), 32);
         pt.put("tx.account_hashout",tx_user_hashout);
@@ -1144,8 +1118,6 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
 
             sts.msid = t.myuser.msid;
             memcpy(sts.ha.data(), t.myuser.hash, SHA256_DIGEST_LENGTH);
-
-            //boost::property_tree::write_json(std::cout, pt, sts.nice);
 
             print_user(t.myuser2, pt, false, txs->getBankId(), txs->getUserId(), sts);
 

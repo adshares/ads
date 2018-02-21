@@ -1,5 +1,5 @@
 
-set(SRC_LST2
+set(SOURCED
    office.hpp
    peer.hpp
    client.hpp
@@ -7,15 +7,15 @@ set(SRC_LST2
    options.hpp
    server.hpp
    main.cpp
-   ../ed25519/ed25519.c
-   commandservice.cpp
+   ../ed25519/ed25519.c   
 )
 
-set(HEADER_FILES2
-    ../ed25519/ed25519.h
-    commandservice.h)
+set(HEADERSD
+    ../ed25519/ed25519.h)
 
-add_executable(escd ${SRC_LST2} ${HEADER_FILES2})
+add_subdirectory(commandhandler)
+
+add_executable(escd ${SOURCED} ${HEADERSD})
 target_link_libraries(escd LINK_PUBLIC common)
 target_link_libraries(escd pthread)
 target_link_libraries(escd ssl)

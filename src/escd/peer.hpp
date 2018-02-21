@@ -31,8 +31,8 @@ public:
     struct timeval tv;
     tv.tv_sec=8;
     tv.tv_usec=0;
-    setsockopt(socket_.native(),SOL_SOCKET,SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(socket_.native(),SOL_SOCKET,SO_SNDTIMEO, &tv, sizeof(tv));
+    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
   }
 
   ~peer()

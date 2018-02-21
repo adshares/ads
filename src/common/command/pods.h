@@ -41,16 +41,11 @@
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
 
-struct commandResult
-{
-    uint32_t msid;
-    uint32_t mpos;
-}__attribute__((packed));
-
 struct commandresponse
 {
-    user_t          user;
-    commandResult   result;
+    user_t      usera;
+    uint32_t    msid;
+    uint32_t    mpos;
 }__attribute__((packed));
 
 struct userinfo
@@ -86,6 +81,12 @@ struct usertxs2
 
     userinfo        _info;
     unsigned char   _sign[64];
+} __attribute__((packed));
+
+struct usertxsresponse
+{
+    user_t      m_response;
+    user_t      m_globalUser;
 } __attribute__((packed));
 
 

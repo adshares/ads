@@ -292,7 +292,7 @@ public:
         char line[255];
         if(fp==NULL){
             return(false);}
-        while(fgets(line,255,fp)>0){
+        while(fgets(line,255,fp) != nullptr){
             if(line[0]=='#' || strlen(line)<64){
                 continue;}
             hash_t pk;
@@ -316,7 +316,7 @@ public:
             return;}
         char line[128];
         line[127]='\0';
-        while(fgets(line,127,fp)>0){
+        while(fgets(line,127,fp) != nullptr){
             if(line[0]=='#' || strlen(line)<64){
                 continue;}
             uint16_t node;
