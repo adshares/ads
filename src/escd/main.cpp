@@ -164,26 +164,29 @@ void office::handle_accept(client_ptr c, const boost::system::error_code& error)
 
   if (!error)
   {
-    client_.lock();
-    clients_.insert(c);
-    client_.unlock();
-
-    try{
-      c->start();
+    try
+    {
+        c->start();
+        join(c);
     }
     catch (std::exception& e)
     {
       DLOG("Client exception: %s\n",e.what());
-      leave(c);
     }
   }
   start_accept(); //FIXME, change this to a non blocking office
 }
+
+void office::join(client_ptr c)
+{
+    std::lock_guard<std::mutex> lock(mx_client_);
+    clients_.insert(c);
+}
+
 void office::leave(client_ptr c)
 {
-    client_.lock();
+    std::lock_guard<std::mutex> lock(mx_client_);
     clients_.erase(c);
-    client_.unlock();
 }
 
 // server <-> office

@@ -1,6 +1,11 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
+#include <boost/shared_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include "hash.hpp"
+#include "user.hpp"
+
 class message :
   public boost::enable_shared_from_this<message>
 {

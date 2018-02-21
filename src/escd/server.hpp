@@ -1,6 +1,10 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "candidate.hpp"
+#include "servers.hpp"
+#include "hlog.hpp"
+
 class office;
 class peer;
 typedef boost::shared_ptr<peer> peer_ptr;
@@ -55,7 +59,7 @@ public:
           ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
           exit(-1);}
         ELOG("CREATING first node\n");}
-      else if((int)last_srvs_.nodes.size()<=(int)opts_.svid){
+      else if( (int)opts_.svid >(int)last_srvs_.nodes.size()){
         ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
         exit(-1);}}
     else{
@@ -2515,7 +2519,8 @@ public:
         log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,tmpos);
         //utxs.print_broadcast(p);
         fee=TXS_BRO_FEE(utxs.bbank);}
-      else if(*p==TXSTYPE_PUT){
+      else if(*p==TXSTYPE_PUT)
+      {
         if(utxs.tmass<0){ //sending info about negative values is allowed to fascilitate exchanges
           utxs.tmass=0;}
         //if(utxs.abank!=utxs.bbank && utxs.auser!=utxs.buser && !check_user(utxs.bbank,utxs.buser))
@@ -4013,16 +4018,20 @@ public:
     while(1){
       uint32_t now=time(NULL);
       const char* plist=peers_list();
-      if(missing_msgs_.size()){
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
-          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+      if(missing_msgs_.size())
+      {
+        //ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+          //((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
-          (int)missing_msgs_.size(),missing_msgs_.begin()->first);}
-      else{
-        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
-          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);}
+          //(int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+          //(int)missing_msgs_.size(),missing_msgs_.begin()->first);
+      }
+      else
+      {
+        //ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+        //  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+        //  (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+      }
       if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2){ // '<' not '<='
         panic=true;
         if(!ofip_isreadonly()){

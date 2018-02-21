@@ -3,6 +3,7 @@
 
 #include "command/factory.h"
 #include "command/getaccount.h"
+#include "commandhandler/servicehandler.h"
 
 //this could all go to the office class and we could use just the start() function
 
@@ -21,7 +22,8 @@ public:
       m_port(""),
       m_buf(nullptr),
       m_len(0),
-      m_more(0)
+      m_more(0),
+      m_commandService(m_offi, m_socket)
   {
       //read_msg_ = boost::make_shared<message>();
 #ifdef DEBUG
@@ -100,15 +102,13 @@ public:
     }
     bzero(&m_utxs,sizeof(usertxs));
 
-    //TODO new parser to base class
-    m_utxs.parse(m_buf);
-    if(m_command)
-        m_command->setData(m_buf);
-
-
 #ifdef DEBUG
     m_utxs.print_head();
 #endif
+
+    //TODO new parser to base class
+    m_utxs.parse(m_buf);  
+
     if(*m_buf==TXSTYPE_BRO)
     {
       m_buf=(char*)std::realloc(m_buf,m_len + m_utxs.bbank);
@@ -123,10 +123,17 @@ public:
       boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
       return;
     }
+
+    if(m_command)
+    {
+        //executeCommand();
+        //return;
+    }
+
     if(m_offi.lock_user(m_utxs.auser))
     {
       try{
-            parse();
+           parse();
         }
       catch (std::exception& e){
             DLOG("ERROR exception in parse (%08X)\n",m_utxs.auser);
@@ -160,36 +167,37 @@ public:
   }
 
 
-  void executeCommand(user_t& usera)
-  {
-      if(m_command->checkSignature(usera.hash, usera.pkey))
-      {
-
-      }
-  }
-
-  void onCommandData()
+  void executeCommand()
   {
       uint32_t startTime = time(nullptr);
       user_t   usera;
-      user_t   userb;
 
-      if( !getFromUser(usera)){
+      if(!m_command){
+          DLOG("No valid command to proceed");
           return;
       }
 
-      if( !getToUser(userb)){
+      m_command->setData(m_buf);
+
+      if(!getFromUser(m_command->getBankId(), m_command->getUserId(), usera)){
           return;
       }
 
-      if( !validateCommandTime(startTime)){
-                return;
+      //if(!getToUser(userb)){
+      //    return;
+      //}
+
+      if(!validateCommandTime(startTime)){
+        return;
       }
 
-      if(m_offi.lock_user(m_utxs.auser))
+      if(m_offi.lock_user(usera.user))
       {
         try{
-              executeCommand(usera);
+              if(m_command->checkSignature(usera.hash, usera.pkey))
+              {
+                    m_commandService.onExecute(std::move(m_command));
+              }
         }
         catch (std::exception& e){
               DLOG("ERROR exception in parse (%08X)\n",m_utxs.auser);
@@ -211,6 +219,20 @@ public:
 
       return true;
   }
+
+  bool getFromUser(uint16_t node, uint32_t user, user_t& usera)
+  {
+      //FIXME, read the rest ... add additional signatures
+      //consider adding a max txs limit per user
+      if(!m_offi.get_user(usera, node, user))
+      {
+        DLOG("ERROR: read user failed\n");
+        return false;
+      }
+
+      return true;
+  }
+
 
   bool getToUser(user_t& userb)
   {
@@ -703,17 +725,24 @@ public:
       return;}
 
     //commit trasaction
-    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=m_utxs.auser || usera.node!=m_utxs.abank)){//check account lock
-      if(*m_buf!=TXSTYPE_PUT || m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0){
+    if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=m_utxs.auser || usera.node!=m_utxs.abank))
+    {
+        //check account lock
+      if(*m_buf!=TXSTYPE_PUT || m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0)
+      {
         DLOG("ERROR: account locked, send 0 to yourself and wait for unlock\n");
-        return;}
-      if(usera.lpath>usera.time){
+        return;
+      }
+      if(usera.lpath>usera.time)
+      {
         DLOG("ERROR: account unlock in porgress\n");
-        return;}
+        return;
+      }
       m_utxs.ttime=usera.time;//lock time not changed
       //need to read data with _INF to confirm unlock !!!
       luser=usera.user;
-      lnode=usera.node;}
+      lnode=usera.node;
+    }
     else if(*m_buf==TXSTYPE_BRO){
       fee=TXS_BRO_FEE(m_utxs.bbank);}
     else if(*m_buf==TXSTYPE_PUT){
@@ -893,6 +922,7 @@ public:
     SHA256_Init(&sha256);
     SHA256_Update(&sha256,m_utxs.get_sig(m_buf),64);
     SHA256_Final(hash,&sha256);
+
     //make newhash=hash(oldhash+newmessagehash);
     SHA256_Init(&sha256);
     SHA256_Update(&sha256,usera.hash,32);
@@ -998,6 +1028,7 @@ private:
   int                           m_len;
   int                           m_more;
   usertxs                       m_utxs;
+  CommandService                m_commandService;
 
   std::unique_ptr<IBlockCommand>    m_command;
   uint32_t                          m_msid;

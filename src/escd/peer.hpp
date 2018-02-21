@@ -31,14 +31,16 @@ public:
     struct timeval tv;
     tv.tv_sec=8;
     tv.tv_usec=0;
-    setsockopt(socket_.native(),SOL_SOCKET,SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(socket_.native(),SOL_SOCKET,SO_SNDTIMEO, &tv, sizeof(tv));
+    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
   }
 
   ~peer()
-  { if(port||1){
-      uint32_t ntime=time(NULL);
-      DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
+  {
+      if(port||1)
+      {
+        uint32_t ntime=time(NULL);
+        DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
       }
   }
 

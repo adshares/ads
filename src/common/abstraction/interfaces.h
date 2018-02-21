@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <boost/property_tree/json_parser.hpp>
+#include "default.hpp"
 
 class office;
 
@@ -21,13 +22,19 @@ public:
     virtual ~INetworkClient() = default;
 };
 
-
+/*!
+ * \brief Command Interface.
+ */
 class ICommand
 {
 public:
+    /** \brief Get command type. */
     virtual int                     getType()           = 0;
+    /** \brief Get pointer to command data structure. */
     virtual unsigned char*          getData()           = 0;
+    /** \brief Get pointer to response data. */
     virtual unsigned char*          getResponse()       = 0;
+    /** \brief Put data as a char list and put convert it to data structure. */
     virtual void                    setData(char* data) = 0;
     virtual void                    setResponse(char* data) = 0;
     virtual int                     getDataSize()       = 0;
@@ -47,9 +54,11 @@ public:
 };
 
 
-
-
 //TODO avoid boost in the future. All should based on interfaces.
+
+/*!
+ * \brief Interface which allow convert command data to JSON or string.
+ */
 class IJsonSerialize
 {
 public:
@@ -59,9 +68,19 @@ public:
     virtual ~IJsonSerialize() = default;
 };
 
-
+/*!
+ * \brief Base interface for command. It combain ICommand and IJsonSerialize Interface.
+ */
 class IBlockCommand : public ICommand, public IJsonSerialize
 {
 };
+
+class BlockCommand: IBlockCommand
+{
+
+};
+
+
+
 
 #endif // INTERFACES_H

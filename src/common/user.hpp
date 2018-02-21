@@ -707,4 +707,5 @@ usertxs_ptr run_json(settings& sts, const std::string& line,int64_t& deduct,int6
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee); //len can be deduced from txstype
 void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee); //len can be deduced from txstype
 
+
 #endif // USER_HPP

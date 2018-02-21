@@ -41,7 +41,7 @@ int GetAccount::getDataSize()
 
 int GetAccount::getResponseSize()
 {
-    return sizeof(decltype(m_response));
+    return 2*sizeof(decltype(m_response));
 }
 
 unsigned char* GetAccount::getSignature()
@@ -65,18 +65,18 @@ void GetAccount::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
 }
 
 bool GetAccount::checkSignature(uint8_t* hash, uint8_t* pk)
-{
-    return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 1);
+{    
+    return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
 }
 
 uint32_t GetAccount::getUserId()
 {
-    return m_data._info._buser;
+    return m_data._info._auser;
 }
 
 uint32_t GetAccount::getBankId()
 {
-    return m_data._info._bbank;
+    return m_data._info._abank;
 }
 
 uint32_t GetAccount::getTime()
@@ -91,7 +91,7 @@ bool GetAccount::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())){
-        std::cerr<<"ERROR reading global info\n";
+        std::cerr<<"GetAccount ERROR reading global info\n";
         return false;
     }
 

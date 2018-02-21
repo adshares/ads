@@ -1,17 +1,18 @@
-#ifndef GETACCOUNT_H
-#define GETACCOUNT_H
+#ifndef SETACCOUNTKEY_H
+#define SETACCOUNTKEY_H
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
 
-
 //TODO think about template class wieh data as templete parameter
-class GetAccount : public IBlockCommand
+class SetAccountKey : public IBlockCommand
 {
 public:
-    GetAccount();
-    GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);
+    SetAccountKey();
+    SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64]);
+
+    bool            checkPubKeySignaure();
 
     //IBlock interface
     virtual int             getType()                                   override;
@@ -35,14 +36,11 @@ public:
     virtual std::string                     toString(bool pretty)   override;
     virtual boost::property_tree::ptree     toJson()                override;
 
+    accountkey& getDataStruct() { return m_data;}
 
-    usertxs2& getDataStruct() { return m_data;}
-
-public:
-    usertxs2    m_data;
-
-    user_t      m_response;
-    user_t      m_globalUser;
+private:
+    accountkey          m_data;
+    commandresponse     m_response;
 };
 
-#endif // GETACCOUNTCOMMAND_H
+#endif // SETACCOUNTKEY_H

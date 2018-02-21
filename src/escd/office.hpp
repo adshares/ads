@@ -1,6 +1,13 @@
 #ifndef OFFICE_HPP
 #define OFFICE_HPP
 
+#include <mutex>
+#include <stack>
+#include <boost/make_shared.hpp>
+#include "options.hpp"
+#include "server.hpp"
+
+
 class client;
 typedef boost::shared_ptr<client> client_ptr;
 
@@ -434,33 +441,50 @@ public:
   }
 
   bool get_user_global(user_t& u,uint16_t cbank,uint32_t cuser)
-  { u.msid=0;
-    srv_.last_srvs_.get_user(u,cbank,cuser);
+  {
+    u.msid = 0;
+    srv_.last_srvs_.get_user(u, cbank, cuser);
+
     if(!u.msid){
-      return(false);}
+      return(false);
+    }
+
     srv_.dividend(u); //add missing dividend
     return(true);
   }
 
   bool get_user(user_t& u,uint16_t cbank,uint32_t cuser)
-  { u.msid=0;
+  {
+    u.msid=0;
+
     if(cbank!=svid){
-      return(get_user_global(u,cbank,cuser));}
-    if(!svid){
+      return(get_user_global(u,cbank,cuser));
+    }
+
+    if(!svid)
+    {
       bzero((void*)&u,sizeof(user_t));
-      return(true);}
+      return(true);
+    }
+
     if(cuser>=users){
-      return(false);}
+      return(false);
+    }
     //file_.lock(); //FIXME, could use read only access without lock
     int fd=open(ofifilename,O_RDONLY);
-    if(fd<0){ ELOG("ERROR, failed to open account file %s\n",ofifilename);
-      return(false);}
-    lseek(fd,cuser*sizeof(user_t),SEEK_SET);
+    if(fd<0)
+    { ELOG("ERROR, failed to open account file %s\n",ofifilename);
+      return(false);
+    }
+
+    lseek(fd, cuser*sizeof(user_t), SEEK_SET);
     read(fd,&u,sizeof(user_t));
     close(fd);
     //file_.unlock();
-    if(!u.msid){
-      return(false);}
+    if(!u.msid)
+    {
+      return(false);
+    }
     //if(deposit[cuser] || ustatus[cuser]!=u.status)
     //if(deposit[cuser]){
     //  u.weight+=deposit[cuser];
@@ -482,13 +506,17 @@ public:
       return;}
     uint32_t ltime=time(NULL);
     uint32_t luser=add_user(bbank,pkey,ltime,buser);
-    if(luser){
+    if(luser)
+    {
       uint32_t msid;
       uint32_t mpos;
       usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
       add_msg(txs->data,*txs,msid,mpos);
+
       if(msid){
-        add_key((hash_s*)pkey,luser);}} //blacklist
+        add_account((hash_s*)pkey,luser);
+      }
+    } //blacklist
   }
 
   uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) // will create new account or overwrite old one
@@ -527,7 +555,7 @@ public:
     return(nuser);
   }
 
-  void set_user(uint32_t user,user_t& nu, int64_t deduct)
+  void set_user(uint32_t user, const user_t& nu, int64_t deduct)
   { assert(user<users); // is this safe ???
     user_t ou;
     file_.lock();
@@ -545,8 +573,8 @@ public:
     memcpy(ou.pkey,nu.pkey,32);
   //u.status=ustatus[user];
     //assert(u.weight>=0);
-    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-    write(offifd_,&ou,sizeof(user_t)); // fix this !!!
+    lseek(offifd_, -sizeof(user_t), SEEK_CUR);
+    write(offifd_, &ou, sizeof(user_t)); // fix this !!!
     file_.unlock();
   }
 
@@ -600,35 +628,47 @@ public:
   }
 
   bool try_account(hash_s* key)
-  { assert(svid);
-    account_.lock();
-    if(accounts_.find(*key)!=accounts_.end()){
-      account_.unlock();
-      return(false);}
-    if(accounts_.size()>MAX_USER_QUEUE){
-      std::map<hash_s,uint32_t,hash_cmp> acs = accounts_;
-      account_.unlock();
+  {
+    assert(svid);
+    std::lock_guard<std::mutex> lock(mx_account_);
+
+    if(accounts_.find(*key) != accounts_.end()){
+      return false;
+    }
+
+    //TODO check why is is here?
+    if(accounts_.size() > MAX_USER_QUEUE)
+    {
       std::vector<hash_s> del;
-      for(auto it=acs.begin();it!=acs.end();it++){
+      for(auto it=accounts_.begin(); it!=accounts_.end(); it++)
+      {
         user_t u;
-        get_user(u,svid,it->second);
-        if(u.weight>0){
-          del.push_back(it->first);}}
-      account_.lock();
+        get_user(u, svid, it->second);
+
+        if(u.weight>0)
+        {
+            del.push_back(it->first);
+        }
+      }
+
       for(auto jt : del){
-        accounts_.erase(jt);}
-      if(accounts_.size()>MAX_USER_QUEUE){
-        account_.unlock();
-        return(false);}}
-    account_.unlock();
-    return(true);
+        accounts_.erase(jt);
+      }
+
+      if(accounts_.size() > MAX_USER_QUEUE){
+        return false;
+      }
+    }
+
+    return true;
   }
 
-  void add_key(hash_s* key,uint32_t user)
-  { assert(svid);
-    account_.lock();
-    accounts_[*key]=user;
-    account_.unlock();
+  void add_account(hash_s* key,uint32_t user)
+  {
+    assert(svid);
+
+    std::lock_guard<std::mutex> lock(mx_account_);
+    accounts_[*key]=user;    
   }
 
   bool get_msg(uint32_t msid,std::string& line)
@@ -655,7 +695,87 @@ public:
     unlink(filename);
   }
 
-  bool add_msg(uint8_t* msg,usertxs& utxs,uint32_t& msid,uint32_t& mpos)
+
+  //@TODO: check if we need file_ as a lock.
+  bool add_msg(IBlockCommand& utxs, uint32_t& msid, uint32_t& mpos)
+  {
+    assert(svid);
+
+    if(!run){
+        return(false);
+    }
+
+    if(readonly){
+      DLOG("OFFICE: adding message in readonly state!\n");
+    }
+    //int len=utxs.size;
+    int len = utxs.getDataSize() + utxs.getSignatureSize();
+
+    std::unique_lock<boost::mutex> lock(file_);
+    if(message_tnum>=MESSAGE_TNUM_MAX){
+      ELOG("MESSAGE busy, delaying message addition\n");
+    }
+
+    while(message_tnum>=MESSAGE_TNUM_MAX)
+    {
+      lock.unlock();
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+      lock.lock();
+    }
+
+    msid=srv_.msid_+1; // check if no conflict !!!
+    char filename[64];
+    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+
+    if(md<0)
+    {
+      msid=0;
+      mpos=0;
+      ELOG("ERROR, failed to log message %s\n",filename);
+      return false;
+    } // :-( maybe we should throw here something
+
+    write(md, utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
+    close(md);
+    //mpos=message.length()+message::data_offset;
+    mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
+    message.append((char*)utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
+    //message.append((char*)msg, len);
+
+    /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)
+    {
+      user_t u;
+      lseek(offifd_, utxs._buser*sizeof(user_t),SEEK_SET);
+      read(offifd_, &u, sizeof(user_t));
+
+      if(!u.msid)
+      {
+        file_.unlock();
+        return(false);
+      }
+
+      uint16_t oldstatus = u.stat;
+      if(utxs.getType()==TXSTYPE_SUS)
+      {
+        u.stat|= (uint16_t)utxs.tmass & 0xFFFE ;
+      } // can not change USER_STAT_DELETED
+      else if(utxs.getType()==TXSTYPE_UUS)
+      {
+        u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);
+      } // can not change USER_STAT_DELETED
+      if(oldstatus!=u.stat)
+      {
+        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        write(offifd_,&u,sizeof(user_t));
+      }
+    } // write only stat !!!
+    */
+
+    return true;
+  }
+
+  bool add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos)
   { assert(svid);
     if(!run){ return(false);}
     if(readonly){
@@ -703,33 +823,41 @@ public:
   }
 
   bool lock_user(uint32_t cuser) //WARNING, ddos attack against user, use alternative protections
-  { //users_[cuser & 0xff].lock();
+  {
+    //users_[cuser & 0xff].lock();
     if(!svid){
-      return(true);}
-    users_.lock();
-    if(users_lock.size()>CLIENT_POOL*2){
-      users_.unlock();
-      return(false);}
-    if(users_lock.find(cuser)!=users_lock.end()){
-      users_.unlock();
-      return(false);}
+      return(true);
+    }
+
+    std::lock_guard<std::mutex> lock(users_);
+
+    if(users_lock.size() > CLIENT_POOL*2){
+      return(false);
+    }
+
+    if(users_lock.find(cuser) != users_lock.end()){
+      return(false);
+    }
     users_lock.insert(cuser);
-    users_.unlock();
+
     return(true);
   }
 
   void unlock_user(uint32_t cuser)
-  { //users_[cuser & 0xff].unlock();
+  {
+    //users_[cuser & 0xff].unlock();
     if(!svid){
-      return;}
-    users_.lock();
-    users_lock.erase(cuser);
-    users_.unlock();
-    return;
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(users_);
+    users_lock.erase(cuser);    
   }
 
   void start_accept(); // main.cpp
   void handle_accept(client_ptr c,const boost::system::error_code& error); // main.cpp, currently blocking :-(
+
+  void join(client_ptr c); // main.cpp
   void leave(client_ptr c); // main.cpp
 
   bool check_user(uint16_t peer,uint32_t uid)
@@ -1022,9 +1150,10 @@ private:
 
   boost::mutex file_; //LOCK: server::
   boost::mutex log_; //FIXME, maybe no need for this lock, lock too long
-  boost::mutex users_; //LOCK: file_, log_
-  boost::mutex client_;
-  boost::mutex account_;
+
+  std::mutex  users_; //LOCK: file_, log_
+  std::mutex  mx_client_;
+  std::mutex  mx_account_;
 };
 
 #endif // OFFICE_HPP
