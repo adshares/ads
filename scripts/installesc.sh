@@ -157,8 +157,10 @@ function changeKeysforUser2
 
     cd 'user2'
 
-    echo 'address=0001-00000001-8B4E ' > settings.cfg
-    echo 'secret= 5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings.cfg
+    echo 'host=127.0.0.1' > settings.cfg
+    echo 'port=9092' >> settings.cfg
+    echo 'address=0001-00000001-8B4E ' >> settings.cfg
+    echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings.cfg
     chmod go-r settings.cfg
 
     sleep 1m
@@ -182,13 +184,33 @@ function sendCash
     sleep 25
 }
 
+function checkBalance
+{
+    echo "'$PWD'"
+    echo "'$1'"
+
+    cd $1
+
+    balance=$(echo '{"run":"get_account","address":"'$2'"}' | ./esc | grep balance)
+
+    echo $balance
+
+    if [[ "$balance" == *"$3"* ]]
+    then
+        echo "TEST OK USER:'$1'"
+    else
+        echo "ERROR: WRONG BALANCE: $balance USER '$1'"
+        cd ..
+        exit 1
+    fi
+
+    cd ..
+}
 
 
+pkill -f "escd"
 deploypath="deployment"
-
 current=$PWD
-
-
 
 cd ..
 rm -rf $deploypath
@@ -214,30 +236,18 @@ do
 	prepareClient $i        	
 done
 
+
 initFirstNode
 setUpUser1
 createAccountForUser2
 changeKeysforUser2
-sendCash "0001-00000001-8B4E" 70.0
 
-
-
-for i in {1..3}
+for i in {1..4}
 do
     sendCash "0001-00000001-8B4E" 70.0
-
-    cd 'user1'
-    echo 'GET BALANCE USER 1'$i
-    echo '{"run":"get_account","address":"0001-00000000-9B6F"}' | ./esc | grep balance
-    echo 'GET BALANCE USER 2'$i
-    echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc | grep balance
-    cd ..
 done
 
-    cd 'user1'
-    (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
-
-    cd ..
+checkBalance "user1" "0001-00000001-8B4E" "280."
 
 sleep 1m
 
@@ -272,6 +282,15 @@ nohup ./escd -m 1 -f 1 > nodeout.txt &
 cd ..
 
 echo 'server started'
+
+sleep 1m
+
+checkBalance "user1" "0001-00000001-8B4E" "280."
+checkBalance "user2" "0001-00000001-8B4E" "280."
+checkBalance "user2" "0001-00000001-8B4E" "281."
+
+
+
 
 
 
