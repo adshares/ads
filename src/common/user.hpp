@@ -103,8 +103,8 @@ public:
 			bzero(data+4,size-4);}
 	}
 
-	usertxs(uint8_t* din,int len) :
-		ttype(*data),
+    usertxs(uint8_t* din,int len) :
+        ttype(*din),
 		bbank(0),
 		buser(0),
 		size(len)
@@ -113,7 +113,7 @@ public:
 		memcpy(data,din,size);
 		memcpy(&abank,data+1,2);
 		memcpy(&auser,data+3,4);
-	}
+    }
 
     usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint16_t nbbank,uint32_t nbuser,uint32_t nttime) :
 		ttype(nttype),
