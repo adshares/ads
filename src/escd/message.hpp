@@ -1,6 +1,8 @@
 #ifndef MESSAGE_HPP
 #define MESSAGE_HPP
 
+#include <fcntl.h>
+
 class message :
   public boost::enable_shared_from_this<message>
 {

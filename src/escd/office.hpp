@@ -1,6 +1,7 @@
 #ifndef OFFICE_HPP
 #define OFFICE_HPP
 
+#include <fcntl.h>
 #include <mutex>
 #include <stack>
 #include <boost/make_shared.hpp>
@@ -707,9 +708,7 @@ public:
 
     if(readonly){
       DLOG("OFFICE: adding message in readonly state!\n");
-    }
-    //int len=utxs.size;
-    int len = utxs.getDataSize() + utxs.getSignatureSize();
+    }        
 
     std::unique_lock<boost::mutex> lock(file_);
     if(message_tnum>=MESSAGE_TNUM_MAX){
@@ -740,8 +739,7 @@ public:
     close(md);
     //mpos=message.length()+message::data_offset;
     mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
-    message.append((char*)utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
-    //message.append((char*)msg, len);
+    message.append((char*)utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());    
 
     /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)
     {

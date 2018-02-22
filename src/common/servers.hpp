@@ -1,6 +1,7 @@
 #ifndef SERVERS_HPP
 #define SERVERS_HPP
 
+#include <fcntl.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>

@@ -1,11 +1,10 @@
-#include "servicehandler.h"
+#include "commandservice.h"
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
-    : m_offi(office),
-      m_socket(socket),
+    : m_offi(office),      
       m_getAccountHandler(office, socket),
       m_setAccountHandler(office, socket)
 {
@@ -23,7 +22,7 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
     switch(command->getType())
     {
         case TXSTYPE_INF:
-            m_getAccountHandler.execute(std::move(command), std::move(usera));
+            m_getAccountHandler.execute(std::move(command), std::move(usera));            
             break;
         case TXSTYPE_KEY:
             m_setAccountHandler.execute(std::move(command), std::move(usera));

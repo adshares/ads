@@ -40,6 +40,11 @@
 //end
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
+struct accountresponse
+{
+    user_t      usera;
+    user_t      globalusera;
+}__attribute__((packed));
 
 struct commandresponse
 {

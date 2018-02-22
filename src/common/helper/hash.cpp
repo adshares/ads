@@ -13,22 +13,12 @@ void create256signhash(const unsigned char* signature, int signSize, std::array<
 
 void create256signhash(const unsigned char* signature, int signatureSize, const unsigned char* previosHash, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout)
 {
-/*    std::array<uint8_t, SHA256_DIGEST_LENGTH> temphash{0};
-
-    SHA256_CTX sha256;
-
-    SHA256(signature, signatureSize, temphash.data());
-    SHA256_Init(&sha256);
-    SHA256_Update(&sha256, previosHash, SHA256_DIGEST_LENGTH);
-    SHA256_Update(&sha256, temphash.data(), temphash.size());
-    SHA256_Final(hashout.data(), &sha256);*/
-
     create256signhash(signature, signatureSize, previosHash, hashout.data());
 }
 
 void create256signhash(const unsigned char* signature, int signSize, const unsigned char* previosHash, unsigned char hashout[SHA256_DIGEST_LENGTH])
 {
-    std::array<uint8_t, SHA256_DIGEST_LENGTH> temphash{0};
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> temphash;
 
     SHA256_CTX sha256;
 

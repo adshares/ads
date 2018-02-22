@@ -102,12 +102,8 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff)
 
 bool NetworkClient::sendData(uint8_t* buff, int size)
 {
-
     //std::stringstream tx_data;
     //Helper::ed25519_key2text(tx_data, buff, size);
-
-    //std::cout << ".................tNetworkClient::sendData" <<std::endl;;
-    //std::cout << tx_data.str() << std::endl;;
 
     try
     {

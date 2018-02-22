@@ -1,9 +1,10 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <fcntl.h>
 #include "command/factory.h"
 #include "command/getaccount.h"
-#include "commandhandler/servicehandler.h"
+#include "commandhandler/commandservice.h"
 
 //this could all go to the office class and we could use just the start() function
 

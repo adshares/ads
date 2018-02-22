@@ -5,5 +5,8 @@ perl
 tmp
 *.user
 src/build/*
+build/*
+build*/*
+docs/doxygen/out/*
 CmakeCache.txt
 

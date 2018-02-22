@@ -10,9 +10,9 @@ CommandHandler::CommandHandler(office& office, boost::asio::ip::tcp::socket& soc
 {
 }
 
-void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, user_t usera)
+void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_t& usera)
 {
-    m_usera = std::move(usera);
+    m_usera = usera;
 
     if(command->checkSignature(m_usera.hash, m_usera.pkey))
     {

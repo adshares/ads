@@ -88,6 +88,16 @@ uint32_t SetAccountKey::getTime()
     return m_data._ttime;
 }
 
+int64_t SetAccountKey::getFee()
+{
+    return TXS_KEY_FEE;
+}
+
+int64_t SetAccountKey::getDeduct()
+{
+    return 0;
+}
+
 bool SetAccountKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )){
