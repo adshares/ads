@@ -52,6 +52,8 @@ public:
 #ifdef DEBUG
     DLOG("Client entered %s:%s\n",m_addr.c_str(),m_port.c_str());
 #endif
+
+    Helper::setSocketTimeout(m_socket);
     m_buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64+128);
     boost::asio::async_read(m_socket,boost::asio::buffer(m_buf,1),
     boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));

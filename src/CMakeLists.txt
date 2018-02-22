@@ -16,11 +16,7 @@ IF(CMAKE_BUILD_TYPE MATCHES "Debug")
 add_definitions(-DDEBUG)
 ENDIF(CMAKE_BUILD_TYPE MATCHES "Debug")
 
+
 add_subdirectory(common)
 add_subdirectory(esc)
 add_subdirectory(escd)
-
-
-install(FILES ../scripts/installesc.sh
-    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-    DESTINATION bin)

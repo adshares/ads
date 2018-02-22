@@ -1,6 +1,8 @@
 #ifndef PEER_HPP
 #define PEER_HPP
 
+#include "helper/socket.h"
+
 class peer : public boost::enable_shared_from_this<peer>
 {
 public:
@@ -26,13 +28,10 @@ public:
       BLOCK_MODE(0),
       BLOCK_SERV(false),
       BLOCK_PEER(false)
-  { read_msg_ = boost::make_shared<message>();
+  {
+    read_msg_ = boost::make_shared<message>();
+
     iothp_= new boost::thread(boost::bind(&peer::iorun,this));
-    struct timeval tv;
-    tv.tv_sec=8;
-    tv.tv_usec=0;
-    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
-    setsockopt(socket_.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
   }
 
   ~peer()
@@ -79,16 +78,17 @@ public:
     killme=true;
   }
 
-  void accept() //only incoming connections
-  { assert(incoming_);
+void accept() //only incoming connections
+{
+    //Helper::setSocketTimeout(socket_);
+
+    assert(incoming_);
     addr = socket_.remote_endpoint().address().to_string();
     port = socket_.remote_endpoint().port();
-    DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(),
-      socket_.remote_endpoint().address().to_string().c_str(),port);
-    boost::asio::async_read(socket_,
-      boost::asio::buffer(read_msg_->data,message::header_length),
-      boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
-  }
+    DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(), socket_.remote_endpoint().address().to_string().c_str(),port);
+    boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
+    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+}
 
   void connect(const boost::system::error_code& error) //only outgoing connection
   { if(error){
