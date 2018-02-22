@@ -6,7 +6,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <dirent.h>
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "message.hpp"
 
 class node

@@ -3,11 +3,12 @@
 #include <iostream>
 #include <boost/array.hpp>
 #include "helper/ascii.h"
+#include "helper/socket.h"
 
 NetworkClient::NetworkClient(const std::string& address, const std::string& port):
     m_query(address, port.c_str()),
     m_resolver(m_ioService)
-{
+{    
 }
 
 NetworkClient::~NetworkClient()
@@ -25,10 +26,16 @@ bool NetworkClient::connect()
 
             while (error && connectpoint != end)
             {
+                if(m_socket && m_socket->is_open()){
+                    m_socket->close();
+                }
+
                 m_socket.reset(new boost::asio::ip::tcp::socket(m_ioService));
 
-                if(m_socket){
+                if(m_socket)
+                {
                     m_socket->connect(*connectpoint++, error);
+                    Helper::setSocketTimeout(m_socket);
                 }
             }
 

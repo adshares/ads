@@ -13,6 +13,8 @@ SET(HEADERS
     networkclient.h
 )
 
+include_directories("../../external")
+
 add_subdirectory(abstraction)
 add_subdirectory(helper)
 add_subdirectory(command)

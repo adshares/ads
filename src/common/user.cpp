@@ -36,7 +36,7 @@
 
 
 #include "default.hpp"
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "hash.hpp"
 #include "hlog.hpp"
 #include "user.hpp"

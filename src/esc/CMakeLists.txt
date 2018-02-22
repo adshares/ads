@@ -1,9 +1,11 @@
 set(SRC_LST   
    main.cpp
-   ../ed25519/ed25519.c
+   ../../external/ed25519/ed25519.c
 )
 
-set(HEADER_FILES ../ed25519/ed25519.h)
+set(HEADER_FILES)
+
+include_directories("../../external")
 
 add_executable(esc ${SRC_LST} ${HEADER_FILES})
 target_link_libraries(esc LINK_PUBLIC common)

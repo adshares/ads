@@ -1,5 +1,5 @@
 #include "getaccount.h"
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
 GetAccount::GetAccount()
