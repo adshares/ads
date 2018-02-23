@@ -2,6 +2,9 @@
 #define HLOG_HPP
 
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define HLOG_USO 1
 #define HLOG_UOK 2

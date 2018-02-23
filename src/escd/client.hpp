@@ -2,6 +2,9 @@
 #define CLIENT_HPP
 
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "command/factory.h"
 #include "command/getaccount.h"
 #include "commandhandler/commandservice.h"
