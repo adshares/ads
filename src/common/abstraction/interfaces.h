@@ -49,6 +49,8 @@ public:
     virtual uint32_t                getTime()           = 0;
     virtual uint32_t                getUserId()         = 0;
     virtual uint32_t                getBankId()         = 0;
+    virtual int64_t                 getFee()            = 0;
+    virtual int64_t                 getDeduct()         = 0;
 
     virtual ~ICommand() = default;
 };
@@ -77,10 +79,21 @@ class IBlockCommand : public ICommand, public IJsonSerialize
 
 class BlockCommand: IBlockCommand
 {
-
 };
 
+class ICommandHandler
+{
+public:
+    virtual void execute(std::unique_ptr<IBlockCommand> command, const user_t& usera) = 0;
 
+    virtual void onInit(std::unique_ptr<IBlockCommand> command)  = 0;
+    virtual void onExecute()  = 0;
+    virtual bool onValidate() = 0;
+    //virtual void onCommit(std::unique_ptr<IBlockCommand> command)     = 0;
+    //virtual void onSend()     = 0;
+
+    virtual ~ICommandHandler() = default;
+};
 
 
 #endif // INTERFACES_H

@@ -1,9 +1,11 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "candidate.hpp"
 #include "servers.hpp"
+#include <fcntl.h>
+#include "candidate.hpp"
 #include "hlog.hpp"
+
 
 class office;
 class peer;
@@ -4020,17 +4022,17 @@ public:
       const char* plist=peers_list();
       if(missing_msgs_.size())
       {
-        //ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
-          //((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
           //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-          //(int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
-          //(int)missing_msgs_.size(),missing_msgs_.begin()->first);
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+          (int)missing_msgs_.size(),missing_msgs_.begin()->first);
       }
       else
       {
-        //ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
-        //  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-        //  (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+        ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+          ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
+          (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
       }
       if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2){ // '<' not '<='
         panic=true;

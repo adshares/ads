@@ -1,5 +1,5 @@
 #include "setaccountkey.h"
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
 SetAccountKey::SetAccountKey()
@@ -86,6 +86,16 @@ uint32_t SetAccountKey::getBankId()
 uint32_t SetAccountKey::getTime()
 {
     return m_data._ttime;
+}
+
+int64_t SetAccountKey::getFee()
+{
+    return TXS_KEY_FEE;
+}
+
+int64_t SetAccountKey::getDeduct()
+{
+    return 0;
 }
 
 bool SetAccountKey::send(INetworkClient& netClient)

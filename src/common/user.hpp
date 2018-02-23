@@ -6,7 +6,7 @@
 #include <openssl/sha.h>
 #include <boost/thread/thread.hpp>
 #include "default.hpp"
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 
@@ -41,16 +41,6 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
     1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
 
 #include <array>
-
-
-class block : public IBlockCommand
-{
-public:
-    virtual void sign(uint8_t* hash, uint8_t* sk, uint8_t* pk) override
-    {
-        ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
-    }
-};
 
 
 class usertxs
@@ -103,8 +93,8 @@ public:
 			bzero(data+4,size-4);}
 	}
 
-	usertxs(uint8_t* din,int len) :
-		ttype(*data),
+    usertxs(uint8_t* din,int len) :
+        ttype(*din),
 		bbank(0),
 		buser(0),
 		size(len)
@@ -113,7 +103,7 @@ public:
 		memcpy(data,din,size);
 		memcpy(&abank,data+1,2);
 		memcpy(&auser,data+3,4);
-	}
+    }
 
     usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint16_t nbbank,uint32_t nbuser,uint32_t nttime) :
 		ttype(nttype),

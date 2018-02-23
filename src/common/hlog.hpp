@@ -1,6 +1,8 @@
 #ifndef HLOG_HPP
 #define HLOG_HPP
 
+#include <fcntl.h>
+
 #define HLOG_USO 1
 #define HLOG_UOK 2
 #define HLOG_USR 3

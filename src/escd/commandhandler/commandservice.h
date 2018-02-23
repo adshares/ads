@@ -17,8 +17,7 @@ public:
     void onExecute(std::unique_ptr<IBlockCommand> command);
 
 private:
-    office&                         m_offi;
-    boost::asio::ip::tcp::socket&   m_socket;
+    office&                         m_offi;    
 
     GetAccountHandler               m_getAccountHandler;
     SetAccountKeyHandler            m_setAccountHandler;

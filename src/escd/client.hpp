@@ -1,9 +1,10 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
+#include <fcntl.h>
 #include "command/factory.h"
 #include "command/getaccount.h"
-#include "commandhandler/servicehandler.h"
+#include "commandhandler/commandservice.h"
 
 //this could all go to the office class and we could use just the start() function
 
@@ -51,6 +52,8 @@ public:
 #ifdef DEBUG
     DLOG("Client entered %s:%s\n",m_addr.c_str(),m_port.c_str());
 #endif
+
+    Helper::setSocketTimeout(m_socket);
     m_buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64+128);
     boost::asio::async_read(m_socket,boost::asio::buffer(m_buf,1),
     boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));

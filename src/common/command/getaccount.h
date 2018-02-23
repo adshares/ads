@@ -28,8 +28,11 @@ public:
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;
     virtual uint32_t        getTime()                                   override;
+    virtual int64_t         getFee()                                    override;
+    virtual int64_t         getDeduct()                                 override;
 
     virtual bool            send(INetworkClient& netClient)             override;
+
 
     //IJsonSerialize interface
     virtual std::string                     toString(bool pretty)   override;
@@ -39,10 +42,8 @@ public:
     usertxs2& getDataStruct() { return m_data;}
 
 public:
-    usertxs2    m_data;
-
-    user_t      m_response;
-    user_t      m_globalUser;
+    usertxs2            m_data;
+    accountresponse     m_response;
 };
 
 #endif // GETACCOUNTCOMMAND_H

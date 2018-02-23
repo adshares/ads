@@ -26,8 +26,6 @@ void SetAccountKeyHandler::onExecute()
     accountkey& data            = m_command->getDataStruct();
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     deduct{0};
-    int64_t     fee{TXS_KEY_FEE};
 
     //execute
     std::copy(data._pubkey, data._pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
@@ -49,7 +47,7 @@ void SetAccountKeyHandler::onExecute()
         return;
     }
 
-    m_offi.set_user(data._auser, m_usera, deduct+fee); //will fail if status changed !!!
+    m_offi.set_user(data._auser, m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
 
     //addlogs
     log_t tlog;
@@ -61,7 +59,7 @@ void SetAccountKeyHandler::onExecute()
     tlog.nmid   = msid;
     tlog.mpos   = mpos;
 
-    tlog.weight = -deduct;
+    tlog.weight = -m_command->getDeduct()- m_command->getFee();
     m_offi.put_ulog(data._auser, tlog);
 
 #ifdef DEBUG
@@ -81,14 +79,13 @@ void SetAccountKeyHandler::onExecute()
 
 bool SetAccountKeyHandler::onValidate()
 {
-    int64_t     deduct{0};
-    int64_t     fee{TXS_KEY_FEE};
-    accountkey& data = m_command->getDataStruct();
+    int64_t     deduct = m_command->getDeduct();
+    int64_t     fee    = m_command->getFee();
 
-    if(deduct+fee+(data._auser ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight)
+    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight)
     {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-        deduct, fee, (uint64_t)(data._auser ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
+        deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         return false;
     }
 

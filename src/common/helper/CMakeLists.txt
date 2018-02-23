@@ -9,6 +9,7 @@ SET (HEADERS
     ${HEADERS}
     ${CMAKE_CURRENT_SOURCE_DIR}/ascii.h
     ${CMAKE_CURRENT_SOURCE_DIR}/hash.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/socket.h
     PARENT_SCOPE
     )
 

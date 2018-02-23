@@ -9,18 +9,12 @@
 
 class office;
 
-class CommandHandler
+class CommandHandler : public ICommandHandler
 {
 public:
     CommandHandler(office& office, boost::asio::ip::tcp::socket& socket);
-    void execute(std::unique_ptr<IBlockCommand> command, user_t usera);
 
-protected:
-    virtual void onInit(std::unique_ptr<IBlockCommand> command)  = 0;
-    virtual void onExecute()  = 0;
-    virtual bool onValidate() = 0;
-    //virtual void onCommit(std::unique_ptr<IBlockCommand> command)     = 0;
-    //virtual void onSend(std::unique_ptr<IBlockCommand> command)       = 0;
+    virtual void execute(std::unique_ptr<IBlockCommand> command, const user_t& usera) override;
 
 protected:
     office&                         m_offi;

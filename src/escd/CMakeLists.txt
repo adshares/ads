@@ -7,11 +7,13 @@ set(SOURCED
    options.hpp
    server.hpp
    main.cpp
-   ../ed25519/ed25519.c   
+   ../../external/ed25519/ed25519.c
 )
 
 set(HEADERSD
-    ../ed25519/ed25519.h)
+)
+
+include_directories("../../external")
 
 add_subdirectory(commandhandler)
 

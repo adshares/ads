@@ -1,5 +1,5 @@
 #include "getaccount.h"
-#include "../ed25519/ed25519.h"
+#include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
 GetAccount::GetAccount()
@@ -10,7 +10,7 @@ GetAccount::GetAccount()
 GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser,
                        uint32_t time)
     : m_data( abank, auser, bbank, buser, time)
-{
+{    
 }
 
 //IBlock interface
@@ -41,7 +41,7 @@ int GetAccount::getDataSize()
 
 int GetAccount::getResponseSize()
 {
-    return 2*sizeof(decltype(m_response));
+    return sizeof(m_response);
 }
 
 unsigned char* GetAccount::getSignature()
@@ -82,6 +82,16 @@ uint32_t GetAccount::getBankId()
 uint32_t GetAccount::getTime()
 {
     return m_data._info._ttime;
+}
+
+int64_t GetAccount::getFee()
+{
+    return 0;
+}
+
+int64_t GetAccount::getDeduct()
+{
+    return 0;
 }
 
 bool GetAccount::send(INetworkClient& netClient)

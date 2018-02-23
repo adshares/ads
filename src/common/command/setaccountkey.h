@@ -29,6 +29,9 @@ public:
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;
     virtual uint32_t        getTime()                                   override;
+    virtual int64_t         getFee()                                    override;
+    virtual int64_t         getDeduct()                                 override;
+
 
     virtual bool            send(INetworkClient& netClient)             override;
 
