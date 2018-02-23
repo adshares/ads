@@ -75,7 +75,7 @@ function initFirstNode
     ##./escd --init 1 > nodeout.txt &
 
     cd ..
-    sleep 1m
+    sleep 60
 
     echo 'INITALIZATION NODE 1 FINISHED'
 }
@@ -105,7 +105,7 @@ function setUpUser1
 
     (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | ./esc
 
-    sleep 1m
+    sleep 60
 
     echo 'host=127.0.0.1'> settings.cfg
     echo 'port=9091' >> settings.cfg
@@ -128,13 +128,13 @@ function createAccountForUser2
 
     (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./esc
 
-    sleep 1m
+    sleep 60
 
     echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc
 
     echo '----------------------------------'
 
-    sleep 1m
+    sleep 60
 
     (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
 
@@ -163,7 +163,7 @@ function changeKeysforUser2
     echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     chmod go-r settings.cfg
 
-    sleep 1m
+    sleep 60
 
     echo '{"run":"get_me"}' | ./esc
 
@@ -275,11 +275,11 @@ done
 addNode
 checkBalance "user1" "0001-00000001-8B4E" "280."
 
-sleep 1m
+sleep 60
 
 changeNode2Key
 
-sleep 2m
+sleep 120
 
 cd 'node2'
 
@@ -298,7 +298,7 @@ cd ..
 
 echo 'server started'
 
-sleep 1m
+sleep 60
 
 checkBalance "user1" "0001-00000001-8B4E" "280."
 #checkBalance "user1" "0001-00000001-8B4E" "280."
