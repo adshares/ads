@@ -159,8 +159,8 @@ function changeKeysforUser2
 
     echo 'host=127.0.0.1' > settings.cfg
     echo 'port=9092' >> settings.cfg
-    echo 'address=0001-00000001-8B4E ' >> settings.cfg
-    echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings.cfg
+    echo 'address=0001-00000001-8B4E' >> settings.cfg
+    echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     chmod go-r settings.cfg
 
     sleep 1m
@@ -207,7 +207,32 @@ function checkBalance
     cd ..
 }
 
+function addNode
+{
+    cd 'user1'
+    (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
 
+    cd ..
+}
+
+function changeNode2Key
+{
+    cd 'node2'
+
+    echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
+    cd ..
+
+    cd 'user1'
+
+    echo '.............................change_node_key'
+
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | ./esc
+
+    cd ..
+}
+
+
+pkill -f "escd"
 pkill -f "escd"
 deploypath="deployment"
 current=$PWD
@@ -247,22 +272,12 @@ do
     sendCash "0001-00000001-8B4E" 70.0
 done
 
+addNode
 checkBalance "user1" "0001-00000001-8B4E" "280."
 
 sleep 1m
 
-cd 'node2'
-
-echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
-cd ..
-
-cd 'user1'
-
-echo '.............................change_node_key'
-
-(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | ./esc
-
-cd ..
+changeNode2Key
 
 sleep 2m
 
@@ -286,8 +301,8 @@ echo 'server started'
 sleep 1m
 
 checkBalance "user1" "0001-00000001-8B4E" "280."
-checkBalance "user2" "0001-00000001-8B4E" "280."
-checkBalance "user2" "0001-00000001-8B4E" "281."
+#checkBalance "user1" "0001-00000001-8B4E" "280."
+#checkBalance "user2" "0001-00000001-8B4E" "281."
 
 
 

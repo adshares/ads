@@ -70,7 +70,7 @@ bool GetAccountHandler::onValidate()
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
     if(data._abank != m_offi.svid && data._bbank != m_offi.svid)
     {
-        DLOG("ERROR: bad bank for INF\n");
+        DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", data._abank, data._bbank, m_offi.svid );
         return false;
     }
 
