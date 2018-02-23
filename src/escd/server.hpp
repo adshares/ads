@@ -1,10 +1,12 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "servers.hpp"
+#include <iostream>
 #include <fcntl.h>
+#include "servers.hpp"
 #include "candidate.hpp"
 #include "hlog.hpp"
+
 
 
 class office;

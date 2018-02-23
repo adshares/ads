@@ -3,6 +3,7 @@
 
 #include <boost/program_options.hpp>
 #include <arpa/inet.h>
+#include <iostream>
 
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)

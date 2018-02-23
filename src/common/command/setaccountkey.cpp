@@ -1,4 +1,5 @@
 #include "setaccountkey.h"
+#include <iostream>
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
