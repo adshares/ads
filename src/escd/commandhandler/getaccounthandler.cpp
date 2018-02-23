@@ -59,12 +59,20 @@ bool GetAccountHandler::onValidate()
     userinfo&   data    = m_command->getDataStruct()._info;
     int32_t     diff    = data._ttime - time(nullptr);
 
+#ifdef DEBUG
     // this is special, just local info
     if((abs(diff)>22))
     {
         DLOG("ERROR: high time difference (%d>2s)\n",diff);
         return false;
     }
+#else
+    if((abs(diff)>2))
+    {
+        DLOG("ERROR: high time difference (%d>2s)\n",diff);
+        return false;
+    }
+#endif
 
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change

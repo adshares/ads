@@ -1070,7 +1070,7 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
         char tx_user_hashin[65];
         tx_user_hashin[64]='\0';
 
-        ed25519_key2text(tx_user_hashin,sts.ha.data(),32);
+        ed25519_key2text(tx_user_hashin, sts.ha.data(), 32);
 
         pt.put("tx.account_hashin",tx_user_hashin);
         logpt.put("tx.account_hashin",tx_user_hashin);
@@ -1107,6 +1107,8 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
     {
         if(txs->getType() == TXSTYPE_INF)
         {
+            std::cout<< "................................ talk2 GETME..\n";
+
             struct
             {
                 user_t myuser;
@@ -1115,15 +1117,11 @@ void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockComman
 
             memcpy(&t, txs->getResponse(), txs->getResponseSize());
 
-            print_user(t.myuser, pt, true, txs->getBankId(), txs->getUserId(), sts);
-
             sts.msid = t.myuser.msid;
             memcpy(sts.ha.data(), t.myuser.hash, SHA256_DIGEST_LENGTH);
 
+            print_user(t.myuser, pt, true, txs->getBankId(), txs->getUserId(), sts);            
             print_user(t.myuser2, pt, false, txs->getBankId(), txs->getUserId(), sts);
-
-            sts.msid = t.myuser2.msid;
-            memcpy(sts.ha.data(), t.myuser2.hash, SHA256_DIGEST_LENGTH);
 
             boost::property_tree::write_json(std::cout, pt, sts.nice);
         }

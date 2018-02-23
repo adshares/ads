@@ -115,7 +115,9 @@ function setUpUser1
     echo '{"run":"get_me"}' | ./esc
     cd ..
 
-    sleep 25
+    echo '.............................finished'
+
+    sleep 30
 }
 
 function createAccountForUser2
@@ -125,6 +127,7 @@ function createAccountForUser2
     cd 'user1'
 
     echo '----------------------------------'
+    echo '{"run":"get_me"}' | ./esc
 
     (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./esc
 
@@ -209,6 +212,8 @@ function checkBalance
 
 function addNode
 {
+    echo '.............................ADD node'
+
     cd 'user1'
     (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
 
@@ -216,7 +221,7 @@ function addNode
 }
 
 function changeNode2Key
-{
+{    
     cd 'node2'
 
     echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt

@@ -106,6 +106,15 @@ public:
         m_offi.leave(shared_from_this());
         return;
     }
+
+    //command which are handle with new way
+    if(m_command)
+    {
+        executeCommand();
+        m_offi.leave(shared_from_this());
+        return;
+    }
+
     bzero(&m_utxs,sizeof(usertxs));
 
 #ifdef DEBUG
@@ -113,7 +122,8 @@ public:
 #endif
 
     //TODO new parser to base class
-    m_utxs.parse(m_buf);  
+    m_utxs.parse(m_buf);
+
 
     if(*m_buf==TXSTYPE_BRO)
     {
@@ -128,13 +138,7 @@ public:
       boost::asio::async_read(m_socket,boost::asio::buffer(m_buf+m_len,m_utxs.bbank*(6+8)),
       boost::bind(&client::handle_read_more,shared_from_this(),boost::asio::placeholders::error));
       return;
-    }
-
-    if(m_command)
-    {
-        //executeCommand();
-        //return;
-    }
+    }    
 
     if(m_offi.lock_user(m_utxs.auser))
     {
@@ -174,43 +178,14 @@ public:
 
 
   void executeCommand()
-  {
-      uint32_t startTime = time(nullptr);
-      user_t   usera;
-
+  {      
       if(!m_command){
           DLOG("No valid command to proceed");
           return;
       }
 
-      m_command->setData(m_buf);
-
-      if(!getFromUser(m_command->getBankId(), m_command->getUserId(), usera)){
-          return;
-      }
-
-      //if(!getToUser(userb)){
-      //    return;
-      //}
-
-      if(!validateCommandTime(startTime)){
-        return;
-      }
-
-      if(m_offi.lock_user(usera.user))
-      {
-        try{
-              if(m_command->checkSignature(usera.hash, usera.pkey))
-              {
-                    m_commandService.onExecute(std::move(m_command));
-              }
-        }
-        catch (std::exception& e){
-              DLOG("ERROR exception in parse (%08X)\n",m_utxs.auser);
-        }
-        m_offi.unlock_user(m_utxs.auser);
-      }
-      m_offi.leave(shared_from_this());
+      m_command->setData(m_buf);      
+      m_commandService.onExecute(std::move(m_command));      
   }
 
   bool getFromUser(user_t& usera)
@@ -331,7 +306,7 @@ public:
     if(*m_buf == TXSTYPE_INF)
     {
         // this is special, just local info
-        if((abs(diff)>22))
+        if((abs(diff)>2))
         {
             DLOG("ERROR: high time difference (%d>2s)\n",diff);
             return;
