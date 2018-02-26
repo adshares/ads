@@ -71,6 +71,7 @@ bool NetworkClient::disConnect()
         catch(std::exception& e)
         {
             std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+            m_connected = false;
             return false;
         }
 
@@ -109,8 +110,6 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff)
 
 bool NetworkClient::sendData(uint8_t* buff, int size)
 {
-    //std::stringstream tx_data;
-    //Helper::ed25519_key2text(tx_data, buff, size);
 
     try
     {

@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 function prepareNode
 {
     echo '.............................prepareNode'$1
@@ -210,6 +208,30 @@ function checkBalance
     cd ..
 }
 
+
+function getMe
+{
+    echo "'$PWD'"
+    echo "'$1'"
+
+    cd $1
+
+    getmeinfo=$(echo '{"run":"get_me"}' | ./esc | grep address)
+
+    echo $getmeinfo
+
+    if [[ "$getmeinfo" == *"$3"* ]]
+    then
+        echo "TEST OK USER:'$1'"
+    else
+        echo "ERROR: WRONG BALANCE: $getmeinfo USER '$1'"
+        cd ..
+        exit 1
+    fi
+
+    cd ..
+}
+
 function addNode
 {
     echo '.............................ADD node'
@@ -237,8 +259,28 @@ function changeNode2Key
 }
 
 
+function getMeMultipleTest
+{
+    for i in $(seq 1 $1);
+    do
+        echo $i
+        getMe "user1" "0001-00000000-9B6F" "0001-00000000-9B6F"
+    done
+}
+
+function getBalanceMultipleTest
+{
+    for i in $(seq 1 $1);
+    do
+        checkBalance "user1" "0001-00000001-8B4E" "280."
+    done
+}
+
+
 pkill -f "escd"
+sleep 2
 pkill -f "escd"
+sleep 2
 deploypath="deployment"
 current=$PWD
 
@@ -268,6 +310,22 @@ done
 
 
 initFirstNode
+
+stime=$(date +%s%N)
+echo $stime
+
+getMeMultipleTest 100
+
+
+echo $stime
+endtime=$(date +%s%N)
+
+let "period = $endtime -  $stime"
+
+echo 'PERIOD: '$period
+
+
+
 setUpUser1
 createAccountForUser2
 changeKeysforUser2
@@ -306,9 +364,20 @@ echo 'server started'
 sleep 60
 
 checkBalance "user1" "0001-00000001-8B4E" "280."
-#checkBalance "user1" "0001-00000001-8B4E" "280."
-#checkBalance "user2" "0001-00000001-8B4E" "281."
 
+
+stime=$(date +%s%N)
+echo $stime
+
+getMeMultipleTest 10000
+getBalanceMultipleTest 10000
+
+echo $stime
+endtime=$(date +%s%N)
+
+let "period = $endtime - $stime"
+
+echo 'PERIOD:'$period
 
 
 

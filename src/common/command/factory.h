@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "abstraction/interfaces.h"
+#include "settings.hpp"
 
 namespace command{
 

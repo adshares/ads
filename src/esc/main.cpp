@@ -4,9 +4,29 @@
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
-
+#include "responsehandler.h"
+#include "helper/ascii.h"
+#include "helper/hash.h"
+#include "helper/json.h"
 
 using namespace std;
+
+
+void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& sts, std::unique_ptr<IBlockCommand> txs) //len can be deduced from txstype
+{
+    if(!netClient.reconnect()){
+         std::cerr<<"ERROR cannot connect to server\n";
+    }
+
+    if( txs->send(netClient) )
+    {
+        respHandler.onExecute(std::move(txs));
+    }
+    else
+    {
+        std::cerr<<"ERROR reading global info talk2\n";
+    }
+}
 
 int main(int argc, char* argv[])
 {
@@ -20,6 +40,8 @@ int main(int argc, char* argv[])
 
     NetworkClient netClient(sts.host,std::to_string(sts.port));
 
+    ResponseHandler respHandler(sts);
+
     #if INTPTR_MAX == INT64_MAX
       assert(sizeof(long double)==16);
     #endif
@@ -27,6 +49,7 @@ int main(int argc, char* argv[])
 
         usertxs_ptr txs;
         std::string line;
+        std::unique_ptr<IBlockCommand> t2;
 
         while (std::getline(std::cin, line))
         {
@@ -38,9 +61,7 @@ int main(int argc, char* argv[])
             }
             if(line.at(0) == '\n' || line.at(0) == '#'){
                 continue;
-            }
-
-            std::unique_ptr<IBlockCommand> t2;
+            }            
 
             txs = run_json(sts, line, deduct, fee, t2);
 
@@ -51,11 +72,10 @@ int main(int argc, char* argv[])
             //temporary solution for reimplementing
             if(t2)
             {
-                talk2(netClient, sts, t2, deduct, fee);
+                talk2(netClient, respHandler, sts, std::move(t2));
             }
             else if(txs)
             {
-
                 talk(endpoint_iterator, socket, sts, txs, deduct, fee);
             }
         }
@@ -63,5 +83,6 @@ int main(int argc, char* argv[])
     catch (std::exception& e){
       std::cerr << "Main Exception: " << e.what() << "\n";
     }
+
     return 0;
 }

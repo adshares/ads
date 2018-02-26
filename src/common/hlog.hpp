@@ -6,6 +6,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "helper/ascii.h"
+
+using namespace Helper;
+
+
 #define HLOG_USO 1
 #define HLOG_UOK 2
 #define HLOG_USR 3

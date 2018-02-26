@@ -1,10 +1,18 @@
 #include <algorithm>
-#include <atomic>
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/bind.hpp>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <list>
+#include <sstream>
+#include <stack>
+#include <vector>
+#include <iostream>
+#include <fcntl.h>
+
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/make_shared.hpp>
@@ -14,29 +22,8 @@
 //#include <boost/serialization/list.hpp>
 //#include <boost/serialization/vector.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/container/flat_set.hpp>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <deque>
-#include <dirent.h>
-#include <forward_list>
-#include <fstream>
-#include <iostream>
-#include <iterator>
-#include <list>
-#include <set>
-#include <sstream>
-#include <stack>
-#include <vector>
-#include <iostream>
-#include <fcntl.h>
-
 
 #include "default.hpp"
-#include "ed25519/ed25519.h"
 #include "hash.hpp"
 #include "hlog.hpp"
 #include "user.hpp"
@@ -48,6 +35,9 @@
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
 #include "helper/hash.h"
+#include "helper/json.h"
+
+using namespace Helper;
 
 
 const char* txsname[TXSTYPE_MAX]={
@@ -180,59 +170,6 @@ bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len)
   return(true);
 }
 
-#if INTPTR_MAX == INT64_MAX
-bool parse_amount(int64_t& amount,std::string str_amount)
-{ long double val;
-  if(1!=sscanf(str_amount.c_str(),"%Lf",&val)){
-    return(false);}
-  amount=llroundl(val*1000000000.0);
-  return(true);
-}
-char* print_amount(int64_t amount)
-{ static char text[32];
-  const long double div=(long double)1.0/(long double)1000000000.0;
-  long double val=amount;
-  sprintf(text,"%.9Lf",val*div);
-  return(text);
-}
-#elif INTPTR_MAX == INT32_MAX
-bool parse_amount(int64_t& amount,std::string str_amount)
-{ int64_t big=0;//,small=0;
-  char small[11]=" 000000000";
-  int n=sscanf(str_amount.c_str(),"%ld%10s",&big,small);
-  if(n<1){
-    fprintf(stderr,"ERROR: parse_amount(%s)\n",str_amount.c_str());
-    return(false);}
-  if(n==1 || small[0]!='.'){
-    amount=big*1000000000;
-    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-    return(true);}
-  for(n=1;n<10;n++){
-    if(!isdigit(small[n])){
-      break;}}
-  for(;n<10;n++){
-    small[n]='0';}
-  if(big>=0){
-    amount=big*1000000000+atol(small+1);}
-  else{
-    amount=big*1000000000-atol(small+1);}
-  //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-  return(true);
-}
-char* print_amount(int64_t amount)
-{ static char text[32];
-  int64_t a=fabsl(amount);
-  if(amount>=0){
-    sprintf(text,"%ld.%09ld",a/1000000000,a%1000000000);}
-  else{
-    sprintf(text,"-%ld.%09ld",a/1000000000,a%1000000000);}
-  //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
-  return(text);
-}
-#else
-#error Unknown pointer size or missing size macros!
-#endif
-
 uint32_t hexdec(std::string str, uint32_t fallback = 0)
 {
 	try {
@@ -242,7 +179,7 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0)
 	}
 }
 
-usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> &txs2)
+usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> &command)
 {
     uint16_t    to_bank=0;
     uint32_t    to_user=0;
@@ -310,19 +247,16 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   std::string run=pt.get<std::string>("run");
 
   if(!run.compare("get_me"))
-  {
-    //txs  = boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
-    txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
+  {    
+    command.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
   }
   else if(!run.compare(txsname[TXSTYPE_INF]))
   {
-    if(!to_bank && !to_user) { // no target account specified
-        //txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,sts.bank,sts.user,now);
-        txs2.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
+    if(!to_bank && !to_user) { // no target account specified        
+        command.reset( new GetAccount(sts.bank,sts.user,sts.bank,sts.user,now));
     }
-    else{
-       //txs=boost::make_shared<usertxs>(TXSTYPE_INF,sts.bank,sts.user,to_bank,to_user,now);
-        txs2.reset( new GetAccount(sts.bank,sts.user,to_bank,to_user,now));
+    else{       
+        command.reset( new GetAccount(sts.bank,sts.user,to_bank,to_user,now));
     }
   }
   else if(!run.compare(txsname[TXSTYPE_LOG])){
@@ -481,9 +415,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   else if(!run.compare(txsname[TXSTYPE_GET])){
     txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     fee=TXS_GET_FEE;}
-  else if(!run.compare(txsname[TXSTYPE_KEY])){
-    //txs=boost::make_shared<usertxs>(TXSTYPE_KEY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
-    txs2.reset( new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
+  else if(!run.compare(txsname[TXSTYPE_KEY])){    
+    command.reset( new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
     fee=TXS_KEY_FEE;}
   else if(!run.compare(txsname[TXSTYPE_BKY])){
     txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
@@ -510,47 +443,34 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
   //  return(NULL);
   //}
 
-  if(txs)
-  {
+  if(txs){
     txs->sign(sts.ha.data(),sts.sk,sts.pk);
   }
 
-  if(txs2)
-  {
-      txs2->sign(sts.ha.data(), sts.sk,sts.pk);
+  if(command){
+      command->sign(sts.ha.data(), sts.sk, sts.pk);
   }
 
-  if(!run.compare(txsname[TXSTYPE_KEY]) && txs2)
+  if(!run.compare(txsname[TXSTYPE_KEY]) && command)
   {
-    SetAccountKey* keycommand = dynamic_cast<SetAccountKey*>(txs2.get());
+    SetAccountKey* keycommand = dynamic_cast<SetAccountKey*>(command.get());
 
     if(keycommand)
     {
        if( !keycommand->checkPubKeySignaure() )
        {
            fprintf(stderr,"ERROR, bad new KEY empty string signature1\n");
-           txs2.reset();
+           command.reset();
            //eturn nullptr;
        }
     }
     else if(txs && txs->sign2(to_sign))
     {
-      fprintf(stderr,"ERROR, bad new KEY empty string signature2\n");
-      return(NULL);
+        fprintf(stderr,"ERROR, bad new KEY empty string signature2\n");
+        return(NULL);
     }
-
   }
-  return(txs);
-}
-
-static char* mydate(uint32_t now)
-{ time_t lnow=now;
-  static char text[64];
-  struct tm *tmp;
-  tmp=localtime(&lnow);
-  if(!strftime(text,64,"%F %T",tmp)){
-    text[0]='\0';}
-  return(text);
+  return txs;
 }
 
 int check_csum(user_t& u,uint16_t peer,uint32_t uid)
@@ -564,59 +484,6 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid)
   return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
-void print_user(user_t& u,boost::property_tree::ptree& pt,bool local,uint32_t bank,uint32_t user,settings& sts)
-{ char pkey[65];
-  char hash[65];
-  ed25519_key2text(pkey,u.pkey,32);
-  ed25519_key2text(hash,u.hash,32);
-  pkey[64]='\0';
-  hash[64]='\0';
-  uint16_t suffix=sts.crc_acnt(bank,user);
-  char ucnt[19]="";
-  char acnt[19];
-  sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
-  if(u.node){
-    suffix=sts.crc_acnt(u.node,u.user);
-    sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);}
-  if(local){
-    pt.put("account.address",acnt);
-    pt.put("account.node",bank);
-    pt.put("account.id",user);
-    pt.put("account.msid",u.msid);
-    pt.put("account.time",u.time);
-//    pt.put("account.date",mydate(u.time));
-    pt.put("account.status",u.stat);
-    pt.put("account.paired_node",u.node);
-    pt.put("account.paired_id",u.user);
-    if((u.node || u.user) && (u.node != bank || u.user != user)){
-      pt.put("account.paired_address",ucnt);}
-    pt.put("account.local_change",u.lpath);
-    pt.put("account.remote_change",u.rpath);
-    pt.put("account.balance",print_amount(u.weight));
-    pt.put("account.public_key",pkey);
-    pt.put("account.hash",hash);}
-  else{
-    pt.put("network_account.address",acnt);
-    pt.put("network_account.node",bank);
-    pt.put("network_account.id",user);
-    pt.put("network_account.msid",u.msid);
-    pt.put("network_account.time",u.time);
-    pt.put("network_account.date",mydate(u.time));
-    pt.put("network_account.status",u.stat);
-    pt.put("network_account.paired_node",u.node);
-    pt.put("network_account.paired_id",u.user);
-    if((u.node || u.user) && (u.node != bank || u.user != user)){
-      pt.put("network_account.paired_address",ucnt);}
-    pt.put("network_account.local_change",u.lpath);
-    pt.put("network_account.remote_change",u.rpath);
-    pt.put("network_account.balance",print_amount(u.weight));
-    pt.put("network_account.public_key",pkey);
-    pt.put("network_account.hash",hash);
-    if(!check_csum(u,bank,user)){
-      pt.put("network_account.checksum","true");}
-    else{
-      pt.put("network_account.checksum","false");}}
-}
 
 void print_log(boost::property_tree::ptree& pt,settings& sts)
 { char filename[64];
@@ -1043,104 +910,6 @@ void print_blocktime(boost::property_tree::ptree& pt,uint32_t blocktime)
   pt.put("block_time_hex",blockhex);
   pt.put("block_time",blocktime);
 }
-
-void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee) //len can be deduced from txstype
-{
-    //std::cout<< "...........................talk2";
-    boost::property_tree::ptree pt;
-    boost::property_tree::ptree logpt;    
-
-    uint32_t now = time(NULL);
-    now -= now%BLOCKSEC;
-    pt.put("current_block_time", now);
-    pt.put("previous_block_time", now - BLOCKSEC);
-
-    std::stringstream tx_data;
-
-    Helper::ed25519_key2text(tx_data, txs->getData(), txs->getDataSize() + txs->getSignatureSize());
-
-    pt.put("tx.data",tx_data.str());
-    logpt.put("tx.data",tx_data.str());
-
-    if(txs->getType() != TXSTYPE_INF)
-    {
-        pt.put("tx.account_msid",sts.msid);
-        logpt.put("tx.account_msid",sts.msid);
-
-        char tx_user_hashin[65];
-        tx_user_hashin[64]='\0';
-
-        ed25519_key2text(tx_user_hashin, sts.ha.data(), 32);
-
-        pt.put("tx.account_hashin",tx_user_hashin);
-        logpt.put("tx.account_hashin",tx_user_hashin);
-
-        char tx_user_hashout[65];
-        tx_user_hashout[64]='\0';
-
-        std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
-        Helper::create256signhash(txs->getSignature(), txs->getSignatureSize(), sts.ha, hashout);
-
-        ed25519_key2text(tx_user_hashout, hashout.data(), 32);
-        pt.put("tx.account_hashout",tx_user_hashout);
-        //FIXME calculate deduction and fee
-        pt.put("tx.deduct",print_amount(deduct));
-        pt.put("tx.fee",print_amount(fee));
-
-        if(sts.msid==1)
-        {
-          char tx_user_public_key[65];
-          tx_user_public_key[64]='\0';
-
-          ed25519_key2text(tx_user_public_key,sts.pk,32);
-          logpt.put("tx.account_public_key",tx_user_public_key);
-        }
-    }
-
-    if(!netClient.reconnect()){
-         std::cerr<<"ERROR cannot connect to server\n";
-    }
-
-    //std::cerr<<"................................ talk2 SEND..\n";
-
-    if( txs->send(netClient) )
-    {
-        if(txs->getType() == TXSTYPE_INF)
-        {
-            std::cout<< "................................ talk2 GETME..\n";
-
-            struct
-            {
-                user_t myuser;
-                user_t myuser2;
-            } t;
-
-            memcpy(&t, txs->getResponse(), txs->getResponseSize());
-
-            sts.msid = t.myuser.msid;
-            memcpy(sts.ha.data(), t.myuser.hash, SHA256_DIGEST_LENGTH);
-
-            print_user(t.myuser, pt, true, txs->getBankId(), txs->getUserId(), sts);            
-            print_user(t.myuser2, pt, false, txs->getBankId(), txs->getUserId(), sts);
-
-            boost::property_tree::write_json(std::cout, pt, sts.nice);
-        }
-        else if (txs->getType() == TXSTYPE_KEY)
-        {
-            user_t myuser;
-
-            memcpy(&myuser,txs->getResponse(), txs->getResponseSize());
-
-            std::copy(myuser.pkey, myuser.pkey + 32, sts.pk);
-            std::cerr<<"PKEY changed2\n";
-        }
-    }
-    else
-    {
-        std::cerr<<"ERROR reading global info talk2\n";
-    }
-}
-
 
 
 void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee) //len can be deduced from txstype
@@ -1883,7 +1652,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               pt.put("error.text","hash mismatch");}}
           sts.msid=myuser.msid;
           memcpy(sts.ha.data(), myuser.hash, SHA256_DIGEST_LENGTH);}}
-      if(txs->ttype==TXSTYPE_INF){
+      /*if(txs->ttype==TXSTYPE_INF){
         try{
           len=boost::asio::read(socket,boost::asio::buffer(buf,sizeof(user_t)));
           if(len!=sizeof(user_t)){
@@ -1894,7 +1663,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             print_user(myuser,pt,false,txs->bbank,txs->buser,sts);}}
         catch (std::exception& e){
           fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
-      else if(txs->ttype==TXSTYPE_LOG){
+      else
+        */if(txs->ttype==TXSTYPE_LOG){
         int len;
         if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))){
           std::cerr<<"ERROR reading log length\n";

@@ -99,6 +99,11 @@ int64_t SetAccountKey::getDeduct()
     return 0;
 }
 
+user_t& SetAccountKey::getUserInfo()
+{
+    return m_response.usera;
+}
+
 bool SetAccountKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )){
@@ -111,6 +116,11 @@ bool SetAccountKey::send(INetworkClient& netClient)
     }        
 
     return true;
+}
+
+void SetAccountKey::saveResponse(settings& sts)
+{
+    std::copy(m_response.usera.pkey, m_response.usera.pkey + SHA256_DIGEST_LENGTH, sts.pk);
 }
 
 std::string SetAccountKey::toString(bool pretty)

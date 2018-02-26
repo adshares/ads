@@ -4,6 +4,8 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "settings.hpp"
+
 
 
 //TODO think about template class wieh data as templete parameter
@@ -25,6 +27,8 @@ public:
     virtual int             getSignatureSize()                          override;
     virtual void            sign(uint8_t* hash,uint8_t* sk,uint8_t* pk) override;
     virtual bool            checkSignature(uint8_t* hash, uint8_t* pk)  override;
+    virtual void            saveResponse(settings& sts)                 override;
+    virtual user_t&         getUserInfo()                               override;
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;
     virtual uint32_t        getTime()                                   override;

@@ -3,12 +3,14 @@
 
 #include <cstring>
 #include <cassert>
+#include <array>
 #include <openssl/sha.h>
 #include <boost/thread/thread.hpp>
 #include "default.hpp"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
+#include <boost/asio.hpp>
 
 const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and input hash
     1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
@@ -40,7 +42,15 @@ const int txslen[TXSTYPE_MAX+1]={ //length does not include variable part and in
     1+2+4+4+4+2+4,		//22:MSG /amsid=blk_number buser=node_msid/
     1+2+4+4+4+2+4+8+32};	//23:MAX fixed buffer size
 
-#include <array>
+
+class settings;
+class usertxs;
+
+typedef boost::shared_ptr<usertxs> usertxs_ptr;
+
+//functions used in  main.cpp
+usertxs_ptr run_json(settings& sts, const std::string& line,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> &command);
+void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee); //len can be deduced from txstype
 
 
 class usertxs
@@ -686,16 +696,6 @@ public:
 
 private:
 };
-typedef boost::shared_ptr<usertxs> usertxs_ptr;
-
-
-#include <boost/asio.hpp>
-class settings;
-class NetworkClient;
-
-usertxs_ptr run_json(settings& sts, const std::string& line,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> & tx2);
-void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee); //len can be deduced from txstype
-void talk2(NetworkClient& netClient, settings& sts, std::unique_ptr<IBlockCommand>& txs, int64_t deduct, int64_t fee); //len can be deduced from txstype
 
 
 #endif // USER_HPP

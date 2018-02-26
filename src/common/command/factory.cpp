@@ -3,7 +3,6 @@
 #include "getaccount.h"
 #include "setaccountkey.h"
 
-
 namespace command{
 
 std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type)

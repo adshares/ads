@@ -9,6 +9,7 @@
 #include "command/getaccount.h"
 #include "commandhandler/commandservice.h"
 
+
 //this could all go to the office class and we could use just the start() function
 
 /**
@@ -90,10 +91,18 @@ public:
     //get  size of command
     m_len = txslen[(int)*m_buf] + 64 + m_more;
 
-    //DLOG(< "Client txstype " << m_addr << ":" << port << "\n";
-    //read command. First character is already taken that is why we have buf+1 and len-1.
-    boost::asio::async_read(m_socket,boost::asio::buffer(m_buf+1, m_len-1),
-    boost::bind(&client::handle_read_txs, shared_from_this(), boost::asio::placeholders::error));
+    if(m_command)
+    {
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize() + m_command->getSignatureSize()-1),
+        boost::bind(&client::handle_read_txs, shared_from_this(), boost::asio::placeholders::error));
+    }
+    else
+    {
+        //DLOG(< "Client txstype " << m_addr << ":" << port << "\n";
+        //read command. First character is already taken that is why we have buf+1 and len-1.
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_buf+1, m_len-1),
+        boost::bind(&client::handle_read_txs, shared_from_this(), boost::asio::placeholders::error));
+    }
 
     return;
   }
@@ -110,7 +119,7 @@ public:
     //command which are handle with new way
     if(m_command)
     {
-        executeCommand();
+        m_commandService.onExecute(std::move(m_command));
         m_offi.leave(shared_from_this());
         return;
     }
@@ -174,72 +183,6 @@ public:
       m_offi.unlock_user(m_utxs.auser);
     }
     m_offi.leave(shared_from_this());
-  }
-
-
-  void executeCommand()
-  {      
-      if(!m_command){
-          DLOG("No valid command to proceed");
-          return;
-      }
-
-      m_command->setData(m_buf);      
-      m_commandService.onExecute(std::move(m_command));      
-  }
-
-  bool getFromUser(user_t& usera)
-  {
-      //FIXME, read the rest ... add additional signatures
-      //consider adding a max txs limit per user
-      if(!m_offi.get_user(usera, m_utxs.abank, m_utxs.auser))
-      {
-        DLOG("ERROR: read user failed\n");
-        return false;
-      }
-
-      return true;
-  }
-
-  bool getFromUser(uint16_t node, uint32_t user, user_t& usera)
-  {
-      //FIXME, read the rest ... add additional signatures
-      //consider adding a max txs limit per user
-      if(!m_offi.get_user(usera, node, user))
-      {
-        DLOG("ERROR: read user failed\n");
-        return false;
-      }
-
-      return true;
-  }
-
-
-  bool getToUser(user_t& userb)
-  {
-      //FIXME, read the rest ... add additional signatures
-      //consider adding a max txs limit per user
-      if(!m_offi.get_user(userb, m_utxs.abank, m_utxs.auser))
-      {
-        DLOG("ERROR: read user failed\n");
-        return false;
-      }
-
-      return true;
-  }
-
-  bool validateCommandTime(uint32_t currentTime)
-  {
-      int32_t diff = m_command->getTime() - currentTime;
-
-      // this is special, just local info
-      if((abs(diff)>22))
-      {
-          DLOG("ERROR: high time difference (%d>2s)\n",diff);
-          return false;
-      }
-
-      return true;
   }
 
   void parse()

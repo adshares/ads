@@ -1,5 +1,4 @@
 #include "getaccount.h"
-#include <iostream>
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
@@ -11,7 +10,7 @@ GetAccount::GetAccount()
 GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser,
                        uint32_t time)
     : m_data( abank, auser, bbank, buser, time)
-{    
+{
 }
 
 //IBlock interface
@@ -66,8 +65,14 @@ void GetAccount::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
 }
 
 bool GetAccount::checkSignature(uint8_t* hash, uint8_t* pk)
-{    
+{
     return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
+}
+
+void GetAccount::saveResponse(settings& sts)
+{
+    sts.msid = m_response.usera.msid;
+    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
 uint32_t GetAccount::getUserId()
@@ -93,6 +98,11 @@ int64_t GetAccount::getFee()
 int64_t GetAccount::getDeduct()
 {
     return 0;
+}
+
+user_t& GetAccount::getUserInfo()
+{
+    return m_response.usera;
 }
 
 bool GetAccount::send(INetworkClient& netClient)

@@ -26,11 +26,14 @@ public:
     virtual int             getSignatureSize()                          override;
     virtual void            sign(uint8_t* hash,uint8_t* sk,uint8_t* pk) override;
     virtual bool            checkSignature(uint8_t* hash, uint8_t* pk)  override;
+    virtual user_t&         getUserInfo()                               override;
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;
     virtual uint32_t        getTime()                                   override;
     virtual int64_t         getFee()                                    override;
     virtual int64_t         getDeduct()                                 override;
+    virtual void                    saveResponse(settings& sts)  override;
+
 
 
     virtual bool            send(INetworkClient& netClient)             override;
@@ -44,6 +47,7 @@ public:
 private:
     accountkey          m_data;
     commandresponse     m_response;
+
 };
 
 #endif // SETACCOUNTKEY_H

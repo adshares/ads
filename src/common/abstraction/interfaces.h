@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <boost/property_tree/json_parser.hpp>
 #include "default.hpp"
+#include "settings.hpp"
 
 class office;
 
@@ -45,6 +46,8 @@ public:
     virtual bool                    checkSignature(uint8_t* hash, uint8_t* pk)      = 0;
 
     virtual bool                    send(INetworkClient& netCLient) = 0;
+    virtual user_t&                 getUserInfo()       = 0;
+    virtual void                    saveResponse(settings& sts)  = 0;
 
     virtual uint32_t                getTime()           = 0;
     virtual uint32_t                getUserId()         = 0;
@@ -74,10 +77,6 @@ public:
  * \brief Base interface for command. It combain ICommand and IJsonSerialize Interface.
  */
 class IBlockCommand : public ICommand, public IJsonSerialize
-{
-};
-
-class BlockCommand: IBlockCommand
 {
 };
 
