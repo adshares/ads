@@ -28,13 +28,13 @@ void SetAccountKeyHandler::onExecute()
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
 
     //execute
-    std::copy(data._pubkey, data._pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
+    std::copy(data.pubkey, data.pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
 
     m_usera.msid++;
-    m_usera.time  = data._ttime;
+    m_usera.time  = data.ttime;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
-    Helper::create256signhash(data._sign, SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+    Helper::create256signhash(data.sign, SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
 
     //commit changes
     uint32_t msid;
@@ -47,20 +47,20 @@ void SetAccountKeyHandler::onExecute()
         return;
     }
 
-    m_offi.set_user(data._auser, m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
+    m_offi.set_user(data.auser, m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
 
     //addlogs
     log_t tlog;
     tlog.time   = time(NULL);
     tlog.type   = m_command->getType();
-    tlog.node   = data._abank;
-    tlog.user   = data._auser;
-    tlog.umid   = data._amsid;
+    tlog.node   = data.abank;
+    tlog.user   = data.auser;
+    tlog.umid   = data.amsid;
     tlog.nmid   = msid;
     tlog.mpos   = mpos;
 
-    tlog.weight = -m_command->getDeduct()- m_command->getFee();
-    m_offi.put_ulog(data._auser, tlog);
+    tlog.weight = -m_command->getDeduct() - m_command->getFee();
+    m_offi.put_ulog(data.auser, tlog);
 
 #ifdef DEBUG
     DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_usera.node, m_usera.user, msid, mpos);

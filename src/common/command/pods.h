@@ -40,12 +40,15 @@
 //end
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
+
+/** \brief Struct data for get_me and get_accout response */
 struct accountresponse
 {
     user_t      usera;
     user_t      globalusera;
 }__attribute__((packed));
 
+/** \brief Struct data for all command which are changed blockchain data */
 struct commandresponse
 {
     user_t      usera;
@@ -53,71 +56,68 @@ struct commandresponse
     uint32_t    mpos;
 }__attribute__((packed));
 
+
+/** \brief Struct data for get_me and get_accout command */
 struct userinfo
 {
     userinfo() = default;
-    userinfo(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
-        : _abank(abank),
-          _auser(auser),
-          _bbank(bbank),
-          _buser(buser),
-          _ttime(time)
+    userinfo(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint16_t buser_, uint32_t time_)
+        : abank{abank_},
+          auser{auser_},
+          bbank{bbank_},
+          buser{buser_},
+          ttime{time_}
     {
     }
 
-    uint8_t  _ttype{TXSTYPE_INF};
+    uint8_t  ttype{TXSTYPE_INF};
 
-    uint16_t _abank{0};
-    uint32_t _auser{0};
-    uint16_t _bbank{0};
-    uint32_t _buser{0};
-    uint32_t _ttime{0};
+    uint16_t abank{0};
+    uint32_t auser{0};
+    uint16_t bbank{0};
+    uint32_t buser{0};
+    uint32_t ttime{0};
     //1+2+4+2+4+4,
 
 } __attribute__((packed));
 
+
+/** \brief Full struct data for get_me and get_accout command with signature */
 struct usertxs2
 {
     usertxs2() = default;
     usertxs2(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
-        : _info(abank, auser, bbank, buser, time)
+        : info(abank, auser, bbank, buser, time)
     {
     }
 
-    userinfo        _info;
-    unsigned char   _sign[64];
-} __attribute__((packed));
-
-struct usertxsresponse
-{
-    user_t      m_response;
-    user_t      m_globalUser;
+    userinfo        info;
+    unsigned char   sign[64];
 } __attribute__((packed));
 
 
+/** \brief Full struct data for get_me and change account key command with signature */
 struct accountkey
 {
     accountkey() = default;
-    accountkey(uint16_t abank, uint32_t auser, uint32_t namsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64])
-        : _abank(abank),
-          _auser(auser),
-          _amsid(namsid),
-          _ttime(time)
+    accountkey(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint32_t time_, uint8_t pubkey_[32], uint8_t pubkeysign_[64])
+        : abank(abank_),
+          auser(auser_),
+          amsid(namsid_),
+          ttime(time_)
     {
-        std::copy(pubkey, pubkey+32, _pubkey);
-        std::copy(pubkeysign, pubkeysign+64, _pubkeysign);
+        std::copy(pubkey_, pubkey_+32, pubkey);
+        std::copy(pubkeysign_, pubkeysign_+64, pubkeysign);
     }
 
-    uint8_t         _ttype{TXSTYPE_KEY};
-    uint16_t        _abank{0};
-    uint32_t        _auser{0};
-    uint32_t        _amsid{0};
-    uint32_t        _ttime{0};
-    uint8_t         _pubkey[32];
-    unsigned char   _sign[64];
-    uint8_t         _pubkeysign[64];    
+    uint8_t         ttype{TXSTYPE_KEY};
+    uint16_t        abank{0};
+    uint32_t        auser{0};
+    uint32_t        amsid{0};
+    uint32_t        ttime{0};
+    uint8_t         pubkey[32];
+    unsigned char   sign[64];
+    uint8_t         pubkeysign[64];
 } __attribute__((packed));
-
-
 
 #endif // PODS_H

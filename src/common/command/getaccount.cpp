@@ -13,10 +13,9 @@ GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t 
 {
 }
 
-//IBlock interface
 unsigned char* GetAccount::getData()
 {
-    return reinterpret_cast<unsigned char*>(&m_data._info);
+    return reinterpret_cast<unsigned char*>(&m_data.info);
 }
 
 unsigned char* GetAccount::getResponse()
@@ -36,7 +35,7 @@ void GetAccount::setResponse(char* response)
 
 int GetAccount::getDataSize()
 {
-    return sizeof(m_data._info);
+    return sizeof(m_data.info);
 }
 
 int GetAccount::getResponseSize()
@@ -46,25 +45,25 @@ int GetAccount::getResponseSize()
 
 unsigned char* GetAccount::getSignature()
 {
-    return m_data._sign;
+    return m_data.sign;
 }
 
 int GetAccount::getSignatureSize()
 {
-    return sizeof(m_data._sign);
+    return sizeof(m_data.sign);
 }
 
 int GetAccount::getType()
 {
-    return m_data._info._ttype;
+    return TXSTYPE_INF;
 }
 
-void GetAccount::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
+void GetAccount::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk)
 {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool GetAccount::checkSignature(uint8_t* hash, uint8_t* pk)
+bool GetAccount::checkSignature(const uint8_t* hash, const uint8_t* pk)
 {
     return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
 }
@@ -77,17 +76,17 @@ void GetAccount::saveResponse(settings& sts)
 
 uint32_t GetAccount::getUserId()
 {
-    return m_data._info._auser;
+    return m_data.info.auser;
 }
 
 uint32_t GetAccount::getBankId()
 {
-    return m_data._info._abank;
+    return m_data.info.abank;
 }
 
 uint32_t GetAccount::getTime()
 {
-    return m_data._info._ttime;
+    return m_data.info.ttime;
 }
 
 int64_t GetAccount::getFee()

@@ -15,10 +15,9 @@ SetAccountKey::SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uin
 
 bool SetAccountKey::checkPubKeySignaure()
 {
-    return(ed25519_sign_open((uint8_t*)nullptr, 0, m_data._pubkey , m_data._pubkeysign) != -1);
+    return(ed25519_sign_open((uint8_t*)nullptr, 0, m_data.pubkey , m_data.pubkeysign) != -1);
 }
 
-//IBlock interface
 unsigned char* SetAccountKey::getData()
 {
     return reinterpret_cast<unsigned char*>(&m_data);
@@ -41,7 +40,7 @@ void SetAccountKey::setResponse(char* response)
 
 int SetAccountKey::getDataSize()
 {
-    return sizeof(m_data._ttype) + sizeof(m_data._abank) + sizeof(m_data._auser) + sizeof(m_data._amsid) + sizeof(m_data._ttime) + sizeof(m_data._pubkey);
+    return sizeof(m_data.ttype) + sizeof(m_data.abank) + sizeof(m_data.auser) + sizeof(m_data.amsid) + sizeof(m_data.ttime) + sizeof(m_data.pubkey);
 }
 
 int SetAccountKey::getResponseSize()
@@ -51,42 +50,42 @@ int SetAccountKey::getResponseSize()
 
 unsigned char* SetAccountKey::getSignature()
 {
-    return m_data._sign;
+    return m_data.sign;
 }
 
 int SetAccountKey::getSignatureSize()
 {
-    return sizeof(m_data._sign);
+    return sizeof(m_data.sign);
 }
 
 int SetAccountKey::getType()
 {
-    return m_data._ttype;
+    return TXSTYPE_KEY;
 }
 
-void SetAccountKey::sign(uint8_t* hash, uint8_t* sk, uint8_t* pk)
+void SetAccountKey::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk)
 {
-    ed25519_sign2(hash, 32, getData(), getDataSize(), sk, pk, getSignature());
+    ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool SetAccountKey::checkSignature(uint8_t* hash, uint8_t* pk)
+bool SetAccountKey::checkSignature(const uint8_t* hash, const uint8_t* pk)
 {    
-    return( ed25519_sign_open2( hash , 32 , getData(), getDataSize(), pk, getSignature() ) == 0);
+    return( ed25519_sign_open2( hash , SHA256_DIGEST_LENGTH , getData(), getDataSize(), pk, getSignature() ) == 0);
 }
 
 uint32_t SetAccountKey::getUserId()
 {
-    return m_data._auser;
+    return m_data.auser;
 }
 
 uint32_t SetAccountKey::getBankId()
 {
-    return m_data._abank;
+    return m_data.abank;
 }
 
 uint32_t SetAccountKey::getTime()
 {
-    return m_data._ttime;
+    return m_data.ttime;
 }
 
 int64_t SetAccountKey::getFee()
