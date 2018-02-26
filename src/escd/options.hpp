@@ -4,7 +4,13 @@
 #include <boost/program_options.hpp>
 #include <arpa/inet.h>
 #include <iostream>
-#include "helper/ostream.h"
+
+template <class T>
+std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+{
+    copy(v.begin(), v.end(), std::ostream_iterator<T>(std::cout, " "));
+    return os;
+}
 
 class options
 {

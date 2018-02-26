@@ -1,8 +1,7 @@
 SET (SOURCE
     ${SOURCE}
     ${CMAKE_CURRENT_SOURCE_DIR}/ascii.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ostream.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp    
     ${CMAKE_CURRENT_SOURCE_DIR}/json.cpp
     PARENT_SCOPE
     )
@@ -11,8 +10,7 @@ SET (HEADERS
     ${HEADERS}
     ${CMAKE_CURRENT_SOURCE_DIR}/ascii.h
     ${CMAKE_CURRENT_SOURCE_DIR}/hash.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/socket.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/ostream.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/socket.h    
     ${CMAKE_CURRENT_SOURCE_DIR}/json.h
     PARENT_SCOPE
     )
