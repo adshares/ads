@@ -1,0 +1,5 @@
+<map id="ICommand" name="ICommand">
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="54,80,173,107"/>
+<area shape="rect" id="node3" href="$class_get_account.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="5,155,96,181"/>
+<area shape="rect" id="node4" href="$class_set_account_key.html" title="Class responsible for handling &quot;change_account_key&quot; command. " alt="" coords="121,155,234,181"/>
+</map>

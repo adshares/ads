@@ -1,0 +1,151 @@
+.TH "peer" 3 "Tue Feb 27 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+peer \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits enable_shared_from_this< peer >\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBpeer\fP (\fBserver\fP &srv, bool in, \fBservers\fP &srvs, \fBoptions\fP &opts)"
+.br
+.ti -1c
+.RI "void \fBiorun\fP ()"
+.br
+.ti -1c
+.RI "void \fBstop\fP ()"
+.br
+.ti -1c
+.RI "void \fBleave\fP ()"
+.br
+.ti -1c
+.RI "void \fBaccept\fP ()"
+.br
+.ti -1c
+.RI "void \fBconnect\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "boost::asio::ip::tcp::socket & \fBsocket\fP ()"
+.br
+.ti -1c
+.RI "void \fBprint\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBdeliver\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBsend_sync\fP (message_ptr put_msg)"
+.br
+.ti -1c
+.RI "void \fBhandle_write\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_header\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBupdate_sync\fP (void)"
+.br
+.ti -1c
+.RI "void \fBwrite_headers\fP ()"
+.br
+.ti -1c
+.RI "void \fBrequest_next_headers\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBhandle_next_header\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_headers\fP ()"
+.br
+.ti -1c
+.RI "void \fBwrite_msglist\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_read_msglist\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBwrite_bank\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_read_bank\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBwrite_servers\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_read_servers\fP ()"
+.br
+.ti -1c
+.RI "int \fBauthenticate\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_read_body\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_block\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBmessage_phash\fP (uint8_t *mhash, std::map< uint64_t, \fBhash_s\fP > &map)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_stop\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBsync_start\fP (bool \fBserver\fP)"
+.br
+.ti -1c
+.RI "void \fBwrite_serv_del\fP ()"
+.br
+.ti -1c
+.RI "void \fBread_peer_del\fP ()"
+.br
+.ti -1c
+.RI "void \fBwrite_serv_add\fP (bool peer_error)"
+.br
+.ti -1c
+.RI "bool \fBread_peer_add\fP (bool error)"
+.br
+.ti -1c
+.RI "void \fBwrite_serv_check\fP (bool error)"
+.br
+.ti -1c
+.RI "bool \fBread_peer_check\fP ()"
+.br
+.ti -1c
+.RI "void \fBsync_finish\fP ()"
+.br
+.ti -1c
+.RI "int \fBparse_vote\fP ()"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint32_t \fBsvid\fP"
+.br
+.ti -1c
+.RI "int \fBdo_sync\fP"
+.br
+.ti -1c
+.RI "bool \fBkillme\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBbusy\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 6 of file peer\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

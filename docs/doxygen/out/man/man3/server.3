@@ -1,0 +1,407 @@
+.TH "server" 3 "Tue Feb 27 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+server \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBserver\fP (\fBoptions\fP &opts)"
+.br
+.ti -1c
+.RI "void \fBstart\fP ()"
+.br
+.ti -1c
+.RI "void \fBiorun\fP ()"
+.br
+.ti -1c
+.RI "void \fBstop\fP ()"
+.br
+.ti -1c
+.RI "void \fBrecyclemsid\fP (uint32_t lastpath)"
+.br
+.ti -1c
+.RI "void \fBdel_msglog\fP (uint32_t now, uint16_t svid, uint32_t msid)"
+.br
+.ti -1c
+.RI "void \fBput_msglog\fP (uint32_t now, uint16_t svid, uint32_t msid, std::map< uint64_t, \fBlog_t\fP > &log)"
+.br
+.ti -1c
+.RI "int \fBundo_bank\fP ()"
+.br
+.ti -1c
+.RI "void \fBload_banks\fP ()"
+.br
+.ti -1c
+.RI "uint64_t \fBneed_bank\fP (uint16_t bank)"
+.br
+.ti -1c
+.RI "void \fBhave_bank\fP (uint64_t hnum)"
+.br
+.ti -1c
+.RI "void \fBload_chain\fP ()"
+.br
+.ti -1c
+.RI "void \fBmsgl_process\fP (\fBservers\fP &header, uint8_t *data)"
+.br
+.ti -1c
+.RI "void \fBget_last_header\fP (\fBservers\fP &sync_ls, \fBhandshake_t\fP &sync_hs)"
+.br
+.ti -1c
+.RI "void \fBadd_next_header\fP (uint32_t from, \fBservers\fP &peer_ls)"
+.br
+.ti -1c
+.RI "void \fBadd_headers\fP (std::vector< \fBservers\fP > &peer_headers)"
+.br
+.ti -1c
+.RI "int \fBfast_sync\fP (bool done, \fBheader_t\fP &head, \fBnode_t\fP *nods, svsi_t *svsi)"
+.br
+.ti -1c
+.RI "uint32_t \fBreadmsid\fP ()"
+.br
+.ti -1c
+.RI "void \fBwritemsid\fP ()"
+.br
+.ti -1c
+.RI "void \fBclean_last_svid_msgs\fP (std::map< uint16_t, message_ptr > &map)"
+.br
+.ti -1c
+.RI "void \fBmessage_shash\fP (uint8_t *mhash, message_map &map)"
+.br
+.ti -1c
+.RI "void \fBLAST_block_msgs\fP ()"
+.br
+.ti -1c
+.RI "void \fBLAST_block_final\fP (\fBhash_s\fP &cand)"
+.br
+.ti -1c
+.RI "void \fBcount_votes\fP (uint32_t now, \fBhash_s\fP &cand)"
+.br
+.ti -1c
+.RI "void \fBadd_electors\fP (\fBheader_t\fP &head, svsi_t *peer_svsi)"
+.br
+.ti -1c
+.RI "void \fBprepare_poll\fP ()"
+.br
+.ti -1c
+.RI "message_ptr \fBmessage_svidmsid\fP (uint16_t svid, uint32_t msid)"
+.br
+.ti -1c
+.RI "const char * \fBprint_missing_verbose\fP ()"
+.br
+.ti -1c
+.RI "message_ptr \fBmessage_find\fP (message_ptr msg, uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBdouble_spend\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBcreate_double_spend_proof\fP (message_ptr msg1, message_ptr msg2)"
+.br
+.ti -1c
+.RI "bool \fBknown_dbl\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "int \fBcheck_dbl\fP (boost::mutex &mlock_, message_map &msgs, message_map::iterator it)"
+.br
+.ti -1c
+.RI "void \fBbad_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBbad_recover\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBmessage_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBdbl_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBcnd_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBblk_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBtxs_insert\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBcnd_validate\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBblk_validate\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBmissing_sent_remove\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBvalidator\fP (void)"
+.br
+.ti -1c
+.RI "uint64_t \fBmake_ppi\fP (uint16_t tmpos, uint32_t omsid, uint32_t amsid, uint16_t abank, uint16_t bbank)"
+.br
+.ti -1c
+.RI "uint16_t \fBppi_abank\fP (const uint64_t &ppi)"
+.br
+.ti -1c
+.RI "uint16_t \fBppi_bbank\fP (const uint64_t &ppi)"
+.br
+.ti -1c
+.RI "uint64_t \fBppi_txid\fP (const uint64_t &ppi)"
+.br
+.ti -1c
+.RI "bool \fBremove_message\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "bool \fBundo_message\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBlog_broadcast\fP (uint32_t path, char *p, int len, uint8_t *hash, uint8_t *pkey, uint32_t msid, uint32_t mpos)"
+.br
+.ti -1c
+.RI "bool \fBprocess_message\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBopen_bank\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "uint8_t \fBbitcount\fP (std::vector< uint8_t > &bitvotes, uint8_t min)"
+.br
+.ti -1c
+.RI "void \fBcommit_block\fP (std::set< uint16_t > &update)"
+.br
+.ti -1c
+.RI "int64_t \fBdividend\fP (\fBuser_t\fP &u)"
+.br
+.ti -1c
+.RI "int64_t \fBdividend\fP (\fBuser_t\fP &u, int64_t &fee)"
+.br
+.ti -1c
+.RI "void \fBcommit_dividends\fP (std::set< uint16_t > &update)"
+.br
+.ti -1c
+.RI "void \fBcommit_deposit\fP (std::set< uint16_t > &update)"
+.br
+.ti -1c
+.RI "void \fBcommit_bankfee\fP ()"
+.br
+.ti -1c
+.RI "bool \fBaccept_message\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate_list\fP (std::vector< uint64_t > &txs, std::vector< uint64_t > &dbl, std::vector< uint64_t > &blk, uint16_t peer_svid)"
+.br
+.ti -1c
+.RI "void \fBfinish_block\fP ()"
+.br
+.ti -1c
+.RI "message_ptr \fBwrite_handshake\fP (uint16_t \fBpeer\fP, \fBhandshake_t\fP &hs)"
+.br
+.ti -1c
+.RI "uint32_t \fBwrite_message\fP (std::string line)"
+.br
+.ti -1c
+.RI "void \fBwrite_candidate\fP (const \fBhash_s\fP &cand_hash)"
+.br
+.ti -1c
+.RI "candidate_ptr \fBsave_candidate\fP (uint32_t blk, const \fBhash_s\fP &h, std::map< uint64_t, \fBhash_s\fP > &add, std::set< uint64_t > &del, uint16_t \fBpeer\fP)"
+.br
+.ti -1c
+.RI "candidate_ptr \fBknown_candidate\fP (const \fBhash_s\fP &h, uint16_t \fBpeer\fP)"
+.br
+.ti -1c
+.RI "void \fBupdate_candidates\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "bool \fBknown_elector\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBwrite_header\fP ()"
+.br
+.ti -1c
+.RI "void \fBpeers\fP ()"
+.br
+.ti -1c
+.RI "void \fBclock\fP ()"
+.br
+.ti -1c
+.RI "bool \fBbreak_silence\fP (uint32_t now, std::string &\fBmessage\fP, uint32_t &tnum)"
+.br
+.ti -1c
+.RI "void \fBmissing_msgs_erase\fP (message_ptr &msg)"
+.br
+.ti -1c
+.RI "void \fBmissing_msgs_insert\fP (message_ptr &msg)"
+.br
+.ti -1c
+.RI "int \fBcheck_msgs_size\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBsrvs_now\fP ()"
+.br
+.ti -1c
+.RI "void \fBjoin\fP (peer_ptr participant)"
+.br
+.ti -1c
+.RI "void \fBpeer_set\fP (std::set< peer_ptr > &peers)"
+.br
+.ti -1c
+.RI "void \fBpeer_clean\fP ()"
+.br
+.ti -1c
+.RI "void \fBpeer_killall\fP ()"
+.br
+.ti -1c
+.RI "void \fBdisconnect\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "const char * \fBpeers_list\fP ()"
+.br
+.ti -1c
+.RI "void \fBpeers_known\fP (std::set< uint16_t > &list)"
+.br
+.ti -1c
+.RI "void \fBconnected\fP (std::vector< uint16_t > &list)"
+.br
+.ti -1c
+.RI "int \fBduplicate\fP (peer_ptr participant)"
+.br
+.ti -1c
+.RI "int \fBdeliver\fP (message_ptr msg, uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBdeliver\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "int \fBupdate\fP (message_ptr msg, uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBupdate\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBstart_accept\fP ()"
+.br
+.ti -1c
+.RI "void \fBpeer_accept\fP (peer_ptr new_peer, const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBconnect\fP (boost::asio::ip::tcp::resolver::iterator &iterator)"
+.br
+.ti -1c
+.RI "void \fBconnect\fP (std::string peer_address)"
+.br
+.ti -1c
+.RI "void \fBconnect\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBfillknown\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBpeerready\fP (std::set< uint16_t > &ready)"
+.br
+.ti -1c
+.RI "void \fBget_more_headers\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBofip_gup_push\fP (\fBgup_t\fP &g)"
+.br
+.ti -1c
+.RI "void \fBofip_add_remote_deposit\fP (uint32_t user, int64_t weight)"
+.br
+.ti -1c
+.RI "void \fBofip_init\fP (uint32_t myusers)"
+.br
+.ti -1c
+.RI "void \fBofip_start\fP ()"
+.br
+.ti -1c
+.RI "bool \fBofip_get_msg\fP (uint32_t msid, std::string &line)"
+.br
+.ti -1c
+.RI "void \fBofip_del_msg\fP (uint32_t msid)"
+.br
+.ti -1c
+.RI "void \fBofip_update_block\fP (uint32_t period_start, uint32_t now, message_map &commit_msgs, uint32_t newdiv)"
+.br
+.ti -1c
+.RI "void \fBofip_process_log\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBofip_add_remote_user\fP (uint16_t abank, uint32_t auser, uint8_t *pkey)"
+.br
+.ti -1c
+.RI "void \fBofip_delete_user\fP (uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBofip_change_pkey\fP (uint8_t *user)"
+.br
+.ti -1c
+.RI "void \fBofip_readwrite\fP ()"
+.br
+.ti -1c
+.RI "void \fBofip_readonly\fP ()"
+.br
+.ti -1c
+.RI "bool \fBofip_isreadonly\fP ()"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "std::map< uint16_t, message_ptr > \fBLAST_block_svid_msgs\fP"
+.br
+.ti -1c
+.RI "message_map \fBLAST_block_final_msgs\fP"
+.br
+.ti -1c
+.RI "message_map \fBLAST_block_all_msgs\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBLAST_block\fP"
+.br
+.ti -1c
+.RI "\fBservers\fP \fBlast_srvs_\fP"
+.br
+.ti -1c
+.RI "int \fBdo_sync\fP"
+.br
+.ti -1c
+.RI "int \fBdo_fast\fP"
+.br
+.ti -1c
+.RI "int \fBdo_check\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBmsid_\fP"
+.br
+.ti -1c
+.RI "std::list< \fBservers\fP > \fBheaders\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBget_msglist\fP"
+.br
+.ti -1c
+.RI "\fBoffice\fP * \fBofip\fP"
+.br
+.ti -1c
+.RI "uint8_t * \fBpkey\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBstart_path\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBstart_msid\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 16 of file server\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

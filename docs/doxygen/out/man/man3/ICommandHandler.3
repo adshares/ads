@@ -1,0 +1,72 @@
+.TH "ICommandHandler" 3 "Tue Feb 27 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ICommandHandler \- Command handler Interface\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <interfaces\&.h>\fP
+.PP
+Inherited by \fBCommandHandler\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "virtual void \fBexecute\fP (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP &usera)=0"
+.br
+.RI "\fIExecute command\&. \fP"
+.ti -1c
+.RI "virtual void \fBonInit\fP (std::unique_ptr< \fBIBlockCommand\fP > command)=0"
+.br
+.RI "\fIInt command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. \fP"
+.ti -1c
+.RI "virtual void \fBonExecute\fP ()=0"
+.br
+.RI "\fIExecution event\&. It execute actual command and commiting it to blockchain\&. \fP"
+.ti -1c
+.RI "virtual bool \fBonValidate\fP ()=0"
+.br
+.RI "\fIValidtaion event\&. It execute validation of data if it contain all proper value\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Command handler Interface\&. 
+.PP
+Definition at line 125 of file interfaces\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual void ICommandHandler::execute (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP & usera)\fC [pure virtual]\fP"
+
+.PP
+Execute command\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcommand\fP Command which dhould be executed\&. 
+.br
+\fIusera\fP User data\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBCommandHandler\fP\&.
+.SS "virtual void ICommandHandler::onInit (std::unique_ptr< \fBIBlockCommand\fP > command)\fC [pure virtual]\fP"
+
+.PP
+Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcommand\fP Unique Pointer with command which should be executed\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBGetAccountHandler\fP, and \fBSetAccountKeyHandler\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

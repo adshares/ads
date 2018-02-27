@@ -1,0 +1,392 @@
+.TH "md__home_sraczynski__d_e_v_biogit_hpx__r_e_a_d_m_e" 3 "Tue Feb 27 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+md__home_sraczynski__d_e_v_biogit_hpx__r_e_a_d_m_e \- Enterprise Service Chain 
+Enterprise Service Chain (ESC) is a block chain based software tool facilitating high volumes of simple transactions that, in most cases, send tokens between accounts as in other crypto currencies\&. The name is derived from the concept of the Enterprise Service Bus in which a crypto currency is used as the protocol of communication\&.
+.PP
+The main features of the Enterprise Service Chain can be summarized as follows:
+.IP "\(bu" 2
+Delegated Proof of Stake as block consensus mechanism to reduce network maintenance costs
+.IP "\(bu" 2
+Small account and transaction identifiers, reduced transaction set and parallel processing of transactions to facilitate high transaction volumes (>100kHz one-one transactions, >1MHz one-many transactions)
+.IP "\(bu" 2
+Nodes are heavily penalized for double spends so most transactions can be trusted almost instantly
+.IP "\(bu" 2
+Small set of VIP nodes responsible for network integrity to facilitate incorporation of slow nodes with reduced transaction processing capabilities
+.IP "\(bu" 2
+Hash of all accounts is part of the block and enables instant synchronization with the block chain
+.IP "\(bu" 2
+Hierarchical organization of accounts and nodes facilitates KYC, AML , eID supply and governance
+.IP "\(bu" 2
+Dividend payments to account holders and node managers to support the growth of the economy of the ESC system
+.PP
+.PP
+.SS "Details"
+.PP
+A \fCwhite paper\fP provides a more detailed description of the concept of the Enterprise Service Chain\&.
+.PP
+.SS "Current status"
+.PP
+The software is currently an academic proof of concept\&. It does not have a user-friendly class structure\&. It lacks comments\&. It has small bugs\&. It has a long ToDo list, but it can be deployed and tested\&. An instruction for the deployment will be provided shortly\&.
+.PP
+.SS "Installation"
+.PP
+The software is developed for Linux platform\&. There is no intent to support other platforms\&. The software was tested on Debian and Ubuntu\&. To compile the software You need boost and ssl libraries\&. Check the Makefile if anything else is missing\&.
+.PP
+.PP
+.nf
+1 sudo apt-get install openssl libboost-all-dev libssl-dev
+.fi
+.PP
+.PP
+Start with cloning the git directory\&.
+.PP
+.PP
+.nf
+1 git clone https://github\&.com/adshares/esc\&.git
+.fi
+.PP
+.PP
+Before compiling ESC You could check if the ed25519 cryptography software is working correctly and what compile option gives You better speed for Your CPU\&.
+.PP
+.PP
+.nf
+1 cd esc/ed25519
+2 make -f Makefile\&.sse2
+3 \&./mytest
+4 make clean
+5 make
+6 \&./mytest
+.fi
+.PP
+.PP
+I our case compiling for sse2 reduces the speed of batch signature verifications by over 30% (it is not the case on AWS)\&. The results of the 2 runs are shown below\&. The line stating with 'BATC' reports number of signature verifications per second\&. Compiling against the regular Makefile (\fCmake\fP) generates a code that can perform over 30k signature verifications per second\&.
+.PP
+.PP
+.nf
+1 START
+2 HASH: 1295553\&.388/s [79\&.074MiB/s]
+3 PKEY: 29027\&.926/s
+4 SIGN: 28596\&.429/s [1\&.745MiB/s]
+5 OPEN: 8721\&.537/s [0\&.532MiB/s]
+6 BATC: 18608\&.159/s [1\&.136MiB/s]
+7 
+8 START
+9 HASH: 836288\&.155/s [51\&.043MiB/s]
+10 PKEY: 48491\&.258/s
+11 SIGN: 47754\&.419/s [2\&.915MiB/s]
+12 OPEN: 14017\&.216/s [0\&.856MiB/s]
+13 BATC: 30312\&.243/s [1\&.850MiB/s]
+.fi
+.PP
+.PP
+Keep the compiled object files in the directory and compile ESC\&.
+.PP
+.PP
+.nf
+1 cd \&.\&.
+2 make
+.fi
+.PP
+.PP
+The default Makefile contains the DEBUG option\&. If You want to run production speed tests, then compile against Makefile\&.ndebug\&. The compilation should finish in few seconds\&.
+.PP
+When compiling, the compiler will detect if You have a recent kernel that supports the 'FALLOC_FL_COLLAPSE_RANGE' option for fallocate()\&. This option is used to remove old (first) pages from log files and works only on ext4 file systems\&. If You don't have a recent kernel or run the software on a different file system, then user log files will not be purged (will grow forever)\&. We will consider adding support for this case in the future\&.
+.PP
+.SS "Setting up a local test net"
+.PP
+Create a directory for Your first node and the first user and create links to executables for convenience\&.
+.PP
+.PP
+.nf
+1 mkdir /tmp/node1
+2 ln -s $PWD/escd /tmp/node1/escd
+3 mkdir /tmp/user0
+4 ln -s $PWD/esc /tmp/user0/esc
+5 ln -s $PWD/ed25519/key  /tmp/user0/key
+6 cd /tmp/node1/
+.fi
+.PP
+.PP
+To start the first node enter
+.PP
+.PP
+.nf
+1 mkdir \&.\&./node1
+2 cd \&.\&./node1
+3 echo 'svid=1' > options\&.cfg
+4 echo 'offi=9091' >> options\&.cfg
+5 echo 'port=8091' >> options\&.cfg
+6 \&./escd --init 1
+.fi
+.PP
+.PP
+The program will detect that it is in an empty directory and will create an initial setup with a single node and an administrator account for the node\&. The current version is compiled with temporary development setting with a much shorter block period (32s, defined in \fBdefault\&.hpp\fP)\&. Keep the node running for at least 1 block period to initialize the block-chain correctly\&. You can stop a node by typing a dot ('\&.') followed by enter\&. Currently, killing the node with a signal (^C) may destroy the database files\&. You can continue with the same block-chain by running the code again with the '--init 1' switch\&.
+.PP
+.PP
+.nf
+1 \&./escd --init 1
+.fi
+.PP
+.PP
+The first node will start with the default node secret key stored in key/key\&.txt \&. The secret key to the admin account is the same\&. Secret keys can be created by running the key executable with a selected brain-key-string (ed25519/key 'brain-key-string')\&. Both keys can be changed later\&. In production the node key and the admin key should differ for security reasons\&. To add more nodes and users open a new terminal and connect to the running node as admin (user with account number 0)\&. We have created a directory for the user previously\&. Let's go there\&.
+.PP
+.PP
+.nf
+1 cd /tmp/user0
+.fi
+.PP
+.PP
+Let's create the file containing the connection setting for the user\&.
+.PP
+.PP
+.nf
+1 echo 'port=9091' > settings\&.cfg
+2 echo 'host=127\&.0\&.0\&.1' >> settings\&.cfg
+3 echo 'address=0001-00000000-XXXX' >> settings\&.cfg
+4 echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >> settings\&.cfg
+5 chmod go-r settings\&.cfg
+.fi
+.PP
+.PP
+This is the account address of our user 0001-00000000-XXXX\&. Last 4 characters should be hex characters defining the checksum\&. If 'XXXX' is provided the checksum is not tested\&. Let's try to connect to the node and get the current status of our user\&.
+.PP
+.PP
+.nf
+1 echo '{"run":"get_me"}' | \&./esc 2>err\&.txt
+.fi
+.PP
+.PP
+This command should list the current status of the user\&. We should get something like this:
+.PP
+.PP
+.nf
+1 {
+2     "tx": {
+3         "data": "1001000000000001000000000045975E5960A14655AC8341861CECEAB040054058CC3EF62708565B75C4173FB80D60BD74D7DFCFE3EC3C441A95B48D703E6578BFBC161AF3CC1A0F118B32D278336C5704",
+4         "account_msid": "0"
+5     },
+6     "account": {
+7         "address": "0001-00000000-9B6F",
+8         "node": "1",
+9         "id": "0",
+10         "msid": "1",
+11         "time": "1499368832",
+12         "date": "2017-07-06 21:20:32",
+13         "status": "0",
+14         "paired_node": "1",
+15         "paired_id": "0",
+16         "local_change": "1499368832",
+17         "remote_change": "1499371296",
+18         "balance": "4611617760\&.726175776",
+19         "public_key": "7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF",
+20         "hash": "000000000100FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+21     },
+22     "network_account": {
+23         "address": "0001-00000000-9B6F",
+24         "node": "1",
+25         "id": "0",
+26         "msid": "1",
+27         "time": "1499368832",
+28         "date": "2017-07-06 21:20:32",
+29         "status": "0",
+30         "paired_node": "1",
+31         "paired_id": "0",
+32         "local_change": "1499368832",
+33         "remote_change": "1499371296",
+34         "balance": "4611617760\&.726175776",
+35         "public_key": "7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF",
+36         "hash": "000000000100FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+37         "checksum": "true"
+38     }
+39 }
+.fi
+.PP
+.PP
+No standard output means the connection failed\&. You can try to examine err\&.txt for some clues\&. Correct standard output show the correct account number for the admin of the first node, which is '0001-00000000-9B6F' (the checksum is 9B6F)\&. Now let's change our secret key and create a new account with a new key\&. First let's generate 2 keys\&.
+.PP
+.PP
+.nf
+1 \&./key "user-0-0"
+.fi
+.PP
+.PP
+.PP
+.nf
+1 SK: FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6
+2 PK: D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17
+3 SG: 7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006
+.fi
+.PP
+.PP
+.PP
+.nf
+1 \&./key "user-0-1"
+.fi
+.PP
+.PP
+.PP
+.nf
+1 SK: 5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C
+2 PK: C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196
+3 SG: ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05
+.fi
+.PP
+.PP
+The secret keys are printed in the lines starting with 'SK:'\&. The line starting with 'SG:' contains the signature of an empty phrase signed with the secret key\&. This signature is uses as checksum when creating a new account\&. Let's change the key for the admin account now:
+.PP
+.PP
+.nf
+1 (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | \&./esc
+.fi
+.PP
+.PP
+After this the admin needs a new secret key to connect to its account, so let's fix the settings\&.txt file\&.
+.PP
+.PP
+.nf
+1 echo 'port=9091' > settings\&.cfg
+2 echo 'host=127\&.0\&.0\&.1' >> settings\&.cfg
+3 echo 'address=0001-00000000-9B6F' >> settings\&.cfg
+4 echo 'secret= FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings\&.cfg
+.fi
+.PP
+.PP
+And confirm that we can connect again with the new key\&.
+.PP
+.PP
+.nf
+1 echo '{"run":"get_me"}' | \&./esc 2>err\&.txt
+.fi
+.PP
+.PP
+The output should indicate that our transaction id was incremented and is now equal 2 ('msid': '2',)\&. Let's now create the second user\&.
+.PP
+.PP
+.nf
+1 (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | \&./esc
+.fi
+.PP
+.PP
+The new user is managed by our node so the creation process will be fast and the node will report the new account number for the local user in the paired_id field ('paired_id': '1')\&. Let's read the status of the new user account\&.
+.PP
+.PP
+.nf
+1 echo '{"run":"get_account","address":"0001-00000001-XXXX"}' | \&./esc
+.fi
+.PP
+.PP
+We should see that the correct new account address is '0001-00000001-8B4E'\&. The balance of the new user is too small to make any transactions so let's send him some funds\&.
+.PP
+.PP
+.nf
+1 (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0\&.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | \&./esc
+.fi
+.PP
+.PP
+The new balance shold be 0\&.362144000
+.PP
+.PP
+.nf
+1 echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | \&./esc 2>/dev/null | grep balance
+.fi
+.PP
+.PP
+Let's change the public key of the new user by connecting as the new user with the current coppied key\&. Do not forget to use the '--address 0001-00000001-8B4E' here, otherwise You will change Your own public key\&. In normal cases You don't know the corresponding secret key so You will loose Your account\&.
+.PP
+.PP
+.nf
+1 (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | \&./esc  --address 0001-00000001-8B4E
+.fi
+.PP
+.PP
+The output should indicate that the public key was changed\&. Let's connect as the new user after setting up the new environment\&.
+.PP
+.PP
+.nf
+1 mkdir \&.\&./user1
+2 cd \&.\&./user1
+3 echo 'port=9091' > settings\&.cfg
+4 echo 'host=127\&.0\&.0\&.1' >> settings\&.cfg
+5 echo 'address=0001-00000001-8B4E ' >> settings\&.cfg
+6 echo 'secret= 5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings\&.cfg
+7 chmod go-r settings\&.cfg
+8 echo '{"run":"get_me"}' | \&.\&./user0/esc
+.fi
+.PP
+.PP
+The output should indicate that You have successfully connected to the node as user '0001-00000001-8B4E'\&. You don't have enough funds to create a new node\&. User0 will help You\&.
+.PP
+.PP
+.nf
+1 cd \&.\&./user0
+2 (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":70\&.0,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | \&./esc
+.fi
+.PP
+.PP
+Let's now try to create a new node\&. The new node will get the public key of the requesting user\&.
+.PP
+.PP
+.nf
+1 (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | \&.\&./user0/esc
+.fi
+.PP
+.PP
+It will take at least 1 block time for the network to create a new node\&. You can examine the log of the first node\&. Before block creation the node should show now info about 3 nodes (the first one is the unused node number 0)\&. You should see lines like these
+.PP
+.PP
+.nf
+1 NOD: 00000000 00000000 ffff0000 00000000 595E8D80 0 0000000000000000 0
+2 NOD: eef4217d c08c88e1 8936fa16 0000003C 595EA5BB 6 3FFFC1DB71A5379A 2
+3 NOD: 145a96c9 e186f4ad ffff0002 00000000 595EA5A0 0 0000000FFFF08000 1
+.fi
+.PP
+.PP
+When the new node is created You can send some funds to the new admin account (0002-00000000-XXXX) if You plan to perform any transaction\&. We will skip it because we will only try to connect a new node\&.
+.PP
+Let's create the directory and the files for the new node
+.PP
+.PP
+.nf
+1 mkdir \&.\&./node2
+2 cd \&.\&./node2
+3 echo 'svid=2' > options\&.cfg
+4 echo 'offi=9092' >> options\&.cfg
+5 echo 'port=8092' >> options\&.cfg
+6 echo 'addr=127\&.0\&.0\&.1' >> options\&.cfg
+7 echo 'peer=127\&.0\&.0\&.1:8091' >> options\&.cfg
+8 mkdir key
+9 chmod go-rx key/
+10 echo '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' > key/key\&.txt
+11 chmod go-r key/key\&.txt
+.fi
+.PP
+.PP
+The configuration file (options\&.txt) indicates an initial peer address that we want to start syncing from\&. To connect to the network we also need a recent network topology file that already includes our new node\&. This file can be found in a recent block directory of the running node (and all nodes on the network)\&. The blocks are in \&.\&./node1/blk/xxx/xxxxx\&. The block numbers correspond to unix time\&. Let's take a servers\&.txt file from \&.\&./node1/blk/595/EA9C0/ \&.
+.PP
+.PP
+.nf
+1 cp \&.\&./node1/blk/595/EA9C0/servers\&.txt \&./
+.fi
+.PP
+.PP
+Now we should be able to connect the new node to the network\&.
+.PP
+.PP
+.nf
+1 \&.\&./node1/escd -m 1 -f 1
+.fi
+.PP
+.PP
+The connection should be established shortly\&. You can stop the node again by pressing '\&.' and enter\&. The -m switch indicates that we need only 1 signature to trust the blocks (we have only 1 node)\&. The -f switch indicates that we want to start from the current status of the block-chain\&. After stopping the second node, we should start it again without the -f option to load the missing blocks\&.
+.PP
+.PP
+.nf
+1 \&.\&./node1/escd -m 1
+.fi
+.PP
+.PP
+Connecting more nodes can be done iteratively \&. The nodes broadcast their IPs and ports on the network so there is no need to provide many peers in the options\&.cfg file\&.
+.PP
+Please remember that the current version is just a proof of concept\&. We will create a production version of the block-chain in the coming months\&. 

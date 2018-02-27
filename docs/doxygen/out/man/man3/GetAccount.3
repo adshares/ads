@@ -1,0 +1,179 @@
+.TH "GetAccount" 3 "Tue Feb 27 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GetAccount \- Class responsible for handling 'get_me' or 'get_acocunt' command\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <getaccount\&.h>\fP
+.PP
+Inherits \fBIBlockCommand\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBGetAccount\fP (uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)"
+.br
+.ti -1c
+.RI "\fBusertxs2\fP & \fBgetDataStruct\fP ()"
+.br
+.ti -1c
+.RI "virtual int \fBgetType\fP () override"
+.br
+.RI "\fIReturn TXSTYPE_INF as command type \&. \fP"
+.ti -1c
+.RI "virtual unsigned char * \fBgetData\fP () override"
+.br
+.RI "\fIGet pointer to command data structure\&. \fP"
+.ti -1c
+.RI "virtual unsigned char * \fBgetResponse\fP () override"
+.br
+.RI "\fIGet pointer to response data\&. \fP"
+.ti -1c
+.RI "virtual void \fBsetData\fP (char *data) override"
+.br
+.RI "\fIPut data as a char list and put convert it to data structure\&. \fP"
+.ti -1c
+.RI "virtual void \fBsetResponse\fP (char *response) override"
+.br
+.RI "\fIApply data as a response struct\&. \fP"
+.ti -1c
+.RI "virtual int \fBgetDataSize\fP () override"
+.br
+.RI "\fIGet data struct size\&. Without signature\&. \fP"
+.ti -1c
+.RI "virtual int \fBgetResponseSize\fP () override"
+.br
+.RI "\fIGet response data struct size\&. \fP"
+.ti -1c
+.RI "virtual unsigned char * \fBgetSignature\fP () override"
+.br
+.RI "\fIGet pointer to signature data\&. \fP"
+.ti -1c
+.RI "virtual int \fBgetSignatureSize\fP () override"
+.br
+.RI "\fIGet signature size\&. \fP"
+.ti -1c
+.RI "virtual void \fBsign\fP (const uint8_t *hash, const uint8_t *sk, const uint8_t *pk) override"
+.br
+.RI "\fISign actual data plus hash using user private and public keys\&. \fP"
+.ti -1c
+.RI "virtual bool \fBcheckSignature\fP (const uint8_t *hash, const uint8_t *pk) override"
+.br
+.RI "\fICheck actual signature\&. \fP"
+.ti -1c
+.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
+.br
+.RI "\fIGet actual blockchain user info\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetTime\fP () override"
+.br
+.RI "\fIGet time of command\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetUserId\fP () override"
+.br
+.RI "\fIGet User ID\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetBankId\fP () override"
+.br
+.RI "\fIGet Node ID\&. \fP"
+.ti -1c
+.RI "virtual int64_t \fBgetFee\fP () override"
+.br
+.RI "\fIGet command fee\&. \fP"
+.ti -1c
+.RI "virtual int64_t \fBgetDeduct\fP () override"
+.br
+.RI "\fIGet change in cash balance after command\&. \fP"
+.ti -1c
+.RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
+.br
+.RI "\fISend data to the server\&. \fP"
+.ti -1c
+.RI "virtual void \fBsaveResponse\fP (\fBsettings\fP &sts) override"
+.br
+.RI "\fISave command response to settings object\&. \fP"
+.ti -1c
+.RI "virtual std::string \fBtoString\fP (bool pretty) override"
+.br
+.ti -1c
+.RI "virtual boost::property_tree::ptree \fBtoJson\fP () override"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBusertxs2\fP \fBm_data\fP"
+.br
+.ti -1c
+.RI "\fBaccountresponse\fP \fBm_response\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Class responsible for handling 'get_me' or 'get_acocunt' command\&. 
+.PP
+Definition at line 12 of file getaccount\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "bool GetAccount::checkSignature (const uint8_t * hash, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Check actual signature\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 66 of file getaccount\&.cpp\&.
+.SS "bool GetAccount::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Send data to the server\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fInetClient\fP Netwrok client implementation of \fBINetworkClient\fP interface\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 107 of file getaccount\&.cpp\&.
+.SS "void GetAccount::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Sign actual data plus hash using user private and public keys\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIsk\fP Pointer to provate key\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 61 of file getaccount\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.
