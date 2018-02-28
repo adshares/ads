@@ -6,19 +6,16 @@
 
 CommandHandler::CommandHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : m_offi(office),
-      m_socket(socket)
-{
+      m_socket(socket) {
 }
 
-void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_t& usera)
-{
+void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_t& usera) {
     m_usera = usera;
 
-    if(command->checkSignature(m_usera.hash, m_usera.pkey))
-    {
+    if(command->checkSignature(m_usera.hash, m_usera.pkey)) {
         onInit(std::move(command));
 
-        if(onValidate()){
+        if(onValidate()) {
             onExecute();
         }
     }

@@ -10,14 +10,15 @@
 /*!
  * \brief Class responsible for handling "change_account_key" command.
  */
-class SetAccountKey : public IBlockCommand
-{
-public:
+class SetAccountKey : public IBlockCommand {
+  public:
     SetAccountKey();
     SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64]);
 
     bool            checkPubKeySignaure();
-    accountkey&     getDataStruct() { return m_data;}
+    accountkey&     getDataStruct() {
+        return m_data;
+    }
 
     //IBlock interface
 
@@ -93,9 +94,9 @@ public:
 
     //IJsonSerialize interface
     virtual std::string                     toString(bool pretty)   override;
-    virtual boost::property_tree::ptree     toJson()                override;    
+    virtual boost::property_tree::ptree     toJson()                override;
 
-private:
+  private:
     accountkey          m_data;
     commandresponse     m_response;
 

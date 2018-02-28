@@ -7,29 +7,25 @@
 using namespace Helper;
 
 ResponseHandler::ResponseHandler(settings& sts)
-    :m_sts(sts)
-{
+    :m_sts(sts) {
 }
 
-void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command)
-{            
+void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     initLogs(command);
 
-    switch(command->getType())
-    {
-        case TXSTYPE_INF:
-            onGetAccoutResponse(std::move(command));
-            break;
-        case TXSTYPE_KEY:
-            onSetAccountKeyResponse(std::move(command));
-            break;
-        default:
-            break;
+    switch(command->getType()) {
+    case TXSTYPE_INF:
+        onGetAccoutResponse(std::move(command));
+        break;
+    case TXSTYPE_KEY:
+        onSetAccountKeyResponse(std::move(command));
+        break;
+    default:
+        break;
     }
 }
 
-void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs)
-{
+void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     uint32_t now = time(NULL);
     now -= now%BLOCKSEC;
     m_pt.put("current_block_time", now);
@@ -40,8 +36,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs)
     m_pt.put("tx.data",tx_data.str());
     m_logpt.put("tx.data",tx_data.str());
 
-    if(txs->getType() != TXSTYPE_INF)
-    {
+    if(txs->getType() != TXSTYPE_INF) {
         m_pt.put("tx.account_msid", m_sts.msid);
         m_logpt.put("tx.account_msid",m_sts.msid);
 
@@ -61,8 +56,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs)
         m_pt.put("tx.deduct", print_amount(txs->getDeduct()));
         m_pt.put("tx.fee", print_amount(txs->getFee()));
 
-        if(m_sts.msid == 1)
-        {
+        if(m_sts.msid == 1) {
             std::stringstream tx_user_public_key;
             Helper::ed25519_key2text(tx_user_public_key, m_sts.pk, SHA256_DIGEST_LENGTH);
             m_logpt.put("tx.account_public_key", std::move(tx_user_public_key.str()));
@@ -70,8 +64,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs)
     }
 }
 
-void ResponseHandler::onGetAccoutResponse(std::unique_ptr<IBlockCommand> command)
-{
+void ResponseHandler::onGetAccoutResponse(std::unique_ptr<IBlockCommand> command) {
     accountresponse t;
 
     memcpy(&t, command->getResponse(), command->getResponseSize());
@@ -84,8 +77,7 @@ void ResponseHandler::onGetAccoutResponse(std::unique_ptr<IBlockCommand> command
     boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
 }
 
-void ResponseHandler::onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command)
-{
+void ResponseHandler::onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command) {
     command->saveResponse(m_sts);
     std::cerr<<"PKEY changed2\n";
 }

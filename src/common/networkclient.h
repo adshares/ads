@@ -9,9 +9,8 @@
 #include "abstraction/interfaces.h"
 
 
-class NetworkClient : public INetworkClient
-{
-public:
+class NetworkClient : public INetworkClient {
+  public:
     explicit NetworkClient(const std::string& address, const std::string& port);
     virtual ~NetworkClient();
 
@@ -26,7 +25,7 @@ public:
     virtual bool readData(std::vector<uint8_t>& buff)   override;
 
 
-private:
+  private:
     boost::asio::io_service                             m_ioService;
     boost::asio::ip::tcp::resolver::query               m_query;
     boost::asio::ip::tcp::resolver                      m_resolver;

@@ -12,24 +12,19 @@
 using namespace std;
 
 
-void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& sts, std::unique_ptr<IBlockCommand> txs) //len can be deduced from txstype
-{
-    if(!netClient.reconnect()){
-         std::cerr<<"ERROR cannot connect to server\n";
+void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& sts, std::unique_ptr<IBlockCommand> txs) { //len can be deduced from txstype
+    if(!netClient.reconnect()) {
+        std::cerr<<"ERROR cannot connect to server\n";
     }
 
-    if( txs->send(netClient) )
-    {
+    if( txs->send(netClient) ) {
         respHandler.onExecute(std::move(txs));
-    }
-    else
-    {
+    } else {
         std::cerr<<"ERROR reading global info talk2\n";
     }
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     settings sts;
     sts.get(argc,argv);
     boost::asio::io_service io_service;
@@ -42,46 +37,41 @@ int main(int argc, char* argv[])
 
     ResponseHandler respHandler(sts);
 
-    #if INTPTR_MAX == INT64_MAX
-      assert(sizeof(long double)==16);
-    #endif
-    try{
+#if INTPTR_MAX == INT64_MAX
+    assert(sizeof(long double)==16);
+#endif
+    try {
 
         usertxs_ptr txs;
         std::string line;
         std::unique_ptr<IBlockCommand> t2;
 
-        while (std::getline(std::cin, line))
-        {
+        while (std::getline(std::cin, line)) {
             int64_t deduct    = 0;
             int64_t fee       = 0;
 
-            if(line.at(0) == '.'){
+            if(line.at(0) == '.') {
                 break;
             }
-            if(line.at(0) == '\n' || line.at(0) == '#'){
+            if(line.at(0) == '\n' || line.at(0) == '#') {
                 continue;
-            }            
+            }
 
             txs = run_json(sts, line, deduct, fee, t2);
 
-            if( !txs && ! t2){
+            if( !txs && ! t2) {
                 continue;
             }
 
             //temporary solution for reimplementing
-            if(t2)
-            {
+            if(t2) {
                 talk2(netClient, respHandler, sts, std::move(t2));
-            }
-            else if(txs)
-            {
+            } else if(txs) {
                 talk(endpoint_iterator, socket, sts, txs, deduct, fee);
             }
         }
-      }
-    catch (std::exception& e){
-      std::cerr << "Main Exception: " << e.what() << "\n";
+    } catch (std::exception& e) {
+        std::cerr << "Main Exception: " << e.what() << "\n";
     }
 
     return 0;

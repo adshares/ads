@@ -6,14 +6,12 @@
 #include <sstream>
 #include <memory>
 
-namespace Helper{
+namespace Helper {
 
-void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 10)
-{
+void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 10) {
     timeval tv{timeout,0};
 
-    if(setsockopt(socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 )
-    {
+    if(setsockopt(socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 ) {
         setsockopt(socket.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
         boost::asio::socket_base::keep_alive optionk(true);
@@ -24,12 +22,10 @@ void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout
     }
 }
 
-void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 10)
-{
+void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 10) {
     timeval tv{timeout,0};
 
-    if(setsockopt(socket->native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 )
-    {
+    if(setsockopt(socket->native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 ) {
         setsockopt(socket->native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
 
         boost::asio::socket_base::keep_alive optionk(true);

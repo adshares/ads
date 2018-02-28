@@ -7,7 +7,7 @@
 #include <array>
 #include <openssl/sha.h>
 
-namespace Helper{
+namespace Helper {
 
 void create256signhash(const unsigned char* signature, int signSize, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout);
 

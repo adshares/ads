@@ -4,20 +4,17 @@
 #include <sstream>
 
 
-namespace Helper{
+namespace Helper {
 
-void create256signhash(const unsigned char* signature, int signSize, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout)
-{
+void create256signhash(const unsigned char* signature, int signSize, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout) {
     create256signhash(signature, signSize, ha.data(), hashout);
 }
 
-void create256signhash(const unsigned char* signature, int signatureSize, const unsigned char* previosHash, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout)
-{
+void create256signhash(const unsigned char* signature, int signatureSize, const unsigned char* previosHash, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout) {
     create256signhash(signature, signatureSize, previosHash, hashout.data());
 }
 
-void create256signhash(const unsigned char* signature, int signSize, const unsigned char* previosHash, unsigned char hashout[SHA256_DIGEST_LENGTH])
-{
+void create256signhash(const unsigned char* signature, int signSize, const unsigned char* previosHash, unsigned char hashout[SHA256_DIGEST_LENGTH]) {
     std::array<uint8_t, SHA256_DIGEST_LENGTH> temphash;
 
     SHA256_CTX sha256;
@@ -32,8 +29,7 @@ void create256signhash(const unsigned char* signature, int signSize, const unsig
     SHA256_Final(hashout, &sha256);
 }
 
-void create256signhash(const std::array<uint8_t, SHA256_DIGEST_LENGTH> signature, const std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout)
-{
+void create256signhash(const std::array<uint8_t, SHA256_DIGEST_LENGTH> signature, const std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout) {
     return create256signhash(signature.data(), signature.size(), ha.data(), hashout);
 }
 

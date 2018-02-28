@@ -9,16 +9,15 @@
 
 class office;
 
-class SetAccountKeyHandler : public CommandHandler
-{
-public:
+class SetAccountKeyHandler : public CommandHandler {
+  public:
     SetAccountKeyHandler(office& office, boost::asio::ip::tcp::socket& socket);
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute()  override;
     virtual bool onValidate() override;
 
-private:
+  private:
     std::unique_ptr<SetAccountKey>  m_command;
 };
 

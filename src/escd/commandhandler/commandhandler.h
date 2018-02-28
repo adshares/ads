@@ -12,9 +12,8 @@ class office;
 /*!
  * \brief Base class for all command handlers.
  */
-class CommandHandler : public ICommandHandler
-{
-public:
+class CommandHandler : public ICommandHandler {
+  public:
     /** \brief Constructor.
       * \param office  Office object.
       * \param socket  Socket connected with client. */
@@ -22,7 +21,7 @@ public:
 
     virtual void execute(std::unique_ptr<IBlockCommand> command, const user_t& usera) override;
 
-protected:
+  protected:
     office&                         m_offi;     ///< Reference to office object.
     boost::asio::ip::tcp::socket&   m_socket;   ///< Socket for connection with client.
     user_t                          m_usera;    ///< Current user blockchain data.

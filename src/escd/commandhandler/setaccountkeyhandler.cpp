@@ -4,23 +4,19 @@
 #include "helper/hash.h"
 
 SetAccountKeyHandler::SetAccountKeyHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket)
-{
+    : CommandHandler(office, socket) {
 }
 
-void SetAccountKeyHandler::onInit(std::unique_ptr<IBlockCommand> command)
-{
-    try{
+void SetAccountKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
+    try {
         m_command = std::unique_ptr<SetAccountKey>(dynamic_cast<SetAccountKey*>(command.release()));
-    }
-    catch (std::bad_cast& bc){
+    } catch (std::bad_cast& bc) {
         std::cerr << "OnSetAccountKey bad_cast caught: " << bc.what() << '\n';
         return;
     }
 }
 
-void SetAccountKeyHandler::onExecute()
-{
+void SetAccountKeyHandler::onExecute() {
     assert(m_command);
 
     accountkey& data            = m_command->getDataStruct();
@@ -41,8 +37,7 @@ void SetAccountKeyHandler::onExecute()
     uint32_t mpos;
 
     // could add set_user here
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos))
-    {
+    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
         DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         return;
     }
@@ -67,25 +62,21 @@ void SetAccountKeyHandler::onExecute()
 #endif
 
     //send response
-    try
-    {
-      commandresponse response{ m_usera, msid, mpos};
-      boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response))); //consider signing this message
-    }
-    catch (std::exception& e){
-      DLOG("ERROR responding to client %08X\n",m_usera.user);
+    try {
+        commandresponse response{ m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response))); //consider signing this message
+    } catch (std::exception& e) {
+        DLOG("ERROR responding to client %08X\n",m_usera.user);
     }
 }
 
-bool SetAccountKeyHandler::onValidate()
-{
+bool SetAccountKeyHandler::onValidate() {
     int64_t     deduct = m_command->getDeduct();
     int64_t     fee    = m_command->getFee();
 
-    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight)
-    {
+    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-        deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
+             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         return false;
     }
 
