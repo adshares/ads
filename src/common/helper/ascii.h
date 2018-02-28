@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <sstream>
 
-namespace Helper{
+namespace Helper {
 
 void ed25519_printkey(uint8_t* key,int len);
 void ed25519_text2key(uint8_t* key,const char* text,int len);

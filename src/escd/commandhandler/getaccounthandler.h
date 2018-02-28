@@ -9,9 +9,8 @@
 class office;
 class GetAccount;
 
-class GetAccountHandler : public CommandHandler
-{
-public:
+class GetAccountHandler : public CommandHandler {
+  public:
     GetAccountHandler(office& office, boost::asio::ip::tcp::socket& socket);
 
     //ICommandHandler interface
@@ -19,7 +18,7 @@ public:
     virtual void onExecute() override;
     virtual bool onValidate() override;
 
-private:
+  private:
     std::unique_ptr<GetAccount>  m_command;
 };
 

@@ -11,9 +11,8 @@ class office;
 /*!
  * \brief Interface for class which is responible for client network connection.
  */
-class INetworkClient
-{
-public:
+class INetworkClient {
+  public:
     /** \brief Connect to server if disconnected. */
     virtual bool connect()      = 0;
     /** \brief Recconect to server. */
@@ -36,9 +35,8 @@ public:
 /*!
  * \brief Command Interface. Base class for all command.
  */
-class ICommand
-{
-public:
+class ICommand {
+  public:
     /** \brief Get command type. */
     virtual int                     getType()           = 0;
     /** \brief Get pointer to command data structure. */
@@ -103,9 +101,8 @@ public:
 /*!
  * \brief Interface which allow convert command data to JSON or string. Not used for now.
  */
-class IJsonSerialize
-{
-public:
+class IJsonSerialize {
+  public:
     virtual boost::property_tree::ptree     toJson()                = 0;
     virtual std::string                     toString(bool preety)   = 0;
 
@@ -115,16 +112,14 @@ public:
 /*!
  * \brief Base interface for command. It combain ICommand and IJsonSerialize Interface.
  */
-class IBlockCommand : public ICommand, public IJsonSerialize
-{
+class IBlockCommand : public ICommand, public IJsonSerialize {
 };
 
 /*!
  * \brief Command handler Interface.
  */
-class ICommandHandler
-{
-public:
+class ICommandHandler {
+  public:
 
     /** \brief Execute command.
      * \param command  Command which dhould be executed.

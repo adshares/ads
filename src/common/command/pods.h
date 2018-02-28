@@ -42,32 +42,28 @@
 
 
 /** \brief Struct data for get_me and get_accout response */
-struct accountresponse
-{
+struct accountresponse {
     user_t      usera;
     user_t      globalusera;
-}__attribute__((packed));
+} __attribute__((packed));
 
 /** \brief Struct data for all command which are changed blockchain data */
-struct commandresponse
-{
+struct commandresponse {
     user_t      usera;
     uint32_t    msid;
     uint32_t    mpos;
-}__attribute__((packed));
+} __attribute__((packed));
 
 
 /** \brief Struct data for get_me and get_accout command */
-struct userinfo
-{
+struct userinfo {
     userinfo() = default;
     userinfo(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint16_t buser_, uint32_t time_)
         : abank{abank_},
           auser{auser_},
           bbank{bbank_},
           buser{buser_},
-          ttime{time_}
-    {
+          ttime{time_} {
     }
 
     uint8_t  ttype{TXSTYPE_INF};
@@ -83,12 +79,10 @@ struct userinfo
 
 
 /** \brief Full struct data for get_me and get_accout command with signature */
-struct usertxs2
-{
+struct usertxs2 {
     usertxs2() = default;
     usertxs2(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
-        : info(abank, auser, bbank, buser, time)
-    {
+        : info(abank, auser, bbank, buser, time) {
     }
 
     userinfo        info;
@@ -97,15 +91,13 @@ struct usertxs2
 
 
 /** \brief Full struct data for get_me and change account key command with signature */
-struct accountkey
-{
+struct accountkey {
     accountkey() = default;
     accountkey(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint32_t time_, uint8_t pubkey_[32], uint8_t pubkeysign_[64])
         : abank(abank_),
           auser(auser_),
           amsid(namsid_),
-          ttime(time_)
-    {
+          ttime(time_) {
         std::copy(pubkey_, pubkey_+32, pubkey);
         std::copy(pubkeysign_, pubkeysign_+64, pubkeysign);
     }

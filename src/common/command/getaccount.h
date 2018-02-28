@@ -9,13 +9,14 @@
 /*!
  * \brief Class responsible for handling "get_me" or "get_acocunt" command.
  */
-class GetAccount : public IBlockCommand
-{
-public:
+class GetAccount : public IBlockCommand {
+  public:
     GetAccount();
     GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);
 
-    usertxs2& getDataStruct() { return m_data;}
+    usertxs2& getDataStruct() {
+        return m_data;
+    }
 
     //IBlock interface
     /** \brief Return TXSTYPE_INF as command type . */
@@ -92,7 +93,7 @@ public:
     virtual std::string                     toString(bool pretty)       override;
     virtual boost::property_tree::ptree     toJson()                    override;
 
-public:
+  public:
     usertxs2            m_data;
     accountresponse     m_response;
 };

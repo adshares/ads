@@ -5,15 +5,14 @@
 #include "abstraction/interfaces.h"
 #include "settings.hpp"
 
-namespace command{
+namespace command {
 
 /*!
  * \brief Class which is creating commad by using type.
  */
 
-class factory
-{
-public:
+class factory {
+  public:
     /**
      * \brief Make command function.
      * \param type Type of command
@@ -21,7 +20,7 @@ public:
      */
     static std::unique_ptr<IBlockCommand> makeCommand(uint8_t type);
 
-private:
+  private:
     factory() = default;
 };
 
