@@ -2,8 +2,7 @@
 set(SOURCED
    office.hpp
    peer.hpp
-   client.hpp
-   message.hpp
+   client.hpp   
    options.hpp
    server.hpp
    main.cpp
