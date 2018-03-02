@@ -1,4 +1,4 @@
 my_project:
   script:
     - cd scripts
-    - ./buildDebug.sh
+    - ./buildandrunDebug.sh

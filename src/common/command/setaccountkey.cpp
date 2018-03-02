@@ -83,7 +83,8 @@ user_t& SetAccountKey::getUserInfo() {
     return m_response.usera;
 }
 
-bool SetAccountKey::send(INetworkClient& netClient) {
+bool SetAccountKey::send(INetworkClient& netClient)
+{
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
         return false;
     }
@@ -96,8 +97,11 @@ bool SetAccountKey::send(INetworkClient& netClient) {
     return true;
 }
 
-void SetAccountKey::saveResponse(settings& sts) {
-    std::copy(m_response.usera.pkey, m_response.usera.pkey + SHA256_DIGEST_LENGTH, sts.pk);
+void SetAccountKey::saveResponse(settings& sts)
+{
+    sts.msid = m_response.usera.msid;
+    std::copy(m_response.usera.pkey, m_response.usera.pkey + SHA256_DIGEST_LENGTH, sts.pk);        
+    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
 std::string SetAccountKey::toString(bool pretty) {
