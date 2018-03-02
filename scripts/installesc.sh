@@ -1,4 +1,10 @@
 #!/bin/bash
+
+officeport=7990
+serverport=8090
+peerport=8090
+
+
 function prepareNode
 {
     echo '.............................prepareNode'$1
@@ -36,7 +42,7 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1'> settings.cfg
-        echo 'port=9091' >> settings.cfg
+        echo 'port=7991' >> settings.cfg
         echo 'address=0001-00000000-XXXX' >> settings.cfg
         echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >> settings.cfg
     }
@@ -46,7 +52,7 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1' > settings.cfg
-        echo 'port=9091' >> settings.cfg
+        echo 'port=7991' >> settings.cfg
         echo 'address=0001-00000001-XXXX' >> settings.cfg
         echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     }
@@ -56,7 +62,7 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1' > settings.cfg
-        echo 'port=9092' >> settings.cfg
+        echo 'port=7992' >> settings.cfg
         echo 'address=0002-00000000-XXXX' >> settings.cfg
         echo 'secret=E4882F10389E14D7E55050E2D05EF50701A8A5FD8D9AE188D9AE8F377E410254' >> settings.cfg
     }
@@ -69,7 +75,8 @@ function initFirstNode
     echo '.............................initFirstNode\n'
 
     cd 'node1'
-    nohup ./escd --init 1 > nodeout.txt &
+
+    exec -a 'escdnode1' ./escd --init 1 > nodeout.txt &
     ##./escd --init 1 > nodeout.txt &
 
     cd ..
@@ -106,7 +113,7 @@ function setUpUser1
     sleep 60
 
     echo 'host=127.0.0.1'> settings.cfg
-    echo 'port=9091' >> settings.cfg
+    echo 'port=7991' >> settings.cfg
     echo 'address=0001-00000000-9B6F' >> settings.cfg
     echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
 
@@ -159,7 +166,7 @@ function changeKeysforUser2
     cd 'user2'
 
     echo 'host=127.0.0.1' > settings.cfg
-    echo 'port=9092' >> settings.cfg
+    echo 'port=7992' >> settings.cfg
     echo 'address=0001-00000001-8B4E' >> settings.cfg
     echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     chmod go-r settings.cfg
@@ -187,9 +194,6 @@ function sendCash
 
 function checkBalance
 {
-    echo "'$PWD'"
-    echo "'$1'"
-
     cd $1
 
     balance=$(echo '{"run":"get_account","address":"'$2'"}' | ./esc | grep balance)
@@ -210,10 +214,7 @@ function checkBalance
 
 
 function getMe
-{
-    echo "'$PWD'"
-    echo "'$1'"
-
+{    
     cd $1
 
     getmeinfo=$(echo '{"run":"get_me"}' | ./esc | grep address)
@@ -258,12 +259,29 @@ function changeNode2Key
     cd ..
 }
 
+function changeNode3Key
+{
+    cd 'node3'
+
+    echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
+    #echo 'A84CFE8A8631A26C5AC192EF5C781DAF48C6739B7E1A388057B2B2218D945A8B' > key/key.txt
+    cd ..
+
+    cd 'user1'
+
+    echo '.............................change_node_key'
+
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"3"}') | ./esc
+    #(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"74B1D277044007B071FCF277A3CC5194EAA0BCA28548F6621FEBF3C00810C331","node":"3"}') | ./esc
+
+    cd ..
+    sleep 20
+}
 
 function getMeMultipleTest
 {
     for i in $(seq 1 $1);
-    do
-        echo $i
+    do        
         getMe "user1" "0001-00000000-9B6F" "0001-00000000-9B6F"
     done
 }
@@ -276,11 +294,41 @@ function getBalanceMultipleTest
     done
 }
 
+function copyserverconf
+{
+    cd $1
 
-pkill -f "escd"
+    for file in $(find ../node1/blk -name servers.srv | sort -rn)
+    do
+        cp ../node1/$file ./
+        echo $file
+        break;
+    done
+
+    cd ..
+}
+
+function startnode
+{
+    cd $1
+
+    echo '.............................startnode'$1
+
+    exec -a 'escd'$1 ./escd $2 > nodeout.txt &
+    cd ..
+
+    echo 'server started'
+}
+
+
+pkill -f "escdnode1" -9
 sleep 2
-pkill -f "escd"
+pkill -f "escdnode2" -9
 sleep 2
+pkill -f "escdnode3" -9
+sleep 2
+
+
 deploypath="deployment"
 current=$PWD
 
@@ -291,9 +339,6 @@ cd $deploypath
 
 nodename='node'
 
-officeport=9090
-serverport=8090
-peerport=8090
 
 for i in 1 2 3
 do
@@ -342,22 +387,33 @@ sleep 60
 
 changeNode2Key
 
+sleep 60
+
+addNode
+sleep 60
+changeNode3Key
 sleep 120
 
-cd 'node2'
-
-for file in $(find ../node1/blk -name servers.srv | sort -rn)
-do
-cp ../node1/$file ./
-echo $file
-break;
-done
 
 
-echo '.............................nohup node2'
+#cd 'node2'
 
-nohup ./escd -m 1 -f 1 > nodeout.txt &
-cd ..
+#for file in $(find ../node1/blk -name servers.srv | sort -rn)
+#do
+#cp ../node1/$file ./
+#echo $file
+#break;
+#done
+
+
+#echo '.............................nohup node2'
+
+#nohup ./escd -m 1 -f 1 > nodeout.txt &
+#cd ..
+
+copyserverconf "node2"
+startnode "node2" "-m 1 -f 1"
+
 
 echo 'server started'
 
@@ -366,18 +422,44 @@ sleep 60
 checkBalance "user1" "0001-00000001-8B4E" "280."
 
 
-stime=$(date +%s%N)
+pkill -f "escdnode2" -15
+sleep 5
+
+startnode "node2" "-m 1"
+
+sleep 150
+
+
+copyserverconf "node3"
+startnode "node3" "-m 1 -f 1"
+sleep 60
+
+pkill -f "escdnode3" -15
+sleep 5
+startnode "node3" "-m 1"
+
+pkill -f "escdnode1" -15
+sleep 6
+startnode "node1" "-m 1"
+sleep 30
+
+
+echo 'server started one more time'
+
+stime=$(date +%s%N |cut -b1-13)
 echo $stime
 
-getMeMultipleTest 10000
-getBalanceMultipleTest 10000
+getMeMultipleTest 10
+getBalanceMultipleTest 10
 
 echo $stime
 endtime=$(date +%s%N)
 
 let "period = $endtime - $stime"
 
+
 echo 'PERIOD:'$period
+echo 'PERIOD:'$period | bc
 
 
 
