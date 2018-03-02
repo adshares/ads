@@ -392,7 +392,7 @@ sleep 60
 addNode
 sleep 60
 changeNode3Key
-sleep 120
+sleep 90
 
 
 
@@ -417,7 +417,7 @@ startnode "node2" "-m 1 -f 1"
 
 echo 'server started'
 
-sleep 60
+sleep 120
 
 checkBalance "user1" "0001-00000001-8B4E" "280."
 
@@ -427,7 +427,7 @@ sleep 5
 
 startnode "node2" "-m 1"
 
-sleep 150
+sleep 120
 
 
 copyserverconf "node3"
@@ -459,7 +459,8 @@ let "period = $endtime - $stime"
 
 
 echo 'PERIOD:'$period
-echo 'PERIOD:'$period | bc
+
+exit 0
 
 
 
