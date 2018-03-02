@@ -55,7 +55,8 @@ bool GetAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
 }
 
-void GetAccount::saveResponse(settings& sts) {
+void GetAccount::saveResponse(settings& sts)
+{
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }

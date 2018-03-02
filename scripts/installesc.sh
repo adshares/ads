@@ -241,6 +241,8 @@ function addNode
     (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
 
     cd ..
+
+    sleep 60
 }
 
 function changeNode2Key
@@ -257,6 +259,8 @@ function changeNode2Key
     (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | ./esc
 
     cd ..
+
+    sleep 30
 }
 
 function changeNode3Key
@@ -275,7 +279,7 @@ function changeNode3Key
     #(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"74B1D277044007B071FCF277A3CC5194EAA0BCA28548F6621FEBF3C00810C331","node":"3"}') | ./esc
 
     cd ..
-    sleep 20
+    sleep 30
 }
 
 function getMeMultipleTest
@@ -355,22 +359,6 @@ done
 
 
 initFirstNode
-
-stime=$(date +%s%N)
-echo $stime
-
-getMeMultipleTest 100
-
-
-echo $stime
-endtime=$(date +%s%N)
-
-let "period = $endtime -  $stime"
-
-echo 'PERIOD: '$period
-
-
-
 setUpUser1
 createAccountForUser2
 changeKeysforUser2
@@ -382,38 +370,14 @@ done
 
 addNode
 checkBalance "user1" "0001-00000001-8B4E" "280."
-
-sleep 60
-
 changeNode2Key
-
-sleep 60
-
 addNode
-sleep 60
 changeNode3Key
-sleep 90
 
-
-
-#cd 'node2'
-
-#for file in $(find ../node1/blk -name servers.srv | sort -rn)
-#do
-#cp ../node1/$file ./
-#echo $file
-#break;
-#done
-
-
-#echo '.............................nohup node2'
-
-#nohup ./escd -m 1 -f 1 > nodeout.txt &
-#cd ..
+sleep 60
 
 copyserverconf "node2"
 startnode "node2" "-m 1 -f 1"
-
 
 echo 'server started'
 
