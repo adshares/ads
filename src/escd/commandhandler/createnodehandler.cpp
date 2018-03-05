@@ -23,9 +23,6 @@ void CreateNodeHandler::onExecute() {
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
 
-    //execute
-    //std::copy(data.pubkey, data.pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
-
     m_usera.msid++;
     m_usera.time  = data.ttime;
     m_usera.lpath = lpath;

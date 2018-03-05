@@ -17,7 +17,7 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         command = std::make_unique<SetAccountKey>();
         break;
     case TXSTYPE_BNK:
-        //command = std::make_unique<CreateNode>();
+        command = std::make_unique<CreateNode>();
         break;
     default:
         break;
