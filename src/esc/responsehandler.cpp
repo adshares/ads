@@ -20,6 +20,9 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_KEY:
         onSetAccountKeyResponse(std::move(command));
         break;
+    case TXSTYPE_BNK:
+        onCreateNodeResponse(std::move(command));
+        break;
     default:
         break;
     }
@@ -73,6 +76,18 @@ void ResponseHandler::onGetAccoutResponse(std::unique_ptr<IBlockCommand> command
 
     print_user(t.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
     print_user(t.globalusera, m_pt, false, command->getBankId(), command->getUserId(), m_sts);
+
+    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
+}
+
+void ResponseHandler::onCreateNodeResponse(std::unique_ptr<IBlockCommand> command) {
+    commandresponse t;
+
+    memcpy(&t, command->getResponse(), command->getResponseSize());
+
+    command->saveResponse(m_sts);
+
+    print_user(t.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
 
     boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
 }

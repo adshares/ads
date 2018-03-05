@@ -34,6 +34,7 @@
 #include "helper/ascii.h"
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
+#include "command/createnode.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -437,9 +438,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
             fee=TXS_USR_FEE;
         }
     } else if(!run.compare(txsname[TXSTYPE_BNK])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_BNK,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
-        deduct=BANK_MIN_TMASS;
-        fee=TXS_BNK_FEE;
+        command.reset( new CreateNode(sts.bank, sts.user, sts.msid, now));
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
         fee=TXS_SAV_FEE;

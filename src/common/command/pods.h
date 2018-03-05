@@ -112,4 +112,23 @@ struct accountkey {
     uint8_t         pubkeysign[64];
 } __attribute__((packed));
 
+
+/** \brief Full struct data for create_node command with signature */
+struct createnodedata {
+	createnodedata() = default;
+	createnodedata(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_)
+	: abank(abank_),
+	  auser(auser_),
+	  amsid(amsid_),
+	  ttime(ttime_) {
+	}
+	
+	uint8_t ttype{TXSTYPE_BNK};
+	uint16_t abank{0};
+	uint32_t auser{0};
+	uint32_t amsid{0};
+	uint32_t ttime{0};
+	unsigned char sign[64];
+} __attribute__((packed));
+
 #endif // PODS_H

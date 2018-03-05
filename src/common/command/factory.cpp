@@ -2,6 +2,7 @@
 #include "pods.h"
 #include "getaccount.h"
 #include "setaccountkey.h"
+#include "createnode.h"
 
 namespace command {
 
@@ -14,6 +15,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_KEY:
         command = std::make_unique<SetAccountKey>();
+        break;
+    case TXSTYPE_BNK:
+        //command = std::make_unique<CreateNode>();
         break;
     default:
         break;

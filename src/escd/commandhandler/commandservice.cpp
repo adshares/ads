@@ -6,7 +6,8 @@
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
     : m_offi(office),
       m_getAccountHandler(office, socket),
-      m_setAccountHandler(office, socket) {
+      m_setAccountHandler(office, socket),
+      m_createNodeHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -22,6 +23,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_KEY:
         m_setAccountHandler.execute(std::move(command), std::move(usera));
+        break;
+    case TXSTYPE_BNK:
+        m_createNodeHandler.execute(std::move(command), std::move(usera));
         break;
     default:
         break;

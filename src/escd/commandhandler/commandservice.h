@@ -6,6 +6,7 @@
 #include "abstraction/interfaces.h"
 #include "getaccounthandler.h"
 #include "setaccountkeyhandler.h"
+#include "createnodehandler.h"
 
 class office;
 
@@ -26,6 +27,7 @@ class CommandService {
     office&                m_offi;              ///< reference to office object.
     GetAccountHandler      m_getAccountHandler; ///< get account and get me command object handler.
     SetAccountKeyHandler   m_setAccountHandler; ///< set account key command object handler.
+    CreateNodeHandler	   m_createNodeHandler; ///< create node command object handler.
 };
 
 
