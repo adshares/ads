@@ -112,4 +112,33 @@ struct accountkey {
     uint8_t         pubkeysign[64];
 } __attribute__((packed));
 
+
+/** \brief This struct contains data specific for create_node command */
+struct CreateNodeInfo {
+	CreateNodeInfo() = default;
+	CreateNodeInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_)
+	: abank(abank_),
+	  auser(auser_),
+	  amsid(amsid_),
+	  ttime(ttime_) {
+	}
+
+	uint8_t ttype{TXSTYPE_BNK};
+	uint16_t abank{0};
+	uint32_t auser{0};
+	uint32_t amsid{0};
+	uint32_t ttime{0};	
+} __attribute__((packed));
+
+/** \brief Full struct data for create_node command with signature */
+struct CreateNodeData {
+	CreateNodeData() = default;
+	CreateNodeData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_)
+	: data(abank_, auser_, amsid_, ttime_) {
+	}
+	
+	CreateNodeInfo data;
+	unsigned char sign[64];
+} __attribute__((packed));
+
 #endif // PODS_H
