@@ -4,6 +4,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountkey.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/createnode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/factory.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendone.cpp
     PARENT_SCOPE
     )
 
@@ -14,6 +15,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountkey.h
     ${CMAKE_CURRENT_SOURCE_DIR}/createnode.h
     ${CMAKE_CURRENT_SOURCE_DIR}/factory.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendone.h
     PARENT_SCOPE
     )
 

@@ -89,6 +89,34 @@ struct usertxs2 {
     unsigned char   sign[64];
 } __attribute__((packed));
 
+/** \brief Struct used in send one command (TXSTYPE_PUT) */
+struct UserSendOneInfo {
+    UserSendOneInfo() = default;
+    UserSendOneInfo(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])
+        : abank(abank_), auser(auser_), namsid(namsid_), ttime(time_), bbank(bbank_), buser(buser_), ntmass(ntmass_) {
+        std::copy(ntinfo_, ntinfo_+32, ntinfo);
+    }
+
+    uint8_t  ttype{TXSTYPE_PUT};
+    uint16_t abank{0};
+    uint32_t auser{0};
+    uint32_t namsid{0};
+    uint32_t ttime{0};
+    uint16_t bbank{0};
+    uint32_t buser{0};
+    int64_t ntmass{0};
+    uint8_t ntinfo[32];
+} __attribute__((packed));
+
+struct UserSendOne {
+    UserSendOne() = default;
+    UserSendOne(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])
+        : info(abank_, auser_, namsid_, bbank_, buser_, ntmass_, time_, ntinfo_) {
+    }
+
+    UserSendOneInfo info;
+    unsigned char sign[64];
+} __attribute__((packed));
 
 /** \brief Full struct data for get_me and change account key command with signature */
 struct accountkey {

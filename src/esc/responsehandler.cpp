@@ -22,6 +22,9 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_BNK:
         onCreateNodeResponse(std::move(command));
+	break;
+    case TXSTYPE_PUT:
+        onSendOneResponse(std::move(command));
         break;
     default:
         break;
@@ -95,4 +98,13 @@ void ResponseHandler::onCreateNodeResponse(std::unique_ptr<IBlockCommand> comman
 void ResponseHandler::onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command) {
     command->saveResponse(m_sts);
     std::cerr<<"PKEY changed2\n";
+}
+
+void ResponseHandler::onSendOneResponse(std::unique_ptr<IBlockCommand> command) {
+    commandresponse response;
+
+    memcpy(&response, command->getResponse(), command->getResponseSize());
+    command->saveResponse(m_sts);
+    print_user(response.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
+    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
 }
