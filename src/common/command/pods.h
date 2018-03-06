@@ -89,7 +89,7 @@ struct usertxs2 {
     unsigned char   sign[64];
 } __attribute__((packed));
 
-/** \brief Struct used in send one command (TXSTYPE_PUT) */
+/** \brief User info used in send one command (TXSTYPE_PUT) */
 struct UserSendOneInfo {
     UserSendOneInfo() = default;
     UserSendOneInfo(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])
@@ -97,25 +97,26 @@ struct UserSendOneInfo {
         std::copy(ntinfo_, ntinfo_+32, ntinfo);
     }
 
-    uint8_t  ttype{TXSTYPE_PUT};
-    uint16_t abank{0};
-    uint32_t auser{0};
-    uint32_t namsid{0};
-    uint32_t ttime{0};
-    uint16_t bbank{0};
-    uint32_t buser{0};
-    int64_t ntmass{0};
-    uint8_t ntinfo[32];
+    uint8_t  ttype{TXSTYPE_PUT};    ///< command type
+    uint16_t abank{0};              ///< source node
+    uint32_t auser{0};              ///< source user
+    uint32_t namsid{0};             ///< user message id
+    uint32_t ttime{0};              ///< time
+    uint16_t bbank{0};              ///< destination node
+    uint32_t buser{0};              ///< destination user
+    int64_t ntmass{0};              ///< deduct
+    uint8_t ntinfo[32];             ///< additional info
 } __attribute__((packed));
 
+/** \brief Struct used in send one command (TXSTYPE_PUT) */
 struct UserSendOne {
     UserSendOne() = default;
     UserSendOne(uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])
         : info(abank_, auser_, namsid_, bbank_, buser_, ntmass_, time_, ntinfo_) {
     }
 
-    UserSendOneInfo info;
-    unsigned char sign[64];
+    UserSendOneInfo info;   ///< user info
+    unsigned char sign[64]; ///< signature
 } __attribute__((packed));
 
 /** \brief Full struct data for get_me and change account key command with signature */
