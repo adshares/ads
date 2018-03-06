@@ -657,7 +657,7 @@ class client : public boost::enable_shared_from_this<client> {
         //commit trasaction
         if(usera.time+LOCK_TIME<lpath && usera.user && usera.node && (usera.user!=m_utxs.auser || usera.node!=m_utxs.abank)) {
             //check account lock
-            if(*m_buf!=TXSTYPE_PUT || m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0) {
+            if(m_utxs.abank!=m_utxs.bbank || m_utxs.auser!=m_utxs.buser || m_utxs.tmass!=0) {
                 DLOG("ERROR: account locked, send 0 to yourself and wait for unlock\n");
                 return;
             }
@@ -671,22 +671,6 @@ class client : public boost::enable_shared_from_this<client> {
             lnode=usera.node;
         } else if(*m_buf==TXSTYPE_BRO) {
             fee=TXS_BRO_FEE(m_utxs.bbank);
-        } else if(*m_buf==TXSTYPE_PUT) {
-            if(m_utxs.tmass<0) { //sending info about negative values is allowed to fascilitate exchanges
-                m_utxs.tmass=0;
-            }
-            //if(m_utxs.abank!=m_utxs.bbank && m_utxs.auser!=m_utxs.buser && !check_user(m_utxs.bbank,m_utxs.buser)){
-            if(!m_offi.check_user(m_utxs.bbank,m_utxs.buser)) {
-                // does not check if account closed [consider adding this slow check]
-                DLOG("ERROR: bad target user %04X:%08X\n",m_utxs.bbank,m_utxs.buser);
-                return;
-            }
-            deposit=m_utxs.tmass;
-            deduct=m_utxs.tmass;
-            fee=TXS_PUT_FEE(m_utxs.tmass);
-            if(m_utxs.abank!=m_utxs.bbank) {
-                fee+=TXS_LNG_FEE(m_utxs.tmass);
-            }
         } else if(*m_buf==TXSTYPE_MPT) {
             char* tbuf=m_utxs.toaddresses(m_buf);
             //m_utxs.print_toaddresses(m_buf,m_utxs.bbank);
@@ -905,14 +889,13 @@ class client : public boost::enable_shared_from_this<client> {
         m_offi.set_user(m_utxs.auser,usera,deduct+fee); //will fail if status changed !!!
 
         //log
-        if(*m_buf!=TXSTYPE_PUT) { // store additional info in log
-            // this is ok for MPT
-            memcpy(m_utxs.tinfo+ 0,&usera.weight,8);
-            memcpy(m_utxs.tinfo+ 8,&deduct,8);
-            memcpy(m_utxs.tinfo+16,&fee,8);
-            memcpy(m_utxs.tinfo+24,&usera.stat,2);
-            memcpy(m_utxs.tinfo+26,&usera.pkey,6);
-        }
+        // this is ok for MPT
+        memcpy(m_utxs.tinfo+ 0,&usera.weight,8);
+        memcpy(m_utxs.tinfo+ 8,&deduct,8);
+        memcpy(m_utxs.tinfo+16,&fee,8);
+        memcpy(m_utxs.tinfo+24,&usera.stat,2);
+        memcpy(m_utxs.tinfo+26,&usera.pkey,6);
+
         log_t tlog;
         tlog.time=time(NULL);
         tlog.type=*m_buf;
@@ -964,7 +947,7 @@ class client : public boost::enable_shared_from_this<client> {
             }
         }
 
-        else if(m_utxs.abank==m_utxs.bbank && (*m_buf==TXSTYPE_PUT || (*m_buf==TXSTYPE_USR && m_utxs.buser) ||
+        else if(m_utxs.abank==m_utxs.bbank && ((*m_buf==TXSTYPE_USR && m_utxs.buser) ||
                                                *m_buf==TXSTYPE_SUS || *m_buf==TXSTYPE_UUS)) {
             tlog.type=*m_buf|0x8000; //incoming
             tlog.node=m_utxs.abank;
@@ -977,9 +960,6 @@ class client : public boost::enable_shared_from_this<client> {
             m_offi.put_ulog(m_utxs.buser,tlog);
             //if(*m_buf==TXSTYPE_SUS || *m_buf==TXSTYPE_UUS){
             //  m_offi.set_status(m_utxs);} //must be in add_msg to keep correct order
-            if(*m_buf==TXSTYPE_PUT && deposit>=0) {
-                m_offi.add_deposit(m_utxs);
-            }
         }
         //FIXME, return m_msid and m_mpos
 #ifdef DEBUG
