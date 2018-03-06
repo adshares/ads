@@ -66,7 +66,7 @@ class candidate :
         msg_.unlock();
     }
 
-    const char* print_missing(servers* srvs) { //TODO, consider having local lock
+    const char* print_missing(servers* /*srvs*/) { //TODO, consider having local lock
         static std::string line;
         if(failed) {
             line="FAILED MISSING: ";

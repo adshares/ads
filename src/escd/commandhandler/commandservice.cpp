@@ -1,13 +1,15 @@
 #include "commandservice.h"
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
+#include "command/sendone.h"
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
     : m_offi(office),
       m_getAccountHandler(office, socket),
       m_setAccountHandler(office, socket),
-      m_createNodeHandler(office, socket) {
+      m_createNodeHandler(office, socket),
+      m_sendOneHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -26,8 +28,12 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_BNK:
         m_createNodeHandler.execute(std::move(command), std::move(usera));
+	break;
+    case TXSTYPE_PUT:
+        m_sendOneHandler.execute(std::move(command), std::move(usera));
         break;
     default:
+        DLOG("Command type: %d without handler\n", command->getType());
         break;
     }
 }

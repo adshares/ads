@@ -35,6 +35,7 @@
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
 #include "command/createnode.h"
+#include "command/sendone.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -414,18 +415,12 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         txs=boost::make_shared<usertxs>(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_num,to_user,to_mass,to_info,text.c_str());
     } else if(!run.compare(txsname[TXSTYPE_PUT])) {
         boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
-
         if(json_info && !parse_key(to_info,json_info,32)) {
             return(NULL);
         }
-
-        txs=boost::make_shared<usertxs>(TXSTYPE_PUT,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
-        deduct=to_mass;
-        fee=TXS_PUT_FEE(to_mass);
-
-        if(sts.bank!=to_bank) {
-            fee+=TXS_LNG_FEE(to_mass);
-        }
+        command.reset(new SendOne(sts.bank,sts.user,sts.msid, to_bank, to_user, to_mass, to_info, now));
+        fee = command->getFee();
+        deduct = command->getDeduct();
     } else if(!run.compare(txsname[TXSTYPE_USR])) {
         if(!to_bank) {
             to_bank=sts.bank;

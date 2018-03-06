@@ -7,6 +7,7 @@
 #include "getaccounthandler.h"
 #include "setaccountkeyhandler.h"
 #include "createnodehandler.h"
+#include "sendonehandler.h"
 
 class office;
 
@@ -28,6 +29,7 @@ class CommandService {
     GetAccountHandler      m_getAccountHandler; ///< get account and get me command object handler.
     SetAccountKeyHandler   m_setAccountHandler; ///< set account key command object handler.
     CreateNodeHandler	   m_createNodeHandler; ///< create node command object handler.
+    SendOneHandler         m_sendOneHandler;    ///< send one command handler
 };
 
 

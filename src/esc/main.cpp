@@ -12,7 +12,7 @@
 using namespace std;
 
 
-void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& sts, std::unique_ptr<IBlockCommand> txs) { //len can be deduced from txstype
+void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& /*sts*/, std::unique_ptr<IBlockCommand> txs) { //len can be deduced from txstype
     if(!netClient.reconnect()) {
         std::cerr<<"ERROR cannot connect to server\n";
     }
