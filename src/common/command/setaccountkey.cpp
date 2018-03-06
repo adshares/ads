@@ -104,7 +104,7 @@ void SetAccountKey::saveResponse(settings& sts)
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
-std::string SetAccountKey::toString(bool pretty) {
+std::string SetAccountKey::toString(bool /*pretty*/) {
     return "";
 }
 

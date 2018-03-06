@@ -96,7 +96,7 @@ bool CreateNode::send(INetworkClient& netClient) {
     return true;
 }
 
-std::string CreateNode::toString(bool pretty) {
+std::string CreateNode::toString(bool /*pretty*/) {
     return "";
 }
 

@@ -961,7 +961,7 @@ class office {
     // use (2) fallocate to remove beginning of files
     // Remove page A: ret = fallocate(fd, FALLOC_FL_COLLAPSE_RANGE, 0, 4096);
 #ifdef FALLOC_FL_COLLAPSE_RANGE
-    int purge_log(int fd,uint32_t user) { // this is ext4 specific !!!
+    int purge_log(int fd,uint32_t /*user*/) { // this is ext4 specific !!!
         if(!svid) {
             return(0);
         }

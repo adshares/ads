@@ -47,11 +47,11 @@ int GetAccount::getType() {
     return TXSTYPE_INF;
 }
 
-void GetAccount::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
+void GetAccount::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool GetAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
+bool GetAccount::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return( ed25519_sign_open( getData() , getDataSize() , pk, getSignature() ) == 0);
 }
 
@@ -98,7 +98,7 @@ bool GetAccount::send(INetworkClient& netClient) {
     return true;
 }
 
-std::string GetAccount::toString(bool pretty) {
+std::string GetAccount::toString(bool /*pretty*/) {
     return "";
 }
 
