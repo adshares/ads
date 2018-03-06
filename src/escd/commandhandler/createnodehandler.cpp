@@ -19,15 +19,14 @@ void CreateNodeHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void CreateNodeHandler::onExecute() {
     assert(m_command);
 
-    createnodedata& data            = m_command->getDataStruct();
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
 
     m_usera.msid++;
-    m_usera.time  = data.ttime;
+    m_usera.time  = m_command->getTime();
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
-    Helper::create256signhash(data.sign, SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+    Helper::create256signhash(m_command->getSignature(), SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
 
     //commit changes
     uint32_t msid;
@@ -39,20 +38,20 @@ void CreateNodeHandler::onExecute() {
         return;
     }
 
-    m_offi.set_user(data.auser, m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
+    m_offi.set_user(m_command->getUserId(), m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
 
     //addlogs
     log_t tlog;
     tlog.time   = time(NULL);
     tlog.type   = m_command->getType();
-    tlog.node   = data.abank;
-    tlog.user   = data.auser;
-    tlog.umid   = data.amsid;
+    tlog.node   = m_command->getBankId();
+    tlog.user   = m_command->getUserId();
+    tlog.umid   = m_usera.msid--;
     tlog.nmid   = msid;
     tlog.mpos   = mpos;
 
     tlog.weight = -m_command->getDeduct() - m_command->getFee();
-    m_offi.put_ulog(data.auser, tlog);
+    m_offi.put_ulog(m_command->getUserId(), tlog);
 
 #ifdef DEBUG
     DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_usera.node, m_usera.user, msid, mpos);

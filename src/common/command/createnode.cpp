@@ -27,7 +27,7 @@ void CreateNode::setResponse(char* response) {
 }
 
 int CreateNode::getDataSize() {
-    return sizeof(m_data.ttype) + sizeof(m_data.abank) + sizeof(m_data.auser) + sizeof(m_data.amsid) + sizeof(m_data.ttime);
+    return sizeof(m_data.data);
 }
 
 int CreateNode::getResponseSize() {
@@ -48,7 +48,6 @@ int CreateNode::getType() {
 
 void CreateNode::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
-    //ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype])
 }
 
 bool CreateNode::checkSignature(const uint8_t* hash, const uint8_t* pk) {
@@ -61,15 +60,15 @@ void CreateNode::saveResponse(settings& sts) {
 }
 
 uint32_t CreateNode::getUserId() {
-    return m_data.auser;
+    return m_data.data.auser;
 }
 
 uint32_t CreateNode::getBankId() {
-    return m_data.abank;
+    return m_data.data.abank;
 }
 
 uint32_t CreateNode::getTime() {
-    return m_data.ttime;
+    return m_data.data.ttime;
 }
 
 int64_t CreateNode::getFee() {

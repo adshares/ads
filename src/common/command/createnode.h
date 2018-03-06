@@ -14,10 +14,6 @@ class CreateNode : public IBlockCommand {
     CreateNode();
     CreateNode(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime);
 
-    createnodedata& getDataStruct() {
-        return m_data;
-    }
-
     //IBlock interface
     /** \brief Return TXSTYPE_BNK as command type . */
     virtual int  getType()                                      override;
@@ -94,7 +90,7 @@ class CreateNode : public IBlockCommand {
     virtual boost::property_tree::ptree     toJson()                    override;
 
   private:
-    createnodedata      m_data;
+    CreateNodeData      m_data;
     commandresponse     m_response;
 };
 
