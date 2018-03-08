@@ -1,22 +1,61 @@
 #!/bin/bash
 
-officeport=7990
-serverport=8090
-peerport=8090
+nodebasename='escd'
+deploypath="deployment"
+current=$PWD
+
+testresult=0
+
+
+officeport=7190
+serverport=8190
+peerport=8190
+stopservice="FALSE"
+
+
+if [ $# -eq 4 ]
+then
+officeport=$1
+serverport=$2
+peerport=$3
+stopservice="FALSE"
+fi
+
+echo $officeport
+echo $serverport
+echo $peerport
+
+nodename='escdnodesrv'
+
+let "user1office = $officeport + 1"
+let "user2office = $officeport + 1"
+let "user3office = $officeport + 2"
+
+userpath[1]="user1"
+userpath[2]="user2"
+userpath[3]="user3"
+userpath[4]="user4"
+
+echo ${userpath[1]}
+echo ${userpath[2]}
+echo ${userpath[3]}
+echo ${userpath[3]}
+
 
 
 function prepareNode
 {
     echo '.............................prepareNode'$1
+    echo '.............................prepareNodedir'$5
 
-        mkdir $nodename
-	ln -s $current/escd $nodename/escd
+        mkdir $5
+        ln -s $current/escd $5/escd
 
-        cd $nodename
+        cd $5
         echo 'svid='$1 > options.cfg
-	echo 'offi='$2 >> options.cfg
-	echo 'port='$3 >> options.cfg
-	echo 'addr=127.0.0.1' >> options.cfg
+        echo 'offi='$2 >> options.cfg
+        echo 'port='$3 >> options.cfg
+        echo 'addr=127.0.0.1' >> options.cfg
         mkdir key
         chmod go-rx key/
 	if [ $i -gt 1 ] 
@@ -42,7 +81,7 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1'> settings.cfg
-        echo 'port=7991' >> settings.cfg
+        echo 'port='$user1office >> settings.cfg
         echo 'address=0001-00000000-XXXX' >> settings.cfg
         echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >> settings.cfg
     }
@@ -52,7 +91,7 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1' > settings.cfg
-        echo 'port=7991' >> settings.cfg
+        echo 'port='$user2office >> settings.cfg
         echo 'address=0001-00000001-XXXX' >> settings.cfg
         echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     }
@@ -62,11 +101,22 @@ function prepareClientKeys
     then
     {
         echo 'host=127.0.0.1' > settings.cfg
-        echo 'port=7992' >> settings.cfg
-        echo 'address=0002-00000000-XXXX' >> settings.cfg
-        echo 'secret=E4882F10389E14D7E55050E2D05EF50701A8A5FD8D9AE188D9AE8F377E410254' >> settings.cfg
+        echo 'port='$user3office >> settings.cfg
+        echo 'address=0002-00000000-75BD' >> settings.cfg
+        echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
     }
     fi
+
+    if [ $2 == 4 ]
+    then
+    {
+        echo 'host=127.0.0.1' > settings.cfg
+        echo 'port='$user3office >> settings.cfg
+        echo 'address=0002-00000001-659C' >> settings.cfg
+        echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
+    }
+    fi
+
     cd ..
 }
 
@@ -74,9 +124,11 @@ function initFirstNode
 {
     echo '.............................initFirstNode\n'
 
-    cd 'node1'
+    stopnode ${nodename[1]}
 
-    exec -a 'escdnode1' ./escd --init 1 > nodeout.txt &
+    cd ${nodename[1]}
+
+    exec -a ${nodename[1]} ./escd --init 1 > nodeout.txt &
     ##./escd --init 1 > nodeout.txt &
 
     cd ..
@@ -100,9 +152,9 @@ function prepareClient
 
 function setUpUser1
 {
-    echo '.............................setUpUser1'
+    echo '.............................setUpUser1 '${userpath[1]}
 
-    cd 'user1'
+    cd ${userpath[1]}
 
     echo '{"run":"get_me"}' | ./esc
 
@@ -113,7 +165,7 @@ function setUpUser1
     sleep 60
 
     echo 'host=127.0.0.1'> settings.cfg
-    echo 'port=7991' >> settings.cfg
+    echo 'port='$user1office >> settings.cfg
     echo 'address=0001-00000000-9B6F' >> settings.cfg
     echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
 
@@ -129,7 +181,7 @@ function createAccountForUser2
 {
     echo '.............................createAccountForUser2'
 
-    cd 'user1'
+    cd ${userpath[1]}
 
     echo '----------------------------------'
     echo '{"run":"get_me"}' | ./esc
@@ -144,9 +196,29 @@ function createAccountForUser2
 
     sleep 60
 
-    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.5,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
 
     echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc | grep balance
+
+    cd ..
+}
+
+
+function createAccount
+{
+    echo '.............................create Account User' $1 $2
+
+    cd $1
+
+    #echo '{"run":"get_me"}' | ./esc
+
+
+    #echo '{"run":"create_account","node":"'$2'"}'
+
+
+    (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"'$2'"}') | ./esc
+
+    sleep 60
 
     cd ..
 }
@@ -157,16 +229,18 @@ function changeKeysforUser2
 {
     echo '.............................changeKeysforUser2'
 
-    cd 'user1'
+    cd ${userpath[1]}
 
     (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | ./esc  --address 0001-00000001-8B4E
 
     cd ..
 
-    cd 'user2'
+    cd ${userpath[2]}
+
+    echo '.............................changeKeysUser2 config'${userpath[2]}
 
     echo 'host=127.0.0.1' > settings.cfg
-    echo 'port=7992' >> settings.cfg
+    echo 'port='$user2office >> settings.cfg
     echo 'address=0001-00000001-8B4E' >> settings.cfg
     echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     chmod go-r settings.cfg
@@ -181,11 +255,11 @@ function changeKeysforUser2
 
 function sendCash
 {
-    echo '.............................sendCash'
+    echo '.............................sendCash'$1
 
-    cd 'user1'
+    cd $1
 
-    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"'$1'","amount":'$2',"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"'$2'","amount":'$3',"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
 
     cd ..
 
@@ -198,15 +272,16 @@ function checkBalance
 
     balance=$(echo '{"run":"get_account","address":"'$2'"}' | ./esc | grep balance)
 
-    echo $balance
+    echo $2
 
     if [[ "$balance" == *"$3"* ]]
     then
-        echo "TEST OK USER:'$1'"
+        echo "TEST OK. USER:'$1' ACCOUNT '$2' BALANCE '$3'"
     else
-        echo "ERROR: WRONG BALANCE: $balance USER '$1'"
-        cd ..
-        exit 1
+        echo "ERROR: WRONG BALANCE: $balance USER '$1' ACCOUNT '$2' BALANCE '$3' diffrent than $balance"
+        echo " "
+        echo $balance
+        finishTest 2
     fi
 
     cd ..
@@ -223,11 +298,10 @@ function getMe
 
     if [[ "$getmeinfo" == *"$3"* ]]
     then
-        echo "TEST OK USER:'$1'"
+        echo "TEST OK. USER:'$1'"
     else
-        echo "ERROR: WRONG BALANCE: $getmeinfo USER '$1'"
-        cd ..
-        exit 1
+        echo "ERROR: WRONG getMe: $getmeinfo USER '$1'"
+        finishTest 1
     fi
 
     cd ..
@@ -237,7 +311,7 @@ function addNode
 {
     echo '.............................ADD node'
 
-    cd 'user1'
+    cd ${userpath[1]}
     (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
 
     cd ..
@@ -247,12 +321,12 @@ function addNode
 
 function changeNode2Key
 {    
-    cd 'node2'
+    cd ${nodename[2]}
 
     echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
     cd ..
 
-    cd 'user1'
+    cd ${userpath[1]}
 
     echo '.............................change_node_key'
 
@@ -265,13 +339,13 @@ function changeNode2Key
 
 function changeNode3Key
 {
-    cd 'node3'
+    cd ${nodename[3]}
 
     echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
     #echo 'A84CFE8A8631A26C5AC192EF5C781DAF48C6739B7E1A388057B2B2218D945A8B' > key/key.txt
     cd ..
 
-    cd 'user1'
+    cd ${userpath[1]}
 
     echo '.............................change_node_key'
 
@@ -286,7 +360,7 @@ function getMeMultipleTest
 {
     for i in $(seq 1 $1);
     do        
-        getMe "user1" "0001-00000000-9B6F" "0001-00000000-9B6F"
+        getMe ${userpath[1]} "0001-00000000-9B6F" "0001-00000000-9B6F"
     done
 }
 
@@ -294,7 +368,7 @@ function getBalanceMultipleTest
 {
     for i in $(seq 1 $1);
     do
-        checkBalance "user1" "0001-00000001-8B4E" "280."
+        checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
     done
 }
 
@@ -302,9 +376,9 @@ function copyserverconf
 {
     cd $1
 
-    for file in $(find ../node1/blk -name servers.srv | sort -rn)
+    for file in $(find ../${nodename[1]}/blk -name servers.srv | sort -rn)
     do
-        cp ../node1/$file ./
+        cp ../${nodename[1]}/$file ./
         echo $file
         break;
     done
@@ -312,121 +386,234 @@ function copyserverconf
     cd ..
 }
 
+function stopnode
+{
+    echo '.............................stoptnode'$1
+
+    pkill -f $1
+    sleep 8
+    pkill -9 -f $1
+    sleep 5
+}
+
 function startnode
 {
+    stopnode $3
+
     cd $1
 
-    echo '.............................startnode'$1
+    echo '.............................startnode'$3
 
-    exec -a 'escd'$1 ./escd $2 > nodeout.txt &
+    ps -aux | grep $3
+
+    exec -a $3 ./escd $2 > nodeout.txt &
     cd ..
 
+    ps -aux | grep $3
     echo 'server started'
 }
 
 
-pkill -f "escdnode1" -9
-sleep 2
-pkill -f "escdnode2" -9
-sleep 2
-pkill -f "escdnode3" -9
-sleep 2
+function finishTest
+{
+
+if [ $1 == 0 ]
+then
+    echo "------------------------------TEST OK -----------------------------"
+    echo "´´´´´´´´´´´´´´´´´´´´´¶¶¶¶¶¶¶¶¶…….."
+    echo "´´´´´´´´´´´´´´´´´´´´¶¶´´´´´´´´´´¶¶……"
+    echo "´´´´´´¶¶¶¶¶´´´´´´´¶¶´´´´´´´´´´´´´´¶¶………."
+    echo "´´´´´¶´´´´´¶´´´´¶¶´´´´´¶¶´´´´¶¶´´´´´¶¶………….."
+    echo "´´´´´¶´´´´´¶´´´¶¶´´´´´´¶¶´´´´¶¶´´´´´´´¶¶….."
+    echo "´´´´´¶´´´´¶´´¶¶´´´´´´´´¶¶´´´´¶¶´´´´´´´´¶¶….."
+    echo "´´´´´´¶´´´¶´´´¶´´´´´´´´´´´´´´´´´´´´´´´´´¶¶…."
+    echo "´´´´¶¶¶¶¶¶¶¶¶¶¶¶´´´´´´´´´´´´´´´´´´´´´´´´¶¶…."
+    echo "´´´¶´´´´´´´´´´´´¶´¶¶´´´´´´´´´´´´´¶¶´´´´´¶¶…."
+    echo "´´¶¶´´´´´´´´´´´´¶´´¶¶´´´´´´´´´´´´¶¶´´´´´¶¶…."
+    echo "´¶¶´´´¶¶¶¶¶¶¶¶¶¶¶´´´´¶¶´´´´´´´´¶¶´´´´´´´¶¶…"
+    echo "´¶´´´´´´´´´´´´´´´¶´´´´´¶¶¶¶¶¶¶´´´´´´´´´¶¶…."
+    echo "´¶¶´´´´´´´´´´´´´´¶´´´´´´´´´´´´´´´´´´´´¶¶….."
+    echo "´´¶´´´¶¶¶¶¶¶¶¶¶¶¶¶´´´´´´´´´´´´´´´´´´´¶¶…."
+    echo "´´¶¶´´´´´´´´´´´¶´´¶¶´´´´´´´´´´´´´´´´¶¶…."
+    echo "´´´¶¶¶¶¶¶¶¶¶¶¶¶´´´´´¶¶´´´´´´´´´´´´¶¶….."
+    echo "´´´´´´´´´´´´´´´´´´´´´´´¶¶¶¶¶¶¶¶¶¶¶……."
+else
+    echo "´´´´´´´´´´´´´´´´´´´ ¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶´´´´´´´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´´´´´¶¶¶¶¶¶´´´´´´´´´´´´´¶¶¶¶¶¶¶´´´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´´¶¶¶¶´´´´´´´´´´´´´´´´´´´´´´´¶¶¶¶´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´¶¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´´´´´´´´´´"
+    echo "´´´´´´´´´´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´¶¶´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´¶´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´¶´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´¶¶´´´´´´´´´´"
+    echo "´´´´´´´´´´¶¶´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´¶¶´´´´´´´´´´"
+    echo "´´´´´´´´´´´¶¶´¶¶´´´¶¶¶¶¶¶¶¶´´´´´¶¶¶¶¶¶¶¶´´´¶¶´¶¶´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´¶¶¶¶´¶¶¶¶¶¶¶¶¶¶´´´´´¶¶¶¶¶¶¶¶¶¶´¶¶¶¶¶´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´¶¶¶´¶¶¶¶¶¶¶¶¶¶´´´´´¶¶¶¶¶¶¶¶¶¶´¶¶¶´´´´´´´´´´´´´"
+    echo "´´´´¶¶¶´´´´´´´¶¶´´¶¶¶¶¶¶¶¶´´´´´´´¶¶¶¶¶¶¶¶¶´´¶¶´´´´´´¶¶¶¶´´´"
+    echo "´´´¶¶¶¶¶´´´´´¶¶´´´¶¶¶¶¶¶¶´´´¶¶¶´´´¶¶¶¶¶¶¶´´´¶¶´´´´´¶¶¶¶¶¶´´"
+    echo "´´¶¶´´´¶¶´´´´¶¶´´´´´¶¶¶´´´´¶¶¶¶¶´´´´¶¶¶´´´´´¶¶´´´´¶¶´´´¶¶´´"
+    echo "´¶¶¶´´´´¶¶¶¶´´¶¶´´´´´´´´´´¶¶¶¶¶¶¶´´´´´´´´´´¶¶´´¶¶¶¶´´´´¶¶¶´"
+    echo "¶¶´´´´´´´´´¶¶¶¶¶¶¶¶´´´´´´´¶¶¶¶¶¶¶´´´´´´´¶¶¶¶¶¶¶¶¶´´´´´´´´¶¶"
+    echo "¶¶¶¶¶¶¶¶¶´´´´´¶¶¶¶¶¶¶¶´´´´¶¶¶¶¶¶¶´´´´¶¶¶¶¶¶¶¶´´´´´´¶¶¶¶¶¶¶¶"
+    echo "´´¶¶¶¶´¶¶¶¶¶´´´´´´¶¶¶¶¶´´´´´´´´´´´´´´¶¶¶´¶¶´´´´´¶¶¶¶¶¶´¶¶¶´"
+    echo "´´´´´´´´´´¶¶¶¶¶¶´´¶¶¶´´¶¶´´´´´´´´´´´¶¶´´¶¶¶´´¶¶¶¶¶¶´´´´´´´´"
+    echo "´´´´´´´´´´´´´´¶¶¶¶¶¶´¶¶´¶¶¶¶¶¶¶¶¶¶¶´¶¶´¶¶¶¶¶¶´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´´´´´´¶¶´¶¶´¶´¶´¶´¶´¶´¶´¶´¶´¶¶´´´´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´´´´´¶¶¶¶´´¶´¶´¶´¶´¶´¶´¶´¶´´´¶¶¶¶¶´´´´´´´´´´´´´´"
+    echo "´´´´´´´´´´´´¶¶¶¶¶´¶¶´´´¶¶¶¶¶¶¶¶¶¶¶¶¶´´´¶¶´¶¶¶¶¶´´´´´´´´´´´´"
+    echo "´´´´¶¶¶¶¶¶¶¶¶¶´´´´´¶¶´´´´´´´´´´´´´´´´´¶¶´´´´´´¶¶¶¶¶¶¶¶¶´´´´"
+    echo "´´´¶¶´´´´´´´´´´´¶¶¶¶¶¶¶´´´´´´´´´´´´´¶¶¶¶¶¶¶¶´´´´´´´´´´¶¶´´´"
+    echo "´´´´¶¶¶´´´´´¶¶¶¶¶´´´´´¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶´´´´´¶¶¶¶¶´´´´´¶¶¶´´´´"
+    echo "´´´´´´¶¶´´´¶¶¶´´´´´´´´´´´¶¶¶¶¶¶¶¶¶´´´´´´´´´´´¶¶¶´´´¶¶´´´´´´"
+    echo "´´´´´´¶¶´´¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶´´¶¶´´´´´´"
+    echo "´´´´´´´¶¶¶¶´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´´¶¶¶¶´´´´´´´"
+
+    echo "------------------------------TEST FAILED -------------------------"
+fi
 
 
-deploypath="deployment"
-current=$PWD
+if [ $stopservice == "TRUE" ]
+then
+{
+    stopnode ${nodename[1]}
+    stopnode ${nodename[2]}
+    stopnode ${nodename[3]}
+    echo "STOP"
+}
+fi
+
+exit $1
+}
 
 cd ..
 rm -rf $deploypath
 mkdir $deploypath
 cd $deploypath
 
-nodename='node'
 
 
 for i in 1 2 3
 do
-	nodename='node'$i
-	echo 'test'
-	echo $nodename	
+        echo 'PREPARE NODE'
         let "officeport = $officeport + 1"
         let "serverport = $serverport + 1"
         let "peerport   = $serverport-1"
 
-	prepareNode $i $officeport $serverport $peerport
-	prepareClient $i        	
+        nodename[$i]=$nodebasename$i'_'$officeport
+
+        echo ${nodename[$i]}
+
+        prepareNode $i $officeport $serverport $peerport ${nodename[$i]}
+        echo 'PREPARE NODE END'
 done
+
+for i in 1 2 3 4
+do
+    prepareClient $i
+done
+
+echo '............NODENAMMMEEEEEEE'
+echo ${nodename[1]}
+echo ${nodename[2]}
+echo ${nodename[3]}
 
 
 initFirstNode
 setUpUser1
 createAccountForUser2
+#createAccount ${userpath[1]} "0001"
 changeKeysforUser2
 
 for i in {1..4}
 do
-    sendCash "0001-00000001-8B4E" 70.0
+    sendCash ${userpath[1]} "0001-00000001-8B4E" 70.0
 done
 
+
 addNode
-checkBalance "user1" "0001-00000001-8B4E" "280."
+checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 changeNode2Key
 addNode
 changeNode3Key
 
 sleep 60
 
-copyserverconf "node2"
-startnode "node2" "-m 1 -f 1"
+copyserverconf ${nodename[2]}
+startnode ${nodename[2]} "-m 1 -f 1" ${nodename[2]}
 
 echo 'server started'
 
 sleep 120
 
-checkBalance "user1" "0001-00000001-8B4E" "280."
+checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 
-
-pkill -f "escdnode2" -15
-sleep 5
-
-startnode "node2" "-m 1"
-
+startnode ${nodename[2]} "-m 1" ${nodename[2]}
 sleep 120
 
-
-copyserverconf "node3"
-startnode "node3" "-m 1 -f 1"
+createAccount ${userpath[3]} "0002"
 sleep 60
 
-pkill -f "escdnode3" -15
-sleep 5
-startnode "node3" "-m 1"
-
-pkill -f "escdnode1" -15
-sleep 6
-startnode "node1" "-m 1"
-sleep 30
+copyserverconf ${nodename[3]}
+startnode ${nodename[3]} "-m 1 -f 1" ${nodename[3]}
+sleep 120
+startnode ${nodename[3]} "-m 1" ${nodename[3]}
+sleep 120
+startnode ${nodename[1]} "-m 1" ${nodename[1]}
+sleep 120
 
 
 echo 'server started one more time'
 
-stime=$(date +%s%N |cut -b1-13)
-echo $stime
-
-getMeMultipleTest 10
-getBalanceMultipleTest 10
-
-echo $stime
-endtime=$(date +%s%N)
-
-let "period = $endtime - $stime"
 
 
-echo 'PERIOD:'$period
+#stime=$(date +%s%N |cut -b1-13)echo $stime
+#endtime=$(date +%s%N)
+#let "period = $endtime - $stime"
+#echo 'PERIOD:'$period
+#echo $stime
+#echo $stime
+#endtime=$(date +%s%N)
+#let "period = $endtime - $stime"
+#echo 'PERIOD:'$period
 
-exit 0
+echo "----------------TEST-----------------"
 
 
+checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
+checkBalance ${userpath[1]} "0002-00000000-75BD" "68."
+checkBalance ${userpath[3]} "0002-00000000-75BD" "68."
+
+checkBalance ${userpath[1]} "0002-00000001-659C" "0."
+checkBalance ${userpath[3]} "0002-00000001-659C" "0."
 
 
+sendCash ${userpath[2]} "0002-00000001-659C" 100.001
+sleep 120
+
+checkBalance ${userpath[1]} "0001-00000001-8B4E" "180."
+checkBalance ${userpath[2]} "0001-00000001-8B4E" "180."
+
+checkBalance ${userpath[2]} "0002-00000001-659C" "100."
+checkBalance ${userpath[3]} "0002-00000001-659C" "100."
+
+sendCash ${userpath[4]} "0001-00000001-8B4E" 99.8
+sleep 120
+
+checkBalance ${userpath[3]} "0001-00000001-8B4E" "280."
+checkBalance ${userpath[2]} "0001-00000001-8B4E" "280."
+checkBalance ${userpath[1]} "0002-00000001-659C" "0."
+
+
+#getMeMultipleTest 10
+#getBalanceMultipleTest 10
+
+
+echo "-------------------------------------------------------------------"
+
+
+finishTest 0
 

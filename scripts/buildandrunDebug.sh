@@ -6,4 +6,4 @@ make clean
 make -j4
 make install
 cd bin
-./installesc.sh
+./installesc.sh 7290 8290 8290 "TRUE"
