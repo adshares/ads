@@ -404,6 +404,15 @@ function stopnode
     sleep 5
 }
 
+function stopAllNodes
+{
+    stopnode ${nodename[1]}
+    stopnode ${nodename[2]}
+    stopnode ${nodename[3]}
+    echo "STOP"
+}
+
+
 function startnode
 {
     stopnode $3
@@ -486,15 +495,14 @@ function finishTest
     if [ $stopservice == "TRUE" ]
     then
     {
-        stopnode ${nodename[1]}
-        stopnode ${nodename[2]}
-        stopnode ${nodename[3]}
-        echo "STOP"
+        stopAllNodes
     }
     fi
 
     exit $1
 }
+
+stopAllNodes
 
 cd ..
 rm -rf $deploypath
