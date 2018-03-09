@@ -404,6 +404,15 @@ function stopnode
     sleep 5
 }
 
+function stopAllNodes
+{
+    stopnode ${nodename[1]}
+    stopnode ${nodename[2]}
+    stopnode ${nodename[3]}
+    echo "STOP"
+}
+
+
 function startnode
 {
     stopnode $3
@@ -486,10 +495,7 @@ function finishTest
     if [ $stopservice == "TRUE" ]
     then
     {
-        stopnode ${nodename[1]}
-        stopnode ${nodename[2]}
-        stopnode ${nodename[3]}
-        echo "STOP"
+        stopAllNodes
     }
     fi
 
@@ -528,6 +534,7 @@ echo ${nodename[1]}
 echo ${nodename[2]}
 echo ${nodename[3]}
 
+stopAllNodes
 
 initFirstNode
 setUpUser1
