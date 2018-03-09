@@ -502,8 +502,6 @@ function finishTest
     exit $1
 }
 
-stopAllNodes
-
 cd ..
 rm -rf $deploypath
 mkdir $deploypath
@@ -536,6 +534,7 @@ echo ${nodename[1]}
 echo ${nodename[2]}
 echo ${nodename[3]}
 
+stopAllNodes
 
 initFirstNode
 setUpUser1
