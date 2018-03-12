@@ -1,4 +1,6 @@
 cd ..
+pwd
+ls
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=./  -DEXECUTE_LOCAL_TEST=True -DCMAKE_BUILD_TYPE=Debug ../src
