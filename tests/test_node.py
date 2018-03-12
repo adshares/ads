@@ -14,6 +14,7 @@ def test_init_first_node(gen_blocks_count=100):
 
     blocks_counter = 0
     for line in process.stdout:
+        print(line)
         if line == b"NEW BLOCK created\n":
             blocks_counter+=1
 
