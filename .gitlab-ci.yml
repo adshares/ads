@@ -1,6 +1,6 @@
 image:
-  name: hpxdock:16.04
-  entrypoint: ["/bin/bash"]
+  name: "hpxdock:16.04"
+  entrypoint: ["/bin/bash", "-c"]
 
 test:
   before_script:
