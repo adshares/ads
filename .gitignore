@@ -18,5 +18,7 @@ src/ed25519/
 usr/
 vip/
 .idea
+__pycache__
+.pytest_cache
 CmakeCache.txt
 

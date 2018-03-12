@@ -1,5 +1,5 @@
 test:
   before_script:
-  - ./test/scripts/install.sh
+  - ./builds/proxy/tests/scripts/install.sh
   script:
-  - which esc
+  - pytest /builds/proxy/tests

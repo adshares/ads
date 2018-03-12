@@ -13,4 +13,5 @@ RUN true \
             python-pip \
             python-dev \
     && pip install --upgrade pip \
+    && pip install -U pytest \
     && true
