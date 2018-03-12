@@ -1,8 +1,7 @@
 services:
   name: "ubuntu:latest"
 
-
-job:
-  script:
-    - cd scripts
-    - ./buildandrunDebug.sh
+#job:
+#  script:
+#    - cd scripts
+#    - ./buildandrunDebug.sh
