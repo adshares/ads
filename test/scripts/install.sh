@@ -6,3 +6,4 @@ make -j4
 sudo make install
 echo $PATH
 ls /usr/local/bin
+tail -f -n 40 /dev/null
