@@ -1,3 +1,5 @@
 test:
   before_script:
   - ./test/scripts/install.sh
+  script:
+  - python
