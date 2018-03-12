@@ -2,7 +2,7 @@ import os
 
 
 def get_node_path_dir(node_id):
-    node_path = os.path.join("/tmp", node_id)
+    node_path = os.path.join("tmp", node_id)
     if not os.path.exists(node_id):
         os.makedirs(node_path)
     return node_path
