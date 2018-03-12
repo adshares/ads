@@ -1,6 +1,6 @@
 mkdir -p /builds/proxy/build
 cd /builds/proxy/build
-cmake -DCMAKE_BUILD_TYPE=Debug /builds/proxy/hpx/src
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/bin -DCMAKE_BUILD_TYPE=Debug /builds/proxy/hpx/src
 make clean
 make -j4
 sudo make install
