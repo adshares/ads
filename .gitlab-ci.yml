@@ -1,3 +1,8 @@
 image:
   name: "ubuntu:latest"
   entrypoint: ["/bin/bash"]
+
+test:
+  script:
+  - cd scripts
+  - ./buildandrunDebug.sh
