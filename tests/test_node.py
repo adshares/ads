@@ -9,9 +9,11 @@ def get_node_path_dir(node_id):
 
 
 def create_node(node_id, office_port, server_port, addr="127.0.0.1", peer_port=None, key=None):
+    node_id = str(node_id)
+
     options = [
         "addr=%s" %addr,
-        "svid=%i" %node_id,
+        "svid=%s" %node_id,
         "offi=%i" %office_port,
         "port=%i" %server_port
     ]
