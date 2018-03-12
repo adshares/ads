@@ -8,5 +8,14 @@ src/build/*
 build/*
 build*/*
 docs/doxygen/out/*
+.lock
+blk/
+ed25519/
+key/
+log.txt
+servers.srv
+src/ed25519/
+usr/
+vip/
 CmakeCache.txt
 
