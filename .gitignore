@@ -21,4 +21,9 @@ vip/
 __pycache__
 .pytest_cache
 CmakeCache.txt
-
+Makefile
+CMakeFiles/
+cmake_install.cmake
+common/
+esc/
+escd/
