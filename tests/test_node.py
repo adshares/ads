@@ -2,7 +2,7 @@ import os
 
 
 def get_node_path_dir(node_id, prefix="node"):
-    node_path = os.path.join("tmp", "node", node_id)
+    node_path = os.path.join("/tmp", prefix, node_id)
     if not os.path.exists(node_path):
         os.makedirs(node_path)
     return node_path
@@ -26,7 +26,7 @@ def create_node_env(node_id, office_port, server_port, addr="127.0.0.1", peer_po
 
     node_path_dir = get_node_path_dir(node_id)
     with open(os.path.join(node_path_dir, "options.cfg"), 'w') as fh:
-        fh.writelines(options)
+        fh.write("\n".join(options))
 
     node_key_path_dir = os.path.join(node_path_dir, "key")
     if not os.path.exists(node_key_path_dir):
@@ -52,7 +52,7 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         "secret=%s" %secret
     ]
     with open(os.path.join(client_path_dir, "options.cfg"), 'w') as fh:
-        fh.writelines(options)
+        fh.write("\n".join(options))
 
 
 def test_answer():
