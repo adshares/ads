@@ -3,7 +3,7 @@ import os
 
 def get_node_path_dir(node_id, prefix="node"):
     node_path = os.path.join("tmp", "node", node_id)
-    if not os.path.exists(node_id):
+    if not os.path.exists(node_path):
         os.makedirs(node_path)
     return node_path
 
@@ -29,7 +29,8 @@ def create_node_env(node_id, office_port, server_port, addr="127.0.0.1", peer_po
         fh.writelines(options)
 
     node_key_path_dir = os.path.join(node_path_dir, "key")
-    os.makedirs(node_key_path_dir)
+    if not os.path.exists(node_key_path_dir):
+        os.makedirs(node_key_path_dir)
 
     os.system("chmod go-rx %s" %node_key_path_dir)
     if key is not None:
