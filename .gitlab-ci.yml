@@ -1,5 +1,5 @@
 test:
   before_script:
-  - ./builds/proxy/tests/scripts/install.sh
+  - ./builds/proxy/hpx/tests/scripts/install.sh
   script:
-  - pytest /builds/proxy/tests
+  - pytest /builds/proxy/hpx/tests
