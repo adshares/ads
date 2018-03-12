@@ -2,4 +2,4 @@ test:
   before_script:
   - ./test/scripts/install.sh
   script:
-  - which python
+  - which esc
