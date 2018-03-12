@@ -1,7 +1,7 @@
 image:
   name: "ubuntu:latest"
   entrypoint: ["/bin/bash"]
-  commands:[
+  command:[
 	"echo '212.87.28.162  git.bioinfo.dev' >> /etc/hosts"
   ]
 
