@@ -54,7 +54,7 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         fh.writelines(options)
 
 
-def test_env(x):
+def test_answer():
     create_node_env(1, 1000, 2000, peer_port=2000)
     create_client_env(1, 7191, "0001-00000001-XXXX", "5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C")
-    return x + 1
+    assert 4 == 4
