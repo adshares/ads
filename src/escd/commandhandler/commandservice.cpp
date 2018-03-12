@@ -2,6 +2,7 @@
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
 #include "command/sendone.h"
+#include "command/sendmany.h"
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
@@ -9,7 +10,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_getAccountHandler(office, socket),
       m_setAccountHandler(office, socket),
       m_createNodeHandler(office, socket),
-      m_sendOneHandler(office, socket) {
+      m_sendOneHandler(office, socket),
+      m_sendManyHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -28,9 +30,12 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_BNK:
         m_createNodeHandler.execute(std::move(command), std::move(usera));
-	break;
+        break;
     case TXSTYPE_PUT:
         m_sendOneHandler.execute(std::move(command), std::move(usera));
+        break;
+    case TXSTYPE_MPT:
+        m_sendManyHandler.execute(std::move(command), std::move(usera));
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

@@ -36,6 +36,7 @@
 #include "command/setaccountkey.h"
 #include "command/createnode.h"
 #include "command/sendone.h"
+#include "command/sendmany.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -382,37 +383,27 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
             }
         }
     } else if(!run.compare(txsname[TXSTYPE_MPT])) {
-        uint32_t to_num=0;
-        std::string text;
-        //deduct=0;
-        fee=TXS_MIN_FEE;
+        std::vector<SendAmountTxnRecord> transactions;
         for(boost::property_tree::ptree::value_type &wire : pt.get_child("wires")) {
-            uint16_t tbank;
-            uint32_t tuser;
-            //int64_t tmass = wire.second.data();
-            int64_t tmass; // = wire.second.get_value<int64_t>();
-            if(!sts.parse_acnt(tbank,tuser,wire.first)) {
+            uint16_t toNode;
+            uint32_t toUser;
+            int64_t amount;
+            if(!sts.parse_acnt(toNode,toUser,wire.first)) {
                 return(NULL);
             }
-            if(!parse_amount(tmass,wire.second.get_value<std::string>())) {
+            if(!parse_amount(amount,wire.second.get_value<std::string>())) {
                 return(NULL);
             }
-            char to_acct[2+4+8];
-            memcpy(to_acct+0,&tbank,2);
-            memcpy(to_acct+2,&tuser,4);
-            memcpy(to_acct+6,&tmass,8);
-            text.append(to_acct,2+4+8);
-            deduct+=tmass;
-            fee+=TXS_MPT_FEE(tmass);
-            if(sts.bank!=tbank) {
-                fee+=TXS_LNG_FEE(tmass);
-            }
-            to_num++;
+            transactions.push_back(SendAmountTxnRecord(toNode, toUser, amount));
         }
-        if(!to_num) {
+
+        if (transactions.empty()) {
             return(NULL);
         }
-        txs=boost::make_shared<usertxs>(TXSTYPE_MPT,sts.bank,sts.user,sts.msid,now,to_num,to_user,to_mass,to_info,text.c_str());
+
+        command.reset(new SendMany(sts.bank, sts.user, sts.msid, transactions, now));
+        fee = command->getFee();
+        deduct = command->getDeduct();
     } else if(!run.compare(txsname[TXSTYPE_PUT])) {
         boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
         if(json_info && !parse_key(to_info,json_info,32)) {

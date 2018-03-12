@@ -114,6 +114,10 @@ uint32_t SendOne::getUserMessageId() {
     return m_data.info.namsid;
 }
 
+uint8_t* SendOne::getInfoMsg() {
+    return m_data.info.ntinfo;
+}
+
 std::string SendOne::toString(bool /*pretty*/) {
     return "";
 }

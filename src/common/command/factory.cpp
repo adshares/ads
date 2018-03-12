@@ -4,6 +4,7 @@
 #include "setaccountkey.h"
 #include "createnode.h"
 #include "sendone.h"
+#include "sendmany.h"
 
 namespace command {
 
@@ -19,9 +20,12 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_BNK:
         command = std::make_unique<CreateNode>();
-	break;
+        break;
     case TXSTYPE_PUT:
         command = std::make_unique<SendOne>();
+        break;
+    case TXSTYPE_MPT:
+        command = std::make_unique<SendMany>();
         break;
     default:
         break;

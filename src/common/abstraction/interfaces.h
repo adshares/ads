@@ -41,6 +41,8 @@ class ICommand {
     virtual int                     getType()           = 0;
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*          getData()           = 0;
+    /** \brief Get additional data. */
+    virtual unsigned char*          getAdditionalData() { return nullptr; }
     /** \brief Get pointer to response data. */
     virtual unsigned char*          getResponse()       = 0;
     /** \brief Put data as a char list and put convert it to data structure. */
@@ -51,6 +53,8 @@ class ICommand {
     virtual int                     getDataSize()       = 0;
     /** \brief Get response data struct size. */
     virtual int                     getResponseSize()   = 0;
+    /** \brief Get additional data size. */
+    virtual int                     getAdditionalDataSize() { return 0; }
     /** \brief Get pointer to signature data. */
     virtual unsigned char*          getSignature()      = 0;
     /** \brief Get signature size. */
@@ -91,7 +95,6 @@ class ICommand {
 
     /** \brief Save command response to settings object. */
     virtual void                    saveResponse(settings& sts)  = 0;
-
 
     virtual ~ICommand() = default;
 };

@@ -5,6 +5,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/createnode.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/factory.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sendone.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendmany.cpp
     PARENT_SCOPE
     )
 
@@ -16,6 +17,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/createnode.h
     ${CMAKE_CURRENT_SOURCE_DIR}/factory.h
     ${CMAKE_CURRENT_SOURCE_DIR}/sendone.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendmany.h
     PARENT_SCOPE
     )
 

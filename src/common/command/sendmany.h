@@ -1,25 +1,40 @@
-#ifndef SENDONE_H
-#define SENDONE_H
+#ifndef SENDMANY_H
+#define SENDMANY_H
+
+#include <vector>
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
 
-class SendOne : public IBlockCommand {
+class SendMany : public IBlockCommand {
     public:
-        SendOne();
-        SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
+        SendMany();
+        SendMany(uint16_t bank, uint32_t user, uint32_t msid,
+                 std::vector<SendAmountTxnRecord> &txns_data, uint32_t time);
 
-        /** \brief Return TXSTYPE_KEY as command type . */
+        /** \brief Disabled copy constructor. */
+        SendMany(const SendMany& obj) = delete;
+
+        /** \brief Disable copy assignment operator. */
+        SendMany &operator=(const SendMany&) = delete;
+
+        /** \brief Free completeData object resources. */
+        virtual ~SendMany();
+
+        /** \brief Return TXSTYPE_MPT as command type . */
         virtual int  getType()                                      override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
 
+        virtual unsigned char*  getAdditionalData()                 override;
+
         /** \brief Get pointer to response data. */
         virtual unsigned char*  getResponse()                       override;
 
-        /** \brief Put data as a char list and put convert it to data structure. */
+        /** \brief Put data as a char list and put convert it to data structure. Note that
+                   in this case it will not set an additional data */
         virtual void setData(char* data)                            override;
 
         /** \brief Apply data as a response struct. */
@@ -27,6 +42,8 @@ class SendOne : public IBlockCommand {
 
         /** \brief Get data struct size. Without signature. */
         virtual int getDataSize()                                   override;
+
+        virtual int getAdditionalDataSize()                         override;
 
         /** \brief Get response data struct size. */
         virtual int getResponseSize()                               override;
@@ -70,9 +87,6 @@ class SendOne : public IBlockCommand {
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
 
-        /** \brief Get additional info typed by client in transaction message. */
-        virtual uint8_t*        getInfoMsg();
-
         /** \brief Send data to the server.
          *
          * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -83,22 +97,34 @@ class SendOne : public IBlockCommand {
         /** \brief Save command response to settings object. */
         virtual void            saveResponse(settings& sts)                 override;
 
+        /** \brief Init transaction vector depends on additionalData buffer */
+        virtual void            initTransactionVector();
+
+        /**
+         * @brief Checks for target duplicates and does amount is positive value.
+         * @return true if duplicated target exists otherwise false
+         */
+        virtual bool            checkForDuplicates();
+
+        /** \brief Retursn transactions vector */
+        virtual std::vector<SendAmountTxnRecord> getTransactionsVector();
+
         //IJsonSerialize interface
         virtual std::string                     toString(bool pretty)   override;
         virtual boost::property_tree::ptree     toJson()                override;
 
       public:
-        /**  \brief Get destination bank id. */
-        virtual  uint32_t       getDestBankId();
-
-        /**  \brief Get destination user id. */
-        virtual  uint32_t       getDestUserId();
-
         /**  \brief Get message id. */
         virtual  uint32_t       getUserMessageId();
 
-        UserSendOne          m_data;
+        SendManyData          m_data;
         commandresponse     m_response;
+
+    private:
+        void fillAdditionalData();
+
+        std::vector<SendAmountTxnRecord> m_transactions;
+        unsigned char* m_additionalData;
 };
 
-#endif // SENDONE_H
+#endif // SENDMANY_H

@@ -170,4 +170,42 @@ struct CreateNodeData {
 	unsigned char sign[64];
 } __attribute__((packed));
 
+/** \brief Info for send_many transaction type */
+struct SendManyInfo {
+    SendManyInfo() = default;
+    SendManyInfo(uint16_t node, uint32_t user, uint32_t msgid, uint32_t time, uint16_t txncounter)
+        : src_node(node), src_user(user), msg_id(msgid), txn_time(time), txn_counter(txncounter) {
+    }
+
+    uint8_t  txn_type{TXSTYPE_MPT}; ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t msg_id{0};             ///< user message id
+    uint32_t txn_time{0};           ///< time
+    uint16_t txn_counter{0};        ///< counter of transactions to perform
+} __attribute__((packed));
+
+/** \brief Struct used in send many command (TXSTYPE_MPT) */
+struct SendManyData {
+    SendManyData() = default;
+    SendManyData(uint16_t node, uint32_t user, uint32_t msgid, uint32_t time, uint16_t txncounter)
+        : info (node, user, msgid, time, txncounter) {
+    }
+
+    SendManyInfo info;
+    unsigned char sign[64];
+} __attribute__((packed));
+
+/** \brief Vector item, record to store one transaction in send_many message. */
+struct SendAmountTxnRecord {
+    SendAmountTxnRecord() = default;
+    SendAmountTxnRecord(uint16_t bank, uint32_t user, int64_t mass)
+        : dest_node(bank), dest_user(user), amount(mass) {
+    }
+
+    uint16_t dest_node; ///< destintaion node
+    uint32_t dest_user; ///< destination user
+    int64_t amount;     ///< sending amount
+} __attribute__((packed));
+
 #endif // PODS_H
