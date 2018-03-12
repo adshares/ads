@@ -1,7 +1,11 @@
-services:
-  - name: "ubuntu:latest"
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["/bin/echo",  "212.87.28.162  git.bioinfo.dev", ">>", "/etc/hosts"]
+before_script:
+- docker info
+
+build:
+  stage: build
+  script:
+  - docker build -t hpxdocker/ubuntu16.04
+
 
 test:
   script:
