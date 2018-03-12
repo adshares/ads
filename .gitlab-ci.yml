@@ -1,6 +1,6 @@
 services:
 - name: "ubuntu:latest"
-- command: ["ls"]
+  command: ["ls"]
 
 #job:
 #  script:
