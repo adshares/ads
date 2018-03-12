@@ -5,7 +5,7 @@ build:
   stage: build
   script:
   - docker build -t hpxdocker/ubuntu16.04
-  - docker run hpxdocker/ubuntu16.04
+  - docker run hpxdocker/ubuntu16.04 --add-host git.bioinfo.dev:212.87.28.162
 
 test:
   script:
