@@ -1,4 +1,8 @@
-my_project:
+services:
+  name: "ubuntu:latest"
+
+
+job:
   script:
     - cd scripts
     - ./buildandrunDebug.sh
