@@ -1,4 +1,10 @@
 import os
+import subprocess
+import shutil
+
+HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
+ESC_BIN_PATH = os.path.join(HPX_ROOT, "esc", "esc")
+ESCD_BIN_PATH = os.path.join(HPX_ROOT, "escd", "escd")
 
 
 def get_node_path_dir(node_id, prefix="node"):
@@ -6,6 +12,11 @@ def get_node_path_dir(node_id, prefix="node"):
     if not os.path.exists(node_path):
         os.makedirs(node_path)
     return node_path
+
+
+def clean_node_dir(node_id):
+    node_dir = get_node_path_dir(node_id)
+    shutil.rmtree(node_id, ignore_errors=True)
 
 
 def get_client_path_dir(client_id):
@@ -53,6 +64,34 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
     ]
     with open(os.path.join(client_path_dir, "options.cfg"), 'w') as fh:
         fh.write("\n".join(options))
+
+
+def create_dummy_nodes():
+    pass
+
+
+def create_dummy_clients():
+    pass
+
+
+
+def test_init_first_node(node_id="init", gen_blocks_count=100):
+    clean_node_dir(node_id)
+    node_dir = get_node_path_dir(node_id)
+
+    process = subprocess.Popen(["%s --init 1" %ESCD_BIN_PATH], cwd=node_dir,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+    blocks_counter = 0
+    for line in process.stdout:
+        if line == b"NEW BLOCK created\n":
+            blocks_counter+=1
+
+        if blocks_counter == gen_blocks_count:
+            break
+
+    process.terminate()
+    assert blocks_counter == gen_blocks_count
 
 
 def test_answer():
