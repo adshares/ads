@@ -17,5 +17,6 @@ servers.srv
 src/ed25519/
 usr/
 vip/
+.idea
 CmakeCache.txt
 

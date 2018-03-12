@@ -1,4 +1,3 @@
 test:
   script:
-  - cd scripts
-  - ./buildandrunDebug.sh
+  - ./test/envinit.sh
