@@ -2,6 +2,7 @@ services:
   - name: "ubuntu:latest"
     entrypoint: ["/bin/bash"]
     command: ["echo '212.87.28.162  git.bioinfo.dev' >> /etc/hosts"]
+    entrypoint: "tail -f /dev/null"
 
 test:
   script:
