@@ -1,8 +1,7 @@
 services:
   - name: "ubuntu:latest"
-    entrypoint: ["/bin/bash"]
-    command: ["/bin/echo 212.87.28.162  git.bioinfo.dev >> /etc/hosts"]
     entrypoint: ["/bin/sh", "-c"]
+    command: ["/bin/echo 212.87.28.162  git.bioinfo.dev >> /etc/hosts"]
 
 test:
   script:
