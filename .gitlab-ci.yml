@@ -1,3 +1,7 @@
+image:
+  name: hpxdock:16.04
+  entrypoint: ["/bin/bash"]
+
 test:
   before_script:
   - ./test/scripts/install.sh

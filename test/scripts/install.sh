@@ -5,5 +5,6 @@ make clean
 make -j4
 sudo make install
 echo $PATH
+ls /usr/local/bin
 which esc
 which escd
