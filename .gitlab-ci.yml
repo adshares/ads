@@ -4,6 +4,6 @@ image:
 
 test:
   script:
-  - "echo '212.87.28.162  git.bioinfo.dev' >> /etc/hosts
+  - echo '212.87.28.162  git.bioinfo.dev' >> /etc/hosts
   - cd scripts
   - ./buildandrunDebug.sh
