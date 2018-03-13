@@ -789,11 +789,15 @@ class office {
             return false;
         } // :-( maybe we should throw here something
 
-        write(md, utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
+        write(md, utxs.getData(), utxs.getDataSize());
+        write(md, utxs.getAdditionalData(), utxs.getAdditionalDataSize());
+        write(md, utxs.getSignature(), utxs.getSignatureSize());
         close(md);
         //mpos=message.length()+message::data_offset;
         mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
-        message.append((char*)utxs.getData(), utxs.getDataSize() + utxs.getSignatureSize());
+        message.append((char*)utxs.getData(), utxs.getDataSize());
+        message.append((char*)utxs.getAdditionalData(), utxs.getAdditionalDataSize());
+        message.append((char*)utxs.getSignature(), utxs.getSignatureSize());
 
         /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)
         {

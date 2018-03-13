@@ -19,7 +19,7 @@ class ResponseHandler {
     void onGetAccoutResponse(std::unique_ptr<IBlockCommand> command);
     void onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command);
     void onCreateNodeResponse(std::unique_ptr<IBlockCommand> command);
-    void onSendOneResponse(std::unique_ptr<IBlockCommand> command);
+    void onSendResponse(std::unique_ptr<IBlockCommand> command);
 
   private:
     settings&                   m_sts;

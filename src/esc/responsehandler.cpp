@@ -22,9 +22,12 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_BNK:
         onCreateNodeResponse(std::move(command));
-	break;
+        break;
     case TXSTYPE_PUT:
-        onSendOneResponse(std::move(command));
+        onSendResponse(std::move(command));
+        break;
+    case TXSTYPE_MPT:
+        onSendResponse(std::move(command));
         break;
     default:
         break;
@@ -100,7 +103,7 @@ void ResponseHandler::onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> com
     std::cerr<<"PKEY changed2\n";
 }
 
-void ResponseHandler::onSendOneResponse(std::unique_ptr<IBlockCommand> command) {
+void ResponseHandler::onSendResponse(std::unique_ptr<IBlockCommand> command) {
     commandresponse response;
 
     memcpy(&response, command->getResponse(), command->getResponseSize());

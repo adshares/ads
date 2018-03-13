@@ -84,8 +84,8 @@ class client : public boost::enable_shared_from_this<client> {
         m_len = txslen[(int)*m_buf] + 64 + m_more;
 
         if(m_command) {
-            boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize() + m_command->getSignatureSize()-1),
-                                    boost::bind(&client::handle_read_txs, shared_from_this(), boost::asio::placeholders::error));
+            boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
+                                    boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
         } else {
             //DLOG(< "Client txstype " << m_addr << ":" << port << "\n";
             //read command. First character is already taken that is why we have buf+1 and len-1.
@@ -96,20 +96,46 @@ class client : public boost::enable_shared_from_this<client> {
         return;
     }
 
+    //if command doesn't have additional data then 0 bytes will be read.
+    void handle_read_extended_txs(const boost::system::error_code& error) {
+        if (error) {
+            DLOG("ERROR reading txs data: %s\n", error.message().c_str());
+            m_offi.leave(shared_from_this());
+        }
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getAdditionalData(), m_command->getAdditionalDataSize()),
+                                boost::bind(&client::handle_read_signature_txs, shared_from_this(), boost::asio::placeholders::error));
+    }
+
+    void handle_read_signature_txs(const boost::system::error_code& error) {
+        if (error) {
+            DLOG("ERROR reading txs extended data: %s\n", error.message().c_str());
+            m_offi.leave(shared_from_this());
+        }
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getSignature(), m_command->getSignatureSize()),
+                                boost::bind(&client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
+    }
+
+    void handle_read_txs_complete(const boost::system::error_code& error) {
+        if(error) {
+            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
+            m_offi.leave(shared_from_this());
+            return;
+        }
+
+        if(m_command) {
+            m_commandService.onExecute(std::move(m_command));
+            m_offi.leave(shared_from_this());
+            return;
+        }
+    }
+
+    //TODO: remove function when all legacy commands reimplemented.
     void handle_read_txs(const boost::system::error_code& error) {
         if(error) {
             DLOG("ERROR: read txs error [type:%d,len:%d]\n",(int)*m_buf, m_len);
             m_offi.leave(shared_from_this());
             return;
         }
-
-        //command which are handle with new way
-        if(m_command) {
-            m_commandService.onExecute(std::move(m_command));
-            m_offi.leave(shared_from_this());
-            return;
-        }
-
         bzero(&m_utxs,sizeof(usertxs));
 
 #ifdef DEBUG
@@ -144,6 +170,7 @@ class client : public boost::enable_shared_from_this<client> {
         m_offi.leave(shared_from_this());
     }
 
+    //TODO: remove function when all legacy commands reimplemented.
     void handle_read_more(const boost::system::error_code& error) {
         if(error) {
             DLOG("ERROR: read more error\n");
@@ -163,6 +190,7 @@ class client : public boost::enable_shared_from_this<client> {
         m_offi.leave(shared_from_this());
     }
 
+    //TODO: remove function when all legacy commands reimplemented.
     void parse() {
         m_started   = time(NULL);
 

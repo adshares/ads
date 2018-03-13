@@ -1,38 +1,41 @@
-#include "sendonehandler.h"
+#include "sendmanyhandler.h"
 #include "command/sendone.h"
 #include "../office.hpp"
 #include "helper/hash.h"
 
-
-SendOneHandler::SendOneHandler(office& office, boost::asio::ip::tcp::socket& socket)
+SendManyHandler::SendManyHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : CommandHandler(office, socket) {
 }
 
-void SendOneHandler::onInit(std::unique_ptr<IBlockCommand> command) {
+
+void SendManyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
-        m_command = std::unique_ptr<SendOne>(dynamic_cast<SendOne*>(command.release()));
+        m_command = std::unique_ptr<SendMany>(dynamic_cast<SendMany*>(command.release()));
     } catch (std::bad_cast& bc) {
-        DLOG("SendOne bad_cast caught: %s", bc.what());
+        DLOG("SendMany bad_cast caught: %s", bc.what());
         return;
     }
+    m_command->initTransactionVector();
 }
 
-void SendOneHandler::onExecute() {
+void SendManyHandler::onExecute() {
     assert(m_command);
 
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
     int64_t     fee{0};
-    int64_t     deposit{-1}; // if deposit=0 inform target
     int64_t     deduct{0};
 
-    if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
-        // does not check if account closed [consider adding this slow check]
-        DLOG("ERROR: bad target user %04X:%08X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        return;
+    std::vector<SendAmountTxnRecord> txns = m_command->getTransactionsVector();
+    for (auto& it : txns) {
+        uint16_t node = it.dest_node;
+        uint32_t user = it.dest_user;
+        if (!m_offi.check_user(node, user)) {
+            DLOG("ERROR: bad target user %04X:%08X\n", node, user);
+            return;
+        }
     }
 
-    deposit = m_command->getDeduct();
     deduct = m_command->getDeduct();
     fee = m_command->getFee();
 
@@ -62,17 +65,33 @@ void SendOneHandler::onExecute() {
     tlog.nmid   = msid;
     tlog.mpos   = mpos;
     tlog.weight = -deduct - fee;
-    memcpy(tlog.info, m_command->getInfoMsg(),32);
     m_offi.put_ulog(m_command->getUserId(),  tlog);
 
-    if (m_command->getBankId() == m_command->getDestBankId()) {
+    if (txns.size() > 0) {
+        std::map<uint64_t, log_t> log;
+        for (unsigned int i=0; i<txns.size(); ++i) {
+            uint64_t key = ((uint64_t)m_command->getUserId()<<32);
+            key|=i;
+            tlog.node = txns[i].dest_node;
+            tlog.user = txns[i].dest_user;
+            tlog.weight = -txns[i].amount;
+            tlog.info[31]=(i?0:1);
+            log[key]=tlog;
+        }
+        m_offi.put_ulog(log);
+
         tlog.type|=0x8000; //incoming
         tlog.node=m_command->getBankId();
         tlog.user=m_command->getUserId();
-        tlog.weight=deduct;
-        m_offi.put_ulog(m_command->getDestUserId(), tlog);
-        if(deposit>=0) {
-            m_offi.add_deposit(m_command->getDestUserId(), deposit);
+        for (unsigned int i=0; i<txns.size(); ++i) {
+            if (txns[i].dest_node == m_offi.svid) {
+                tlog.weight = txns[i].amount;
+                tlog.info[31]=(i?0:1);
+                m_offi.put_ulog(txns[i].dest_user, tlog);
+                if (txns[i].amount >= 0) {
+                    m_offi.add_deposit(txns[i].dest_user, txns[i].amount);
+                }
+            }
         }
     }
 
@@ -84,9 +103,16 @@ void SendOneHandler::onExecute() {
     }
 }
 
-bool SendOneHandler::onValidate() {
+
+
+bool SendManyHandler::onValidate() {
     int64_t deduct = m_command->getDeduct();
     int64_t fee = m_command->getFee();
+
+    // check for duplicate of the same target
+    if (m_command->checkForDuplicates()) {
+        return false;
+    }
 
     if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",

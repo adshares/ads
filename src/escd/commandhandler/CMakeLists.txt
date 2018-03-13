@@ -6,6 +6,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountkeyhandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/createnodehandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sendonehandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendmanyhandler.cpp
     PARENT_SCOPE
     )
 
@@ -17,6 +18,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountkeyhandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/createnodehandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/sendonehandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/sendmanyhandler.h
     PARENT_SCOPE
     )
 
