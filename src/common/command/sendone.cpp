@@ -52,7 +52,7 @@ void SendOne::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
 }
 
 bool SendOne::checkSignature(const uint8_t* hash, const uint8_t* pk) {
-    return (ed25519_sign_open2(hash,32,getData(),getDataSize(),pk,getSignature()) == 0);
+    return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH,getData(),getDataSize(),pk,getSignature()) == 0);
 
 }
 

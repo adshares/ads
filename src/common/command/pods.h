@@ -208,4 +208,41 @@ struct SendAmountTxnRecord {
     int64_t amount;     ///< sending amount
 } __attribute__((packed));
 
+struct CreateAccountInfo {
+    CreateAccountInfo() = default;
+    CreateAccountInfo(uint16_t srcNode, uint32_t srcUser, uint32_t msgId, uint32_t txnTime,
+                      uint16_t destNode)
+        : src_node(srcNode), src_user(srcUser), msg_id(msgId), ttime(txnTime), dst_node(destNode) {
+    }
+
+    uint8_t  ttype{TXSTYPE_USR};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t msg_id{0};             ///< user message id
+    uint32_t ttime{0};              ///< time
+    uint16_t dst_node{0};           ///< destination node
+
+}__attribute__((packed));
+
+struct CreateAccountData {
+    CreateAccountData() = default;
+    CreateAccountData(uint16_t srcNode_, uint32_t srcUser_, uint32_t msgId_, uint32_t txnTime_, uint16_t destNode_)
+        : info(srcNode_, srcUser_, msgId_, txnTime_, destNode_) {
+    }
+
+    CreateAccountInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+struct NewAccountData {
+    NewAccountData() = default;
+    NewAccountData(uint32_t userId, uint8_t userPkey[SHA256_DIGEST_LENGTH])
+        : user_id(userId) {
+        std::copy(userPkey, userPkey+SHA256_DIGEST_LENGTH, user_pkey);
+    }
+
+    uint32_t user_id;
+    uint8_t user_pkey[SHA256_DIGEST_LENGTH];
+}__attribute__((packed));
+
 #endif // PODS_H

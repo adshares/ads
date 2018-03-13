@@ -9,6 +9,7 @@
 #include "createnodehandler.h"
 #include "sendonehandler.h"
 #include "sendmanyhandler.h"
+#include "createaccounthandler.h"
 
 class office;
 
@@ -32,6 +33,7 @@ class CommandService {
     CreateNodeHandler	   m_createNodeHandler; ///< create node command object handler.
     SendOneHandler         m_sendOneHandler;    ///< send one command handler
     SendManyHandler        m_sendManyHandler;   ///< send many command handler
+    CreateAccountHandler   m_createAccountHandler;  ///< create account handler
 };
 
 
