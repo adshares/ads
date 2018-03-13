@@ -1,15 +1,13 @@
 import os
 import shutil
 import subprocess
-import pytest
-
+import json
 
 HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
 ESC_BIN_PATH = os.path.join(HPX_ROOT, "esc", "esc")
 ESCD_BIN_PATH = os.path.join(HPX_ROOT, "escd", "escd")
 
 INIT_NODE_ID = "init"
-
 
 def get_node_path_dir(node_id, prefix="node"):
     node_path = os.path.join("/tmp", prefix, node_id)
@@ -68,3 +66,24 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
     ]
     with open(os.path.join(client_path_dir, "options.cfg"), 'w') as fh:
         fh.write("\n".join(options))
+
+
+def node_process_ready(node_id):
+    node_dir = get_node_path_dir(node_id)
+    process = subprocess.Popen(["%s --init 1 -f 1" %ESCD_BIN_PATH], cwd=node_dir,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+
+    for line in process.stdout:
+        print(line)
+        if line == b'Roll back DB: 0\n':
+            return process
+
+
+def exec_esc_cmd(client_id, json_obj):
+    client_dir = get_client_path_dir(client_id)
+
+    print(ESC_BIN_PATH)
+    process = subprocess.Popen([ESC_BIN_PATH], cwd=client_dir, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
+
+    return process.communicate(input=str.encode(json.dumps(json_obj)))[0]
