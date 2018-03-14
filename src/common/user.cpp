@@ -37,6 +37,7 @@
 #include "command/createnode.h"
 #include "command/sendone.h"
 #include "command/sendmany.h"
+#include "command/createaccount.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -416,13 +417,9 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         if(!to_bank) {
             to_bank=sts.bank;
         }
-        txs=boost::make_shared<usertxs>(TXSTYPE_USR,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
-        deduct=USER_MIN_MASS;
-        if(sts.bank==to_bank) {
-            fee=TXS_MIN_FEE;
-        } else {
-            fee=TXS_USR_FEE;
-        }
+        command.reset(new CreateAccount(sts.bank, sts.user, sts.msid, to_bank, now));
+        deduct = command->getDeduct();
+        fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_BNK])) {
         command.reset( new CreateNode(sts.bank, sts.user, sts.msid, now));
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {

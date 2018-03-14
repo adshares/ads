@@ -29,6 +29,9 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_MPT:
         onSendResponse(std::move(command));
         break;
+    case TXSTYPE_USR:
+        onSendResponse(std::move(command));
+        break;
     default:
         break;
     }
