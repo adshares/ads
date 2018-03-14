@@ -18,11 +18,13 @@ src/ed25519/
 usr/
 vip/
 .idea
+
 __pycache__
 .pytest_cache
-CmakeCache.txt
-CMakeFiles/
-cmake_install.cmake
+/CmakeCache.txt
+/CMakeFiles/
+/cmake_install.cmake
 /common/
 /esc/
 /escd/
+/Makefile
