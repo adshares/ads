@@ -38,6 +38,7 @@
 #include "command/sendone.h"
 #include "command/sendmany.h"
 #include "command/createaccount.h"
+#include "command/getaccounts.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -328,7 +329,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     } else if(!run.compare(txsname[TXSTYPE_NDS])) { //                 !!!!!!!!
         txs=boost::make_shared<usertxs>(TXSTYPE_NDS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_NOD])) { //                 !!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_NOD,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new GetAccounts(sts.bank, sts.user, to_block, to_bank, now));
     } else if(!run.compare(txsname[TXSTYPE_MGS])) { //                 !!!!!!!!
         txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_MSG])) {
