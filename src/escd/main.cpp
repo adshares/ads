@@ -85,6 +85,11 @@ void signal_handler(int signal) {
 }
 
 int main(int argc, char* argv[]) {
+
+#ifndef NDEBUG
+    std::setbuf(stdout,NULL);
+#endif
+
     std::signal(SIGINT,signal_handler);
     std::signal(SIGQUIT,signal_handler);
     std::signal(SIGABRT,signal_handler);
