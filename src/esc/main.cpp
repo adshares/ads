@@ -25,6 +25,11 @@ void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& /*s
 }
 
 int main(int argc, char* argv[]) {
+
+#ifndef NDEBUG
+    std::setbuf(stdout,NULL);
+#endif
+
     settings sts;
     sts.get(argc,argv);
     boost::asio::io_service io_service;
