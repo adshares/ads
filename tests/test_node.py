@@ -9,8 +9,8 @@ def test_first_node_start(gen_blocks_count=2):
     create_node_env(INIT_NODE_ID, 8000, 8001, 8002)
     node_dir = get_node_path_dir(INIT_NODE_ID)
 
-    process = subprocess.Popen(["stdbuf", "-oL", ESCD_BIN_PATH, "--init", "1"],
-                               cwd=node_dir, bufsize=1, stdout=subprocess.PIPE)
+    process = subprocess.Popen([ESCD_BIN_PATH, "--init", "1"],
+                               cwd=node_dir, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Check in log if blocks are created
     blocks_counter = 0
