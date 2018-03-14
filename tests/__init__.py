@@ -5,8 +5,8 @@ import json
 
 
 HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
-ESC_BIN_PATH = os.path.join(HPX_ROOT, "esc", "esc")
-ESCD_BIN_PATH = os.path.join(HPX_ROOT, "escd", "escd")
+ESC_BIN_PATH = os.path.join(HPX_ROOT, "build", "esc", "esc")
+ESCD_BIN_PATH = os.path.join(HPX_ROOT, "build", "escd", "escd")
 
 
 INIT_NODE_ID = 1
