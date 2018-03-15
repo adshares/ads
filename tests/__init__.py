@@ -78,10 +78,14 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         fh.write("\n".join(options))
 
 
-def exec_esc_cmd(client_id, json_commands):
+def exec_esc_cmd(client_id, json_commands, esc_params=None):
     client_dir = get_client_path_dir(client_id)
 
-    process = subprocess.Popen([ESC_BIN_PATH], cwd=client_dir, stdout=subprocess.PIPE,
+    esc_cmd = [ESC_BIN_PATH]
+    if esc_params:
+        esc_cmd = esc_cmd + esc_params
+
+    process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
 
     if type(json_commands) != list:
