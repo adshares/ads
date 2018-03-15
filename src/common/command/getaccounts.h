@@ -4,6 +4,7 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "errorcodes.h"
 
 class GetAccounts : public IBlockCommand {
     public:
@@ -95,17 +96,19 @@ class GetAccounts : public IBlockCommand {
 
       public:
         /**  \brief Get destination bank id. */
-        virtual  uint32_t       getDestBankId();
+        virtual uint32_t       getDestBankId();
 
-        virtual  uint32_t       getBlockId();
+        /** \brief Get block id. */
+        virtual uint32_t       getBlockId();
 
-        GetAccountsData      m_data;
+        /** \brief Prepare response buffer. */
+        virtual ErrorCodes::Code prepareResponse(uint32_t lastPath, uint32_t lastUsers);
+
 
     private:
+        GetAccountsData      m_data;
         unsigned char* m_responseBuffer;
         uint32_t m_responseBufferLength;
-
-        settings* m_settings;
 };
 
 #endif // GETACCOUNTS_H

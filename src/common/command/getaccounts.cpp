@@ -4,11 +4,11 @@
 #include "helper/json.h"
 
 GetAccounts::GetAccounts()
-    : m_data{}, m_responseBuffer(nullptr), m_settings(nullptr) {
+    : m_data{}, m_responseBuffer(nullptr) {
 }
 
 GetAccounts::GetAccounts(uint16_t src_bank, uint32_t src_user, uint32_t block, uint16_t dst_bank, uint32_t time)
-    : m_data(src_bank, src_user, time, block, dst_bank), m_responseBuffer(nullptr), m_settings(nullptr) {
+    : m_data(src_bank, src_user, time, block, dst_bank), m_responseBuffer(nullptr) {
 }
 
 GetAccounts::~GetAccounts() {
@@ -59,8 +59,7 @@ bool GetAccounts::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return (ed25519_sign_open(getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-void GetAccounts::saveResponse(settings& sts) {
-    m_settings = &sts;
+void GetAccounts::saveResponse(settings& /*sts*/) {
 }
 
 uint32_t GetAccounts::getUserId() {
@@ -99,12 +98,20 @@ bool GetAccounts::send(INetworkClient& netClient) {
         return false;
     }
     memcpy(&m_responseBufferLength, respLen, 4);
-    m_responseBuffer = new unsigned char[m_responseBufferLength];
+    if (m_responseBufferLength < sizeof(user_t)) {
+        // response length is error code
+        m_responseBuffer = new unsigned char[4];
+        memcpy(m_responseBuffer, respLen, 4);
+        m_responseBufferLength = 4;
+    } else {
+        // read rest of buffer, all accounts
+        m_responseBuffer = new unsigned char[m_responseBufferLength];
 
-    if (!netClient.readData(m_responseBuffer, m_responseBufferLength)) {
-        std::cerr<<"GetAccounts ERROR reading response\n";
+        if (!netClient.readData(m_responseBuffer, m_responseBufferLength)) {
+            std::cerr<<"GetAccounts ERROR reading response\n";
+            return false;
+        }
     }
-
     return true;
 }
 
@@ -121,18 +128,48 @@ std::string GetAccounts::toString(bool /*pretty*/) {
 }
 
 boost::property_tree::ptree GetAccounts::toJson() {
-    if (!m_settings) {
-        return boost::property_tree::ptree();
+    return boost::property_tree::ptree();
+}
+
+ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUsers) {
+    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    uint32_t destBank = this->getDestBankId();
+    char filename[64];
+    int fd, ud;
+
+    sprintf(filename,"usr/%04X.dat", destBank);
+    fd = open(filename,O_RDONLY);
+    if (fd < 0) {
+        errorCode = ErrorCodes::Code::eBankNotFound;
+    } else {
+        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",lastPath>>20,lastPath&0xFFFFF, destBank);
+        ud = open(filename,O_RDONLY);
+        if(ud < 0) {
+            errorCode = ErrorCodes::Code::eUndoNotFound;
+            close(fd);
+        }
     }
 
-    user_t* user_ptr=(user_t*)m_responseBuffer;
-    uint32_t no_of_users=m_responseBufferLength/sizeof(user_t);
-    boost::property_tree::ptree users;
-    for(uint32_t i=0; i<no_of_users; i++, user_ptr++) {
-        boost::property_tree::ptree user;
-        print_user(*user_ptr, user, true, this->getBankId(), i, *m_settings);
-        users.push_back(std::make_pair("",user.get_child("account")));
+    if (errorCode) {
+        memcpy(m_responseBuffer, (uint8_t*)&errorCode, 4);
+        m_responseBufferLength = 4;
+        return errorCode;
     }
-    std::cerr<<"Size: "<<users.size() <<std::endl;
-    return users;
+
+    m_responseBufferLength = lastUsers * sizeof(user_t);
+    m_responseBuffer = new unsigned char[4+m_responseBufferLength];
+    uint8_t *dp = m_responseBuffer+4;
+    for(uint32_t user=0; user<lastUsers; user++,dp+=sizeof(user_t)) {
+        user_t u;
+        u.msid=0;
+        read(fd,dp,sizeof(user_t));
+        read(ud,&u,sizeof(user_t));
+        if(u.msid!=0) {
+            memcpy(dp,&u,sizeof(user_t));
+        }
+    }
+    close(ud);
+    close(fd);
+    memcpy(m_responseBuffer, &m_responseBufferLength, 4);
+    return errorCode;
 }

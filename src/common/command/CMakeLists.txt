@@ -13,6 +13,7 @@ SET (SOURCE
 
 SET (HEADERS
     ${HEADERS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/errorcodes.h
     ${CMAKE_CURRENT_SOURCE_DIR}/pods.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccount.h
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountkey.h

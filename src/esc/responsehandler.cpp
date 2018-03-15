@@ -1,5 +1,6 @@
 #include "responsehandler.h"
 #include "command/pods.h"
+#include "command/errorcodes.h"
 #include "helper/json.h"
 #include "helper/ascii.h"
 #include "helper/hash.h"
@@ -119,7 +120,22 @@ void ResponseHandler::onSendResponse(std::unique_ptr<IBlockCommand> command) {
 }
 
 void ResponseHandler::onGetAccountsResponse(std::unique_ptr<IBlockCommand> command) {
-    command->saveResponse(m_sts);
-    m_pt.put_child("accounts", command->toJson());
-    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
+    uint32_t no_of_users = command->getResponseSize() / sizeof(user_t);
+    if (no_of_users == 0) {
+        uint32_t response;
+        memcpy(&response, command->getResponse(), 4);
+        std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
+    } else {
+        user_t* user_ptr=(user_t*)command->getResponse();
+        uint32_t bankId = command->getBankId();
+        boost::property_tree::ptree users;
+        for(uint32_t i=0; i<no_of_users; i++, user_ptr++) {
+            boost::property_tree::ptree user;
+            print_user(*user_ptr, user, true, bankId, i, m_sts);
+            users.push_back(std::make_pair("", user.get_child("account")));
+        }
+
+        m_pt.put_child("accounts", users);
+        boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
+   }
 }

@@ -40,7 +40,6 @@
 //end
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
-
 /** \brief Struct data for get_me and get_accout response */
 struct accountresponse {
     user_t      usera;
