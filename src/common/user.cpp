@@ -897,7 +897,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
         if(!connected) {
             boost::asio::ip::tcp::resolver::iterator end;
             while (endpoint_iterator != end) {
-                std::cerr<<"CONNECTING to " << endpoint_iterator->endpoint().address().to_string() << "\n";
+                // std::cerr<<"CONNECTING to " << endpoint_iterator->endpoint().address().to_string() << "\n";
                 socket.connect(*endpoint_iterator, error);
                 if(!error) {
                     break;
@@ -908,7 +908,7 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
             if(error) {
                 throw boost::system::system_error(error);
             }
-            std::cerr<<"CONNECTED\n";
+            // std::cerr<<"CONNECTED\n";
             connected=true;
         } else {
             socket.connect(*endpoint_iterator, error);

@@ -90,7 +90,7 @@ def exec_esc_cmd(client_id, json_commands):
     for cmd in json_commands:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
 
-    raw_response = process.communicate()[0].decode("utf-8")
+    raw_response = process.communicate(timeout=10)[0].decode("utf-8")
 
     responses = []
     for cmd in json_commands[::-1]:
