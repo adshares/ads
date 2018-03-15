@@ -15,6 +15,8 @@ INIT_NODE_SERVER_PORT = 8001
 
 
 INIT_CLIENT_ID = '1'
+INIT_CLIENT_ADDRESS = "0001-00000000-XXXX"
+INIT_CLIENT_SECRET = "14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0"
 
 
 def get_node_path_dir(node_id, prefix="node"):
@@ -29,10 +31,6 @@ def clean_node_dir(node_id):
     node_id = str(node_id)
     node_dir = get_node_path_dir(node_id)
     shutil.rmtree(node_dir, ignore_errors=True)
-
-
-def get_client_path_dir(client_id):
-    return get_node_path_dir(client_id, "client")
 
 
 def create_node_env(node_id, office_port, server_port, addr="127.0.0.1", peer_port=None, key=None):
@@ -63,10 +61,20 @@ def create_node_env(node_id, office_port, server_port, addr="127.0.0.1", peer_po
         os.system("chmod go-r %s" % node_key_path)
 
 
+def get_client_dir(client_id):
+    return get_node_path_dir(client_id, "client")
+
+
+def clean_client_dir(client_id):
+    client_id = str(client_id)
+    client_dir = get_client_dir(client_id)
+    shutil.rmtree(client_dir, ignore_errors=True)
+
+
 def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
     client_id = str(client_id)
 
-    client_path_dir = get_client_path_dir(client_id)
+    client_path_dir = get_client_dir(client_id)
 
     options = [
         "host=%s" %host,
@@ -78,26 +86,39 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         fh.write("\n".join(options))
 
 
-def exec_esc_cmd(client_id, json_commands, esc_params=None):
-    client_dir = get_client_path_dir(client_id)
+def ensure_init_client():
+    if not os.path.exists(get_client_dir(INIT_CLIENT_ID)):
+        create_init_client()
+
+
+def create_init_client():
+    clean_client_dir(INIT_CLIENT_ID)
+    create_client_env(INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+                      address=INIT_CLIENT_ADDRESS,
+                      secret=INIT_CLIENT_SECRET)
+
+
+def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_json=True):
+    client_dir = get_client_dir(client_id)
 
     esc_cmd = [ESC_BIN_PATH]
-    if esc_params:
-        esc_cmd = esc_cmd + esc_params
+    if cmd_extra:
+        esc_cmd = esc_cmd + cmd_extra
 
     process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
 
-    if type(json_commands) != list:
-        json_commands = [json_commands]
+    cmds = [js_command]
+    if with_get_me:
+        cmds.insert(0, {'run':"get_me"})
 
-    for cmd in json_commands:
+    for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
 
-    raw_response = process.communicate(timeout=10)[0].decode("utf-8")
+    raw_response = process.communicate()[0].decode("utf-8")
 
     responses = []
-    for cmd in json_commands[::-1]:
+    for cmd in cmds[::-1]:
         cmd_str = json.dumps(cmd)
         resp_index = raw_response.find(json.dumps(cmd))
         if resp_index == -1:
@@ -106,7 +127,8 @@ def exec_esc_cmd(client_id, json_commands, esc_params=None):
         responses.insert(0, raw_response[resp_index + len(cmd_str):])
         raw_response = raw_response[0:resp_index-1]
 
-    if len(json_commands) == 1:
-        responses = responses[0]
+    response = responses[-1]
+    if loads_json:
+        response = json.loads(response)
 
-    return responses
+    return response

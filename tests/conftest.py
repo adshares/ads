@@ -20,9 +20,6 @@ def init_node_process(init_blocks_counter = 1):
         if line == b"NEW BLOCK created\n":
             blocks_counter += 1
 
-        #if line == b"OFFICE online 1\n":
-        #    break
-
         if blocks_counter == init_blocks_counter:
             break
 
