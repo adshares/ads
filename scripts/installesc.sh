@@ -49,7 +49,7 @@ function prepareNode
     echo '.............................prepareNodedir'$5
 
         mkdir $5
-        ln -s $current/escd $5/escd
+        #ln -s $current/escd $5/escd
 
         cd $5
         echo 'svid='$1 > options.cfg
@@ -128,8 +128,8 @@ function initFirstNode
 
     cd ${nodename[1]}
 
-    exec -a ${nodename[1]} ./escd --init 1 > nodeout.txt &
-    ##./escd --init 1 > nodeout.txt &
+    exec -a ${nodename[1]} escd --init 1 > nodeout.txt &
+    ##escd --init 1 > nodeout.txt &
 
     cd ..
     sleep 60
@@ -143,7 +143,7 @@ function prepareClient
 
         username='user'$1
         mkdir $username
-        ln -s $current/esc $username/esc
+        #ln -s $current/esc $username/esc
         ln -s $current/ed25519/key $username/key
 
         prepareClientKeys $username $1
@@ -156,11 +156,11 @@ function setUpUser1
 
     cd ${userpath[1]}
 
-    echo '{"run":"get_me"}' | ./esc
+    echo '{"run":"get_me"}' | esc
 
     echo '.............................change_account_key for User 1'
 
-    (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | esc
 
     sleep 60
 
@@ -169,7 +169,7 @@ function setUpUser1
     echo 'address=0001-00000000-9B6F' >> settings.cfg
     echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
 
-    echo '{"run":"get_me"}' | ./esc
+    echo '{"run":"get_me"}' | esc
     cd ..
 
     echo '.............................finished'
@@ -184,21 +184,21 @@ function createAccountForUser2
     cd ${userpath[1]}
 
     echo '----------------------------------'
-    echo '{"run":"get_me"}' | ./esc
+    echo '{"run":"get_me"}' | esc
 
-    (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | esc
 
     sleep 60
 
-    echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc
+    echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | esc
 
     echo '----------------------------------'
 
     sleep 60
 
-    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.5,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.5,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | esc
 
-    echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc | grep balance
+    echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | esc | grep balance
 
     cd ..
 }
@@ -210,7 +210,7 @@ function createAccount
 
     cd $1
 
-    (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"'$2'"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"'$2'"}') | esc
 
     sleep 60
 
@@ -225,7 +225,7 @@ function changeKeysforUser2
 
     cd ${userpath[1]}
 
-    (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | ./esc  --address 0001-00000001-8B4E
+    (echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | esc  --address 0001-00000001-8B4E
 
     cd ..
 
@@ -241,7 +241,7 @@ function changeKeysforUser2
 
     sleep 60
 
-    echo '{"run":"get_me"}' | ./esc
+    echo '{"run":"get_me"}' | esc
 
     cd ..
 }
@@ -253,7 +253,7 @@ function sendCash
 
     cd $1
 
-    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"'$2'","amount":'$3',"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"'$2'","amount":'$3',"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | esc
 
     cd ..
 
@@ -266,7 +266,7 @@ function sendCashToMany
 
     cd $1
 
-    (echo '{"run":"get_me"}'; echo '{"run":"send_many","wires":{"'$2'":'$3',"'$4'":'$5'}}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"send_many","wires":{"'$2'":'$3',"'$4'":'$5'}}') | esc
 
     cd ..
 
@@ -278,7 +278,7 @@ function checkBalance
 {
     cd $1
 
-    balance=$(echo '{"run":"get_account","address":"'$2'"}' | ./esc | grep balance)
+    balance=$(echo '{"run":"get_account","address":"'$2'"}' | esc | grep balance)
 
     echo $2
 
@@ -300,7 +300,7 @@ function getMe
 {
     cd $1
 
-    getmeinfo=$(echo '{"run":"get_me"}' | ./esc | grep address)
+    getmeinfo=$(echo '{"run":"get_me"}' | esc | grep address)
 
     echo $getmeinfo
 
@@ -320,7 +320,7 @@ function addNode
     echo '.............................ADD node'
 
     cd ${userpath[1]}
-    (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | esc
 
     cd ..
 
@@ -338,7 +338,7 @@ function changeNode2Key
 
     echo '.............................change_node_key'
 
-    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | esc
 
     cd ..
 
@@ -357,8 +357,8 @@ function changeNode3Key
 
     echo '.............................change_node_key'
 
-    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"3"}') | ./esc
-    #(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"74B1D277044007B071FCF277A3CC5194EAA0BCA28548F6621FEBF3C00810C331","node":"3"}') | ./esc
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"3"}') | esc
+    #(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"74B1D277044007B071FCF277A3CC5194EAA0BCA28548F6621FEBF3C00810C331","node":"3"}') | esc
 
     cd ..
     sleep 30
@@ -423,7 +423,7 @@ function startnode
 
     ps -aux | grep $3
 
-    exec -a $3 ./escd $2 > nodeout.txt &
+    exec -a $3 escd $2 > nodeout.txt &
     cd ..
 
     ps -aux | grep $3
