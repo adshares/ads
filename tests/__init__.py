@@ -9,7 +9,12 @@ ESC_BIN_PATH = os.path.join(HPX_ROOT, "build", "esc", "esc")
 ESCD_BIN_PATH = os.path.join(HPX_ROOT, "build", "escd", "escd")
 
 
-INIT_NODE_ID = 1
+INIT_NODE_ID = '1'
+INIT_NODE_OFFICE_PORT = 8000
+INIT_NODE_SERVER_PORT = 8001
+
+
+INIT_CLIENT_ID = '1'
 
 
 def get_node_path_dir(node_id, prefix="node"):
@@ -69,21 +74,35 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         "address=%s" %address,
         "secret=%s" %secret
     ]
-    with open(os.path.join(client_path_dir, "options.cfg"), 'w') as fh:
+    with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
         fh.write("\n".join(options))
 
 
-def node_process_ready(node_id):
-    node_dir = get_node_path_dir(node_id)
-
-    print(["%s --init 1" %ESCD_BIN_PATH])
-
-
-def exec_esc_cmd(client_id, json_obj):
+def exec_esc_cmd(client_id, json_commands):
     client_dir = get_client_path_dir(client_id)
 
-    print(ESC_BIN_PATH)
     process = subprocess.Popen([ESC_BIN_PATH], cwd=client_dir, stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
 
-    return process.communicate(input=str.encode(json.dumps(json_obj)))[0]
+    if type(json_commands) != list:
+        json_commands = [json_commands]
+
+    for cmd in json_commands:
+        process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
+
+    raw_response = process.communicate()[0].decode("utf-8")
+
+    responses = []
+    for cmd in json_commands[::-1]:
+        cmd_str = json.dumps(cmd)
+        resp_index = raw_response.find(json.dumps(cmd))
+        if resp_index == -1:
+            print("Response not found for cmd %s in %s" %(cmd_str, raw_response))
+            return None
+        responses.insert(0, raw_response[resp_index + len(cmd_str):])
+        raw_response = raw_response[0:resp_index-1]
+
+    if len(json_commands) == 1:
+        responses = responses[0]
+
+    return responses
