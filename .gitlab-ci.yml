@@ -1,5 +1,6 @@
 test:
   before_script:
   - /builds/proxy/hpx/tests/scripts/install.sh
+  - /builds/proxy/hpx/scripts/buildandrunDebug.sh
   script:
   - pytest /builds/proxy/hpx/tests -s
