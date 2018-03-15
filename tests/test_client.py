@@ -1,9 +1,6 @@
 from . import exec_esc_cmd, create_client_env, create_init_client
 from . import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
 
-import json
-import pytest
-
 
 def test_get_me(init_node_process):
     create_init_client()
