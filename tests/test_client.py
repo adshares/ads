@@ -63,7 +63,7 @@ def test_create_account(client_id="2"):
     responses = exec_esc_cmd(INIT_CLIENT_ID, [
             {'run': "get_me"},
             {"run":"change_account_key", "pkey":new_pub_key, "signature":signature}
-        ])
+        ], ['--address', address])
 
     get_me_response, change_key_response = json.loads(responses[0]), responses[1]
     assert change_key_response == 'PKEY changed2\n'
