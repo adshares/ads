@@ -1,5 +1,5 @@
-from . import exec_esc_cmd, ensure_init_client
-from . import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET
+from . import exec_esc_cmd, create_node_env
+from . import INIT_CLIENT_ID, INIT_NODE_SERVER_PORT
 
 
 def test_block_created(init_node_process, gen_blocks_count=1):
@@ -15,14 +15,10 @@ def test_block_created(init_node_process, gen_blocks_count=1):
     assert gen_blocks_count == blocks_counter
 
 
-def test_add_node():
-    ensure_init_client()
+def test_change_node_key(init_node_process, node_id="2"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
-    
 
-
-def test_change_node_key():
-    pass
+    #create_node_env(node_id, 8100, 8101, INIT_NODE_SERVER_PORT)
 
 
 

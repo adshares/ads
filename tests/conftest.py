@@ -31,5 +31,9 @@ def init_node_process(init_blocks_counter = 1):
 
     yield process
 
+
+    print("KILLING "*1000)
+
+
     process.terminate()
     process.kill()

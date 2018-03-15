@@ -47,8 +47,11 @@ def test_create_account(client_id="2"):
     response = exec_esc_cmd(INIT_CLIENT_ID,
                             {"run":"change_account_key", "pkey":new_pub_key, "signature":signature},
                             cmd_extra=['--address', address], loads_json=False)
-    assert response == 'PKEY changed2\n'
 
     create_client_env(client_id, INIT_NODE_OFFICE_PORT,
                       address=address,
                       secret=new_secret)
+
+    assert response == 'PKEY changed2\n'
+
+
