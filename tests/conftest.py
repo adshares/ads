@@ -15,7 +15,6 @@ def init_node_process(init_blocks_counter = 1):
     clean_client_dir(INIT_CLIENT_ID)
     create_init_client()
 
-
     node_dir = get_node_path_dir(INIT_NODE_ID)
     process = subprocess.Popen([ESCD_BIN_PATH, "--init", "1"],
                             cwd=node_dir, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

@@ -115,7 +115,7 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_
     for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
 
-    raw_response = process.communicate()[0].decode("utf-8")
+    raw_response = process.communicate(timeout=10)[0].decode("utf-8")
 
     responses = []
     for cmd in cmds[::-1]:
