@@ -11,6 +11,7 @@
 #include "sendmanyhandler.h"
 #include "createaccounthandler.h"
 #include "getaccountshandler.h"
+#include "broadcastmsghandler.h"
 
 class office;
 
@@ -36,6 +37,7 @@ class CommandService {
     SendManyHandler        m_sendManyHandler;   ///< send many command handler
     CreateAccountHandler   m_createAccountHandler;  ///< create account handler
     GetAccountsHandler     m_getAccountsHandler;   ///< get accounts command handler
+    BroadcastMsgHandler    m_broadcastMsgHandler;   ///< broadcast handler
 };
 
 

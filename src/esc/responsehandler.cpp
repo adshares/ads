@@ -36,6 +36,9 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_NOD:
         onGetAccountsResponse(std::move(command));
         break;
+    case TXSTYPE_BRO:
+        onSendResponse(std::move(command));
+        break;
     default:
         break;
     }
