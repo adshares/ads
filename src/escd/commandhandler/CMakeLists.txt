@@ -8,6 +8,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/sendonehandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sendmanyhandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccounthandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.cpp
     PARENT_SCOPE
     )
 
@@ -21,6 +22,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/sendonehandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/sendmanyhandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccounthandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.h
     PARENT_SCOPE
     )
 

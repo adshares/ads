@@ -40,7 +40,6 @@
 //end
 #define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
-
 /** \brief Struct data for get_me and get_accout response */
 struct accountresponse {
     user_t      usera;
@@ -53,7 +52,6 @@ struct commandresponse {
     uint32_t    msid;
     uint32_t    mpos;
 } __attribute__((packed));
-
 
 /** \brief Struct data for get_me and get_accout command */
 struct userinfo {
@@ -243,6 +241,34 @@ struct NewAccountData {
 
     uint32_t user_id;
     uint8_t user_pkey[SHA256_DIGEST_LENGTH];
+}__attribute__((packed));
+
+/** \brief Info data for get_accounts command. */
+struct GetAccountsInfo {
+    GetAccountsInfo() = default;
+    GetAccountsInfo(uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t blockNo,
+                      uint16_t destNode)
+        : src_node(srcNode), src_user(srcUser), ttime(txnTime), block(blockNo), dst_node(destNode) {
+    }
+
+    uint8_t ttype{TXSTYPE_NOD};
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t ttime{0};              ///< time
+    uint32_t block{0};              ///< block number
+    uint16_t dst_node{0};           ///< destination node
+}__attribute__((packed));
+
+/** \brief Data struct for get_accounts command. */
+struct GetAccountsData {
+    GetAccountsData() = default;
+    GetAccountsData(uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t blockNo,
+                    uint16_t destNode)
+        : info(srcNode, srcUser, txnTime, blockNo, destNode) {
+    }
+
+    GetAccountsInfo info;           ///< info data struct
+    unsigned char sign[64];         ///< signature
 }__attribute__((packed));
 
 #endif // PODS_H
