@@ -39,6 +39,7 @@
 #include "command/sendmany.h"
 #include "command/createaccount.h"
 #include "command/getaccounts.h"
+#include "command/broadcastmsg.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -360,29 +361,17 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         return(NULL);
     } else if(!run.compare(txsname[TXSTYPE_BRO])) {
         boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
+        boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("message_ascii");
+        std::string text;
         if(json_text_hex) {
             std::string text_hex=json_text_hex.get();
-            int len=text_hex.length()/2;
-            uint8_t *text=(uint8_t*)malloc(len+1);
-            text[len]='\0';
-            if(!parse_key(text,json_text_hex,len)) {
-                free(text);
-                return(NULL);
-            }
-            txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,len,to_user,to_mass,to_info,(const char*)text);
-            //deduct=0;
-            fee=TXS_BRO_FEE(len);
-            free(text);
-        } else {
-            boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("message_ascii");
-            if(json_text_asci) {
-                std::string text=json_text_asci.get();
-                txs=boost::make_shared<usertxs>(TXSTYPE_BRO,sts.bank,sts.user,sts.msid,now,text.length(),to_user,to_mass,to_info,text.c_str());
-                //deduct=0;
-                fee=TXS_BRO_FEE(text.length());
-            } else {
-                return(NULL);
-            }
+            text2key(text_hex, text);
+        } else if (json_text_asci) {
+            text=json_text_asci.get();
+        }
+        if (!text.empty()) {
+            command.reset( new BroadcastMsg(sts.bank, sts.user, sts.msid, text.length(), text.c_str(), now));
+            fee = command->getFee();
         }
     } else if(!run.compare(txsname[TXSTYPE_MPT])) {
         std::vector<SendAmountTxnRecord> transactions;

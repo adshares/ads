@@ -1,5 +1,7 @@
 .idea
-/build
+/build*
 /docs/doxygen/out/*
 __pycache__
 .pytest_cache
+/deployment
+*.user

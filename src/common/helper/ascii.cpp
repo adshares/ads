@@ -43,5 +43,15 @@ void ed25519_key2text(std::stringstream& text, const uint8_t* key, int len) {
     }
 }
 
+void text2key(const std::string& key, std::string& text) {
+    int len = key.length();
+    for(int i=0; i< len; i+=2)
+    {
+        std::string byte = key.substr(i,2);
+        unsigned char chr = (unsigned char) (int)strtol(byte.c_str(), nullptr, 16);
+        text.push_back(chr);
+    }
+}
+
 }
 

@@ -7,6 +7,7 @@
 #include "sendmany.h"
 #include "createaccount.h"
 #include "getaccounts.h"
+#include "broadcastmsg.h"
 
 namespace command {
 
@@ -34,6 +35,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_NOD:
         command = std::make_unique<GetAccounts>();
+	break;
+    case TXSTYPE_BRO:
+        command = std::make_unique<BroadcastMsg>();
         break;
     default:
         break;

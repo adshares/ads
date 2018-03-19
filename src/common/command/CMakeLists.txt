@@ -8,6 +8,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/sendmany.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccount.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccounts.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsg.cpp
     PARENT_SCOPE
     )
 
@@ -23,6 +24,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/sendmany.h
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccount.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccounts.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsg.h
     PARENT_SCOPE
     )
 
