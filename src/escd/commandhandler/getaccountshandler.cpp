@@ -28,7 +28,7 @@ void GetAccountsHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
+        boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize() + 4));
     } catch (std::exception&) {
         DLOG("ERROR responding to client %08X\n",m_usera.user);
     }

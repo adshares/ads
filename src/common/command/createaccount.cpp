@@ -4,6 +4,7 @@
 
 CreateAccount::CreateAccount()
     : m_data{} {
+    m_newAccount.user_id = 0;
 }
 
 CreateAccount::CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time)
