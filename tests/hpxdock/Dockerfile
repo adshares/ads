@@ -9,9 +9,10 @@ RUN true \
             libssl-dev \
             dante-server \
             bash \
-            python \
-            python-pip \
-            python-dev \
-    && pip install --upgrade pip \
-    && pip install -U pytest \
+            python3 \
+            python3-pip \
+            python3-dev \
+
+    && pip3 install --upgrade pip \
+    && pip3 install -U pytest \
     && true

@@ -29,14 +29,15 @@ def test_key_changed(init_node_process):
     assert response['account']['public_key'] == new_public_key
 
 
-def test_create_account(client_id="2"):
+def test_create_account(init_node_process, client_id="2"):
     # As INIT user, create client with client_id
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"create_account", "node":INIT_NODE_ID})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"create_account", "node":"0001"})
 
     assert 'account' in response
     assert 'address' in response['account']
+    assert response['account']['paired_id'] == "1"
 
-    address = response['account']['address']
+    address = "0001-00000001-8B4E"
     response = exec_esc_cmd(INIT_NODE_ID, {'run':"get_account", "address":address}, with_get_me=False)
 
     # Change user keys

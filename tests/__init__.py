@@ -98,7 +98,7 @@ def create_init_client():
                       secret=INIT_CLIENT_SECRET)
 
 
-def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_json=True):
+def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_json=True, timeout=10):
     client_dir = get_client_dir(client_id)
 
     esc_cmd = [ESC_BIN_PATH]
@@ -115,7 +115,7 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_
     for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
 
-    raw_response = process.communicate()[0].decode("utf-8")
+    raw_response = process.communicate(timeout=timeout)[0].decode("utf-8")
 
     responses = []
     for cmd in cmds[::-1]:
