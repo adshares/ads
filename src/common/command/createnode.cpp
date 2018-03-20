@@ -5,10 +5,12 @@
 
 CreateNode::CreateNode()
     : m_data{} {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 CreateNode::CreateNode(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime) 
 	: m_data(abank, auser, amsid, ttime) {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 unsigned char* CreateNode::getData() {
@@ -86,7 +88,16 @@ user_t& CreateNode::getUserInfo() {
 
 bool CreateNode::send(INetworkClient& netClient) {
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
+        std::cerr<<"CreateNode sending error\n";
         return false;
+    }
+
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"CreateNode reading error\n";
+    }
+
+    if (m_responseError) {
+        return true;
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
@@ -102,5 +113,9 @@ std::string CreateNode::toString(bool /*pretty*/) {
 }
 
 void CreateNode::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    if (!m_responseError) {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    }
 }

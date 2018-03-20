@@ -5,11 +5,13 @@
 
 GetAccount::GetAccount()
     : m_data{} {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser,
                        uint32_t time)
     : m_data( abank, auser, bbank, buser, time) {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 unsigned char* GetAccount::getData() {

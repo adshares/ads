@@ -5,6 +5,7 @@
 #include "command/pods.h"
 #include "default.hpp"
 #include "settings.hpp"
+#include "errorcodes.h"
 
 /*!
  * \brief Class responsible for handling "get_me" or "get_acocunt" command.
