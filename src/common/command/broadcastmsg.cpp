@@ -1,6 +1,7 @@
 #include "broadcastmsg.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/json.h"
 
 BroadcastMsg::BroadcastMsg()
     : m_data{}, m_message(nullptr) {
@@ -155,6 +156,6 @@ std::string BroadcastMsg::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree BroadcastMsg::toJson() {
-    return boost::property_tree::ptree();
+void BroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
 }
