@@ -89,20 +89,20 @@ user_t& GetAccounts::getUserInfo() {
 
 bool GetAccounts::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
+        std::cerr<<"GetAccounts sending error\n";
         return false;
     }
 
-    char respLen[4];
-    if (!netClient.readData(respLen, 4)) {
-        std::cerr<<"GetAccounts ERROR reading response length\n";
+    if (!netClient.readData((int32_t*)&m_responseBufferLength, ERROR_CODE_LENGTH)) {
+        std::cerr<<"GetAccounts reading error\n";
         return false;
     }
-    memcpy(&m_responseBufferLength, respLen, 4);
+
     if (m_responseBufferLength < sizeof(user_t)) {
         // response length is error code
-        m_responseBuffer = new unsigned char[4];
-        memcpy(m_responseBuffer, respLen, 4);
-        m_responseBufferLength = 4;
+        m_responseBuffer = new unsigned char[ERROR_CODE_LENGTH];
+        memcpy(m_responseBuffer, &m_responseBufferLength, ERROR_CODE_LENGTH);
+        m_responseBufferLength = ERROR_CODE_LENGTH;
     } else {
         // read rest of buffer, all accounts
         m_responseBuffer = new unsigned char[m_responseBufferLength];
@@ -131,7 +131,7 @@ void GetAccounts::toJson(boost::property_tree::ptree& ptree) {
     uint32_t no_of_users = this->getResponseSize() / sizeof(user_t);
     if (no_of_users == 0) {
         uint32_t response;
-        memcpy(&response, this->getResponse(), 4);
+        memcpy(&response, this->getResponse(), ERROR_CODE_LENGTH);
         std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(response));
     } else {
@@ -167,14 +167,14 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
     }
 
     if (errorCode) {
-        memcpy(m_responseBuffer, (uint8_t*)&errorCode, 4);
-        m_responseBufferLength = 4;
+        memcpy(m_responseBuffer, (uint32_t*)&errorCode, ERROR_CODE_LENGTH);
+        m_responseBufferLength = ERROR_CODE_LENGTH;
         return errorCode;
     }
 
     m_responseBufferLength = lastUsers * sizeof(user_t);
-    m_responseBuffer = new unsigned char[4+m_responseBufferLength];
-    uint8_t *dp = m_responseBuffer+4;
+    m_responseBuffer = new unsigned char[ERROR_CODE_LENGTH+m_responseBufferLength];
+    uint8_t *dp = m_responseBuffer+ERROR_CODE_LENGTH;
     for(uint32_t user=0; user<lastUsers; user++,dp+=sizeof(user_t)) {
         user_t u;
         u.msid=0;
@@ -186,6 +186,6 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
     }
     close(ud);
     close(fd);
-    memcpy(m_responseBuffer, &m_responseBufferLength, 4);
+    memcpy(m_responseBuffer, &m_responseBufferLength, ERROR_CODE_LENGTH);
     return errorCode;
 }

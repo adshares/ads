@@ -29,6 +29,8 @@ class CommandService {
     void onExecute(std::unique_ptr<IBlockCommand> command);
 
   private:
+    boost::asio::ip::tcp::socket& m_socket;     ///< reference to scoket, required for sending errors
+
     office&                m_offi;              ///< reference to office object.
     GetAccountHandler      m_getAccountHandler; ///< get account and get me command object handler.
     SetAccountKeyHandler   m_setAccountHandler; ///< set account key command object handler.

@@ -46,7 +46,11 @@ bool GetAccountsHandler::onValidate() {
     }
 
     if (errorCode) {
-        boost::asio::write(m_socket,boost::asio::buffer((uint8_t*)&errorCode, ERROR_CODE_LENGTH));
+        try {
+            boost::asio::write(m_socket,boost::asio::buffer((uint32_t*)&errorCode, ERROR_CODE_LENGTH));
+        } catch (std::exception& e) {
+            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        }
         return false;
     }
 

@@ -14,6 +14,7 @@ public:
         eBadPath,
         eBadNode,
         eBankNotFound,
+        eUserNotFound,
         eBankIncorrect,
         eUndoNotFound,
         eGetUserFail,
@@ -23,7 +24,8 @@ public:
         eBadMsgId,
         eCreateAccountBadTiming,
         eCreateAccountFail,
-        eMessageSubmitFail
+        eMessageSubmitFail,
+        eWrongSignature
     };
 
 private:
@@ -32,6 +34,7 @@ private:
         { Code::eBadPath, "Bad path" },
         { Code::eBadNode, "Bad node" },
         { Code::eBankNotFound, "Can't open bank file" },
+        { Code::eUserNotFound, "Read user failed" },
         { Code::eBankIncorrect, "Incorrect bank" },
         { Code::eUndoNotFound, "Can't open undo file" },
         { Code::eGetUserFail, "Failed to get user info" },
@@ -41,7 +44,8 @@ private:
         { Code::eBadMsgId, "Bad message id (msid)" },
         { Code::eCreateAccountBadTiming, "Bad timing for remote account request, try again later."},
         { Code::eCreateAccountFail, "Failed to create account" },
-        { Code::eMessageSubmitFail, "Failed message submission"}
+        { Code::eMessageSubmitFail, "Failed message submission" },
+        { Code::eWrongSignature, "Wrong signature" }
     };
 
 public:

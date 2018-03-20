@@ -18,5 +18,8 @@ void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_
         if(onValidate()) {
             onExecute();
         }
+    } else {
+        ErrorCodes::Code code = ErrorCodes::Code::eWrongSignature;
+        boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
     }
 }

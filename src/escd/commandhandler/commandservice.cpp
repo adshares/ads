@@ -8,7 +8,7 @@
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
-    : m_offi(office),
+    : m_socket(socket), m_offi(office),
       m_getAccountHandler(office, socket),
       m_setAccountHandler(office, socket),
       m_createNodeHandler(office, socket),
@@ -22,7 +22,9 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
     user_t usera;
     if(!m_offi.get_user(usera, command->getBankId(), command->getUserId())) {
-        DLOG("ERROR: read user failed\n");
+        ErrorCodes::Code code = ErrorCodes::Code::eWrongSignature;
+        DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
+        boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
         return;
     };
 
