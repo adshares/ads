@@ -1,6 +1,7 @@
 #include "sendone.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/json.h"
 
 SendOne::SendOne()
     : m_data{} {
@@ -122,6 +123,6 @@ std::string SendOne::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree SendOne::toJson() {
-    return boost::property_tree::ptree();
+void SendOne::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
 }

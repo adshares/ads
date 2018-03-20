@@ -24,13 +24,16 @@ void CreateAccountHandler::onExecute() {
     int64_t     fee{0};
     int64_t     deduct{0};
 
-    uint32_t newUser = m_offi.add_user(m_command->getBankId(), m_usera.pkey, m_command->getTime(), m_command->getUserId());
-    if(!newUser) {
-        DLOG("ERROR: failed to open account\n");
-        return;
-    }
+    uint32_t newUser = 0;
+    if (m_command->getDestBankId() == m_offi.svid) {
+        newUser = m_offi.add_user(m_command->getBankId(), m_usera.pkey, m_command->getTime(), m_command->getUserId());
+        if(!newUser) {
+            DLOG("ERROR: failed to create account\n");
+            return;
+        }
 
-    m_command->setNewUser(newUser, m_usera.pkey);
+        m_command->setNewUser(newUser, m_usera.pkey);
+    }
 
     deduct = m_command->getDeduct();
     fee = m_command->getFee();

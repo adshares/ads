@@ -3,23 +3,24 @@
 #include <assert.h>
 #include <cstdlib>
 #include <iomanip>
-#include "settings.hpp"
+#include "hash.h"
+#include "ascii.h"
 
 namespace Helper {
 
-void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user, settings& sts) {
+void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user) {
     char pkey[65];
     char hash[65];
     ed25519_key2text(pkey,u.pkey,32);
     ed25519_key2text(hash,u.hash,32);
     pkey[64]='\0';
     hash[64]='\0';
-    uint16_t suffix=sts.crc_acnt(bank,user);
+    uint16_t suffix=crc_acnt(bank,user);
     char ucnt[19]="";
     char acnt[19];
     sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
     if(u.node) {
-        suffix=sts.crc_acnt(u.node,u.user);
+        suffix=crc_acnt(u.node,u.user);
         sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);
     }
     if(local) {

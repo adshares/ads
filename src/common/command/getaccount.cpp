@@ -1,6 +1,7 @@
-#include "getaccount.h"
+﻿#include "getaccount.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/json.h"
 
 GetAccount::GetAccount()
     : m_data{} {
@@ -102,6 +103,7 @@ std::string GetAccount::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree GetAccount::toJson() {
-    return boost::property_tree::ptree();
+void GetAccount::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    print_user(m_response.globalusera, ptree, false, this->getBankId(), this->getUserId());
 }

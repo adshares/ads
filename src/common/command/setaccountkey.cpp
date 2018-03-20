@@ -108,6 +108,6 @@ std::string SetAccountKey::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree SetAccountKey::toJson() {
-    return boost::property_tree::ptree();
+void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
+    ptree.put("Result", "PKEY changed");
 }

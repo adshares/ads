@@ -84,8 +84,8 @@ class SendOne : public IBlockCommand {
         virtual void            saveResponse(settings& sts)                 override;
 
         //IJsonSerialize interface
-        virtual std::string                     toString(bool pretty)   override;
-        virtual boost::property_tree::ptree     toJson()                override;
+        virtual std::string  toString(bool pretty)                      override;
+        virtual void         toJson(boost::property_tree::ptree &ptree) override;
 
       public:
         /**  \brief Get destination bank id. */

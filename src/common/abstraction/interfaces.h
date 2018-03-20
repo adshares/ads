@@ -106,7 +106,7 @@ class ICommand {
  */
 class IJsonSerialize {
   public:
-    virtual boost::property_tree::ptree     toJson()                = 0;
+    virtual void                            toJson(boost::property_tree::ptree& ptree) = 0;
     virtual std::string                     toString(bool preety)   = 0;
 
     virtual ~IJsonSerialize() = default;

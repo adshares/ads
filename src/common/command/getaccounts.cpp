@@ -127,8 +127,24 @@ std::string GetAccounts::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree GetAccounts::toJson() {
-    return boost::property_tree::ptree();
+void GetAccounts::toJson(boost::property_tree::ptree& ptree) {
+    uint32_t no_of_users = this->getResponseSize() / sizeof(user_t);
+    if (no_of_users == 0) {
+        uint32_t response;
+        memcpy(&response, this->getResponse(), 4);
+        std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
+        ptree.put("Error", ErrorCodes().getErrorMsg(response));
+    } else {
+        user_t* user_ptr=(user_t*)this->getResponse();
+        uint32_t bankId = this->getBankId();
+        boost::property_tree::ptree users;
+        for(uint32_t i=0; i<no_of_users; i++, user_ptr++) {
+            boost::property_tree::ptree user;
+            print_user(*user_ptr, user, true, bankId, i);
+            users.push_back(std::make_pair("", user.get_child("account")));
+        }
+        ptree.put_child("accounts", users);
+    }
 }
 
 ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUsers) {

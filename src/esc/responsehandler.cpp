@@ -12,31 +12,22 @@ ResponseHandler::ResponseHandler(settings& sts)
 }
 
 void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
+    m_pt.clear();
     initLogs(command);
 
     switch(command->getType()) {
     case TXSTYPE_INF:
-        onGetAccountResponse(std::move(command));
-        break;
     case TXSTYPE_KEY:
-        onSetAccountKeyResponse(std::move(command));
-        break;
     case TXSTYPE_BNK:
-        onCreateNodeResponse(std::move(command));
-        break;
     case TXSTYPE_PUT:
-        onSendResponse(std::move(command));
-        break;
     case TXSTYPE_MPT:
-        onSendResponse(std::move(command));
-        break;
     case TXSTYPE_USR:
-        onSendResponse(std::move(command));
-	break;
     case TXSTYPE_NOD:
-        onGetAccountsResponse(std::move(command));
+        commonResponse(std::move(command));
         break;
     default:
+        std::cerr<<"WARNING: response might be not defined for this command, check "<<__FILE__<<":"<<__LINE__<<"\n";
+        commonResponse(std::move(command));
         break;
     }
 }
@@ -80,62 +71,8 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     }
 }
 
-void ResponseHandler::onGetAccountResponse(std::unique_ptr<IBlockCommand> command) {
-    accountresponse t;
-
-    memcpy(&t, command->getResponse(), command->getResponseSize());
-
+void ResponseHandler::commonResponse(std::unique_ptr<IBlockCommand> command) {
     command->saveResponse(m_sts);
-
-    print_user(t.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
-    print_user(t.globalusera, m_pt, false, command->getBankId(), command->getUserId(), m_sts);
-
+    command->toJson(m_pt);
     boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
-}
-
-void ResponseHandler::onCreateNodeResponse(std::unique_ptr<IBlockCommand> command) {
-    commandresponse t;
-
-    memcpy(&t, command->getResponse(), command->getResponseSize());
-
-    command->saveResponse(m_sts);
-
-    print_user(t.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
-
-    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
-}
-
-void ResponseHandler::onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command) {
-    command->saveResponse(m_sts);
-    std::cerr<<"PKEY changed2\n";
-}
-
-void ResponseHandler::onSendResponse(std::unique_ptr<IBlockCommand> command) {
-    commandresponse response;
-
-    memcpy(&response, command->getResponse(), command->getResponseSize());
-    command->saveResponse(m_sts);
-    print_user(response.usera, m_pt, true, command->getBankId(), command->getUserId(), m_sts);
-    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
-}
-
-void ResponseHandler::onGetAccountsResponse(std::unique_ptr<IBlockCommand> command) {
-    uint32_t no_of_users = command->getResponseSize() / sizeof(user_t);
-    if (no_of_users == 0) {
-        uint32_t response;
-        memcpy(&response, command->getResponse(), 4);
-        std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
-    } else {
-        user_t* user_ptr=(user_t*)command->getResponse();
-        uint32_t bankId = command->getBankId();
-        boost::property_tree::ptree users;
-        for(uint32_t i=0; i<no_of_users; i++, user_ptr++) {
-            boost::property_tree::ptree user;
-            print_user(*user_ptr, user, true, bankId, i, m_sts);
-            users.push_back(std::make_pair("", user.get_child("account")));
-        }
-
-        m_pt.put_child("accounts", users);
-        boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
-   }
 }
