@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include "default.hpp"
 #include "settings.hpp"
+#include "command/errorcodes.h"
 
 class office;
 
@@ -99,6 +100,9 @@ class ICommand {
     virtual void                    saveResponse(settings& sts)  = 0;
 
     virtual ~ICommand() = default;
+
+public:
+    ErrorCodes::Code m_responseError;
 };
 
 

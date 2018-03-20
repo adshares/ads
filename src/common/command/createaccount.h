@@ -112,7 +112,6 @@ private:
 
     CreateAccountData   m_data;
     commandresponse     m_response;
-    ErrorCodes::Code    m_responseError;
     NewAccountData      m_newAccount;
 };
 

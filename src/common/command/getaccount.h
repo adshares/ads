@@ -98,7 +98,6 @@ class GetAccount : public IBlockCommand {
   public:
     usertxs2            m_data;
     accountresponse     m_response;
-    ErrorCodes::Code    m_responseError;
 };
 
 #endif // GETACCOUNTCOMMAND_H
