@@ -94,11 +94,13 @@ user_t& SendOne::getUserInfo() {
 
 bool SendOne::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
+        std::cerr<<"SendOne sending error\n";
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"SendMany reading error\n";
+        std::cerr<<"SendOne reading error\n";
+        return false;
     }
 
     if (m_responseError) {
