@@ -102,9 +102,9 @@ class SendMany : public IBlockCommand {
 
         /**
          * @brief Checks for target duplicates and does amount is positive value.
-         * @return true if duplicated target exists otherwise false
+         * @return ErrorCodes value, eNone if success.
          */
-        virtual bool            checkForDuplicates();
+        virtual ErrorCodes::Code    checkForDuplicates();
 
         /** \brief Retursn transactions vector */
         virtual std::vector<SendAmountTxnRecord> getTransactionsVector();

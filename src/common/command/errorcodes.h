@@ -25,7 +25,10 @@ public:
         eCreateAccountBadTiming,
         eCreateAccountFail,
         eMessageSubmitFail,
-        eWrongSignature
+        eWrongSignature,
+        eDuplicatedTarget,
+        eAmountBelowZero,
+        eUserBadTarget
     };
 
 private:
@@ -45,7 +48,10 @@ private:
         { Code::eCreateAccountBadTiming, "Bad timing for remote account request, try again later."},
         { Code::eCreateAccountFail, "Failed to create account" },
         { Code::eMessageSubmitFail, "Failed message submission" },
-        { Code::eWrongSignature, "Wrong signature" }
+        { Code::eWrongSignature, "Wrong signature" },
+        { Code::eDuplicatedTarget, "Duplicated target" },
+        { Code::eAmountBelowZero, "Amount below zero" },
+        { Code::eUserBadTarget, "Bad target user" }
     };
 
 public:

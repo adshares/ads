@@ -8,11 +8,12 @@
 
 SendMany::SendMany()
     : m_data{}, m_additionalData(nullptr) {
+    m_responseError = ErrorCodes::eNone;
 }
 
 SendMany::SendMany(uint16_t bank, uint32_t user, uint32_t msid, std::vector<SendAmountTxnRecord> &txns_data, uint32_t time)
     : m_data(bank, user, msid, time, txns_data.size()), m_transactions(txns_data), m_additionalData(nullptr) {
-
+    m_responseError = ErrorCodes::eNone;
     fillAdditionalData();
 }
 
@@ -147,18 +148,26 @@ user_t& SendMany::getUserInfo() {
 
 bool SendMany::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), this->getDataSize())) {
-        std::cerr<<"SendMany ERROR sending data";
+        std::cerr<<"SendMany ERROR sending data\n";
         return false;
     }
 
     if(!netClient.sendData(getAdditionalData(), this->getAdditionalDataSize())) {
-        std::cerr<<"SendMany ERROR sending additional data";
+        std::cerr<<"SendMany ERROR sending additional data\n";
         return false;
     }
 
     if(!netClient.sendData(getSignature(), this->getSignatureSize())) {
-        std::cerr<<"SendMany ERROR sending signature";
+        std::cerr<<"SendMany ERROR sending signature\n";
         return false;
+    }
+
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"SendMany reading error\n";
+    }
+
+    if (m_responseError) {
+        return true;
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
@@ -201,21 +210,21 @@ void SendMany::initTransactionVector() {
     }
 }
 
-bool SendMany::checkForDuplicates() {
+ErrorCodes::Code SendMany::checkForDuplicates() {
     std::set<std::pair<uint16_t, uint32_t>> checkForDuplicate;
     for (auto &it : m_transactions) {
         uint16_t node = it.dest_node;
         uint32_t user = it.dest_user;
         if (!checkForDuplicate.insert(std::make_pair(node, user)).second) {
             DLOG("ERROR: duplicate target: %04X:%08X\n", node, user);
-            return true;
+            return ErrorCodes::Code::eDuplicatedTarget;
         }
         if (it.amount < 0) {
             DLOG("ERROR: only positive non-zero transactions allowed in MPT\n");
-            return true;
+            return ErrorCodes::Code::eAmountBelowZero;
         }
     }
-    return false;
+    return ErrorCodes::Code::eNone;
 }
 
 std::vector<SendAmountTxnRecord> SendMany::getTransactionsVector() {
@@ -227,5 +236,9 @@ std::string SendMany::toString(bool /*pretty*/) {
 }
 
 void SendMany::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    if (!m_responseError) {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    }
 }
