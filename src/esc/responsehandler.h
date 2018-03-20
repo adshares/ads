@@ -16,11 +16,7 @@ class ResponseHandler {
 
   private:
     void initLogs(std::unique_ptr<IBlockCommand>& txs);
-    void onGetAccountResponse(std::unique_ptr<IBlockCommand> command);
-    void onSetAccountKeyResponse(std::unique_ptr<IBlockCommand> command);
-    void onCreateNodeResponse(std::unique_ptr<IBlockCommand> command);
-    void onSendResponse(std::unique_ptr<IBlockCommand> command);
-    void onGetAccountsResponse(std::unique_ptr<IBlockCommand> command);
+    void commonResponse(std::unique_ptr<IBlockCommand> command);
 
   private:
     settings&                   m_sts;

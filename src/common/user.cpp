@@ -1644,7 +1644,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             boost::property_tree::ptree users;
             for(uint32_t n=0; n<usern; n++,userp++) {
                 boost::property_tree::ptree user;
-                print_user(*userp,user,true,txs->bbank,n,sts);
+                print_user(*userp,user,true,txs->bbank,n);
                 users.push_back(std::make_pair("",user.get_child("account")));
             }
             pt.add_child("accounts",users);
@@ -1785,9 +1785,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 user_t myuser;
                 memcpy(&myuser,buf,sizeof(user_t));
                 if(txs->ttype==TXSTYPE_INF) {
-                    print_user(myuser,pt,true,txs->bbank,txs->buser,sts);
+                    print_user(myuser,pt,true,txs->bbank,txs->buser);
                 } else {
-                    print_user(myuser,pt,true,sts.bank,sts.user,sts);
+                    print_user(myuser,pt,true,sts.bank,sts.user);
                 }
                 if(txs->ttype!=TXSTYPE_INF || (txs->buser==sts.user && txs->bbank==sts.bank)) {
                     if(txs->ttype!=TXSTYPE_INF && txs->ttype!=TXSTYPE_LOG && (uint32_t)sts.msid+1!=myuser.msid) {
@@ -1826,7 +1826,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 else{
                   user_t myuser;
                   memcpy(&myuser,buf,sizeof(user_t));
-                  print_user(myuser,pt,false,txs->bbank,txs->buser,sts);}}
+                  print_user(myuser,pt,false,txs->bbank,txs->buser);}}
               catch (std::exception& e){
                 fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
             else

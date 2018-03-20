@@ -1,6 +1,7 @@
 #include "createnode.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/json.h"
 
 CreateNode::CreateNode()
     : m_data{} {
@@ -100,6 +101,6 @@ std::string CreateNode::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree CreateNode::toJson() {
-    return boost::property_tree::ptree();
+void CreateNode::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
 }

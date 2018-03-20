@@ -11,7 +11,7 @@ class settings;
 
 namespace Helper {
 
-void print_user(user_t& u, boost::property_tree::ptree& pt, bool local,uint32_t bank, uint32_t user, settings& sts);
+void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user);
 bool parse_amount(int64_t& amount,std::string str_amount);
 char* print_amount(int64_t amount);
 char* mydate(uint32_t now);

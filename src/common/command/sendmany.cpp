@@ -4,6 +4,7 @@
 
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/json.h"
 
 SendMany::SendMany()
     : m_data{}, m_additionalData(nullptr) {
@@ -225,6 +226,6 @@ std::string SendMany::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree SendMany::toJson() {
-    return boost::property_tree::ptree();
+void SendMany::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
 }

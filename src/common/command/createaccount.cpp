@@ -1,6 +1,8 @@
 #include "createaccount.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/hash.h"
+#include "helper/json.h"
 
 CreateAccount::CreateAccount()
     : m_data{} {
@@ -138,6 +140,16 @@ std::string CreateAccount::toString(bool /*pretty*/) {
     return "";
 }
 
-boost::property_tree::ptree CreateAccount::toJson() {
-    return boost::property_tree::ptree();
+void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
+    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    // only for account created in the same node
+    if (m_response.usera.user) {
+        char nAccountAddress[19]="";
+        uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.usera.user);
+        suffix=crc_acnt(getBankId(), m_response.usera.user);
+        sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.usera.user, suffix);
+        ptree.put("new_account.address", nAccountAddress);
+        ptree.put("new_account.node", this->getBankId());
+        ptree.put("new_account.id", m_response.usera.user);
+    }
 }

@@ -9,6 +9,8 @@
 
 namespace Helper {
 
+uint16_t crc_acnt(uint16_t node, uint32_t user);
+
 void create256signhash(const unsigned char* signature, int signSize, std::array<uint8_t, SHA256_DIGEST_LENGTH> ha, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout);
 
 void create256signhash(const unsigned char* signature, int signSize, const unsigned char* previosHash, std::array<uint8_t, SHA256_DIGEST_LENGTH>& hashout);
