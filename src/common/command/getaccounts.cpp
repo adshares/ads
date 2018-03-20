@@ -133,7 +133,7 @@ void GetAccounts::toJson(boost::property_tree::ptree& ptree) {
         uint32_t response;
         memcpy(&response, this->getResponse(), 4);
         std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
-        ptree.put("Error", ErrorCodes().getErrorMsg(response));
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(response));
     } else {
         user_t* user_ptr=(user_t*)this->getResponse();
         uint32_t bankId = this->getBankId();

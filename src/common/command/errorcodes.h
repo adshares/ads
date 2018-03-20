@@ -1,6 +1,10 @@
 #ifndef ERRORCODES_H
 #define ERRORCODES_H
 
+#define ERROR_CODE_LENGTH 4
+#define ERROR_TAG "Error"
+
+
 /** \brief Error code class provides function to return string message for certain enum error code. */
 class ErrorCodes {
 public:
@@ -10,7 +14,9 @@ public:
         eBadPath = 1,
         eBadNode = 2,
         eBankNotFound = 3,
-        eUndoNotFound = 4
+        eUndoNotFound = 4,
+        eGetUserFail = 5,
+        eGetGlobalUserFail = 6
     };
 
 private:
@@ -19,7 +25,9 @@ private:
         { Code::eBadPath, "Bad path" },
         { Code::eBadNode, "Bad node" },
         { Code::eBankNotFound, "Can't open bank file" },
-        { Code::eUndoNotFound, "Can't open undo file" }
+        { Code::eUndoNotFound, "Can't open undo file" },
+        { Code::eGetUserFail, "Failed to get user info" },
+        { Code::eGetGlobalUserFail, "Failed to get global user info" }
     };
 
 public:

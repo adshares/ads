@@ -29,6 +29,8 @@ class INetworkClient {
     virtual bool readData(char* buff, int size)         = 0;
     /** \brief Read data to vector. */
     virtual bool readData(std::vector<uint8_t>& buff)   = 0;
+    /** \brief Read data to int. */
+    virtual bool readData(int32_t* buff, int size)     = 0;
     virtual ~INetworkClient() = default;
 };
 
