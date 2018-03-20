@@ -5,12 +5,12 @@
 #include "helper/json.h"
 
 CreateAccount::CreateAccount()
-    : m_data{} {
+    : m_data{}, m_responseError(ErrorCodes::Code::eNone) {
     m_newAccount.user_id = 0;
 }
 
 CreateAccount::CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time)
-    : m_data(src_bank, src_user, msg_id, time, dst_bank) {
+    : m_data(src_bank, src_user, msg_id, time, dst_bank), m_responseError(ErrorCodes::Code::eNone) {
     m_newAccount.user_id = 0;
 }
 
@@ -96,7 +96,17 @@ user_t& CreateAccount::getUserInfo() {
 
 bool CreateAccount::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
+        std::cerr<<"CreateAccount sending error\n";
         return false;
+    }
+
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+       std::cerr<<"CreateAccount reading error\n";
+       return false;
+    }
+
+    if (m_responseError) {
+        return true;
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
@@ -141,15 +151,19 @@ std::string CreateAccount::toString(bool /*pretty*/) {
 }
 
 void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
-    // only for account created in the same node
-    if (m_response.usera.user) {
-        char nAccountAddress[19]="";
-        uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.usera.user);
-        suffix=crc_acnt(getBankId(), m_response.usera.user);
-        sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.usera.user, suffix);
-        ptree.put("new_account.address", nAccountAddress);
-        ptree.put("new_account.node", this->getBankId());
-        ptree.put("new_account.id", m_response.usera.user);
+    if (!m_responseError) {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        // only for account created in the same node
+        if (m_response.usera.user) {
+            char nAccountAddress[19]="";
+            uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.usera.user);
+            suffix=crc_acnt(getBankId(), m_response.usera.user);
+            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.usera.user, suffix);
+            ptree.put("new_account.address", nAccountAddress);
+            ptree.put("new_account.node", this->getBankId());
+            ptree.put("new_account.id", m_response.usera.user);
+        }
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }

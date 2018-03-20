@@ -4,6 +4,7 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "errorcodes.h"
 
 class CreateAccount : public IBlockCommand {
 public:
@@ -111,6 +112,7 @@ private:
 
     CreateAccountData   m_data;
     commandresponse     m_response;
+    ErrorCodes::Code    m_responseError;
     NewAccountData      m_newAccount;
 };
 

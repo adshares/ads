@@ -11,12 +11,19 @@ public:
     /** \brief Error codes used in get accounts (currently) command. */
     enum Code {
         eNone = 0,
-        eBadPath = 1,
-        eBadNode = 2,
-        eBankNotFound = 3,
-        eUndoNotFound = 4,
-        eGetUserFail = 5,
-        eGetGlobalUserFail = 6
+        eBadPath,
+        eBadNode,
+        eBankNotFound,
+        eBankIncorrect,
+        eUndoNotFound,
+        eGetUserFail,
+        eGetGlobalUserFail,
+        eLowBalance,
+        eReadOnlyMode,
+        eBadMsgId,
+        eCreateAccountBadTiming,
+        eCreateAccountFail,
+        eMessageSubmitFail
     };
 
 private:
@@ -25,9 +32,16 @@ private:
         { Code::eBadPath, "Bad path" },
         { Code::eBadNode, "Bad node" },
         { Code::eBankNotFound, "Can't open bank file" },
+        { Code::eBankIncorrect, "Incorrect bank" },
         { Code::eUndoNotFound, "Can't open undo file" },
         { Code::eGetUserFail, "Failed to get user info" },
-        { Code::eGetGlobalUserFail, "Failed to get global user info" }
+        { Code::eGetGlobalUserFail, "Failed to get global user info" },
+        { Code::eLowBalance, "Too low balance" },
+        { Code::eReadOnlyMode, "Reject transaction in readonly mode" },
+        { Code::eBadMsgId, "Bad message id (msid)" },
+        { Code::eCreateAccountBadTiming, "Bad timing for remote account request, try again later."},
+        { Code::eCreateAccountFail, "Failed to create account" },
+        { Code::eMessageSubmitFail, "Failed message submission"}
     };
 
 public:

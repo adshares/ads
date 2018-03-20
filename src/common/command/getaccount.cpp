@@ -88,6 +88,7 @@ user_t& GetAccount::getUserInfo() {
 
 bool GetAccount::send(INetworkClient& netClient) {
     if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
+        std::cerr<<"GetAccount sending error\n";
         return false;
     }
 
