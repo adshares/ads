@@ -1,16 +1,34 @@
 #ifndef ERRORCODES_H
 #define ERRORCODES_H
 
+#define ERROR_CODE_LENGTH 4
+#define ERROR_TAG "Error"
+
+
 /** \brief Error code class provides function to return string message for certain enum error code. */
 class ErrorCodes {
 public:
     /** \brief Error codes used in get accounts (currently) command. */
     enum Code {
         eNone = 0,
-        eBadPath = 1,
-        eBadNode = 2,
-        eBankNotFound = 3,
-        eUndoNotFound = 4
+        eBadPath,
+        eBadNode,
+        eBankNotFound,
+        eUserNotFound,
+        eBankIncorrect,
+        eUndoNotFound,
+        eGetUserFail,
+        eGetGlobalUserFail,
+        eLowBalance,
+        eReadOnlyMode,
+        eBadMsgId,
+        eCreateAccountBadTiming,
+        eCreateAccountFail,
+        eMessageSubmitFail,
+        eWrongSignature,
+        eDuplicatedTarget,
+        eAmountBelowZero,
+        eUserBadTarget
     };
 
 private:
@@ -19,7 +37,21 @@ private:
         { Code::eBadPath, "Bad path" },
         { Code::eBadNode, "Bad node" },
         { Code::eBankNotFound, "Can't open bank file" },
-        { Code::eUndoNotFound, "Can't open undo file" }
+        { Code::eUserNotFound, "Read user failed" },
+        { Code::eBankIncorrect, "Incorrect bank" },
+        { Code::eUndoNotFound, "Can't open undo file" },
+        { Code::eGetUserFail, "Failed to get user info" },
+        { Code::eGetGlobalUserFail, "Failed to get global user info" },
+        { Code::eLowBalance, "Too low balance" },
+        { Code::eReadOnlyMode, "Reject transaction in readonly mode" },
+        { Code::eBadMsgId, "Bad message id (msid)" },
+        { Code::eCreateAccountBadTiming, "Bad timing for remote account request, try again later."},
+        { Code::eCreateAccountFail, "Failed to create account" },
+        { Code::eMessageSubmitFail, "Failed message submission" },
+        { Code::eWrongSignature, "Wrong signature" },
+        { Code::eDuplicatedTarget, "Duplicated target" },
+        { Code::eAmountBelowZero, "Amount below zero" },
+        { Code::eUserBadTarget, "Bad target user" }
     };
 
 public:

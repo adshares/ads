@@ -5,10 +5,12 @@
 
 SetAccountKey::SetAccountKey()
     : m_data{} {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 SetAccountKey::SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64])
     : m_data( abank, auser, amsid, time, pubkey, pubkeysign) {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 bool SetAccountKey::checkPubKeySignaure() {
@@ -86,7 +88,17 @@ user_t& SetAccountKey::getUserInfo() {
 bool SetAccountKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
+        std::cerr<<"SetAccountKey sending error\n";
         return false;
+    }
+
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"SetAccountKey reading error\n";
+        return false;
+    }
+
+    if (m_responseError) {
+        return true;
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
@@ -109,5 +121,9 @@ std::string SetAccountKey::toString(bool /*pretty*/) {
 }
 
 void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
-    ptree.put("Result", "PKEY changed");
+    if (!m_responseError) {
+        ptree.put("Result", "PKEY changed");
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    }
 }

@@ -5,11 +5,13 @@
 
 GetAccount::GetAccount()
     : m_data{} {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser,
                        uint32_t time)
     : m_data( abank, auser, bbank, buser, time) {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 unsigned char* GetAccount::getData() {
@@ -87,11 +89,21 @@ user_t& GetAccount::getUserInfo() {
 }
 
 bool GetAccount::send(INetworkClient& netClient) {
-    if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
+    if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
+        std::cerr<<"GetAccount sending error\n";
         return false;
     }
 
-    if(!netClient.readData(getResponse(), getResponseSize())) {
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"GetAccount reading error\n";
+        return false;
+    }
+
+    if (m_responseError) {
+        return true;
+    }
+
+    if (!netClient.readData(getResponse(), getResponseSize())) {
         std::cerr<<"GetAccount ERROR reading global info\n";
         return false;
     }
@@ -104,6 +116,10 @@ std::string GetAccount::toString(bool /*pretty*/) {
 }
 
 void GetAccount::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
-    print_user(m_response.globalusera, ptree, false, this->getBankId(), this->getUserId());
+    if (!m_responseError) {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        print_user(m_response.globalusera, ptree, false, this->getBankId(), this->getUserId());
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    }
 }

@@ -5,11 +5,13 @@
 
 SendOne::SendOne()
     : m_data{} {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 SendOne::SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank,
                  uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)
     : m_data(abank, auser, amsid, bbank, buser, tmass, time, tinfo) {
+    m_responseError = ErrorCodes::Code::eNone;
 }
 
 unsigned char* SendOne::getData() {
@@ -92,7 +94,17 @@ user_t& SendOne::getUserInfo() {
 
 bool SendOne::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
+        std::cerr<<"SendOne sending error\n";
         return false;
+    }
+
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"SendOne reading error\n";
+        return false;
+    }
+
+    if (m_responseError) {
+        return true;
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
@@ -124,5 +136,9 @@ std::string SendOne::toString(bool /*pretty*/) {
 }
 
 void SendOne::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    if (!m_responseError) {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    } else {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    }
 }

@@ -23,10 +23,8 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_MPT:
     case TXSTYPE_USR:
     case TXSTYPE_NOD:
-        commonResponse(std::move(command));
-        break;
     case TXSTYPE_BRO:
-        onSendResponse(std::move(command));
+        commonResponse(std::move(command));
         break;
     default:
         std::cerr<<"WARNING: response might be not defined for this command, check "<<__FILE__<<":"<<__LINE__<<"\n";

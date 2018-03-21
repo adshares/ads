@@ -150,3 +150,18 @@ bool NetworkClient::readData(char* buff, int size) {
 
     return false;
 }
+
+bool NetworkClient::readData(int32_t *buff, int size) {
+    try {
+        if(m_connected && m_socket) {
+            if (boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size) {
+                return true;
+            }
+        }
+    } catch(std::exception& e) {
+        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        m_connected = false;
+    }
+
+    return false;
+}

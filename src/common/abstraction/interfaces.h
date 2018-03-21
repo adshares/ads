@@ -5,6 +5,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include "default.hpp"
 #include "settings.hpp"
+#include "command/errorcodes.h"
 
 class office;
 
@@ -29,6 +30,8 @@ class INetworkClient {
     virtual bool readData(char* buff, int size)         = 0;
     /** \brief Read data to vector. */
     virtual bool readData(std::vector<uint8_t>& buff)   = 0;
+    /** \brief Read data to int. */
+    virtual bool readData(int32_t* buff, int size)     = 0;
     virtual ~INetworkClient() = default;
 };
 
@@ -97,6 +100,9 @@ class ICommand {
     virtual void                    saveResponse(settings& sts)  = 0;
 
     virtual ~ICommand() = default;
+
+public:
+    ErrorCodes::Code m_responseError;
 };
 
 

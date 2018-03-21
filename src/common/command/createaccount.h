@@ -4,6 +4,7 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "errorcodes.h"
 
 class CreateAccount : public IBlockCommand {
 public:

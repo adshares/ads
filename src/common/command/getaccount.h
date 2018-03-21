@@ -5,6 +5,7 @@
 #include "command/pods.h"
 #include "default.hpp"
 #include "settings.hpp"
+#include "errorcodes.h"
 
 /*!
  * \brief Class responsible for handling "get_me" or "get_acocunt" command.
@@ -92,6 +93,7 @@ class GetAccount : public IBlockCommand {
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                      override;
     virtual void         toJson(boost::property_tree::ptree &ptree) override;
+
 
   public:
     usertxs2            m_data;
