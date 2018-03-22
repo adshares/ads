@@ -1,3 +1,5 @@
+#include <fcntl.h>
+#include <sys/stat.h>
 #include "getaccounts.h"
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"

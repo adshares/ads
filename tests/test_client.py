@@ -17,9 +17,8 @@ def test_key_changed(init_node_process):
     address = response['account']['address']
 
     response = exec_esc_cmd(INIT_CLIENT_ID,
-                            {"run":"change_account_key", "pkey":new_public_key, "signature":signature},
-                            loads_json=False)
-    assert response == 'PKEY changed2\n'
+                            {"run":"change_account_key", "pkey":new_public_key, "signature":signature})
+    assert response['result'] == 'PKEY changed'
 
     create_client_env(INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
                       address=address,
@@ -33,11 +32,10 @@ def test_create_account(init_node_process, client_id="2"):
     # As INIT user, create client with client_id
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"create_account", "node":"0001"})
 
-    assert 'account' in response
-    assert 'address' in response['account']
-    assert response['account']['paired_id'] == "1"
+    assert 'new_account' in response
+    assert 'address' in response['new_account']
+    address = response['new_account']['address']
 
-    address = "0001-00000001-8B4E"
     response = exec_esc_cmd(INIT_NODE_ID, {'run':"get_account", "address":address}, with_get_me=False)
 
     # Change user keys
@@ -47,12 +45,10 @@ def test_create_account(init_node_process, client_id="2"):
 
     response = exec_esc_cmd(INIT_CLIENT_ID,
                             {"run":"change_account_key", "pkey":new_pub_key, "signature":signature},
-                            cmd_extra=['--address', address], loads_json=False)
+                            cmd_extra=['--address', address])
 
     create_client_env(client_id, INIT_NODE_OFFICE_PORT,
                       address=address,
                       secret=new_secret)
 
-    assert response == 'PKEY changed2\n'
-
-
+    assert response['result'] == 'PKEY changed'

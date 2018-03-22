@@ -122,7 +122,7 @@ std::string SetAccountKey::toString(bool /*pretty*/) {
 
 void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
-        ptree.put("Result", "PKEY changed");
+        ptree.put("result", "PKEY changed");
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
