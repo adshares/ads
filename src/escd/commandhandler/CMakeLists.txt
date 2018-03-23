@@ -10,6 +10,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccounthandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.cpp
     PARENT_SCOPE
     )
 
@@ -25,6 +26,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/createaccounthandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.h
     PARENT_SCOPE
     )
 

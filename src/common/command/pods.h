@@ -299,4 +299,58 @@ struct SendBroadcastData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+/** \brief Get broadcast info */
+struct GetBroadcastInfo {
+    GetBroadcastInfo() = default;
+    GetBroadcastInfo(uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t block_)
+        : src_node(srcNode), src_user(srcUser), block(block_), ttime(txnTime) {
+    }
+
+    uint8_t  ttype{TXSTYPE_BLG};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t block{0};              ///< block no.
+    uint32_t ttime{0};              ///< time
+}__attribute__((packed));
+
+/** \brief Get broadcast data */
+struct GetBroadcastData {
+    GetBroadcastData() = default;
+    GetBroadcastData(uint16_t srcNode_, uint32_t srcUser_, uint32_t block_, uint32_t txnTime_)
+        : info(srcNode_, srcUser_, txnTime_, block_) {
+    }
+
+    GetBroadcastInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+/** \brief Header data user in get broadcast command */
+struct BroadcastFileHeader {
+    uint32_t path;
+    uint32_t lpath;
+    uint32_t fileSize;
+}__attribute__((packed));
+
+/** \brief Rest of broadcast response, after header and message. */
+struct GetBroadcastAdditionalData {
+    unsigned char sign[64];             ///< signature
+    uint8_t hash[SHA256_DIGEST_LENGTH]; ///< users block hash
+    uint8_t pkey[SHA256_DIGEST_LENGTH]; ///< public key
+    uint32_t msid;                      ///< id of last transaction
+    uint32_t mpos;
+}__attribute__((packed));
+
+/** \Get Broadcast command response */
+struct GetBroadcastResponse {
+    SendBroadcastInfo info;
+    GetBroadcastAdditionalData data;
+}__attribute__((packed));
+/** Broadcast file format
+ * for each block:
+ *      SendBroadcastInfo
+ *      Message (floating size = SendBroadcastInfo.msg_length)
+ *      GetBroadcastAdditionalData
+ */
+
+
 #endif // PODS_H

@@ -40,6 +40,7 @@
 #include "command/createaccount.h"
 #include "command/getaccounts.h"
 #include "command/broadcastmsg.h"
+#include "command/getbroadcastmsg.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -296,7 +297,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         close(fd);
         txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);
     } else if(!run.compare(txsname[TXSTYPE_BLG])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_BLG,sts.bank,sts.user,to_from);
+        command.reset(new GetBroadcastMsg(sts.bank, sts.user, to_from, now));
     } else if(!run.compare(txsname[TXSTYPE_BLK])) {
         if(!to_from) {
             servers block;
@@ -1054,7 +1055,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                     }
                     boost::asio::write(socket,boost::asio::buffer(txs->data,txs->size));
                     uint32_t head[3];
-                    if(2*sizeof(uint32_t)!=boost::asio::read(socket,boost::asio::buffer(head,3*sizeof(uint32_t)))) {
+                    size_t recvSize = boost::asio::read(socket,boost::asio::buffer(head,3*sizeof(uint32_t)));
+                    if(3*sizeof(uint32_t) != recvSize) {
                         std::cerr<<"ERROR reading broadcast log length\n";
                         socket.close();
                         return;
