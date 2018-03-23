@@ -28,7 +28,11 @@ public:
         eWrongSignature,
         eDuplicatedTarget,
         eAmountBelowZero,
-        eUserBadTarget
+        eUserBadTarget,
+        eTimeInFuture,
+        eBroadcastNotReady,
+        eNoBroadcastFile,
+        eIncorrectTransaction
     };
 
 private:
@@ -51,8 +55,12 @@ private:
         { Code::eWrongSignature, "Wrong signature" },
         { Code::eDuplicatedTarget, "Duplicated target" },
         { Code::eAmountBelowZero, "Amount below zero" },
-        { Code::eUserBadTarget, "Bad target user" }
-    };
+        { Code::eUserBadTarget, "Bad target user" },
+        { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
+        { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
+        { Code::eNoBroadcastFile, "No broadcast file to send" },
+        { Code::eIncorrectTransaction, "Incorrect transaction type" }
+   };
 
 public:
     const char* getErrorMsg(ErrorCodes::Code errorCode) {
