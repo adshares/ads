@@ -16,7 +16,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_sendManyHandler(office, socket),
       m_createAccountHandler(office, socket),
       m_getAccountsHandler(office, socket),
-      m_broadcastMsgHandler(office, socket) {
+      m_broadcastMsgHandler(office, socket),
+      m_getBroadcastMsgHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -49,9 +50,12 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_NOD:
         m_getAccountsHandler.execute(std::move(command), std::move(usera));
-	break;
+        break;
     case TXSTYPE_BRO:
         m_broadcastMsgHandler.execute(std::move(command), std::move(usera));
+        break;
+    case TXSTYPE_BLG:
+        m_getBroadcastMsgHandler.execute(std::move(command), std::move(usera));
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());
