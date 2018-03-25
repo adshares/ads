@@ -1883,7 +1883,7 @@ END:
         // exit with error code to enable sane bash scripting
         if(!isatty(fileno(stdin))) {
             boost::property_tree::write_json(std::cout,pt,sts.nice);
-            fprintf(stderr,"EXIT\n");
+            // fprintf(stderr,"EXIT\n");
             exit(-1);
         }
     }
