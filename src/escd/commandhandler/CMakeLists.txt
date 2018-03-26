@@ -11,6 +11,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.cpp
     PARENT_SCOPE
     )
 
@@ -27,6 +28,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/getaccountshandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.h
     PARENT_SCOPE
     )
 

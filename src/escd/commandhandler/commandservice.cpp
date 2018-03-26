@@ -5,6 +5,7 @@
 #include "command/sendmany.h"
 #include "command/getaccounts.h"
 #include "command/broadcastmsg.h"
+#include "command/changenodekey.h"
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
@@ -17,7 +18,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_createAccountHandler(office, socket),
       m_getAccountsHandler(office, socket),
       m_broadcastMsgHandler(office, socket),
-      m_getBroadcastMsgHandler(office, socket) {
+      m_getBroadcastMsgHandler(office, socket),
+      m_changeNodeKeyHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -56,6 +58,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_BLG:
         m_getBroadcastMsgHandler.execute(std::move(command), std::move(usera));
+	break;
+    case TXSTYPE_BKY:
+        m_changeNodeKeyHandler.execute(std::move(command), std::move(usera));
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

@@ -41,6 +41,7 @@
 #include "command/getaccounts.h"
 #include "command/broadcastmsg.h"
 #include "command/getbroadcastmsg.h"
+#include "command/changenodekey.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
@@ -423,8 +424,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         command.reset( new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
         fee=TXS_KEY_FEE;
     } else if(!run.compare(txsname[TXSTYPE_BKY])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_BKY,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)to_pkey);
-        fee=TXS_BKY_FEE;
+        command.reset(new ChangeNodeKey(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey));
+        fee = command->getFee();
     }
 
     else if(!run.compare(txsname[TXSTYPE_SUS])) {

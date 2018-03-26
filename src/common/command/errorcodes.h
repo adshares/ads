@@ -13,6 +13,7 @@ public:
         eNone = 0,
         eBadPath,
         eBadNode,
+        eBadUser,
         eBankNotFound,
         eUserNotFound,
         eBankIncorrect,
@@ -32,7 +33,9 @@ public:
         eTimeInFuture,
         eBroadcastNotReady,
         eNoBroadcastFile,
-        eIncorrectTransaction
+        eIncorrectTransaction,
+        eMatchSecretKeyNotFound,
+        eSetKeyRemoteBankFail
     };
 
 private:
@@ -40,6 +43,7 @@ private:
         { Code::eNone, "No error" },
         { Code::eBadPath, "Bad path" },
         { Code::eBadNode, "Bad node" },
+        { Code::eBadUser, "Bad user" },
         { Code::eBankNotFound, "Can't open bank file" },
         { Code::eUserNotFound, "Read user failed" },
         { Code::eBankIncorrect, "Incorrect bank" },
@@ -59,7 +63,9 @@ private:
         { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
         { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
         { Code::eNoBroadcastFile, "No broadcast file to send" },
-        { Code::eIncorrectTransaction, "Incorrect transaction type" }
+        { Code::eIncorrectTransaction, "Incorrect transaction type" },
+        { Code::eMatchSecretKeyNotFound, "Matching secret key not found" },
+        { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" }
    };
 
 public:
