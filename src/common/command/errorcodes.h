@@ -2,7 +2,7 @@
 #define ERRORCODES_H
 
 #define ERROR_CODE_LENGTH 4
-#define ERROR_TAG "Error"
+#define ERROR_TAG "error"
 
 
 /** \brief Error code class provides function to return string message for certain enum error code. */

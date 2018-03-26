@@ -144,6 +144,15 @@ bool BroadcastMsg::send(INetworkClient& netClient) {
         return false;
     }
 
+    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+        std::cerr<<"BroadcastMsg reading error\n";
+        return false;
+    }
+
+    if (m_responseError) {
+        return true;
+    }
+
     if(!netClient.readData(getResponse(), getResponseSize())) {
         std::cerr<<"BroadcastMsg ERROR reading global info\n";
         return false;
@@ -157,5 +166,9 @@ std::string BroadcastMsg::toString(bool /*pretty*/) {
 }
 
 void BroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
-    print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    if (m_responseError) {
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+    } else {
+        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+    }
 }
