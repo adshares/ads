@@ -353,4 +353,33 @@ struct GetBroadcastResponse {
  */
 
 
+/** \brief Change Node key command info */
+struct ChangeNodeKeyInfo {
+    ChangeNodeKeyInfo() = default;
+    ChangeNodeKeyInfo(uint16_t node, uint32_t srcUser, uint32_t msgId, uint32_t txnTime, uint16_t dstNode, uint8_t pubKey[32])
+        : src_node(node), src_user(srcUser), msg_id(msgId), ttime(txnTime), dst_node(dstNode) {
+        std::copy(pubKey, pubKey+32, node_new_key);
+    }
+
+    uint8_t  ttype{TXSTYPE_BKY};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t msg_id{0};             ///< user message id
+    uint32_t ttime{0};              ///< time
+    uint16_t dst_node{0};           ///< destination node
+    uint8_t node_new_key[32];       ///< new node key
+    uint8_t old_public_key[32];     ///< old public key
+}__attribute__((packed));
+
+/** \brief Change Node Key command data */
+struct ChangeNodeKeyData {
+    ChangeNodeKeyData() = default;
+    ChangeNodeKeyData(uint16_t node_, uint32_t srcUser_, uint32_t msgId_, uint32_t txnTime_, uint16_t dstNode_, uint8_t pubKey_[32])
+        : info(node_, srcUser_, msgId_, txnTime_, dstNode_, pubKey_) {
+    }
+
+    ChangeNodeKeyInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H

@@ -13,6 +13,7 @@
 #include "getaccountshandler.h"
 #include "broadcastmsghandler.h"
 #include "getbroadcastmsghandler.h"
+#include "changenodekeyhandler.h"
 
 class office;
 
@@ -42,6 +43,7 @@ class CommandService {
     GetAccountsHandler     m_getAccountsHandler;   ///< get accounts command handler
     BroadcastMsgHandler    m_broadcastMsgHandler;   ///< broadcast handler
     GetBroadcastMsgHandler m_getBroadcastMsgHandler;   ///< get broadcast message handler
+    ChangeNodeKeyHandler   m_changeNodeKeyHandler;  ///< change node key command handler
 };
 
 
