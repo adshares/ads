@@ -91,12 +91,12 @@ user_t& GetAccounts::getUserInfo() {
 
 bool GetAccounts::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        std::cerr<<"GetAccounts sending error\n";
+        ELOG("GetAccounts sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseBufferLength, ERROR_CODE_LENGTH)) {
-        std::cerr<<"GetAccounts reading error\n";
+        ELOG("GetAccounts reading error\n");
         return false;
     }
 
@@ -110,7 +110,7 @@ bool GetAccounts::send(INetworkClient& netClient) {
         m_responseBuffer = new unsigned char[m_responseBufferLength];
 
         if (!netClient.readData(m_responseBuffer, m_responseBufferLength)) {
-            std::cerr<<"GetAccounts ERROR reading response\n";
+            ELOG("GetAccounts ERROR reading response\n");
             return false;
         }
     }
@@ -134,7 +134,6 @@ void GetAccounts::toJson(boost::property_tree::ptree& ptree) {
     if (no_of_users == 0) {
         uint32_t response;
         memcpy(&response, this->getResponse(), ERROR_CODE_LENGTH);
-        std::cerr<<"GetAccounts response error: "<<ErrorCodes().getErrorMsg(response)<<"\n";
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(response));
     } else {
         user_t* user_ptr=(user_t*)this->getResponse();

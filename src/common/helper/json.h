@@ -16,7 +16,7 @@ bool parse_amount(int64_t& amount,std::string str_amount);
 char* print_amount(int64_t amount);
 char* mydate(uint32_t now);
 int check_csum(user_t& u,uint16_t peer,uint32_t uid);
-
+void printErrorJson(const char* errorMsg);
 }
 
 #endif // JSON_H

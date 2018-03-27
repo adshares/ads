@@ -14,13 +14,13 @@ using namespace std;
 
 void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& /*sts*/, std::unique_ptr<IBlockCommand> txs) { //len can be deduced from txstype
     if(!netClient.reconnect()) {
-        std::cerr<<"ERROR cannot connect to server\n";
+        ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
     }
 
     if( txs->send(netClient) ) {
         respHandler.onExecute(std::move(txs));
     } else {
-        std::cerr<<"ERROR reading global info talk2\n";
+        ELOG("ERROR reading global info talk2\n");
     }
 }
 
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
             }
         }
     } catch (std::exception& e) {
-        std::cerr << "Main Exception: " << e.what() << "\n";
+        ELOG("Main Exception: %s\n", e.what());
     }
 
     return 0;

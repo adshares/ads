@@ -88,12 +88,12 @@ user_t& CreateNode::getUserInfo() {
 
 bool CreateNode::send(INetworkClient& netClient) {
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        std::cerr<<"CreateNode sending error\n";
+        ELOG("CreateNode sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"CreateNode reading error\n";
+        ELOG("CreateNode reading error\n");
     }
 
     if (m_responseError) {
@@ -101,7 +101,7 @@ bool CreateNode::send(INetworkClient& netClient) {
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"CreateNode ERROR reading global info\n";
+        ELOG("CreateNode ERROR reading global info\n");
         return false;
     }
 
