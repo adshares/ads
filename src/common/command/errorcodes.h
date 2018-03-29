@@ -35,7 +35,8 @@ public:
         eNoBroadcastFile,
         eIncorrectTransaction,
         eMatchSecretKeyNotFound,
-        eSetKeyRemoteBankFail
+        eSetKeyRemoteBankFail,
+        eConnectServerError
     };
 
 private:
@@ -65,7 +66,8 @@ private:
         { Code::eNoBroadcastFile, "No broadcast file to send" },
         { Code::eIncorrectTransaction, "Incorrect transaction type" },
         { Code::eMatchSecretKeyNotFound, "Matching secret key not found" },
-        { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" }
+        { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" },
+        { Code::eConnectServerError, "Can't connect to server" }
    };
 
 public:

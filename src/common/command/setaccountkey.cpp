@@ -88,12 +88,12 @@ user_t& SetAccountKey::getUserInfo() {
 bool SetAccountKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
-        std::cerr<<"SetAccountKey sending error\n";
+        ELOG("SetAccountKey sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"SetAccountKey reading error\n";
+        ELOG("SetAccountKey reading error\n");
         return false;
     }
 
@@ -102,7 +102,7 @@ bool SetAccountKey::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"SetAccountKey ERROR reading global info\n";
+        ELOG("SetAccountKey ERROR reading global info\n");
         return false;
     }
 

@@ -3,8 +3,11 @@
 #include <assert.h>
 #include <cstdlib>
 #include <iomanip>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 #include "hash.h"
 #include "ascii.h"
+#include "command/errorcodes.h"
 
 namespace Helper {
 
@@ -152,6 +155,11 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid) {
     return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
+void printErrorJson(const char *errorMsg) {
+    boost::property_tree::ptree ptree;
+    ptree.put(ERROR_TAG, errorMsg);
+    boost::property_tree::write_json(std::cout, ptree, true);
+}
 
 }
 

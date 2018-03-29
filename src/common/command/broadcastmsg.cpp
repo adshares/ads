@@ -84,7 +84,7 @@ bool BroadcastMsg::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     unsigned char* fullDataBuffer = new unsigned char[size];
 
     if (!m_message) {
-        std::cerr<<"Message field empty";
+        DLOG("Message field empty\n");
     }
 
     memcpy(fullDataBuffer, this->getData(), dataSize);
@@ -130,22 +130,22 @@ uint32_t BroadcastMsg::getUserMessageId() {
 
 bool BroadcastMsg::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), getDataSize())) {
-        std::cerr<<"BroadcastMsg ERROR sending data";
+        ELOG("BroadcastMsg ERROR sending data\n");
         return false;
     }
 
     if(!netClient.sendData(getAdditionalData(), this->getAdditionalDataSize())) {
-        std::cerr<<"BroadcastMsg ERROR sending additional data";
+        ELOG("BroadcastMsg ERROR sending additional data\n");
         return false;
     }
 
     if(!netClient.sendData(getSignature(), this->getSignatureSize())) {
-        std::cerr<<"BroadcastMsg ERROR sending signature";
+        ELOG("BroadcastMsg ERROR sending signature\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"BroadcastMsg reading error\n";
+        ELOG("BroadcastMsg reading error\n");
         return false;
     }
 
@@ -154,7 +154,7 @@ bool BroadcastMsg::send(INetworkClient& netClient) {
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"BroadcastMsg ERROR reading global info\n";
+        ELOG("BroadcastMsg ERROR reading global info\n");
         return false;
     }
 

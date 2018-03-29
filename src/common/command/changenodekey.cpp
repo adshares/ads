@@ -85,12 +85,12 @@ user_t& ChangeNodeKey::getUserInfo() {
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
-        std::cerr<<"ChangeNodeKey sending error\n";
+        ELOG("ChangeNodeKey sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"ChangeNodeKey reading error\n";
+        ELOG("ChangeNodeKey reading error\n");
         return false;
     }
 
@@ -99,7 +99,7 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"ChangeNodeKey ERROR reading global info\n";
+        ELOG("ChangeNodeKey ERROR reading global info\n");
         return false;
     }
 

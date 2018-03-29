@@ -11,7 +11,7 @@ void SetAccountKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
         m_command = std::unique_ptr<SetAccountKey>(dynamic_cast<SetAccountKey*>(command.release()));
     } catch (std::bad_cast& bc) {
-        std::cerr << "OnSetAccountKey bad_cast caught: " << bc.what() << '\n';
+        ELOG("OnSetAccountKey bad_cast caught: %s\n", bc.what());
         return;
     }
 }
@@ -37,7 +37,7 @@ void SetAccountKeyHandler::onExecute() {
 
     // could add set_user here
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
+        ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     } else {
         m_offi.set_user(data.auser, m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
@@ -67,7 +67,7 @@ void SetAccountKeyHandler::onExecute() {
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
@@ -77,7 +77,7 @@ bool SetAccountKeyHandler::onValidate() {
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
     if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
+        ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
             errorCode = ErrorCodes::Code::eLowBalance;
     }
@@ -86,7 +86,7 @@ bool SetAccountKeyHandler::onValidate() {
         try {
             boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+            ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
         }
         return false;
     }

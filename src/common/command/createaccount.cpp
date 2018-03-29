@@ -98,12 +98,12 @@ user_t& CreateAccount::getUserInfo() {
 
 bool CreateAccount::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        std::cerr<<"CreateAccount sending error\n";
+        ELOG("CreateAccount sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-       std::cerr<<"CreateAccount reading error\n";
+       ELOG("CreateAccount reading error\n");
        return false;
     }
 
@@ -112,7 +112,7 @@ bool CreateAccount::send(INetworkClient& netClient) {
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"CreateAccount ERROR reading global info\n";
+        ELOG("CreateAccount ERROR reading global info\n");
         return false;
     }
 

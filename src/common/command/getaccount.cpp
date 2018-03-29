@@ -90,12 +90,12 @@ user_t& GetAccount::getUserInfo() {
 
 bool GetAccount::send(INetworkClient& netClient) {
     if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        std::cerr<<"GetAccount sending error\n";
+        ELOG("GetAccount sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"GetAccount reading error\n";
+        ELOG("GetAccount reading error\n");
         return false;
     }
 
@@ -104,7 +104,7 @@ bool GetAccount::send(INetworkClient& netClient) {
     }
 
     if (!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"GetAccount ERROR reading global info\n";
+        ELOG("GetAccount ERROR reading global info\n");
         return false;
     }
 

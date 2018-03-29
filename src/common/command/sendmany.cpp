@@ -148,22 +148,22 @@ user_t& SendMany::getUserInfo() {
 
 bool SendMany::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), this->getDataSize())) {
-        std::cerr<<"SendMany ERROR sending data\n";
+        ELOG("SendMany ERROR sending data\n");
         return false;
     }
 
     if(!netClient.sendData(getAdditionalData(), this->getAdditionalDataSize())) {
-        std::cerr<<"SendMany ERROR sending additional data\n";
+        ELOG("SendMany ERROR sending additional data\n");
         return false;
     }
 
     if(!netClient.sendData(getSignature(), this->getSignatureSize())) {
-        std::cerr<<"SendMany ERROR sending signature\n";
+        ELOG("SendMany ERROR sending signature\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"SendMany reading error\n";
+        ELOG("SendMany reading error\n");
         return false;
     }
 
@@ -172,7 +172,7 @@ bool SendMany::send(INetworkClient& netClient) {
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"SendMany ERROR reading global info\n";
+        ELOG("SendMany ERROR reading global info\n");
         return false;
     }
 
@@ -217,11 +217,11 @@ ErrorCodes::Code SendMany::checkForDuplicates() {
         uint16_t node = it.dest_node;
         uint32_t user = it.dest_user;
         if (!checkForDuplicate.insert(std::make_pair(node, user)).second) {
-            DLOG("ERROR: duplicate target: %04X:%08X\n", node, user);
+            ELOG("ERROR: duplicate target: %04X:%08X\n", node, user);
             return ErrorCodes::Code::eDuplicatedTarget;
         }
         if (it.amount < 0) {
-            DLOG("ERROR: only positive non-zero transactions allowed in MPT\n");
+            ELOG("ERROR: only positive non-zero transactions allowed in MPT\n");
             return ErrorCodes::Code::eAmountBelowZero;
         }
     }

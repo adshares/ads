@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <boost/array.hpp>
+#include "helper/json.h"
 #include "helper/ascii.h"
 #include "helper/socket.h"
 
@@ -34,11 +35,11 @@ bool NetworkClient::connect() {
             }
 
             if (error) {
-                //adddlog
+                Helper::printErrorJson(error.message().c_str());
                 return false;
             }
         } catch(std::exception& e) {
-            std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+            Helper::printErrorJson(e.what());
             m_connected = false;
             return false;
         }
@@ -57,7 +58,7 @@ bool NetworkClient::disConnect() {
             }
             m_socket.reset();
         } catch(std::exception& e) {
-            std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+            Helper::printErrorJson(e.what());
             m_connected = false;
             return false;
         }
@@ -82,7 +83,7 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 
@@ -98,7 +99,7 @@ bool NetworkClient::sendData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 
@@ -114,7 +115,7 @@ bool NetworkClient::readData(std::vector<uint8_t>& buff) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 
@@ -129,7 +130,7 @@ bool NetworkClient::readData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 
@@ -144,7 +145,7 @@ bool NetworkClient::readData(char* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 
@@ -159,7 +160,7 @@ bool NetworkClient::readData(int32_t *buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        std::cerr << "NetworkClient Exception: " << e.what() << "\n";
+        Helper::printErrorJson(e.what());
         m_connected = false;
     }
 

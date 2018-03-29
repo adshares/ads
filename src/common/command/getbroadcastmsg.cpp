@@ -102,12 +102,12 @@ bool GetBroadcastMsg::send(INetworkClient& netClient) {
     }
 
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        std::cerr<<"GetBroadcastMsg sending error\n";
+        ELOG("GetBroadcastMsg sending error\n");
         return false;
     }
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        std::cerr<<"GetBroadcastMsg reading error\n";
+        ELOG("GetBroadcastMsg reading error\n");
         return false;
     }
 
@@ -116,13 +116,13 @@ bool GetBroadcastMsg::send(INetworkClient& netClient) {
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        std::cerr<<"GetBroadcastMsg reading header error\n";
+        ELOG("GetBroadcastMsg reading header error\n");
         return false;
     }
 
     unsigned char *readBuffer = new unsigned char[m_header.fileSize];
     if (!netClient.readData(readBuffer, m_header.fileSize)) {
-        std::cerr<<"GetBroadcastMsg reading error\n";
+        ELOG("GetBroadcastMsg reading error\n");
         delete[] readBuffer;
         return false;
     }
