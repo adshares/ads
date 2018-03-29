@@ -3,6 +3,8 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/ascii.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hash.cpp    
     ${CMAKE_CURRENT_SOURCE_DIR}/json.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/servers.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/hlog.cpp
     PARENT_SCOPE
     )
 
@@ -12,6 +14,8 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/hash.h
     ${CMAKE_CURRENT_SOURCE_DIR}/socket.h    
     ${CMAKE_CURRENT_SOURCE_DIR}/json.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/servers.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/hlog.h
     PARENT_SCOPE
     )
 

@@ -584,7 +584,7 @@ class client : public boost::enable_shared_from_this<client> {
             free(data);
             if(memcmp(hash,zero,32)) { //read hlog
                 //DLOG("DEBUG, constructing blk/%03X/%05X/hlog.hlg",m_utxs.amsid>>20,m_utxs.amsid&0xFFFFF);
-                hlog hlg(m_utxs.amsid);
+                Helper::Hlog hlg(m_utxs.amsid);
                 //DLOG("DEBUG, loading blk/%03X/%05X/hlog.hlg",m_utxs.amsid>>20,m_utxs.amsid&0xFFFFF);
                 hlg.load();
                 //DLOG("DEBUG, sending blk/%03X/%05X/hlog.hlg",m_utxs.amsid>>20,m_utxs.amsid&0xFFFFF);

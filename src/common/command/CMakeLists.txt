@@ -11,6 +11,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsg.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsg.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekey.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblock.cpp
     PARENT_SCOPE
     )
 
@@ -29,6 +30,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsg.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsg.h
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekey.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblock.h
     PARENT_SCOPE
     )
 

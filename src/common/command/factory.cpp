@@ -10,6 +10,7 @@
 #include "broadcastmsg.h"
 #include "getbroadcastmsg.h"
 #include "changenodekey.h"
+#include "getblock.h"
 
 namespace command {
 
@@ -43,9 +44,12 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_BLG:
         command = std::make_unique<GetBroadcastMsg>();
-	break;
+        break;
     case TXSTYPE_BKY:
         command = std::make_unique<ChangeNodeKey>();
+        break;
+    case TXSTYPE_NDS:
+        command = std::make_unique<GetBlock>();
         break;
     default:
         break;

@@ -36,7 +36,9 @@ public:
         eIncorrectTransaction,
         eMatchSecretKeyNotFound,
         eSetKeyRemoteBankFail,
-        eConnectServerError
+        eConnectServerError,
+        eGetBlockInfoUnavailable,
+        eIncorrectType
     };
 
 private:
@@ -67,7 +69,9 @@ private:
         { Code::eIncorrectTransaction, "Incorrect transaction type" },
         { Code::eMatchSecretKeyNotFound, "Matching secret key not found" },
         { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" },
-        { Code::eConnectServerError, "Can't connect to server" }
+        { Code::eConnectServerError, "Can't connect to server" },
+        { Code::eGetBlockInfoUnavailable, "Block info is unavailable" },
+        { Code::eIncorrectType, "Incorrect type" }
    };
 
 public:
