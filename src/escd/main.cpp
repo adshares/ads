@@ -322,7 +322,7 @@ void server::peers_known(std::set<uint16_t>& list) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
-        if((*pi)->svid) {
+        if((*pi)->svid && (*pi)->svid<BANK_MAX){
             list.insert((*pi)->svid);
         }
     }
