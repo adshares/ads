@@ -299,13 +299,13 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         close(fd);
         txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);
     } else if(!run.compare(txsname[TXSTYPE_BLG])) {
-        boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
+        boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from){
             to_from=hexdec(json_from.get());
         }
         command.reset(new GetBroadcastMsg(sts.bank, sts.user, to_from, now));
     } else if(!run.compare(txsname[TXSTYPE_BLK])) {
-        boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
+        boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from){
             to_from=hexdec(json_from.get());
         }
