@@ -20,7 +20,7 @@ def init_node_process(init_blocks_counter = 1):
                             cwd=node_dir, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     blocks_counter = 0
-    for line in process.stdout:
+    for line in process.stderr:
         print(line, "init")
         if line == b"NEW BLOCK created\n":
             blocks_counter += 1
