@@ -65,8 +65,9 @@ class peer : public boost::enable_shared_from_this<peer> {
         if(iothp_ != NULL) {
             iothp_->join();
         } //try joining yourself error
-        //DLOG("%04X PEER CLOSE\n",svid);
+        socket_.cancel();
         socket_.close();
+        DLOG("%04X PEER CLOSED\n",svid);
         //socket_.release(NULL);
     }
 
