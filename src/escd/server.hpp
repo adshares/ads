@@ -399,8 +399,9 @@ class server {
             int64_t weight=0;
             uint64_t csum[4]= {0,0,0,0};
             for(uint32_t user=0; user<users; user++) {
+                auto it=ud.begin();
                 user_t u;
-                for(auto it=ud.begin(); it!=ud.end(); it++) {
+                for(; it!=ud.end(); it++) {
                     u.msid=0;
                     if(sizeof(user_t)==read(*it,&u,sizeof(user_t)) && u.msid) {
                         DLOG("OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
@@ -418,6 +419,9 @@ class server {
                 }
 NEXTUSER:
                 ;
+                for(; it!=ud.end(); it++){
+                    lseek(*it,sizeof(user_t),SEEK_CUR);
+                }
                 weight+=u.weight;
                 //FIXME, debug only !!!
 #ifdef DEBUG
