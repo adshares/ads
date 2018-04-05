@@ -129,6 +129,15 @@ class message :
         memcpy(data+4+64+2,&mymsid,4);
         memcpy(data+4+64+6,&now,4);
         memcpy(data+4+64+10,text,text_len);
+        //DEBUG :-( check keys :-(
+        {
+            hash_s ha;
+            SHA256_CTX sha256;
+            SHA256_Init(&sha256);
+            SHA256_Update(&sha256,mysk,32);
+            SHA256_Final(ha.hash,&sha256);
+            DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)ha.hash);
+        }
         if(text_type==MSGTYPE_BLK) {
             if(mysk==NULL) { // creating message from network
                 memcpy(data+4,mypk,64);
@@ -143,7 +152,6 @@ class message :
             ed25519_sign(data+4+64,10+sizeof(hash_t),mysk,mypk,data+4);
             hash_signature();
         } else if(text_type==MSGTYPE_INI) {
-            //DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)mysk);
             if(mysvid) { // READONLY ok
                 ed25519_sign(data+4+64,10+text_len,mysk,mypk,data+4);
             } else {
