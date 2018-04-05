@@ -51,7 +51,7 @@ class options {
             ("dnsa,d", boost::program_options::value<std::string>(&dnsa)->default_value(SERVER_DNSA),	"host name of ESC nodes")
             ("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
             ("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (reversible if no commit)")
-            ("back,b", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
+            ("comm,c", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
