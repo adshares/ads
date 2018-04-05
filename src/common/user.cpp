@@ -252,10 +252,6 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     if(json_bank) {
         to_bank=json_bank.get();
     }
-    boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
-    if(json_from) {
-        to_from=hexdec(json_from.get());
-    }
     boost::optional<uint32_t> json_msid=pt.get_optional<uint32_t>("msid");
     if(json_msid) {
         sts.msid=json_msid.get();
@@ -282,6 +278,10 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
             command.reset( new GetAccount(sts.bank,sts.user,to_bank,to_user,now));
         }
     } else if(!run.compare(txsname[TXSTYPE_LOG])) {
+        boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from"); //FIXME, decide HEX or DEC
+        if(json_from){
+            to_from=json_from.get();
+        }
         sts.lastlog=to_from; //save requested log period
         fprintf(stderr,"LOG: print from %d (%08X)\n",to_from,to_from);
         to_from=0;
@@ -299,8 +299,16 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         close(fd);
         txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);
     } else if(!run.compare(txsname[TXSTYPE_BLG])) {
+        boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
+        if(json_from){
+            to_from=hexdec(json_from.get());
+        }
         command.reset(new GetBroadcastMsg(sts.bank, sts.user, to_from, now));
     } else if(!run.compare(txsname[TXSTYPE_BLK])) {
+        boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from");
+        if(json_from){
+            to_from=hexdec(json_from.get());
+        }
         if(!to_from) {
             servers block;
             block.header_get();
