@@ -131,12 +131,16 @@ class message :
         memcpy(data+4+64+10,text,text_len);
         //DEBUG :-( check keys :-(
         {
-            hash_s ha;
-            SHA256_CTX sha256;
-            SHA256_Init(&sha256);
-            SHA256_Update(&sha256,mysk,32);
-            SHA256_Final(ha.hash,&sha256);
-            DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)ha.hash);
+            if (mysk != NULL) {
+                hash_s ha;
+                SHA256_CTX sha256;
+                SHA256_Init(&sha256);
+                SHA256_Update(&sha256,mysk,32);
+                SHA256_Final(ha.hash,&sha256);
+                DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)ha.hash);
+            } else {
+                DLOG("INI:%016lX\n",*(uint64_t*)mypk);
+            }
         }
         if(text_type==MSGTYPE_BLK) {
             if(mysk==NULL) { // creating message from network
