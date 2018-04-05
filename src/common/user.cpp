@@ -25,7 +25,6 @@
 
 #include "default.hpp"
 #include "hash.hpp"
-#include "hlog.hpp"
 #include "user.hpp"
 #include "settings.hpp"
 #include "message.hpp"
@@ -42,8 +41,10 @@
 #include "command/broadcastmsg.h"
 #include "command/getbroadcastmsg.h"
 #include "command/changenodekey.h"
+#include "command/getblock.h"
 #include "helper/hash.h"
 #include "helper/json.h"
+#include "helper/hlog.h"
 
 using namespace Helper;
 
@@ -330,7 +331,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     } else if(!run.compare(txsname[TXSTYPE_SIG])) { //                 !!!!!!!!
         txs=boost::make_shared<usertxs>(TXSTYPE_SIG,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_NDS])) { //                 !!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_NDS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new GetBlock(sts.bank, sts.user, to_block, now));
     } else if(!run.compare(txsname[TXSTYPE_NOD])) { //                 !!!!!!!!
         command.reset(new GetAccounts(sts.bank, sts.user, to_block, to_bank, now));
     } else if(!run.compare(txsname[TXSTYPE_MGS])) { //                 !!!!!!!!
@@ -1627,7 +1628,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 }
                 write(fd,buf,len);
                 close(fd);
-                hlog hlg(log,filename);
+                Helper::Hlog hlg(log,filename);
                 psrv.add_child("log",log);
             }
             pt.add_child("block",psrv);

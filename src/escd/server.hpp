@@ -5,7 +5,7 @@
 #include <fcntl.h>
 #include "servers.hpp"
 #include "candidate.hpp"
-#include "hlog.hpp"
+#include "helper/hlog.h"
 
 
 
@@ -3429,7 +3429,7 @@ NEXTUSER:
         myget_fee=0;
         uint32_t lpos=1;
         std::map<uint64_t,log_t> log;
-        hlog hlg(srvs_.now);
+        Helper::Hlog hlg(srvs_.now);
 
         //match remote account transactions
         std::map<uin_t,std::deque<uint64_t>,uin_cmp> uin; //waiting remote account requests

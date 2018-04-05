@@ -5,7 +5,6 @@ SET(SOURCE
 
 SET(HEADERS
     default.hpp
-    hlog.hpp
     servers.hpp
     hash.hpp
     message.hpp

@@ -12,6 +12,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.cpp
     PARENT_SCOPE
     )
 
@@ -29,6 +30,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/broadcastmsghandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.h
     PARENT_SCOPE
     )
 

@@ -42,7 +42,7 @@
 #include "default.hpp"
 #include "ed25519/ed25519.h"
 #include "hash.hpp"
-#include "hlog.hpp"
+#include "helper/hlog.h"
 #include "user.hpp"
 #include "options.hpp"
 #include "message.hpp"

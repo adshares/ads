@@ -382,4 +382,29 @@ struct ChangeNodeKeyData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+/** \brief Get block info */
+struct GetBlockInfo {
+    GetBlockInfo() = default;
+    GetBlockInfo(uint16_t srcNode, uint32_t srcUser, uint32_t block_, uint32_t txnTime)
+        : src_node(srcNode), src_user(srcUser), block(block_), ttime(txnTime) {
+    }
+
+    uint8_t  ttype{TXSTYPE_NDS};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t block{0};              ///< block no.
+    uint32_t ttime{0};              ///< time
+}__attribute__((packed));
+
+/** Get block data */
+struct GetBlockData {
+    GetBlockData() = default;
+    GetBlockData(uint16_t srcNode_, uint32_t srcUser_, uint32_t block_, uint32_t txnTime_)
+        : info(srcNode_, srcUser_, block_, txnTime_) {
+    }
+
+    GetBlockInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H

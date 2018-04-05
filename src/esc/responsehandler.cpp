@@ -26,10 +26,11 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_BRO:
     case TXSTYPE_BLG:
     case TXSTYPE_BKY:
+    case TXSTYPE_NDS:
         commonResponse(std::move(command));
         break;
     default:
-        std::cerr<<"WARNING: response might be not defined for this command, check "<<__FILE__<<":"<<__LINE__<<"\n";
+        DLOG("WARNING: response might be not defined for this command, check %s:%d\n", __FILE__, __LINE__);
         commonResponse(std::move(command));
         break;
     }
@@ -47,7 +48,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     m_logpt.put("tx.data",tx_data.str());
 
     int type = txs->getType();
-    if(type != TXSTYPE_INF && type != TXSTYPE_BLG) {
+    if(type != TXSTYPE_INF && type != TXSTYPE_BLG && type != TXSTYPE_NDS) {
         m_pt.put("tx.account_msid", m_sts.msid);
         m_logpt.put("tx.account_msid",m_sts.msid);
 
