@@ -723,10 +723,10 @@ void print_log(boost::property_tree::ptree& pt,settings& sts) {
         char tx_id[64];
         if(ulog.type & 0x8000) {
             logentry.put("inout","in");
-            sprintf(tx_id,"%04X%08X%04X",ulog.node,ulog.nmid,ulog.mpos);
+            sprintf(tx_id,"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);
         } else {
             logentry.put("inout","out");
-            sprintf(tx_id,"%04X%08X%04X",sts.bank,ulog.nmid,ulog.mpos);
+            sprintf(tx_id,"%04X:%08X:%04X",sts.bank,ulog.nmid,ulog.mpos);
         }
         logentry.put("id",tx_id);
         logtree.push_back(std::make_pair("",logentry));
@@ -797,7 +797,7 @@ void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree&
         memcpy(&nmid,p+utxs.size+32+32,sizeof(uint32_t));
         memcpy(&mpos,p+utxs.size+32+32+sizeof(uint32_t),sizeof(uint32_t)); //FIXME, this should be uint16_t
         char tx_id[64];
-        sprintf(tx_id,"%04X%08X%04X",utxs.abank,nmid,mpos);
+        sprintf(tx_id,"%04X:%08X:%04X",utxs.abank,nmid,mpos);
         blogentry.put("node_msid",nmid);
         blogentry.put("node_mpos",mpos);
         blogentry.put("id",tx_id);
@@ -926,9 +926,9 @@ bool node_connect(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,bo
 }
 
 void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data) {
-    char txid[64];
-    sprintf(txid,"%04X%08X%04X",res.node,res.msid,res.tnum);
-    pt.put("network_tx.id",&txid[0]);
+    char tx_id[64];
+    sprintf(tx_id,"%04X:%08X:%04X",res.node,res.msid,res.tnum);
+    pt.put("network_tx.id",&tx_id[0]);
     pt.put("network_tx.block_id",res.path);
     pt.put("network_tx.node_id",res.node);
     pt.put("network_tx.node_msid",res.msid);
@@ -960,7 +960,7 @@ void print_txs(boost::property_tree::ptree& pt,txspath_t& res,uint8_t* data) {
     pt.put("network_tx.ttime",utxs.ttime);
     pt.put("network_tx.bbank",utxs.bbank);
     pt.put("network_tx.buser",utxs.buser);
-    pt.put("network_tx.amount",utxs.tmass);
+    pt.put("network_tx.amount",print_amount(utxs.tmass));
     char infotext[65];
     infotext[64]='\0';
     ed25519_key2text(infotext,utxs.tinfo,32);
@@ -1142,7 +1142,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 //fprintf(stderr,"read txspath for %s\n",filename);
                 boost::asio::read(socket,boost::asio::buffer(&res,sizeof(txspath_t)));
                 if(!res.len) {
-                    fprintf(stderr,"ERROR, failed to read transaction path for txid %04X%08X%04X\n",svid,msid,tnum);
+                    fprintf(stderr,"ERROR, failed to read transaction path for txid %04X:%08X:%04X\n",svid,msid,tnum);
                     socket.close();
                     return;
                 }
@@ -1154,11 +1154,11 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 //fprintf(stderr,"close socket for %s\n",filename);
                 socket.close();
                 if(!res.path) {
-                    fprintf(stderr,"ERROR, got empty block for txid %04X%08X%04X\n",svid,msid,tnum);
+                    fprintf(stderr,"ERROR, got empty block for txid %04X:%08X:%04X\n",svid,msid,tnum);
                     return;
                 }
                 if(res.node!=svid || res.msid!=msid || res.tnum!=tnum) {
-                    fprintf(stderr,"ERROR, got wrong transaction %04X%08X%04X for txid %04X%08X%04X\n",
+                    fprintf(stderr,"ERROR, got wrong transaction %04X%08X%04X for txid %04X:%08X:%04X\n",
                             res.node,res.msid,res.tnum,svid,msid,tnum);
                     return;
                 }
@@ -1180,7 +1180,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 *hashmsid^=msid;
                 *hashtnum^=tnum;
                 if(memcmp(nhash,data+res.len,32)) {
-                    fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X%08X%04X\n",svid,msid,tnum);
+                    fprintf(stderr,"ERROR, failed to confirm first hash for txid %04X:%08X:%04X\n",svid,msid,tnum);
                     return;
                 }
                 std::vector<hash_s> hashes(res.hnum);
@@ -1190,7 +1190,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                 hashtree tree;
                 tree.hashpathrun(nhash,hashes);
                 if(memcmp(nhash,block.nowhash,32)) {
-                    fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X%08X%04X\n",svid,msid,tnum);
+                    fprintf(stderr,"ERROR, failed to confirm nowhash for txid %04X:%08X:%04X\n",svid,msid,tnum);
                     return;
                 }
                 //store confirmation and transaction in repository
@@ -1884,7 +1884,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                         out_log(logpt,sts.bank,sts.user);
                     }
                     char tx_id[64];
-                    sprintf(tx_id,"%04X%08X%04X",sts.bank,m.msid,m.mpos);
+                    sprintf(tx_id,"%04X:%08X:%04X",sts.bank,m.msid,m.mpos);
                     pt.put("tx.node_msid",m.msid);
                     pt.put("tx.node_mpos",m.mpos);
                     pt.put("tx.id",tx_id);
