@@ -243,7 +243,17 @@ void server::peer_set(std::set<peer_ptr>& peers) {
 void server::peer_clean() { //LOCK: peer_ missing_ mtx_
     std::set<peer_ptr> remove;
     std::set<uint16_t> svids;
+    static uint32_t last_block=0;
     peer_.lock();
+    if (!do_sync && last_block<srvs_.now && time(NULL)>srvs_.now+BLOCKSEC*0.75) {
+        for (auto pi=peers_.begin();pi!=peers_.end();pi++) {
+            if(!(*pi)->do_sync && (*pi)->last_active<srvs_.now) {
+                DLOG("DISCONNECT IDLE PEER %04X\n",(*pi)->svid);
+                (*pi)->killme=true;
+            }
+        }
+        last_block=srvs_.now;
+    }
     for(auto pi=peers_.begin(); pi!=peers_.end(); pi++) {
         if((*pi)->killme) {
             remove.insert(*pi);
