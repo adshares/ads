@@ -217,7 +217,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     std::stringstream ss(line);
 
     try {
-        DLOG("%s\n", line.c_str());
+        //DLOG("%s\n", line.c_str());
         boost::property_tree::read_json(ss,pt);
     } catch (std::exception& e) {
         std::cerr << "RUN_JSON Exception: " << e.what() << "\n";
