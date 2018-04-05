@@ -77,6 +77,16 @@ class server {
             bank_fee.resize(last_srvs_.nodes.size());
         }
 
+        if(opts_.back && !opts_.comm) {
+            if(undo_bank(false)) {
+                ELOG("DATABASE check passed, run again with --comm (-c) to commit database change and proceed\n");
+                exit(0);
+            } else {
+                ELOG("DATABASE check failed\n");
+                exit(-1);
+            }
+        }
+
         if(opts_.init) {
             struct stat sb;
             uint32_t now=time(NULL);
@@ -87,7 +97,7 @@ class server {
                     exit(-1);
                 }
                 ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",lastpath,msid_);
-                if(!undo_bank()) {
+                if(!undo_bank(true)) {
                     ELOG("ERROR loading initial database, fatal\n");
                     exit(-1);
                 }
@@ -175,7 +185,7 @@ class server {
         }
 
         if(!opts_.init) {
-            if(!undo_bank()) { //check database consistance
+            if(!undo_bank(true)) { //check database consistance
                 if(!do_fast) {
                     ELOG("DATABASE check failed, must use fast option to load new datase from network\n");
                     exit(-1);
@@ -357,7 +367,7 @@ class server {
     }
 
     //update_nodehash is similar
-    int undo_bank() { //will undo database changes and check if the database is consistant
+    int undo_bank(bool commit) { //will undo database changes and check if the database is consistant
         //could use multiple threads but disk access could limit the processing anyway
         //uint32_t path=srvs_.now; //use undo from next block
         uint32_t path=last_srvs_.now+BLOCKSEC; //use undo from next block
@@ -394,7 +404,11 @@ class server {
                     u.msid=0;
                     if(sizeof(user_t)==read(*it,&u,sizeof(user_t)) && u.msid) {
                         DLOG("OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
-                        write(fd,&u,sizeof(user_t)); //overwrite bank file
+                        if(commit){
+                            write(fd,&u,sizeof(user_t)); //overwrite bank file
+                        } else {
+                            lseek(fd,sizeof(user_t),SEEK_CUR); //overwrite bank file
+                        }
                         goto NEXTUSER;
                     }
                 }
