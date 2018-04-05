@@ -153,15 +153,16 @@ class server {
 
         if(!opts_.svid) { // READONLY ok
             iamvip=false;
-            bzero(skey,SHA256_DIGEST_LENGTH);
-            pkey=skey;
+            bzero(skey,sizeof(hash_t));
+            bzero(pkey,sizeof(hash_t));
         } else {
             if(last_srvs_.nodes.size()<=(unsigned)opts_.svid) {
                 ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
                 exit(-1);
             }
             iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-            pkey=srvs_.nodes[opts_.svid].pk;
+            //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
+            memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
             //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
             if(!last_srvs_.find_key(pkey,skey)) {
                 char pktext[2*32+1];
@@ -815,8 +816,8 @@ NEXTUSER:
                 period_start=srvs_.nextblock();
                 bank_fee.resize(last_srvs_.nodes.size());
                 if(opts_.svid && opts_.svid<(int)srvs_.nodes.size()) {
+                    // pkey=srvs_.nodes[opts_.svid].pk;
                     iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-                    pkey=srvs_.nodes[opts_.svid].pk;
                 } //FIXME, is this needed and safe ?
                 do_fast=1;
                 headers_.unlock();
@@ -2501,7 +2502,13 @@ NEXTUSER:
                     old_bky.insert(node);
                     if(node==opts_.svid) {
                         if(utxs.bbank) {
-                            ofip_change_pkey((uint8_t*)utxs.opkey(p));
+                            memcpy(pkey,(uint8_t*)utxs.opkey(p),sizeof(hash_t));
+                            if(!srvs_.find_key(pkey,skey)) {
+                                ELOG("ERROR, failed to change to old bank key, fatal!\n");
+                                exit(-1);
+                            }
+                            last_srvs_.find_more_keys(pkey,nkeys);
+                            ofip_change_pkey(pkey);
                         }
                         DLOG("WARNING undoing local bank key change\n");
                     }
@@ -3369,11 +3376,12 @@ NEXTUSER:
             }
             memcpy(srvs_.nodes[node].pk,it->second.hash,32);
             if(node==opts_.svid) {
-                if(!srvs_.find_key(it->second.hash,skey)) {
+                memcpy(pkey,srvs_.nodes[node].pk,sizeof(hash_t));
+                if(!srvs_.find_key(pkey,skey)){
                     ELOG("ERROR, failed to change to new bank key, fatal!\n");
                     exit(-1);
                 }
-                pkey=srvs_.nodes[node].pk;
+                // pkey=srvs_.nodes[node].pk;
                 last_srvs_.find_more_keys(pkey,nkeys);
             }
         }
@@ -4899,7 +4907,8 @@ NEXTBANK:
     std::list<servers> headers; //FIXME, make this private
     uint32_t get_msglist; //block id of the requested msglist of messages
     office* ofip;
-    uint8_t *pkey; //used by office/client to create BKY transaction
+    // uint8_t *pkey; //used by office/client to create BKY transaction
+    hash_t pkey; // can not be a pointer to servers.nodes[] because add_node runs push_back() on a vector
     uint32_t start_path;
     uint32_t start_msid;
   private:
