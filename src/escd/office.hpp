@@ -508,7 +508,8 @@ class office {
             return(false);
         }
 
-        srv_.dividend(u); //add missing dividend
+        // after adding dividend rpath will be updated too and this will destroy the checksum test
+        //srv_.dividend(u); //add missing dividend, will overwrite rpath too in this case
         return(true);
     }
 
