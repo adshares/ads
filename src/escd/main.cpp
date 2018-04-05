@@ -444,6 +444,7 @@ void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
+        new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
     } catch (std::exception& e) {
@@ -470,6 +471,7 @@ void server::connect(std::string peer_address) {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
+        new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
     } catch (std::exception& e) {
@@ -492,6 +494,7 @@ void server::connect(uint16_t svid) {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
+        new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
     } catch (std::exception& e) {
