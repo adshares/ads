@@ -16,10 +16,12 @@ class options {
     options() :
         init(false),
         fast(false),
+        comm(false),
         ipv4(0) {
     }
     bool init;
     bool fast;
+    bool comm;
     int mins;
     int offi;
     int port;
@@ -48,7 +50,8 @@ class options {
             ("svid,i", boost::program_options::value<int>(&svid)->default_value(0),				"service id (assigned by the network)")
             ("dnsa,d", boost::program_options::value<std::string>(&dnsa)->default_value(SERVER_DNSA),	"host name of ESC nodes")
             ("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
-            ("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (irreversable!)")
+            ("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (reversible if no commit)")
+            ("back,b", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -125,6 +128,9 @@ class options {
             }
             if(vm.count("back")) {
                 std::cout << "Roll back DB: " << vm["back"].as<int>() << std::endl;
+            }
+            if(vm.count("back") && vm.count("comm")) {
+                std::cout << "Commit DB   : " << vm["comm"].as<bool>() << std::endl;
             }
         } catch(std::exception &e) {
             std::cout << "Exception: " << e.what() << std::endl;
