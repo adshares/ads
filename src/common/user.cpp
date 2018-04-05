@@ -1238,7 +1238,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             char* firstkeys=NULL; //FIXME, free !!!
             int firstkeyslen=0;
             //read first vipkeys if needed
-            if(!txs->amsid) { // amsid = to_from
+            if(!txs->amsid || txs->amsid == txs->buser) { // amsid = to_from
                 mkdir("blk",0755);
                 mkdir("vip",0755);
                 mkdir("txs",0755);
@@ -1270,6 +1270,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             boost::asio::read(socket,boost::asio::buffer((char*)headers,num*sizeof(header_t)));
             //load last header
             if(firstkeys!=NULL) { //store first vip keys
+                block.now = 0;
+                block.header_get();
+                uint32_t laststart = block.now;
                 memcpy(viphash,headers->viphash,32);
                 char hash[65];
                 hash[64]='\0';
@@ -1297,7 +1300,9 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                     return;
                 }
                 memcpy(oldhash,headers->oldhash,32);
-                block.write_start();
+                if (!laststart) {
+                    block.write_start();
+                }
             } else {
                 block.now=0;
                 block.header_get();

@@ -369,8 +369,10 @@ class client : public boost::enable_shared_from_this<client> {
             }
             header_t head;
             bzero(head.viphash,32);
-            if(!from) {
-                from=start;
+            if(!from || from==to) {
+                if (!from) {
+                    from = start;
+                }
                 block.now=from;
                 if(block.header_get()) {
                     block.header(head);
