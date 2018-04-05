@@ -28,7 +28,12 @@ void GetAccountsHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize() + ERROR_CODE_LENGTH));
+        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        if (!errorCode) {
+            uint32_t sizeOfResponse = m_command->getResponseSize();
+            boost::asio::write(m_socket, boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
+            boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
+        }
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
@@ -47,7 +52,7 @@ bool GetAccountsHandler::onValidate() {
 
     if (errorCode) {
         try {
-            boost::asio::write(m_socket,boost::asio::buffer((uint32_t*)&errorCode, ERROR_CODE_LENGTH));
+            boost::asio::write(m_socket,boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         } catch (std::exception& e) {
             DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
         }
