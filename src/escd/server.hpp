@@ -401,15 +401,17 @@ class server {
             for(uint32_t user=0; user<users; user++) {
                 auto it=ud.begin();
                 user_t u;
-                for(; it!=ud.end(); it++) {
+                int back=opts_.back;
+                for(;it!=ud.end();it++,back--){
                     u.msid=0;
                     if(sizeof(user_t)==read(*it,&u,sizeof(user_t)) && u.msid) {
-                        DLOG("OVERWRITE: %04X:%08X (weight:%016lX)\n",bank,user,u.weight);
+                        DLOG("OVERWRITE: %04X:%08X (weight:%016lX) (back:%d)\n",bank,user,u.weight,back);
                         if(commit){
                             write(fd,&u,sizeof(user_t)); //overwrite bank file
                         } else {
                             lseek(fd,sizeof(user_t),SEEK_CUR); //overwrite bank file
                         }
+                        it++;
                         goto NEXTUSER;
                     }
                 }
