@@ -98,7 +98,7 @@ def create_init_client():
                       secret=INIT_CLIENT_SECRET)
 
 
-def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_json=True, timeout=10):
+def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeout=10):
     client_dir = get_client_dir(client_id)
 
     esc_cmd = [ESC_BIN_PATH]
@@ -106,7 +106,7 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_
         esc_cmd = esc_cmd + cmd_extra
 
     process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT, stdin=subprocess.PIPE, shell=True)
+                               stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
 
     cmds = [js_command]
     if with_get_me:
@@ -115,20 +115,10 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, loads_
     for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
 
-    raw_response = process.communicate(timeout=timeout)[0].decode("utf-8")
+    stdout, stderr = process.communicate(timeout=timeout)
 
-    responses = []
-    for cmd in cmds[::-1]:
-        cmd_str = json.dumps(cmd)
-        resp_index = raw_response.find(json.dumps(cmd))
-        if resp_index == -1:
-            print("Response not found for cmd %s in %s" %(cmd_str, raw_response))
-            return None
-        responses.insert(0, raw_response[resp_index + len(cmd_str):])
-        raw_response = raw_response[0:resp_index-1]
+    raw_response = stdout.decode("utf-8")
+    raw_response = raw_response.replace("}\n", "}").replace("}{", "},{")
 
-    response = responses[-1]
-    if loads_json:
-        response = json.loads(response)
-
-    return response
+    responses = json.loads("[%s]" %raw_response)
+    return responses[-1]
