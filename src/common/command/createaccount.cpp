@@ -7,12 +7,14 @@
 CreateAccount::CreateAccount()
     : m_data{} {
     m_newAccount.user_id = 0;
+    memset(m_newAccount.user_pkey, 0, sizeof(m_newAccount.user_pkey));
     m_responseError = ErrorCodes::Code::eNone;
 }
 
 CreateAccount::CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time)
     : m_data(src_bank, src_user, msg_id, time, dst_bank) {
     m_newAccount.user_id = 0;
+    memset(m_newAccount.user_pkey, 0, sizeof(m_newAccount.user_pkey));
     m_responseError = ErrorCodes::Code::eNone;
 }
 
@@ -97,8 +99,18 @@ user_t& CreateAccount::getUserInfo() {
 }
 
 bool CreateAccount::send(INetworkClient& netClient) {
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("CreateAccount sending error\n");
+    if(!netClient.sendData(getData(), getDataSize())) {
+        ELOG("CreateAccount sending data error\n");
+        return false;
+    }
+
+    if(!netClient.sendData(getAdditionalData(), getAdditionalDataSize())) {
+        ELOG("CreateAccount sending additional data error\n");
+        return false;
+    }
+
+    if(!netClient.sendData(getSignature(), getSignatureSize())) {
+        ELOG("CreateAccount sending signature error\n");
         return false;
     }
 
@@ -128,12 +140,7 @@ void CreateAccount::setAdditionalData(char* data) {
 }
 
 int CreateAccount::getAdditionalDataSize() {
-    // here return size of struct only when it was set on server side
-    int size = 0;
-    if (m_newAccount.user_id) {
-        size = sizeof(m_newAccount);
-    }
-    return size;
+    return sizeof(m_newAccount);
 }
 
 uint32_t CreateAccount::getDestBankId() {
