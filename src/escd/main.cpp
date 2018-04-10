@@ -453,9 +453,10 @@ void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        new_peer->killme=true; // leave little time for the connection
-        boost::asio::async_connect(new_peer->socket(),iterator,
-                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        //new_peer->killme=true; // leave little time for the connection
+        //boost::asio::async_connect(new_peer->socket(),iterator,
+        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        new_peer->tryAsyncConnect(iterator, 15);
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -480,9 +481,10 @@ void server::connect(std::string peer_address) {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        new_peer->killme=true; // leave little time for the connection
-        boost::asio::async_connect(new_peer->socket(),iterator,
-                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        //new_peer->killme=true; // leave little time for the connection
+        //boost::asio::async_connect(new_peer->socket(),iterator,
+        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        new_peer->tryAsyncConnect(iterator, 15);
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -498,14 +500,19 @@ void server::connect(uint16_t svid) {
         sprintf(portt,"%u",srvs_.nodes[svid].port);
         boost::asio::ip::tcp::resolver resolver(io_service_);
         boost::asio::ip::tcp::resolver::query query(inet_ntoa(addr),portt);
+        //boost::asio::ip::tcp::endpoint              connectpoint{ boost::asio::ip::address::from_string("127.0.0.1"), 8291};
+        //boost::asio::ip::tcp::resolver::query query(boost::asio::ip::address::from_string("127.0.0.1"), 8291);
         boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
         peer_ptr new_peer(new peer(*this,false,srvs_,opts_));
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        new_peer->killme=true; // leave little time for the connection
-        boost::asio::async_connect(new_peer->socket(),iterator,
-                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        //new_peer->killme=true; // leave little time for the connection
+        //boost::asio::async_connect(new_peer->socket(),iterator,
+        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+
+        new_peer->tryAsyncConnect(iterator, 15);
+
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }

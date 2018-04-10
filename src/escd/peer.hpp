@@ -1,10 +1,13 @@
 #ifndef PEER_HPP
 #define PEER_HPP
 
+#include <boost/asio.hpp>
+#include <boost/smart_ptr.hpp>
+#include "server.hpp"
 #include "helper/socket.h"
+#include "network/peerclient.h"
 
-//class peer : public boost::enable_shared_from_this<peer>
-class peer : public std::enable_shared_from_this<peer> {
+class peer : public boost::enable_shared_from_this<peer> {
   public:
     peer(server& srv,bool in,servers& srvs,options& opts) :
         svid(BANK_MAX),
@@ -14,7 +17,7 @@ class peer : public std::enable_shared_from_this<peer> {
         peer_io_service_(),
         work_(peer_io_service_),
         socket_(peer_io_service_),
-        iothp_(nullptr),
+        m_netclient(socket_),
         server_(srv),
         incoming_(in),
         srvs_(srvs),
@@ -30,15 +33,30 @@ class peer : public std::enable_shared_from_this<peer> {
         BLOCK_PEER(false) {
         read_msg_ = boost::make_shared<message>();
 
-//        iothp_= new boost::thread(boost::bind(&peer::iorun,this));
         iothp_.reset(new boost::thread(boost::bind(&peer::iorun,this)));
+
+        if(iothp_){
+            std::string thName = "peer_" + std::to_string(svid);
+            pthread_setname_np(iothp_->native_handle(), thName.c_str());
+        }
     }
 
     ~peer() {
-        if(port||1) {
-            uint32_t ntime=time(NULL);
-            DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
+
+        DLOG("%04X PEER DESTRUCT %d port %d\n",svid, port);
+
+        try {
+            if(port||1) {
+                uint32_t ntime=time(NULL);
+            }
+
+            stop();
         }
+        catch (std::exception& e) {
+            std::cerr << e.what();
+        }
+
+
     }
 
     void iorun() {
@@ -50,52 +68,60 @@ class peer : public std::enable_shared_from_this<peer> {
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
             DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
+            DLOG("+++++++++++++++++++++++++++CATCH IORUN KILMEE %04X %s\n",svid,e.what());
             killme=true;
         }
         DLOG("%04X PEER IORUN END\n",svid);
     }
 
     void stop() { // by server only
-        boost::system::error_code errorcode;
-        //DLOG("%04X STOP start\n",svid);
+        DLOG("PEER STOP");
+        DLOG("+++++++++++++++++++++++++++CATCH STOP KILMEE %d\n",svid);
         killme=true;
-        //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);
-        if(socket_.is_open()){
-            DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
-            socket_.cancel();
-            //DLOG("%04X CLOSE SOCKET\n",svid);
-            socket_.close();
-            boost::this_thread::sleep(boost::posix_time::milliseconds(999)); // mus sleep to let connect() fail
-        }
-        //DLOG("%04X RESET\n",svid);
+
         //peer_io_service_.reset();
-        //DLOG("%04X STOP\n",svid);
-        peer_io_service_.stop();
-        //DLOG("%04X PEER INTERRUPT\n",svid);
-        //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-        //iothp_->interrupt();
-        //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-        //DLOG("%04X PEER JOIN\n",svid);
-        if(iothp_ != nullptr) {
-            //DLOG("%04X IOTH CLOSING\n",svid);
-            iothp_->join(); //try joining yourself error
-            iothp_.reset(nullptr);
+
+        if(socket_.is_open())
+        {
+            socket_.cancel();
+            socket_.close();
+        }
+
+        if(!peer_io_service_.stopped()){
+            peer_io_service_.stop();
+        }
+
+
+        if(iothp_) {
+            iothp_->join();
+            //iothp_.reset();
         } //try joining yourself error
-        //socket_.cancel();
-        //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);
-        //socket_.close();
-        //socket_.release(NULL);
-        DLOG("%04X PEER CLOSED\n",svid);
+        //DLOG("%04X PEER CLOSE\n",svid);
+    }
+
+    void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {
+        //boost::asio::async_connect(new_peer->socket(), connIt,
+        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+
+        m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, shared_from_this(), boost::asio::placeholders::error), timeout);
     }
 
     void leave() {
-        DLOG("%04X PEER LEAVING %d<->%d\n",svid,socket_.local_endpoint().port(),port);
+        //DLOG("%04X PEER LEAVING %d<->%d\n",svid,socket_.local_endpoint().port(),port);
+        DLOG("%04X PEER LEAVING \n",svid);
+        if(svid == 1)
+        {
+            int t = 0;
+        }
         //message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
+
+        DLOG("+++++++++++++++++++++++++++leave KILMEE %d \n",svid);
         killme=true;
     }
 
     void accept() { //only incoming connections
-        //Helper::setSocketTimeout(socket_);
+        Helper::setSocketTimeout(socket_);
+
         assert(incoming_);
         //killme=false; //connection established
         addr = socket_.remote_endpoint().address().to_string();
@@ -103,13 +129,13 @@ class peer : public std::enable_shared_from_this<peer> {
         DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(), socket_.remote_endpoint().address().to_string().c_str(),port);
         boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
                                 boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        //asyncWaitForNewMessageHeader();
     }
 
     void connect(const boost::system::error_code& error) { //only outgoing connection
         if(error) {
             DLOG("%04X PEER ACCEPT ERROR\n",svid);
             killme=true; // not needed, as now killme=true is initial state for outgoing connections
-            //peer_io_service_.stop();
             return;
         }
         killme=false; //connection established
@@ -124,11 +150,18 @@ class peer : public std::enable_shared_from_this<peer> {
         msg->busy.insert(svid);
         msg->print(" HANDSHAKE");
         write_msgs_.push_back(msg);
+
+        //m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write, this,
+                                                                //boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         boost::asio::async_write(socket_,boost::asio::buffer(msg->data,msg->len),
                                  boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
         boost::asio::async_read(socket_,
                                 boost::asio::buffer(read_msg_->data,message::header_length),
                                 boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+
+        //asyncWaitForNewMessageHeader();
+
+        DLOG("END OF CONNECT \n");
     }
 
     boost::asio::ip::tcp::socket& socket() {
@@ -211,6 +244,8 @@ class peer : public std::enable_shared_from_this<peer> {
         if (no_write_in_progress) {
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
+
+            //m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
             boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
                                      boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
         }
@@ -295,6 +330,9 @@ class peer : public std::enable_shared_from_this<peer> {
         if (no_write_in_progress) {
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
+
+            //m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
+
             boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
                                      boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
         }
@@ -318,17 +356,31 @@ class peer : public std::enable_shared_from_this<peer> {
         put_msg->load(svid);
         busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
         pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock(); //most likely no lock needed
-        try {
-            boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
+        std::size_t len = 0;
+        try {             
+             //len = boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
+             len = m_netclient.writeSync(put_msg->data,put_msg->len, 30);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (send_sync): %s\n",svid,e.what());
             leave();
         }
+        if(len != put_msg->len ){
+            DLOG("LENGTGH ERROR in send_sync\n");
+            leave();
+        }
+
         pio_.unlock();
         if(put_msg->len!=message::header_length) {
 //FIXME, do not unload everything ...
             put_msg->unload(svid);
         }
+
+        DLOG("----------Finish send_sync");
+    }
+
+    void handle_write(const boost::system::error_code& error, size_t transfered)
+    {
+        handle_write(error);
     }
 
     void handle_write(const boost::system::error_code& error) { //TODO change this later, dont send each message separately if possible
@@ -375,6 +427,9 @@ class peer : public std::enable_shared_from_this<peer> {
                 //FIXME, now load the message from db if needed !!! do not do this when inserting in write_msgs_, unless You do not worry about RAM but worry about speed
                 //int len=message_len(write_msgs_.front());
                 int len=write_msgs_.front()->len;
+
+                //m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
+
                 boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
                                          boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
             }
@@ -386,7 +441,19 @@ class peer : public std::enable_shared_from_this<peer> {
         }
     }
 
+    void handle_read_header(const boost::system::error_code& error, size_t transfered)
+    {
+        if(transfered != 8)
+        {
+            int test = 0;
+        }
+        DLOG("handle_read_header %d : %d\n", transfered, read_msg_->data[0]);
+        handle_read_header(error);
+    }
+
     void handle_read_header(const boost::system::error_code& error) {
+
+
         extern message_ptr nullmsg;
         if(killme) {
             ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
@@ -415,9 +482,13 @@ class peer : public std::enable_shared_from_this<peer> {
         if(read_msg_->data[0]==MSGTYPE_USR) { //len can be message::header_length in this case :-(
             //FIXME, accept only if needed !!
             DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
-                                    boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+            //boost::asio::async_read(socket_,
+            //                        boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
+            //                        boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+
+            m_netclient.asyncRead(read_msg_->data+message::header_length, read_msg_->len*sizeof(user_t),
+                                  boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+
             return;
         }
         if(read_msg_->len==message::header_length) { //short ping message
@@ -536,10 +607,11 @@ class peer : public std::enable_shared_from_this<peer> {
                 leave();
                 return;
             }
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
+//            read_msg_ = boost::make_shared<message>();
+//            boost::asio::async_read(socket_,
+//                                    boost::asio::buffer(read_msg_->data,message::header_length),
+//                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         } else {
             if(read_msg_->data[0]==MSGTYPE_STP) {
                 DLOG("%04X PEER in block mode\n",svid);
@@ -549,6 +621,9 @@ class peer : public std::enable_shared_from_this<peer> {
                 boost::asio::async_read(socket_,
                                         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
                                         boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
+
+                //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+                //                      boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_MSP) {
@@ -556,6 +631,9 @@ class peer : public std::enable_shared_from_this<peer> {
                 boost::asio::async_read(socket_,
                                         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
                                         boost::bind(&peer::handle_read_msglist,shared_from_this(),boost::asio::placeholders::error));
+
+                //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+                //                      boost::bind(&peer::handle_read_stop,shared_from_this(),boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_BLK) {
@@ -564,6 +642,9 @@ class peer : public std::enable_shared_from_this<peer> {
                 boost::asio::async_read(socket_,
                                         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
                                         boost::bind(&peer::handle_read_block,shared_from_this(),boost::asio::placeholders::error));
+
+                //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+                //                      boost::bind(&peer::handle_read_block,shared_from_this(),boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_NHD) {
@@ -572,11 +653,17 @@ class peer : public std::enable_shared_from_this<peer> {
                 boost::asio::async_read(socket_,
                                         boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
                                         boost::bind(&peer::handle_next_header,shared_from_this(),boost::asio::placeholders::error));
+
+                //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+                //                      boost::bind(&peer::handle_next_header,shared_from_this(),boost::asio::placeholders::error));
                 return;
             }
             boost::asio::async_read(socket_,
                                     boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
                                     boost::bind(&peer::handle_read_body,shared_from_this(),boost::asio::placeholders::error));
+
+            //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+            //                      boost::bind(&peer::handle_read_body,shared_from_this(),boost::asio::placeholders::error));
         }
     }
 
@@ -714,10 +801,7 @@ class peer : public std::enable_shared_from_this<peer> {
         //     !memcmp(peer_ls.oldhash,server_.headers.back().nowhash,SHA256_DIGEST_LENGTH))){
         //  server_.headers.insert(server_.headers.end(),peer_ls);}
         //server_.peer_.unlock();
-        read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        asyncWaitForNewMessageHeader();
         return;
     }
 
@@ -760,6 +844,7 @@ class peer : public std::enable_shared_from_this<peer> {
             assert(data!=NULL);
             int len=0;
             try {
+                //len=m_netclient.readSync(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1), 30);
                 len=boost::asio::read(socket_,boost::asio::buffer(data,SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1)));
             } catch (std::exception& e) {
                 DLOG("%04X CATCH asio error (handle_read_headers): %s\n",svid,e.what());
@@ -856,19 +941,13 @@ class peer : public std::enable_shared_from_this<peer> {
         memcpy(&header.now,read_msg_->data+4,4);
         if(server_.get_msglist!=header.now) {
             ELOG("%04X ERROR got wrong msglist id\n",svid); // consider updating server
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         header.header_get();
         if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))) {
             ELOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)) {
@@ -878,10 +957,7 @@ class peer : public std::enable_shared_from_this<peer> {
             ELOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             ed25519_key2text(hash,header.msghash,SHA256_DIGEST_LENGTH);
             ELOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         server_.msgl_process(header,read_msg_->data+8);
@@ -898,13 +974,11 @@ class peer : public std::enable_shared_from_this<peer> {
         //    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
         //  return;}
         //server_.put_msglist(header.now,map, add message hashtree );
-        read_msg_ = boost::make_shared<message>();
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+
+        asyncWaitForNewMessageHeader();
     }
 
-    void write_bank() {
+    void write_bank() {                
         uint32_t path=read_msg_->msid;
         uint16_t bank=read_msg_->svid;
 
@@ -1018,6 +1092,8 @@ NEXTUSER:
             }
             DLOG("%04X SENDING bank %04X block %08X chunk %X muser %X sum %016lX hash %08X head %016lX\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum),*(uint64_t*)put_msg->data);
             send_sync(put_msg); // send even if we have errors
+
+            DLOG("%04X FINISH SENDING bank %04X block %08X chunk %X muser %X sum %016lX hash %08X head %016lX\n",svid,bank,path,msid,user,s.nodes[bank].weight,*((uint32_t*)csum),*(uint64_t*)put_msg->data);
             if(user==users) {
                 //uint8_t hash[32];
                 //SHA256_Final(hash,&sha256);
@@ -1042,6 +1118,18 @@ NEXTUSER:
         }
     }
 
+    void asyncWaitForNewMessageHeader()
+    {
+        DLOG(".....................asyncWaitForNewMessageHeader\n");
+
+        read_msg_ = boost::make_shared<message>();
+
+        //        boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
+        //                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+        m_netclient.asyncRead(read_msg_->data, message::header_length,
+                              boost::bind(&peer::handle_read_header, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC/2);
+    }
+
     void handle_read_bank(const boost::system::error_code& error) {
         static uint16_t last_bank=0;
         static uint16_t last_msid=0;
@@ -1056,10 +1144,7 @@ NEXTUSER:
         }
         if(!server_.do_sync) {
             DLOG("%04X DEBUG ignore usr message\n",svid);
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         uint16_t bank=read_msg_->svid;
@@ -1076,10 +1161,7 @@ NEXTUSER:
         uint64_t hnum=server_.need_bank(bank);
         if(!hnum) {
             DLOG("%04X NO NEED for bank %04X\n",svid,bank);
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         DLOG("%04X PROCESSING bank %04X\n",svid,bank);
@@ -1127,10 +1209,7 @@ NEXTUSER:
             server_.last_srvs_.xor4(csum,u->csum);
         }
         if(read_msg_->len+0x10000*read_msg_->msid<server_.last_srvs_.nodes[bank].users) {
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         DLOG("%04X GOT bank %04X users %08X sum %016lX hash %08X\n",svid,bank,uid,weight,(uint32_t)(csum[0]&0xFFFFFFFF));
@@ -1156,10 +1235,7 @@ NEXTUSER:
         DLOG("%04X PROCESSED bank %04X\n",svid,bank);
         server_.have_bank(hnum);
         DLOG("%04X CONTINUE after bank processing\n",svid);
-        read_msg_ = boost::make_shared<message>();
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        asyncWaitForNewMessageHeader();
     }
 
     void write_servers() {
@@ -1196,6 +1272,7 @@ NEXTUSER:
         assert(peer_nods!=NULL);
         int len=0;
         try {
+            //len=m_netclient.readSync(peer_nods,peer_hs.head.nod*sizeof(node_t), 30);
             len=boost::asio::read(socket_,boost::asio::buffer(peer_nods,peer_hs.head.nod*sizeof(node_t)));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (handle_read_servers): %s\n",svid,e.what());
@@ -1232,6 +1309,10 @@ NEXTUSER:
         uint32_t blocknow=now-(now%BLOCKSEC);
         msid=read_msg_->msid;
         svid=read_msg_->svid;
+
+        std::string thName = "peer_" + std::to_string(svid);
+        pthread_setname_np(iothp_->native_handle(), thName.c_str());
+
         DLOG("%04X PEER HEADER %04X:\n",svid,svid);
         assert(read_msg_->data!=NULL);
         memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
@@ -1249,7 +1330,7 @@ NEXTUSER:
             DLOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
             return(0);
         }
-        if(read_msg_->now>now+2 || read_msg_->now<now-2) {
+        if(read_msg_->now>now+222 || read_msg_->now<now-222) {
             ELOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
             return(0);
         }
@@ -1333,6 +1414,7 @@ NEXTUSER:
         peer_svsi=(svsi_t*)malloc((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)); //FIXME, send only vok
         int len=0;
         try {
+            //len=m_netclient.readSync(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t), 30);
             len=boost::asio::read(socket_,boost::asio::buffer(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t)));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (authenticate): %s\n",svid,e.what());
@@ -1383,10 +1465,7 @@ NEXTUSER:
             }
             busy=0; // make peer available for download traffic
             ELOG("%04X CONTINUE after authentication\n",svid);
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
 
@@ -1401,10 +1480,7 @@ NEXTUSER:
                 if(server_.last_srvs_.nodes[read_msg_->svid].msid>=read_msg_->msid) {
                     DLOG("%04X IGNORE message with too old msid %04X:%08X<=%08X\n",svid,
                          read_msg_->svid,read_msg_->msid,server_.last_srvs_.nodes[read_msg_->svid].msid);
-                    read_msg_ = boost::make_shared<message>();
-                    boost::asio::async_read(socket_,
-                                            boost::asio::buffer(read_msg_->data,message::header_length),
-                                            boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+                    asyncWaitForNewMessageHeader();
                     return;
                 }
                 if(srvs_.nodes[read_msg_->svid].msid!=read_msg_->msid-1) {
@@ -1416,10 +1492,7 @@ NEXTUSER:
                     } else {
                         DLOG("%04X ERROR LOADING mistimed future message %04X:%08X!=%08X+1\n",svid,
                              read_msg_->svid,read_msg_->msid,srvs_.nodes[read_msg_->svid].msid);
-                        read_msg_ = boost::make_shared<message>();
-                        boost::asio::async_read(socket_,
-                                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+                        asyncWaitForNewMessageHeader();
                         return;
                     }
                     DLOG("%04X LOADING mistimed message %04X:%08X!=%08X+1\n",svid,
@@ -1427,10 +1500,7 @@ NEXTUSER:
                 }
                 if(!read_msg_->hash_tree()) {
                     DLOG("%04X ERROR calculating hash tree for message %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
-                    read_msg_ = boost::make_shared<message>();
-                    boost::asio::async_read(socket_,
-                                            boost::asio::buffer(read_msg_->data,message::header_length),
-                                            boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+                    asyncWaitForNewMessageHeader();
                     return;
                 }
             } else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND) {
@@ -1451,10 +1521,7 @@ NEXTUSER:
                 DLOG("%04X store message %04X:%08X with bad signature (dbl?)\n",svid,read_msg_->svid,read_msg_->msid);
                 read_msg_->status|=MSGSTAT_SIG;
                 server_.bad_insert(read_msg_);
-                read_msg_ = boost::make_shared<message>();
-                boost::asio::async_read(socket_,
-                                        boost::asio::buffer(read_msg_->data,message::header_length),
-                                        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+                asyncWaitForNewMessageHeader();
                 return;
             }
         }
@@ -1467,10 +1534,7 @@ NEXTUSER:
             }
             busy=0; // make peer available for download traffic
             ELOG("%04X CONTINUE after authentication\n",svid);
-            read_msg_ = boost::make_shared<message>();
-            boost::asio::async_read(socket_,
-                                    boost::asio::buffer(read_msg_->data,message::header_length),
-                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+            asyncWaitForNewMessageHeader();
             return;
         }
         //if this is a candidate vote
@@ -1484,10 +1548,7 @@ NEXTUSER:
         }
         //TODO, check if correct server message number ! and update the server
         server_.message_insert(read_msg_);
-        read_msg_ = boost::make_shared<message>();
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        asyncWaitForNewMessageHeader();
     }
 
     void handle_read_block(const boost::system::error_code& error) {
@@ -1500,10 +1561,7 @@ NEXTUSER:
         if(read_msg_->len==4+64+10) { //adding missing data
             if(server_.last_srvs_.now!=read_msg_->msid) {
                 DLOG("%04X BLOCK READ problem, ignoring short BLK message due to msid mismatch, msid:%08X block:%08X\n",svid,read_msg_->msid,server_.last_srvs_.now);
-                read_msg_ = boost::make_shared<message>();
-                boost::asio::async_read(socket_,
-                                        boost::asio::buffer(read_msg_->data,message::header_length),
-                                        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+                asyncWaitForNewMessageHeader();
                 return;
             }
             header_t* h=(header_t*)(read_msg_->data+4+64+10);
@@ -1540,10 +1598,7 @@ NEXTUSER:
         }
         DLOG("%04X INSERT BLOCK message\n",svid);
         server_.message_insert(read_msg_);
-        read_msg_ = boost::make_shared<message>();
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        asyncWaitForNewMessageHeader();
     }
 
     void message_phash(uint8_t* mhash,std::map<uint64_t,hash_s>& map) {
@@ -1577,6 +1632,7 @@ NEXTUSER:
     }
 
     void sync_start(bool server) {
+        DLOG("sync_start\n")
         pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
         if(server) {
             BLOCK_SERV=true;
@@ -1654,6 +1710,7 @@ NEXTUSER:
         }
         try {
             boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
+            //m_netclient.writeSync(put_msg->data,put_msg->len, 30);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (write_serv_del): %s\n",svid,e.what());
             leave();
@@ -1665,6 +1722,7 @@ NEXTUSER:
     void read_peer_del() {
         int len=0;
         try {
+            //len=m_netclient.readSync(read_msg_->data,2, 30);
             len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,2));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (read_peer_del 1): %s\n",svid,e.what());
@@ -1686,6 +1744,7 @@ NEXTUSER:
             read_msg_->data=(uint8_t*)malloc(6*peer_del);
             read_msg_->len=6*peer_del;
             try {
+                //len=m_netclient.readSync(read_msg_->data,read_msg_->len, 30);
                 len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len));
             } catch (std::exception& e) {
                 len=0;
@@ -1757,6 +1816,7 @@ NEXTUSER:
             memcpy(put_msg->data+4,data.c_str(),data.size());
         }
         try {
+            //m_netclient.writeSync(put_msg->data,put_msg->len, 30);
             boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (write_serv_add): %s\n",svid,e.what());
@@ -1769,6 +1829,7 @@ NEXTUSER:
     bool read_peer_add(bool error) {
         int len=0;
         try {
+            //len=m_netclient.readSync(read_msg_->data, 4, 30);
             len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,4));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (read_peer_add 1): %s\n",svid,e.what());
@@ -1788,6 +1849,7 @@ NEXTUSER:
             read_msg_->data=(uint8_t*)malloc(sizeof(msidsvidhash_t)*peer_add);
             read_msg_->len=sizeof(msidsvidhash_t)*peer_add;
             try {
+                //len=m_netclient.readSync(read_msg_->data, read_msg_->len, 30);
                 len=boost::asio::read(socket_,boost::asio::buffer(read_msg_->data,read_msg_->len));
             } catch (std::exception& e) {
                 len=0;
@@ -1872,6 +1934,7 @@ NEXTUSER:
         uint8_t buf[1];
         buf[0]=error;
         try {
+            //m_netclient.writeSync(buf,1, 30);
             boost::asio::write(socket_,boost::asio::buffer(buf,1));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (write_serv_check): %s\n",svid,e.what());
@@ -1885,6 +1948,7 @@ NEXTUSER:
         uint8_t buf[1];
         int len=0;
         try {
+            //len=m_netclient.readSync(buf, 1, 30);
             len=boost::asio::read(socket_,boost::asio::buffer(buf,1));
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (read_peer_check): %s\n",svid,e.what());
@@ -1911,11 +1975,13 @@ NEXTUSER:
             DLOG("%04X send after sync [%016lX len:%d]\n",svid,*(uint64_t*)write_msgs_.front()->data,len);
             boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
                                      boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
+            //m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,shared_from_this(),boost::asio::placeholders::error));
         }
-        read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
-        boost::asio::async_read(socket_,
-                                boost::asio::buffer(read_msg_->data,message::header_length),
-                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        //read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
+        //boost::asio::async_read(socket_,
+        //                        boost::asio::buffer(read_msg_->data,message::header_length),
+        //                        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        asyncWaitForNewMessageHeader();
         //save last synced block to protect peer from disconnect
         last_active=BLOCK_MODE;
         BLOCK_MODE=0;
@@ -2031,8 +2097,11 @@ NEXTUSER:
   private:
     boost::asio::io_service peer_io_service_;	//TH
     boost::asio::io_service::work work_;		//TH
-    boost::asio::ip::tcp::socket socket_;
-    std::unique_ptr<boost::thread> iothp_;	//TH
+    boost::asio::ip::tcp::socket socket_;    
+
+    PeerClient          m_netclient;
+
+    std::unique_ptr<boost::thread> iothp_;			//TH
     server& server_;
     bool incoming_;
     servers& srvs_; //FIXME ==server_.srvs_
