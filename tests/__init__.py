@@ -4,7 +4,7 @@ import subprocess
 import json
 
 
-HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
+HPX_ROOT = os.path.dirname(os.getcwd())
 ESC_BIN_PATH = os.path.join(HPX_ROOT, "build", "esc", "esc")
 ESCD_BIN_PATH = os.path.join(HPX_ROOT, "build", "escd", "escd")
 
@@ -104,13 +104,14 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeou
     esc_cmd = [ESC_BIN_PATH]
     if cmd_extra:
         esc_cmd = esc_cmd + cmd_extra
+        esc_cmd = ' '.join(esc_cmd)
 
     process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
 
     cmds = [js_command]
     if with_get_me:
-        cmds.insert(0, {'run':"get_me"})
+        cmds.insert(0, {'run': "get_me"})
 
     for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd)+"\n"))
@@ -121,4 +122,5 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeou
     raw_response = raw_response.replace("}\n", "}").replace("}{", "},{")
 
     responses = json.loads("[%s]" %raw_response)
+
     return responses[-1]

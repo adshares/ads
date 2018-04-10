@@ -1,12 +1,13 @@
 from . import create_node_env, clean_node_dir, get_node_path_dir, clean_client_dir, create_init_client
-from . import INIT_NODE_ID, INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_NODE_SERVER_PORT, ESCD_BIN_PATH
+from . import (INIT_NODE_ID, INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+               INIT_NODE_SERVER_PORT, ESCD_BIN_PATH)
 
 import subprocess
 import pytest
 
 
 @pytest.fixture(scope='session')
-def init_node_process(init_blocks_counter = 1):
+def init_node_process(init_blocks_counter = 2):
     # Clean node per session
     clean_node_dir(INIT_NODE_ID)
     create_node_env(INIT_NODE_ID, INIT_NODE_OFFICE_PORT, INIT_NODE_SERVER_PORT)
@@ -29,6 +30,5 @@ def init_node_process(init_blocks_counter = 1):
             break
 
     yield process
-
     process.terminate()
     process.kill()
