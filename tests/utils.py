@@ -3,7 +3,7 @@ import time
 from . import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd
 
 
-def update_user(client_id, address):
+def update_user_env(client_id, address):
     """
     Function updates user's data after create a new user
     """
@@ -39,7 +39,7 @@ def create_account(client_id="2", node="0001"):
         time.sleep(10)
         assert time.time() - time_start < 70
 
-    update_user(client_id, address)
+    update_user_env(client_id, address)
 
     return address
 
