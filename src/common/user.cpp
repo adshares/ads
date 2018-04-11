@@ -996,7 +996,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         tx_data[2*txs->size]='\0';
         ed25519_key2text(tx_data,txs->data,txs->size);
 
-        std::cout << tx_data;
+        std::cerr << tx_data;
         //create asa tx.data
         pt.put("tx.data",tx_data);
         logpt.put("tx.data",tx_data);
@@ -1902,10 +1902,12 @@ END:
         socket.close();
         boost::property_tree::write_json(std::cout,pt,sts.nice);
     } catch (std::exception& e) {
-        std::cerr << "Talk Exception: " << e.what() << "\n";
+        DLOG("Talk exception %s\n", e.what());
+        pt.clear();
+        pt.put(ERROR_TAG, e.what());
+        boost::property_tree::write_json(std::cout,pt,sts.nice);
         // exit with error code to enable sane bash scripting
         if(!isatty(fileno(stdin))) {
-            boost::property_tree::write_json(std::cout,pt,sts.nice);
             // fprintf(stderr,"EXIT\n");
             exit(-1);
         }
