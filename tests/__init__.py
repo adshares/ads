@@ -4,7 +4,7 @@ import subprocess
 import json
 
 
-HPX_ROOT = os.path.dirname(os.getcwd())
+HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
 ESC_BIN_PATH = os.path.join(HPX_ROOT, "build", "esc", "esc")
 ESCD_BIN_PATH = os.path.join(HPX_ROOT, "build", "escd", "escd")
 
