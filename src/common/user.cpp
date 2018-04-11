@@ -42,6 +42,8 @@
 #include "command/getbroadcastmsg.h"
 #include "command/changenodekey.h"
 #include "command/getblock.h"
+#include "command/getmessage.h"
+#include "command/getmessagelist.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -343,13 +345,15 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     } else if(!run.compare(txsname[TXSTYPE_NOD])) { //                 !!!!!!!!
         command.reset(new GetAccounts(sts.bank, sts.user, to_block, to_bank, now));
     } else if(!run.compare(txsname[TXSTYPE_MGS])) { //                 !!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new GetMessageList(sts.bank, sts.user, to_block, now));
+//        txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_MSG])) {
         uint32_t to_node_msid=0;
         boost::optional<uint32_t> json_node_msid=pt.get_optional<uint32_t>("node_msid");
         if(json_node_msid) {
             to_node_msid=json_node_msid.get();
         } //                      !!!!!!!!             !!!!!!!!!!!!
+//        command.reset(new GetMessage(sts.bank, sts.user, to_block, to_bank, to_node_msid, now));
         txs=boost::make_shared<usertxs>(TXSTYPE_MSG,sts.bank,sts.user,to_block,now,to_bank,to_node_msid,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare("send_again")) {
         boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
