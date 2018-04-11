@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-folder_user_1="/tmp/client/1"
-folder_user_2="/tmp/client/2"
-
-cd $folder_user_1
+#folder_user_1="/tmp/client/1"
+#folder_user_2="/tmp/client/2"
+#
+#cd $folder_user_1
 #echo "USER: $folder_user_1"
 #echo '-----------------------get_me_&_create_account---------------------------'
 #(echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | /home/denis/projects/hpx/build/esc/esc
@@ -30,13 +30,13 @@ cd $folder_user_1
 #chmod go-r settings.cfg
 #
 #echo '{"run":"get_me"}' | /home/denis/projects/hpx/build/esc/esc
-
-   echo '.............................ADD node'
-
-    cd $folder_user_1
-    (echo '{"run":"get_me"}'; echo '{"run":"get_block"}') | /home/denis/projects/hpx/build/esc/esc
-
-    cd ..
-
-    sleep 60
+#
+#   echo '.............................ADD node'
+#
+#    cd $folder_user_1
+#    (echo '{"run":"get_me"}'; echo '{"run":"get_block"}') | /home/denis/projects/hpx/build/esc/esc
+#
+#    cd ..
+#
+#    sleep 60
 

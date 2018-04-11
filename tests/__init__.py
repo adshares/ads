@@ -103,11 +103,10 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeou
 
     esc_cmd = [ESC_BIN_PATH]
     if cmd_extra:
-        esc_cmd = esc_cmd + cmd_extra
-        esc_cmd = ' '.join(esc_cmd)
+        esc_cmd.extend(cmd_extra)
 
     process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=True)
+                               stderr=subprocess.PIPE, stdin=subprocess.PIPE, shell=False)
 
     cmds = [js_command]
     if with_get_me:

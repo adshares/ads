@@ -1,5 +1,7 @@
-from . import exec_esc_cmd, create_node_env
-from . import INIT_CLIENT_ID, INIT_NODE_SERVER_PORT, INIT_NODE_ID
+import time
+
+from . import exec_esc_cmd
+from . import INIT_CLIENT_ID
 
 
 def test_block_created(init_node_process, gen_blocks_count=1):
@@ -18,7 +20,6 @@ def test_block_created(init_node_process, gen_blocks_count=1):
 def test_node_create_node(init_node_process, node_id="2"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
 
-    import time
     time.sleep(60)
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})

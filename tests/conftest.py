@@ -7,7 +7,7 @@ import pytest
 
 
 @pytest.fixture(scope='session')
-def init_node_process(init_blocks_counter = 2):
+def init_node_process(init_blocks_counter=1):
     # Clean node per session
     clean_node_dir(INIT_NODE_ID)
     create_node_env(INIT_NODE_ID, INIT_NODE_OFFICE_PORT, INIT_NODE_SERVER_PORT)

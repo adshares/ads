@@ -1,3 +1,5 @@
+import time
+
 from . import exec_esc_cmd, create_client_env, create_init_client
 from . import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS
 
@@ -33,13 +35,13 @@ def test_create_account(init_node_process, client_id="2"):
     assert 'address' in response['new_account']
     address = response['new_account']['address']
 
-    import time
     accounts = 0
     time_start = time.time()
     while accounts <= 1:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
         time.sleep(10)
+        assert time.time() - time_start < 70
 
     print('Spend time:', time.time() - time_start)
 
