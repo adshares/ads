@@ -13,7 +13,7 @@ class peer : public boost::enable_shared_from_this<peer> {
         peer_io_service_(),
         work_(peer_io_service_),
         socket_(peer_io_service_),
-        iothp_(NULL),
+        iothp_(nullptr),
         server_(srv),
         incoming_(in),
         srvs_(srvs),
@@ -29,7 +29,8 @@ class peer : public boost::enable_shared_from_this<peer> {
         BLOCK_PEER(false) {
         read_msg_ = boost::make_shared<message>();
 
-        iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+//        iothp_= new boost::thread(boost::bind(&peer::iorun,this));
+        iothp_.reset(new boost::thread(boost::bind(&peer::iorun,this)));
     }
 
     ~peer() {
@@ -54,8 +55,12 @@ class peer : public boost::enable_shared_from_this<peer> {
     }
 
     void stop() { // by server only
+        boost::system::error_code errorcode;
         DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
         killme=true;
+        socket_.cancel();
+        socket_.close();
+        peer_io_service_.reset();
         peer_io_service_.stop();
         //DLOG("%04X PEER INTERRUPT\n",svid);
         //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -65,10 +70,11 @@ class peer : public boost::enable_shared_from_this<peer> {
         if(iothp_ != NULL) {
             iothp_->join();
         } //try joining yourself error
-        socket_.cancel();
-        socket_.close();
-        DLOG("%04X PEER CLOSED\n",svid);
+        //socket_.cancel();
+        //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);
+        //socket_.close();
         //socket_.release(NULL);
+        DLOG("%04X PEER CLOSED\n",svid);
     }
 
     void leave() {
@@ -2014,7 +2020,7 @@ NEXTUSER:
     boost::asio::io_service peer_io_service_;	//TH
     boost::asio::io_service::work work_;		//TH
     boost::asio::ip::tcp::socket socket_;
-    boost::thread *iothp_;			//TH
+    std::unique_ptr<boost::thread> iothp_;	//TH
     server& server_;
     bool incoming_;
     servers& srvs_; //FIXME ==server_.srvs_
