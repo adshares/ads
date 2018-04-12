@@ -60,23 +60,9 @@ public:
     }
 
     ~peer() {
-
-        DLOG("%04X PEER DESTRUCT address %s port %d\n", svid, addr.c_str(), port);
-
-        try {
-            if(port||1) {
-                uint32_t ntime=time(NULL);
-            }
-
-            if(!peer_io_service_.stopped()){
-                peer_io_service_.stop();
-            }
-
-            if(iothp_ && iothp_->joinable()) {
-                //iothp_->interrupt();
-                iothp_->join();
-                //iothp_.reset();
-            } //try joining yourself error;
+        if(port||1) {
+            uint32_t ntime=time(NULL);
+            DLOG("%04X PEER destruct %s:%d @%08X log: blk/%03X/%05X/log.txt\n\n",svid,addr.c_str(),port,ntime,srvs_.now>>20,srvs_.now&0xFFFFF);
         }
         catch (std::exception& e) {
             std::cerr << e.what();
@@ -101,36 +87,11 @@ public:
     }
 
     void stop() { // by server only
-        /*DLOG("%04X PEER STOP", svid);
-
-        m_state = ST_STOPED;
+        boost::system::error_code errorcode;
+        DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
         killme=true;
-
-        if(socket_.is_open())
-        {
-            //socket_.close();
-            socket_.cancel();
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-        }
-
-        peer_io_service_.reset();*/
-
-        peer_io_service_.dispatch(boost::bind(&peer::stopImpl, this));
-    }
-
-    void stopImpl() { // by server only
-        DLOG("%04X PEER STOP", svid);
-
-        m_state = ST_STOPED;
-        killme=true;
-
-        if(socket_.is_open())
-        {
-            //socket_.close();
-            socket_.cancel();
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-        }
-
+        socket_.cancel();
+        socket_.close();
         peer_io_service_.reset();
         peer_io_service_.stop();
         //DLOG("%04X PEER INTERRUPT\n",svid);
@@ -138,8 +99,9 @@ public:
         //iothp_->interrupt();
         //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
         //DLOG("%04X PEER JOIN\n",svid);
-        if(iothp_ != NULL) {
-            iothp_->join();
+        if(iothp_ != nullptr) {
+            iothp_->join(); //try joining yourself error
+            iothp_.reset(nullptr);
         } //try joining yourself error
         //socket_.cancel();
         //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);
@@ -174,7 +136,6 @@ public:
         if(error) {
             DLOG("%04X PEER ACCEPT ERROR\n",svid);
             killme=true; // not needed, as now killme=true is initial state for outgoing connections
-            leave();
             return;
         }
         killme=false; //connection established
