@@ -258,8 +258,6 @@ bool server::ofip_isreadonly() {
         if((*pi)->killme) {
             remove.insert(*pi);
             //peers_.erase(*pi);
-            remove.insert(*pi);
-            peers_.erase(*pi);
         } else {
             svids.insert((*pi)->svid);
         }
@@ -450,7 +448,6 @@ void server::start_accept() {
             new_peer->stop();
         }
     }
-    new_peer.reset();
     start_accept();
 }*/
 /*void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
@@ -461,10 +458,10 @@ void server::start_accept() {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        //new_peer->killme=true; // leave little time for the connection
-        //boost::asio::async_connect(new_peer->socket(),iterator,
-        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
-        new_peer->tryAsyncConnect(iterator, 15);
+        new_peer->killme=true; // leave little time for the connection
+        boost::asio::async_connect(new_peer->socket(),iterator,
+                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -489,10 +486,10 @@ void server::start_accept() {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        //new_peer->killme=true; // leave little time for the connection
-        //boost::asio::async_connect(new_peer->socket(),iterator,
-        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
-        new_peer->tryAsyncConnect(iterator, 15);
+        new_peer->killme=true; // leave little time for the connection
+        boost::asio::async_connect(new_peer->socket(),iterator,
+                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -515,12 +512,10 @@ void server::start_accept() {
         peer_.lock();
         peers_.insert(new_peer);
         peer_.unlock();
-        //new_peer->killme=true; // leave little time for the connection
-        //boost::asio::async_connect(new_peer->socket(),iterator,
-        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
-
-        new_peer->tryAsyncConnect(iterator, 15);
-
+        new_peer->killme=true; // leave little time for the connection
+        boost::asio::async_connect(new_peer->socket(),iterator,
+                                   boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
