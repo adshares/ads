@@ -1539,7 +1539,7 @@ class servers { // also a block
         sprintf(pat,"%04X",svid);
         for(int i=MAX_UNDO; i<MAX_UNDO+100; i+=10) {
 #ifdef DEBUG
-            uint32_t path=now-i*BLOCKSEC*(0x400/0x20);
+            uint32_t path=now-i*BLOCKSEC*(0x400/BLOCKSEC);
 #else
             uint32_t path=now-i*BLOCKSEC;
 #endif

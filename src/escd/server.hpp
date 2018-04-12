@@ -3,10 +3,12 @@
 
 #include <iostream>
 #include <fcntl.h>
+#include <algorithm>
 #include "servers.hpp"
+#include "options.hpp"
 #include "candidate.hpp"
 #include "helper/hlog.h"
-
+#include "network/peerclientmanager.h"
 
 
 class office;
@@ -21,13 +23,14 @@ class server {
         do_sync(1),
         do_fast(opts.fast?2:0),
         ofip(NULL),
-        endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
-        io_service_(),
-        work_(io_service_),
-        acceptor_(io_service_,endpoint_),
+        //endpoint_(boost::asio::ip::address::from_string(opts.addr), opts.port),	//TH
+        //io_service_(),
+        //work_(io_service_),
+        //acceptor_(io_service_,endpoint_),
         opts_(opts),
         ioth_(NULL),
         peers_thread(NULL),
+        m_peerManager(*this, opts_),
         clock_thread(NULL),
         do_validate(0),
         votes_max(0.0),
@@ -46,6 +49,13 @@ class server {
     }
 
     void start() {
+
+        //struct in_addr adds;
+        //if(inet_aton(addr.c_str(),&adds)) { //FIXME, check if this accepts "localhost"
+        //    ipv4=adds.s_addr;
+
+        //endpoint_(opts_.addr, opts_.port);	//TH
+
         mkdir("usr",0755); // create dir for bank accounts
         mkdir("inx",0755); // create dir for bank message indeces
         mkdir("blk",0755); // create dir for blocks
@@ -210,7 +220,8 @@ class server {
         }
 
         ioth_ = new boost::thread(boost::bind(&server::iorun, this));
-        peers_thread = new boost::thread(boost::bind(&server::peers, this));
+        //peers_thread = new boost::thread(boost::bind(&server::peers, this));
+        m_peerManager.start();
 
         if(do_sync) {
             if(do_fast) { //FIXME, do slow sync after fast sync
@@ -218,6 +229,8 @@ class server {
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
                     RETURN_ON_SHUTDOWN();
                 }
+
+                //recyclemsid(lastpath+BLOCKSEC);
                 do_fast=0;
                 load_banks();
                 srvs_.write_start();
@@ -235,7 +248,7 @@ class server {
     }
 
     void iorun() {
-        while(1) {
+        /*while(1) {
             try {
                 DLOG("Server.Run starting\n");
                 io_service_.run();
@@ -245,25 +258,25 @@ class server {
             catch (std::exception& e) {
                 ELOG("Server.Run error: %s\n",e.what());
             }
-        }
+        }*/
     }
 
     void stop() {
         do_validate = 0;
-        io_service_.stop();
+        //io_service_.stop();
 
-        if(ioth_!=NULL) {
+        /*if(ioth_!=NULL) {
             ioth_->join();
-        }
+        }*/
 
         //busy_msgs_.clear(); // not needed
         if(peers_thread!=NULL) {
-            peers_thread->interrupt();
+            //peers_thread->interrupt();
             peers_thread->join();
         }
 
         if(clock_thread!=NULL) {
-            clock_thread->interrupt();
+            //clock_thread->interrupt();
             clock_thread->join();
         }
 
@@ -4539,7 +4552,7 @@ NEXTBANK:
     }
 
     void peers() { // connect new peers
-        std::set<uint16_t> list;
+        /*std::set<uint16_t> list;
         peers_known(list);
         for(std::string addr : opts_.peer) {
             uint16_t peer=opts_.get_svid(addr);
@@ -4572,11 +4585,11 @@ NEXTBANK:
                         RETURN_ON_SHUTDOWN();
                         peers_known(list);
 #ifdef DEBUG
-                        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
+                        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 ) {
                             break;
                         }
 #else
-                        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
+                        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 ) {
                             break;
                         }
 #endif
@@ -4606,13 +4619,13 @@ NEXTBANK:
             }
 #ifdef DEBUG
             else {
-                if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
+                if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2) {
                     continue;
                 }
             }
 #else
             else {
-                if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
+                if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 ) {
                     continue;
                 }
             }
@@ -4629,16 +4642,16 @@ NEXTBANK:
             }
             int16_t peer=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
             if(!peer || peer==opts_.svid || !srvs_.nodes[peer].ipv4 || !srvs_.nodes[peer].port) {
-                //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+                DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
                 continue;
             }
             if(list.find(peer)!=list.end()) {
-                //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+                DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
                 continue;
             }
             DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
             connect(peer);
-        }
+        }*/
     }
 
     void clock() {
@@ -4869,6 +4882,47 @@ NEXTBANK:
         return(srvs_.now);
     }
 
+    servers& getBlockInPorgress()
+    {
+        //TODO probably synchronization needed
+        return srvs_;
+    }
+
+    servers& getLastClosedBlock()
+    {
+        //TODO probably synchronization needed
+        return last_srvs_;
+    }
+
+    uint16_t getRandomNodeId()
+    {
+        if(srvs_.nodes.size() > 0)
+        {
+            return (((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+        }
+
+        return 0;
+    }
+
+    uint16_t getMaxNodeId()
+    {
+        return srvs_.nodes.size();
+    }
+
+    bool getNode(uint16_t nodeId, node& nodeInfo)
+    {
+        try{
+            nodeId      =(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+            nodeInfo    = srvs_.nodes.at(nodeId);
+            return true;
+        }
+        catch(std::exception& e){
+            ELOG("ERROR: Get Node exception%s", e.what());
+        }
+
+        return false;
+    }
+
     void join(peer_ptr participant);
     //void leave(peer_ptr participant);
     void peer_set(std::set<peer_ptr>& peers);
@@ -4936,15 +4990,16 @@ NEXTBANK:
     hash_t skey;
     //enum { max_connections = 4 }; //unused
     //enum { max_recent_msgs = 1024 }; // this is the block chain :->
-    boost::asio::ip::tcp::endpoint endpoint_;
-    boost::asio::io_service io_service_;
-    boost::asio::io_service::work work_;
-    boost::asio::ip::tcp::acceptor acceptor_;
+    //boost::asio::ip::tcp::endpoint endpoint_;
+    //boost::asio::io_service io_service_;
+    //boost::asio::io_service::work work_;
+    //boost::asio::ip::tcp::acceptor acceptor_;
     servers srvs_;
     options& opts_;
     boost::thread* ioth_;
     boost::thread_group threadpool;
     boost::thread* peers_thread;
+    PeerConnectManager m_peerManager;
     boost::thread* clock_thread;
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt

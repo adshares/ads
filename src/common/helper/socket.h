@@ -5,36 +5,33 @@
 #include <stdint.h>
 #include <sstream>
 #include <memory>
+#include "default.hpp"
 
 namespace Helper {
 
-void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 10) {
-    timeval tv{timeout,0};
+void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 10);
 
-    if(setsockopt(socket.native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 ) {
-        setsockopt(socket.native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 10);
 
-        boost::asio::socket_base::keep_alive optionk(true);
-        socket.set_option(optionk);
+void setSocketNoDelay(boost::asio::ip::tcp::socket &socket, bool noDelay);
+void setSocketNoDelay(std::unique_ptr<boost::asio::ip::tcp::socket>, bool noDelay);
 
-        boost::asio::ip::tcp::no_delay option(true);
-        socket.set_option(option);
+/*void parseAddress(std::string fullAddres, std::string& address2, std::string& port)
+{
+    DLOG("TRY connecting to address %s\n", addres.c_str());
+    //const char* port = SERVER_PORT;
+    char* p=strchr((char*)fullAddres.c_str(),'/'); //separate peer id
+    if(p!=NULL) {
+        peer_address[p-addres.c_str()]='\0';
     }
-}
-
-void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 10) {
-    timeval tv{timeout,0};
-
-    if(setsockopt(socket->native_handle(), SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == 0 ) {
-        setsockopt(socket->native_handle(), SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
-
-        boost::asio::socket_base::keep_alive optionk(true);
-        socket->set_option(optionk);
-
-        boost::asio::ip::tcp::no_delay option(true);
-        socket->set_option(option);
+    p=strchr((char*)fullAddres.c_str(),':'); //detect port
+    if(p!=NULL) {
+        peer_address[p-addres.c_str()]='\0';
+        port=p+1;
     }
-}
+}*/
+
+
 
 }
 
