@@ -11,7 +11,8 @@
 
 class office;
 class peer;
-typedef boost::shared_ptr<peer> peer_ptr;
+//typedef boost::shared_ptr<peer> peer_ptr;
+typedef std::shared_ptr<peer> peer_ptr;
 
 class server {
   public:
