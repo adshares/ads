@@ -13,6 +13,8 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getmessagehandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelisthandler.cpp
     PARENT_SCOPE
     )
 
@@ -31,6 +33,8 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/getbroadcastmsghandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/changenodekeyhandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getmessagehandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelisthandler.h
     PARENT_SCOPE
     )
 
