@@ -423,6 +423,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_BNK])) {
         command.reset( new CreateNode(sts.bank, sts.user, sts.msid, now));
+        deduct = command->getDeduct();
+        fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
         fee=TXS_SAV_FEE;

@@ -53,6 +53,14 @@ struct commandresponse {
     uint32_t    mpos;
 } __attribute__((packed));
 
+struct tInfo {
+    int64_t weight;
+    int64_t deduct;
+    int64_t fee;
+    uint16_t stat;
+    uint8_t pkey[6];
+}__attribute__((packed));
+
 /** \brief Struct data for get_me and get_accout command */
 struct userinfo {
     userinfo() = default;
@@ -406,5 +414,6 @@ struct GetBlockData {
     GetBlockInfo info;
     unsigned char sign[64];
 }__attribute__((packed));
+
 
 #endif // PODS_H

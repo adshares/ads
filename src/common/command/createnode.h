@@ -86,6 +86,8 @@ class CreateNode : public IBlockCommand {
     /** \brief Save command response to settings object. */
     virtual void            saveResponse(settings& sts)                 override;
 
+    virtual uint32_t        getMessageId();
+
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                      override;
     virtual void         toJson(boost::property_tree::ptree &ptree) override;
