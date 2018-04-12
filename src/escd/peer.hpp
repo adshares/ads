@@ -67,8 +67,9 @@ class peer : public boost::enable_shared_from_this<peer> {
         //iothp_->interrupt();
         //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
         //DLOG("%04X PEER JOIN\n",svid);
-        if(iothp_ != NULL) {
-            iothp_->join();
+        if(iothp_ != nullptr) {
+            iothp_->join(); //try joining yourself error
+            iothp_.reset(nullptr);
         } //try joining yourself error
         //socket_.cancel();
         //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);

@@ -269,6 +269,7 @@ void server::peer_clean() { //LOCK: peer_ missing_ mtx_
             missing_sent_remove((*pi)->svid);
         }
         (*pi)->stop();
+        DLOG("DONE PEER %04X, pointers: %d\n",(*pi)->svid,(int)(*pi).use_count());
     }
     if(svids.empty() && !opts_.init && !do_sync) {
         ELOG("ERROR: no peers, panic\n");
@@ -285,6 +286,7 @@ void server::peer_killall() {
     DLOG("KILL ALL PEERS\n");
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
         (*pi)->stop();
+        DLOG("DONE PEER %04X, pointers: %d\n",(*pi)->svid,(int)(*pi).use_count());
     }
 }
 void server::disconnect(uint16_t svid) {
@@ -447,6 +449,7 @@ void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
         new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -474,6 +477,7 @@ void server::connect(std::string peer_address) {
         new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
@@ -497,6 +501,7 @@ void server::connect(uint16_t svid) {
         new_peer->killme=true; // leave little time for the connection
         boost::asio::async_connect(new_peer->socket(),iterator,
                                    boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
+        DLOG("TRY async_connect to peer, pointers %d\n",(int)new_peer.use_count());
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
