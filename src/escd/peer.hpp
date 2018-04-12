@@ -26,8 +26,6 @@ public:
   public:
     peer(server& srv,bool in,servers& srvs,options& opts, PeerConnectManager& connManager):
         svid(BANK_MAX),
-        //remote_address_(remote_address),
-        //remote_port_(remote_port),
         do_sync(1), //remove, use peer_hs.do_sync
         killme(false),
         busy(0),
@@ -87,7 +85,8 @@ public:
 
     }
 
-    void iorun() {        
+    void iorun() {
+        DLOG("%04X PEER IORUN START\n",svid);
         try {
             peer_io_service_.run();
         } //Now we know the server is down.
@@ -482,10 +481,6 @@ public:
 
     void handle_read_header(const boost::system::error_code& error, size_t transfered)
     {
-        if(transfered != 8)
-        {
-            int test = 0;
-        }
         DLOG("handle_read_header %d : %d\n", transfered, read_msg_->data[0]);
         handle_read_header(error);
     }
@@ -1362,15 +1357,15 @@ NEXTUSER:
             DLOG("%04X ERROR: connecting to myself\n",svid);
             return(0);
         }
-        /*if(server_.duplicate(this)) {
+        if(server_.duplicate(shared_from_this())) {
             DLOG("%04X ERROR: server already connected\n",svid);
             return(0);
-        }*/
+        }
         if(peer_hs.head.nod>srvs_.nodes.size() && incoming_) {
             DLOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
             return(0);
         }
-        if(read_msg_->now>now+222 || read_msg_->now<now-222) {
+        if(read_msg_->now>now+2 || read_msg_->now<now-2) {
             ELOG("%04X ERROR: bad time %08X<>%08X\n",svid,read_msg_->now,now);
             return(0);
         }
