@@ -20,9 +20,16 @@ def test_block_created(init_node_process, gen_blocks_count=1):
 def test_node_create_node(init_node_process, node_id="2"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
 
-    time.sleep(60)
+    start_time = time.time()
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+    while True:
+        response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+        if response.get('block'):
+            count_blocks = len(response['block']['nodes'])
+            if count_blocks > 2:
+                break
+        time.sleep(10)
+        assert time.time() - start_time < 70
 
     assert response['block']['nodes'][-1]['id'] == '0002'
 
