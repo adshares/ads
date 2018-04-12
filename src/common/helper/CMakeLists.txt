@@ -5,6 +5,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/servers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hlog.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/socket.cpp
     PARENT_SCOPE
     )
 

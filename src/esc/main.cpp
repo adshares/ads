@@ -55,6 +55,8 @@ int main(int argc, char* argv[]) {
             int64_t deduct    = 0;
             int64_t fee       = 0;
 
+            DLOG("GOT REQUEST %s\n", line.c_str());
+
             if(line.at(0) == '.') {
                 break;
             }
@@ -65,6 +67,7 @@ int main(int argc, char* argv[]) {
             txs = run_json(sts, line, deduct, fee, t2);
 
             if( !txs && ! t2) {
+                ELOG("PARSE Problem: %s\n", line.c_str());
                 continue;
             }
 
