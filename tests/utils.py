@@ -32,10 +32,12 @@ def create_account(client_id="2", node="0001"):
     address = response['new_account']['address']
 
     time_start = time.time()
+    count_user = len(exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False).get('accounts'))
+
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
-        if accounts > 1:
+        if accounts > count_user:
             break
         time.sleep(10)
         assert time.time() - time_start < 70

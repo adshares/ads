@@ -44,8 +44,6 @@ def test_create_account(init_node_process, client_id="2"):
             break
         assert time.time() - time_start < 70
 
-    print('Spend time:', time.time() - time_start)
-
     message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
 
     # without money can't change key. For transactions use another tests.

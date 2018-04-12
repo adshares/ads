@@ -31,8 +31,8 @@ def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):
 
 
 def test_send_cash_many_users(init_node_process, amount_1=35.0, amount_2=10.0):
-    address_receivers_2 = create_account(client_id="3")
     address_receivers_1 = get_user_address("2")
+    address_receivers_2 = create_account(client_id="3")
 
     start_balance_receiver_1 = get_balance_user("2")
     start_balance_receiver_2 = get_balance_user("3")
