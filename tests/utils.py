@@ -31,11 +31,12 @@ def create_account(client_id="2", node="0001"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
     address = response['new_account']['address']
 
-    accounts = 0
     time_start = time.time()
-    while accounts <= 1:
+    while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
+        if accounts > 1:
+            break
         time.sleep(10)
         assert time.time() - time_start < 70
 

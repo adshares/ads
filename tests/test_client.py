@@ -35,12 +35,13 @@ def test_create_account(init_node_process, client_id="2"):
     assert 'address' in response['new_account']
     address = response['new_account']['address']
 
-    accounts = 0
     time_start = time.time()
-    while accounts <= 1:
+    while True:
+        time.sleep(10)
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
-        time.sleep(10)
+        if accounts > 1:
+            break
         assert time.time() - time_start < 70
 
     print('Spend time:', time.time() - time_start)
