@@ -23,10 +23,10 @@ class server {
         do_sync(1),
         do_fast(opts.fast?2:0),
         ofip(NULL),
-        //endpoint_(boost::asio::ip::address::from_string(opts.addr), opts.port),	//TH
-        //io_service_(),
-        //work_(io_service_),
-        //acceptor_(io_service_,endpoint_),
+        endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
+        io_service_(),
+        work_(io_service_),
+        acceptor_(io_service_,endpoint_),
         opts_(opts),
         ioth_(NULL),
         peers_thread(NULL),
@@ -49,13 +49,6 @@ class server {
     }
 
     void start() {
-
-        //struct in_addr adds;
-        //if(inet_aton(addr.c_str(),&adds)) { //FIXME, check if this accepts "localhost"
-        //    ipv4=adds.s_addr;
-
-        //endpoint_(opts_.addr, opts_.port);	//TH
-
         mkdir("usr",0755); // create dir for bank accounts
         mkdir("inx",0755); // create dir for bank message indeces
         mkdir("blk",0755); // create dir for blocks
@@ -229,8 +222,6 @@ class server {
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
                     RETURN_ON_SHUTDOWN();
                 }
-
-                //recyclemsid(lastpath+BLOCKSEC);
                 do_fast=0;
                 load_banks();
                 srvs_.write_start();
@@ -276,7 +267,7 @@ class server {
         }*/
 
         if(clock_thread!=NULL) {
-            //clock_thread->interrupt();
+            clock_thread->interrupt();
             clock_thread->join();
         }
 
@@ -559,7 +550,6 @@ NEXTUSER:
         now-=now%BLOCKSEC;
         do_validate=1;
         RETURN_ON_SHUTDOWN();
-        ELOG("LOAD CHAIN\n");
         for(int v=0; v<VALIDATORS; v++) {
             threadpool.create_thread(boost::bind(&server::validator, this));
         }
@@ -567,10 +557,7 @@ NEXTUSER:
         if(srvs_.now<now) {
             uint32_t n=headers.size();
             for(; !n;) {
-                ELOG("LOAD CHAIN 1\n");
-                //boost::this_thread::sleep(boost::posix_time::seconds(1));
                 get_more_headers(srvs_.now); // try getting more headers
-                ELOG("LOAD CHAIN 2\n");
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -4590,11 +4577,11 @@ NEXTBANK:
                         RETURN_ON_SHUTDOWN();
                         peers_known(list);
 #ifdef DEBUG
-                        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 ) {
+                        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
                             break;
                         }
 #else
-                        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 ) {
+                        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
                             break;
                         }
 #endif
@@ -4624,13 +4611,13 @@ NEXTBANK:
             }
 #ifdef DEBUG
             else {
-                if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2) {
+                if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
                     continue;
                 }
             }
 #else
             else {
-                if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 ) {
+                if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
                     continue;
                 }
             }
@@ -4647,11 +4634,11 @@ NEXTBANK:
             }
             int16_t peer=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
             if(!peer || peer==opts_.svid || !srvs_.nodes[peer].ipv4 || !srvs_.nodes[peer].port) {
-                DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+                //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
                 continue;
             }
             if(list.find(peer)!=list.end()) {
-                DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
+                //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
                 continue;
             }
             DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
