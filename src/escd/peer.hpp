@@ -132,19 +132,20 @@ public:
         }
 
         peer_io_service_.reset();
-    }
-
-    void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {
-        //boost::asio::async_connect(new_peer->socket(), connIt,
-        //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
-
-        m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, this, boost::asio::placeholders::error), timeout);
-    }
-
-
-    state getState()
-    {
-        return m_state;
+        peer_io_service_.stop();
+        //DLOG("%04X PEER INTERRUPT\n",svid);
+        //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        //iothp_->interrupt();
+        //boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        //DLOG("%04X PEER JOIN\n",svid);
+        if(iothp_ != NULL) {
+            iothp_->join();
+        } //try joining yourself error
+        //socket_.cancel();
+        //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both,errorcode);
+        //socket_.close();
+        //socket_.release(NULL);
+        DLOG("%04X PEER CLOSED\n",svid);
     }
 
     void leave() {
