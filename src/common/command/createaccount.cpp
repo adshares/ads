@@ -28,6 +28,10 @@ unsigned char* CreateAccount::getResponse() {
 
 void CreateAccount::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
+    char *data_ptr = data + getDataSize();
+    setAdditionalData(data_ptr);
+    data_ptr += getAdditionalDataSize();
+    std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
 }
 
 void CreateAccount::setResponse(char* response) {
@@ -60,7 +64,6 @@ void CreateAccount::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* 
 
 bool CreateAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH,getData(),getDataSize(),pk,getSignature()) == 0);
-
 }
 
 void CreateAccount::saveResponse(settings& sts) {
