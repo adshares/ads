@@ -235,17 +235,17 @@ bool server::ofip_isreadonly() {
 }
 
 // server <-> peer
-void server::peer_set(std::set<peer_ptr>& peers) {
+/*void server::peer_set(std::set<peer_ptr>& peers) {
     peer_.lock();
     peers=peers_;
     peer_.unlock();
-}
-void server::peer_clean() { //LOCK: peer_ missing_ mtx_
+}*/
+/*void server::peer_clean() { //LOCK: peer_ missing_ mtx_
     std::set<peer_ptr> remove;
     std::set<uint16_t> svids;
     static uint32_t last_block=0;
     peer_.lock();
-    if (!do_sync && last_block<srvs_.now && time(NULL)>srvs_.now+BLOCKSEC*0.75) {
+    if (!do_sync && last_block< srvs_.now && time(NULL)>srvs_.now+BLOCKSEC*0.75) {
         for (auto pi=peers_.begin();pi!=peers_.end();pi++) {
             if(!(*pi)->do_sync && (*pi)->last_active<srvs_.now) {
                 DLOG("DISCONNECT IDLE PEER %04X\n",(*pi)->svid);
@@ -280,16 +280,18 @@ void server::peer_clean() { //LOCK: peer_ missing_ mtx_
             ofip_readonly();
         }
     }
-}
-void server::peer_killall() {
+}*/
+/*void server::peer_killall() {
     std::set<peer_ptr> peers;
     peer_set(peers);
     DLOG("KILL ALL PEERS\n");
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
         (*pi)->stop();
     }
-}
-void server::disconnect(uint16_t svid) {
+
+    //m_peerManager.stop();
+}*/
+/*void server::disconnect(uint16_t svid) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
@@ -298,8 +300,8 @@ void server::disconnect(uint16_t svid) {
             (*pi)->killme=true;
         }
     }
-}
-const char* server::peers_list() {
+}*/
+/*const char* server::peers_list() {
     std::set<peer_ptr> peers;
     static std::string list;
     list="";
@@ -319,8 +321,8 @@ const char* server::peers_list() {
         }
     }
     return(list.c_str()+1);
-}
-void server::peers_known(std::set<uint16_t>& list) {
+}*/
+/*void server::peers_known(std::set<uint16_t>& list) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
@@ -328,8 +330,8 @@ void server::peers_known(std::set<uint16_t>& list) {
             list.insert((*pi)->svid);
         }
     }
-}
-void server::connected(std::vector<uint16_t>& list) {
+}*/
+/*void server::connected(std::vector<uint16_t>& list) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
@@ -337,8 +339,8 @@ void server::connected(std::vector<uint16_t>& list) {
             list.push_back((*pi)->svid);
         }
     }
-}
-int server::duplicate(peer_ptr p) {
+}*/
+/*int server::duplicate(peer_ptr p) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto r : peers) {
@@ -347,9 +349,9 @@ int server::duplicate(peer_ptr p) {
         }
     }
     return 0;
-}
+}*/
 void server::get_more_headers(uint32_t now) {
-    std::set<peer_ptr> peers;
+    /*std::set<peer_ptr> peers;
     peer_set(peers);
     auto pi=peers.begin();
     if(!peers.size()) {
@@ -362,45 +364,54 @@ void server::get_more_headers(uint32_t now) {
     if(!(*pi)->do_sync) {
         DLOG("REQUEST more headers from peer %04X\n",(*pi)->svid);
         (*pi)->request_next_headers(now);
-    } //LOCK: peer::sio_
+    } //LOCK: peer::sio_*/
+
+    m_peerManager.getMoreHeaders(now);
 }
 void server::fillknown(message_ptr msg) {
-    static uint32_t r=0;
+    /*static uint32_t r=0;
     std::vector<uint16_t> peers;
     connected(peers);
     uint32_t n=peers.size();
     for(uint32_t i=0; i<n; i++) {
         msg->know_insert(peers[(r+i)%n]);
     }
-    r++;
+    r++;*/
+
+    m_peerManager.fillknown(msg);
 }
 void server::peerready(std::set<uint16_t>& ready) { //get list of peers available for data download
-    std::set<peer_ptr> peers;
+    /*std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
         if((*pi)->svid && !((*pi)->killme) && !((*pi)->do_sync) && !((*pi)->busy)) {
             ready.insert((*pi)->svid);
         }
-    }
+    }*/
+
+    m_peerManager.getReadyPeers(ready);
 }
 int server::deliver(message_ptr msg,uint16_t svid) {
-    std::set<peer_ptr> peers;
+    /*std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
         if((*pi)->svid==svid) {
             (*pi)->deliver(msg);
             return(1);
         }
-    }
-    msg->sent_erase(svid);
-    return(0);
+    }*/
+
+    m_peerManager.deliver(msg, svid);
+    //msg->sent_erase(svid);
+    return(1);
 }
 void server::deliver(message_ptr msg) {
-    std::set<peer_ptr> peers;
+    m_peerManager.deliverToAll(msg);
+    /*std::set<peer_ptr> peers;
     peer_set(peers);
-    std::for_each(peers.begin(),peers.end(),boost::bind(&peer::deliver, _1, msg));
+    std::for_each(peers.begin(),peers.end(),boost::bind(&peer::deliver, _1, msg));*/
 }
-int server::update(message_ptr msg,uint16_t svid) {
+/*int server::update(message_ptr msg,uint16_t svid) {
     std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto pi=peers.begin(); pi!=peers.end(); pi++) {
@@ -411,11 +422,12 @@ int server::update(message_ptr msg,uint16_t svid) {
     }
     msg->sent_erase(svid);
     return(0);
-}
+}*/
 void server::update(message_ptr msg) {
-    std::set<peer_ptr> peers;
-    peer_set(peers);
-    std::for_each(peers.begin(),peers.end(),boost::bind(&peer::update, _1, msg));
+    //std::set<peer_ptr> peers;
+    //peer_set(peers);
+    //std::for_each(peers.begin(),peers.end(),boost::bind(&peer::update, _1, msg));
+    m_peerManager.updateAll(msg);
 }
 void server::start_accept() {
     //peer_ptr new_peer(new peer(*this,true,srvs_,opts_));
@@ -423,12 +435,12 @@ void server::start_accept() {
     m_peerManager.startAccept();
 
 }
-void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error) {
+/*void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& error) {
     uint32_t now=time(NULL);
     if (now>=srvs_.now+BLOCKSEC) {
         DLOG("WARNING: dropping peer connection while creating new block\n");
         new_peer->stop();
-    } else {
+    } else {m_peers
         if (!error) {
             peer_.lock();
             peers_.insert(new_peer);
@@ -440,8 +452,8 @@ void server::peer_accept(peer_ptr new_peer,const boost::system::error_code& erro
     }
     new_peer.reset();
     start_accept();
-}
-void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
+}*/
+/*void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
     try {
         DLOG("TRY connecting to address %s:%d\n",
              iterator->endpoint().address().to_string().c_str(),iterator->endpoint().port());
@@ -456,9 +468,9 @@ void server::connect(boost::asio::ip::tcp::resolver::iterator& iterator) {
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
     }
-}
-void server::connect(std::string peer_address) {
-    /*try {
+}*/
+/*void server::connect(std::string peer_address) {
+    try {
         DLOG("TRY connecting to address %s\n",peer_address.c_str());
         const char* port=SERVER_PORT;
         char* p=strchr((char*)peer_address.c_str(),'/'); //separate peer id
@@ -483,10 +495,10 @@ void server::connect(std::string peer_address) {
         new_peer->tryAsyncConnect(iterator, 15);
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
-    }*/
-}
-void server::connect(uint16_t svid) {
-    /*try {
+    }
+}*/
+/*void server::connect(uint16_t svid) {
+    try {
         DLOG("TRY connecting to peer %04X\n",svid);
         //char ipv4t[32];
         //sprintf(ipv4t,"%s",inet_ntoa(srvs_.nodes[svid].ipv4));
@@ -511,5 +523,5 @@ void server::connect(uint16_t svid) {
 
     } catch (std::exception& e) {
         DLOG("Connection: %s\n",e.what());
-    }*/
-}
+    }
+}*/
