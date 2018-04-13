@@ -128,7 +128,7 @@ function initFirstNode
 
     cd ${nodename[1]}
 
-    exec -a ${nodename[1]} escd --init 1 > nodeout.txt &
+    exec -a ${nodename[1]} escd --init 1 &> nodeout.txt &
     ##escd --init 1 > nodeout.txt &
 
     cd ..
@@ -423,7 +423,7 @@ function startnode
 
     ps -aux | grep $3
 
-    exec -a $3 escd $2 > nodeout.txt &
+    exec -a $3 escd $2 &> nodeout.txt &
     cd ..
 
     ps -aux | grep $3

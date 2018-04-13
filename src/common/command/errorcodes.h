@@ -33,12 +33,15 @@ public:
         eTimeInFuture,
         eBroadcastNotReady,
         eNoBroadcastFile,
+        eNoMessageListFile,
         eIncorrectTransaction,
         eMatchSecretKeyNotFound,
         eSetKeyRemoteBankFail,
         eConnectServerError,
         eGetBlockInfoUnavailable,
-        eIncorrectType
+        eIncorrectType,
+        eBadLength,
+        eInvalidMessageFile
     };
 
 private:
@@ -66,12 +69,15 @@ private:
         { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
         { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
         { Code::eNoBroadcastFile, "No broadcast file to send" },
+        { Code::eNoMessageListFile, "No message list file" },
         { Code::eIncorrectTransaction, "Incorrect transaction type" },
         { Code::eMatchSecretKeyNotFound, "Matching secret key not found" },
         { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" },
         { Code::eConnectServerError, "Can't connect to server" },
         { Code::eGetBlockInfoUnavailable, "Block info is unavailable" },
-        { Code::eIncorrectType, "Incorrect type" }
+        { Code::eIncorrectType, "Incorrect type" },
+        { Code::eBadLength, "Bad length"},
+        { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"}
    };
 
 public:

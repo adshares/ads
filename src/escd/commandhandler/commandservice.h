@@ -15,6 +15,8 @@
 #include "getbroadcastmsghandler.h"
 #include "changenodekeyhandler.h"
 #include "getblockhandler.h"
+#include "getmessagelisthandler.h"
+#include "getmessagehandler.h"
 
 class office;
 
@@ -46,6 +48,8 @@ class CommandService {
     GetBroadcastMsgHandler m_getBroadcastMsgHandler;   ///< get broadcast message handler
     ChangeNodeKeyHandler   m_changeNodeKeyHandler;  ///< change node key command handler
     GetBlockHandler        m_getBlockHandler;       ///< get block command handler
+    GetMessageListHandler  m_getMessageListHandler; ///< get message list handler
+    GetMessageHandler      m_getMessageHandler;     ///< get message handler
 };
 
 

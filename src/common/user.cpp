@@ -42,6 +42,8 @@
 #include "command/getbroadcastmsg.h"
 #include "command/changenodekey.h"
 #include "command/getblock.h"
+#include "command/getmessage.h"
+#include "command/getmessagelist.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -343,13 +345,15 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     } else if(!run.compare(txsname[TXSTYPE_NOD])) { //                 !!!!!!!!
         command.reset(new GetAccounts(sts.bank, sts.user, to_block, to_bank, now));
     } else if(!run.compare(txsname[TXSTYPE_MGS])) { //                 !!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new GetMessageList(sts.bank, sts.user, to_block, now));
+//        txs=boost::make_shared<usertxs>(TXSTYPE_MGS,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_MSG])) {
         uint32_t to_node_msid=0;
         boost::optional<uint32_t> json_node_msid=pt.get_optional<uint32_t>("node_msid");
         if(json_node_msid) {
             to_node_msid=json_node_msid.get();
         } //                      !!!!!!!!             !!!!!!!!!!!!
+//        command.reset(new GetMessage(sts.bank, sts.user, to_block, to_bank, to_node_msid, now));
         txs=boost::make_shared<usertxs>(TXSTYPE_MSG,sts.bank,sts.user,to_block,now,to_bank,to_node_msid,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare("send_again")) {
         boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
@@ -423,6 +427,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_BNK])) {
         command.reset( new CreateNode(sts.bank, sts.user, sts.msid, now));
+        deduct = command->getDeduct();
+        fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
         fee=TXS_SAV_FEE;
@@ -990,7 +996,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
         tx_data[2*txs->size]='\0';
         ed25519_key2text(tx_data,txs->data,txs->size);
 
-        std::cout << tx_data;
+        std::cerr << tx_data;
         //create asa tx.data
         pt.put("tx.data",tx_data);
         logpt.put("tx.data",tx_data);
@@ -1896,10 +1902,12 @@ END:
         socket.close();
         boost::property_tree::write_json(std::cout,pt,sts.nice);
     } catch (std::exception& e) {
-        std::cerr << "Talk Exception: " << e.what() << "\n";
+        DLOG("Talk exception %s\n", e.what());
+        pt.clear();
+        pt.put(ERROR_TAG, e.what());
+        boost::property_tree::write_json(std::cout,pt,sts.nice);
         // exit with error code to enable sane bash scripting
         if(!isatty(fileno(stdin))) {
-            boost::property_tree::write_json(std::cout,pt,sts.nice);
             // fprintf(stderr,"EXIT\n");
             exit(-1);
         }

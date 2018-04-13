@@ -53,6 +53,14 @@ struct commandresponse {
     uint32_t    mpos;
 } __attribute__((packed));
 
+struct tInfo {
+    int64_t weight;
+    int64_t deduct;
+    int64_t fee;
+    uint16_t stat;
+    uint8_t pkey[6];
+}__attribute__((packed));
+
 /** \brief Struct data for get_me and get_accout command */
 struct userinfo {
     userinfo() = default;
@@ -406,5 +414,79 @@ struct GetBlockData {
     GetBlockInfo info;
     unsigned char sign[64];
 }__attribute__((packed));
+
+/** \brief Get list of message info */
+struct GetMessageListInfo {
+    GetMessageListInfo() = default;
+    GetMessageListInfo(uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t block_)
+        : src_node(srcNode), src_user(srcUser), ttime(txnTime), block(block_) {
+    }
+
+    uint8_t  ttype{TXSTYPE_MGS};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t ttime{0};              ///< time
+    uint32_t block{0};              ///< block no.
+}__attribute__((packed));
+
+/** \brief Get list of message data */
+struct GetMessageListData {
+    GetMessageListData() = default;
+    GetMessageListData(uint16_t srcNode_, uint32_t srcUser_, uint32_t block_, uint32_t txnTime_)
+        : info(srcNode_, srcUser_, txnTime_, block_) {
+    }
+
+    GetMessageListInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+/** \brief Get message list response record */
+struct MessageRecord {
+    MessageRecord() = default;
+    MessageRecord(uint16_t nodeId, uint32_t nodeMsid, uint8_t msgHash[SHA256_DIGEST_LENGTH])
+        : node_id(nodeId), node_msid(nodeMsid) {
+        std::copy(msgHash, msgHash + SHA256_DIGEST_LENGTH, hash);
+    }
+
+    uint16_t node_id;                   ///< node id
+    uint32_t node_msid;                 ///< node message id
+    uint8_t hash[SHA256_DIGEST_LENGTH]; ///< message hash
+}__attribute__((packed));
+
+/** \brief Get message info */
+struct GetMessageInfo {
+    GetMessageInfo() = default;
+    GetMessageInfo(uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t block_, uint16_t dstNode, uint32_t msgId)
+        : src_node(srcNode), src_user(srcUser), ttime(txnTime), block(block_), dst_node(dstNode), node_msgid(msgId) {
+    }
+
+    uint8_t  ttype{TXSTYPE_MSG};    ///< command type
+    uint16_t src_node{0};           ///< source node
+    uint32_t src_user{0};           ///< source user
+    uint32_t ttime{0};              ///< time
+    uint32_t block{0};              ///< block no.
+    uint16_t dst_node{0};           ///< destination node
+    uint32_t node_msgid{0};         ///< node message id
+}__attribute__((packed));
+
+/** \brief Get message data */
+struct GetMessageData {
+    GetMessageData() = default;
+    GetMessageData(uint16_t srcNode_, uint32_t srcUser_, uint32_t block_, uint16_t dst_node, uint32_t msg_id, uint32_t txnTime_)
+        : info(srcNode_, srcUser_, txnTime_, block_, dst_node, msg_id) {
+    }
+
+    GetMessageInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+struct GetMessageResponse {
+    uint16_t svid;
+    uint32_t msgid;
+    uint32_t time;
+    uint32_t length;
+    uint8_t signature[SHA256_DIGEST_LENGTH];
+    bool hash_tree_fast;
+};
 
 #endif // PODS_H

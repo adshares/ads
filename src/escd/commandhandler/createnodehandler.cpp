@@ -25,6 +25,8 @@ void CreateNodeHandler::onExecute() {
 
     m_usera.msid++;
     m_usera.time  = m_command->getTime();
+    m_usera.node = 0;
+    m_usera.user = 0;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
     Helper::create256signhash(m_command->getSignature(), SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
@@ -47,11 +49,19 @@ void CreateNodeHandler::onExecute() {
         tlog.type   = m_command->getType();
         tlog.node   = m_command->getBankId();
         tlog.user   = m_command->getUserId();
-        tlog.umid   = m_usera.msid--;
+        tlog.umid   = m_command->getMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
 
-        tlog.weight = -m_command->getDeduct() - m_command->getFee();
+	tInfo info;
+	info.weight = m_usera.weight;
+	info.deduct = m_command->getDeduct();
+	info.fee = m_command->getFee();
+	info.stat = m_usera.stat;
+	memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
+	memcpy(tlog.info, &info, sizeof(tInfo));
+
+        tlog.weight = -m_command->getDeduct();
         m_offi.put_ulog(m_command->getUserId(), tlog);
 
 #ifdef DEBUG
@@ -76,7 +86,16 @@ bool CreateNodeHandler::onValidate() {
     int64_t     fee    = m_command->getFee();
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
-    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
+    if (m_command->getBankId() != m_offi.svid) {
+        ELOG("ERROR: bad bank\n");
+	errorCode = ErrorCodes::Code::eBadNode;
+    } else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
+        ELOG("OFFICE: reject transaction in readonly mode (todo: add notification)\n");
+	errorCode = ErrorCodes::Code::eReadOnlyMode;
+    } else if(m_usera.msid!=m_command->getMessageId()) {
+        ELOG("ERROR: bad msid %08X<>%08X\n",m_usera.msid, m_command->getMessageId());
+	errorCode = ErrorCodes::Code::eBadMsgId;
+    } else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         errorCode = ErrorCodes::Code::eLowBalance;

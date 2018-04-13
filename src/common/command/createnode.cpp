@@ -108,6 +108,10 @@ bool CreateNode::send(INetworkClient& netClient) {
     return true;
 }
 
+uint32_t CreateNode::getMessageId() {
+    return m_data.data.amsid;
+}
+
 std::string CreateNode::toString(bool /*pretty*/) {
     return "";
 }
