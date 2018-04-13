@@ -219,7 +219,7 @@ class server {
             }
         }
 
-        ioth_ = new boost::thread(boost::bind(&server::iorun, this));
+        //ioth_ = new boost::thread(boost::bind(&server::iorun, this));
         //peers_thread = new boost::thread(boost::bind(&server::peers, this));
         m_peerManager.start();
 
@@ -270,10 +270,10 @@ class server {
         }*/
 
         //busy_msgs_.clear(); // not needed
-        if(peers_thread!=NULL) {
+        /*if(peers_thread!=NULL) {
             //peers_thread->interrupt();
             peers_thread->join();
-        }
+        }*/
 
         if(clock_thread!=NULL) {
             //clock_thread->interrupt();
@@ -281,7 +281,8 @@ class server {
         }
 
         threadpool.join_all();
-        peer_killall();
+        //peer_killall();
+        m_peerManager.stop();
         DLOG("Server shutdown completed\n");
     }
 
@@ -558,6 +559,7 @@ NEXTUSER:
         now-=now%BLOCKSEC;
         do_validate=1;
         RETURN_ON_SHUTDOWN();
+        ELOG("LOAD CHAIN\n");
         for(int v=0; v<VALIDATORS; v++) {
             threadpool.create_thread(boost::bind(&server::validator, this));
         }
@@ -565,7 +567,10 @@ NEXTUSER:
         if(srvs_.now<now) {
             uint32_t n=headers.size();
             for(; !n;) {
+                ELOG("LOAD CHAIN 1\n");
+                //boost::this_thread::sleep(boost::posix_time::seconds(1));
                 get_more_headers(srvs_.now); // try getting more headers
+                ELOG("LOAD CHAIN 2\n");
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -4706,17 +4711,19 @@ NEXTBANK:
         hash_s cand;
         while(1) {
             uint32_t now=time(NULL);
-            const char* plist=peers_list();
+            //const char* plist=peers_list();
+            const char* plist = m_peerManager.getActualPeerList().c_str();
+            int peerCount = m_peerManager.getPeersCount(true);
             if(missing_msgs_.size()) {
                 ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                     (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+                     (int)wait_msgs_.size(),peerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
                      (int)missing_msgs_.size(),missing_msgs_.begin()->first);
             } else {
                 ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                     (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+                     (int)wait_msgs_.size(),peerCount ,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
             if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='
                 panic=true;
@@ -4923,19 +4930,19 @@ NEXTBANK:
         return false;
     }
 
-    void join(peer_ptr participant);
+    //void join(peer_ptr participant);
     //void leave(peer_ptr participant);
     void peer_set(std::set<peer_ptr>& peers);
-    void peer_clean();
-    void peer_killall();
+    //void peer_clean();
+    //void peer_killall();
     void disconnect(uint16_t svid);
     const char* peers_list();
-    void peers_known(std::set<uint16_t>& list);
-    void connected(std::vector<uint16_t>& list);
-    int duplicate(peer_ptr participant);
+    //void peers_known(std::set<uint16_t>& list);
+    //void connected(std::vector<uint16_t>& list);
+    //int duplicate(peer_ptr participant);
     int deliver(message_ptr msg,uint16_t svid);
     void deliver(message_ptr msg);
-    int update(message_ptr msg,uint16_t svid);
+    //int update(message_ptr msg,uint16_t svid);
     void update(message_ptr msg);
     //void svid_msid_rollback(message_ptr msg);
     void start_accept();

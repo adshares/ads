@@ -44,7 +44,11 @@
 #define SERVER_TYPE 1
 #define OFFICE_PORT "9091"
 #define SERVER_PORT "8081"
+#ifdef DEBUG
+#define SERVER_DNSA "dev.esc.adshares.net"
+#elif
 #define SERVER_DNSA "esc.adshares.net"
+#endif
 #define MAXCLIENTS 128
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 
@@ -294,5 +298,6 @@ typedef struct hash_cmp {
 #else
 #define DLOG(...)
 #endif
+
 
 #endif // DEFAULT_HPP
