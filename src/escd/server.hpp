@@ -550,6 +550,7 @@ NEXTUSER:
         now-=now%BLOCKSEC;
         do_validate=1;
         RETURN_ON_SHUTDOWN();
+        ELOG("LOAD CHAIN\n");
         for(int v=0; v<VALIDATORS; v++) {
             threadpool.create_thread(boost::bind(&server::validator, this));
         }
@@ -557,7 +558,10 @@ NEXTUSER:
         if(srvs_.now<now) {
             uint32_t n=headers.size();
             for(; !n;) {
+                ELOG("LOAD CHAIN 1\n");
+                //boost::this_thread::sleep(boost::posix_time::seconds(1));
                 get_more_headers(srvs_.now); // try getting more headers
+                ELOG("LOAD CHAIN 2\n");
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();

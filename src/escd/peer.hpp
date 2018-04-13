@@ -5,12 +5,29 @@
 #include <boost/smart_ptr.hpp>
 #include "server.hpp"
 #include "helper/socket.h"
+#include "network/peerclient.h"
+#include "network/peerclientmanager.h"
 
-//class peer : public boost::enable_shared_from_this<peer>
-class peer : public std::enable_shared_from_this<peer> {
+
+class peer : public boost::enable_shared_from_this<peer> {
+
+public:
+    enum state
+    {
+        ST_INIT = 0,
+        ST_CONNECTING,
+        ST_CONNECTED,
+        ST_AUTHENTICATED,
+        ST_SYNCD,
+        ST_VOTING,
+        ST_STOPED
+    };
+
   public:
     peer(server& srv,bool in,servers& srvs,options& opts, PeerConnectManager& connManager):
         svid(BANK_MAX),
+        //remote_address_(remote_address),
+        //remote_port_(remote_port),
         do_sync(1), //remove, use peer_hs.do_sync
         killme(false),
         busy(0),
@@ -46,14 +63,22 @@ class peer : public std::enable_shared_from_this<peer> {
 
     ~peer() {
 
-        DLOG("%04X PEER DESTRUCT %d port %d\n",svid, port);
+        DLOG("%04X PEER DESTRUCT address %s port %d\n", svid, addr.c_str(), port);
 
         try {
             if(port||1) {
                 uint32_t ntime=time(NULL);
             }
 
-            stop();
+            if(!peer_io_service_.stopped()){
+                peer_io_service_.stop();
+            }
+
+            if(iothp_ && iothp_->joinable()) {
+                //iothp_->interrupt();
+                iothp_->join();
+                //iothp_.reset();
+            } //try joining yourself error;
         }
         catch (std::exception& e) {
             std::cerr << e.what();
@@ -70,57 +95,65 @@ class peer : public std::enable_shared_from_this<peer> {
         catch (std::exception& e) {
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
-            DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());            
+            DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
             killme=true;
-            m_state = ST_STOPED;
         }
         DLOG("%04X PEER IORUN END\n",svid);
     }
 
     void stop() { // by server only
-        boost::system::error_code errorcode;
-        //DLOG("%04X STOP start\n",svid);
-        killme=true;
+        /*DLOG("%04X PEER STOP", svid);
 
-        //peer_io_service_.reset();
+        m_state = ST_STOPED;
+        killme=true;
 
         if(socket_.is_open())
         {
+            //DLOG("%04X PEER KILL %d<->%d\n",svid,socket_.local_endpoint().port(),port);
+            //socket_.close();
             socket_.cancel();
-            //DLOG("%04X CLOSE SOCKET\n",svid);
-            socket_.close();
-            boost::this_thread::sleep(boost::posix_time::milliseconds(999)); // mus sleep to let connect() fail
+            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
         }
 
-        if(!peer_io_service_.stopped()){
-            peer_io_service_.stop();
+        peer_io_service_.reset();*/
+
+        peer_io_service_.dispatch(boost::bind(&peer::stopImpl, this));
+    }
+
+    void stopImpl() { // by server only
+        DLOG("%04X PEER STOP", svid);
+
+        m_state = ST_STOPED;
+        killme=true;
+
+        if(socket_.is_open())
+        {
+            //socket_.close();
+            socket_.cancel();
+            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
         }
 
-
-        if(iothp_) {
-            iothp_->join();
-            //iothp_.reset();
-        } //try joining yourself error
-        //DLOG("%04X PEER CLOSE\n",svid);
+        peer_io_service_.reset();
     }
 
     void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {
         //boost::asio::async_connect(new_peer->socket(), connIt,
         //                           boost::bind(&peer::connect,new_peer,boost::asio::placeholders::error));
 
-        m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, shared_from_this(), boost::asio::placeholders::error), timeout);
+        m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, this, boost::asio::placeholders::error), timeout);
+    }
+
+
+    state getState()
+    {
+        return m_state;
     }
 
     void leave() {
-        //DLOG("%04X PEER LEAVING %d<->%d\n",svid,socket_.local_endpoint().port(),port);
-        DLOG("%04X PEER LEAVING \n",svid);
-        if(svid == 1)
-        {
-            int t = 0;
-        }
-        //message_ptr msg=server_.write_handshake(0,sync_hs); // sets sync_hs
-
-        DLOG("+++++++++++++++++++++++++++leave KILMEE %d \n",svid);
+        DLOG("%04X PEER LEAVING address %s:%d\n",svid, addr.c_str(), port);
+        m_state = ST_STOPED;
+        stop();
+        m_connManager.leevePeer(addr, port);
         killme=true;
     }    
 
@@ -142,6 +175,7 @@ class peer : public std::enable_shared_from_this<peer> {
         if(error) {
             DLOG("%04X PEER ACCEPT ERROR\n",svid);
             killme=true; // not needed, as now killme=true is initial state for outgoing connections
+            leave();
             return;
         }
         killme=false; //connection established
@@ -381,7 +415,9 @@ class peer : public std::enable_shared_from_this<peer> {
         if(put_msg->len!=message::header_length) {
 //FIXME, do not unload everything ...
             put_msg->unload(svid);
-        }        
+        }
+
+        DLOG("----------Finish send_sync");
     }
 
     void handle_write(const boost::system::error_code& error, size_t transfered)
@@ -447,9 +483,19 @@ class peer : public std::enable_shared_from_this<peer> {
         }
     }
 
+    void handle_read_header(const boost::system::error_code& error, size_t transfered)
+    {
+        if(transfered != 8)
+        {
+            int test = 0;
+        }
+        DLOG("handle_read_header %d : %d\n", transfered, read_msg_->data[0]);
+        handle_read_header(error);
+    }
+
     void handle_read_header(const boost::system::error_code& error) {
 
-
+    DLOG("handle_read_header %d : %d\n", read_msg_->len, read_msg_->data[0]);
         extern message_ptr nullmsg;
         if(killme) {
             ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
@@ -480,10 +526,10 @@ class peer : public std::enable_shared_from_this<peer> {
             DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
             //boost::asio::async_read(socket_,
             //                        boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len*sizeof(user_t)),
-            //                        boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+            //                        boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error));
 
             m_netclient.asyncRead(read_msg_->data+message::header_length, read_msg_->len*sizeof(user_t),
-                                  boost::bind(&peer::handle_read_bank,shared_from_this(),boost::asio::placeholders::error));
+                                  boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error));
 
             return;
         }
@@ -608,7 +654,7 @@ class peer : public std::enable_shared_from_this<peer> {
 //            read_msg_ = boost::make_shared<message>();
 //            boost::asio::async_read(socket_,
 //                                    boost::asio::buffer(read_msg_->data,message::header_length),
-//                                    boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+//                                    boost::bind(&peer::handle_read_header,this,boost::asio::placeholders::error));
         } else {
             if(read_msg_->data[0]==MSGTYPE_STP) {
                 DLOG("%04X PEER in block mode\n",svid);
@@ -1319,10 +1365,10 @@ NEXTUSER:
             DLOG("%04X ERROR: connecting to myself\n",svid);
             return(0);
         }
-        if(server_.duplicate(shared_from_this())) {
+        /*if(server_.duplicate(this)) {
             DLOG("%04X ERROR: server already connected\n",svid);
             return(0);
-        }
+        }*/
         if(peer_hs.head.nod>srvs_.nodes.size() && incoming_) {
             DLOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
             return(0);
@@ -1983,7 +2029,7 @@ NEXTUSER:
         //read_msg_ = boost::make_shared<message>(); // continue with a fresh message container
         //boost::asio::async_read(socket_,
         //                        boost::asio::buffer(read_msg_->data,message::header_length),
-        //                        boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error));
+        //                        boost::bind(&peer::handle_read_header,this,boost::asio::placeholders::error));
         asyncWaitForNewMessageHeader();
         //save last synced block to protect peer from disconnect
         last_active=BLOCK_MODE;
@@ -2103,6 +2149,8 @@ NEXTUSER:
     boost::asio::ip::tcp::socket socket_;    
 
     PeerClient          m_netclient;
+    PeerConnectManager& m_connManager;
+    PEER_STATE          m_state;
 
     std::unique_ptr<boost::thread> iothp_;			//TH
     server& server_;
