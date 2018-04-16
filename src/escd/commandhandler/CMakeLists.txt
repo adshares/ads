@@ -15,6 +15,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagehandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelisthandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getloghandler.cpp
     PARENT_SCOPE
     )
 
@@ -35,6 +36,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/getblockhandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagehandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelisthandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getloghandler.h
     PARENT_SCOPE
     )
 

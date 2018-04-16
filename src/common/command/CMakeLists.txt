@@ -14,6 +14,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/getblock.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessage.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelist.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getlog.cpp
     PARENT_SCOPE
     )
 
@@ -35,6 +36,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/getblock.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessage.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelist.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getlog.h
     PARENT_SCOPE
     )
 

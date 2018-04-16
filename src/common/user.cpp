@@ -45,6 +45,7 @@
 #include "command/getmessage.h"
 #include "command/getmessagelist.h"
 #include "command/factory.h"
+#include "command/getlog.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -285,22 +286,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         if(json_from){
             to_from=json_from.get();
         }
-        sts.lastlog=to_from; //save requested log period
-        fprintf(stderr,"LOG: print from %d (%08X)\n",to_from,to_from);
-        to_from=0;
-        char filename[64];
-        mkdir("log",0755);
-        sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
-        int fd=open(filename,O_RDONLY);
-        if(fd>=0 && lseek(fd,-sizeof(log_t),SEEK_END)>=0) {
-            read(fd,&to_from,sizeof(uint32_t));
-            if(to_from>0) {
-                to_from--;
-            } // accept 1s overlap
-            fprintf(stderr,"LOG: setting last time to %d (%08X)\n",to_from,to_from);
-        }
-        close(fd);
-        txs=boost::make_shared<usertxs>(TXSTYPE_LOG,sts.bank,sts.user,to_from);
+        command.reset(new GetLog(sts.bank, sts.user, to_from));
     } else if(!run.compare(txsname[TXSTYPE_BLG])) {
         boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from){

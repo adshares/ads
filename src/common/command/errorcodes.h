@@ -42,6 +42,7 @@ public:
         eIncorrectType,
         eBadLength,
         eInvalidMessageFile,
+        eGetLogFailed,
         eHighTimeDifference
     };
 
@@ -79,6 +80,7 @@ private:
         { Code::eIncorrectType, "Incorrect type" },
         { Code::eBadLength, "Bad length"},
         { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"},
+        { Code::eGetLogFailed, "Get log failed"},
         { Code::eHighTimeDifference, "High time difference"}
    };
 
