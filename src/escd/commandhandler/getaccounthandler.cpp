@@ -60,12 +60,13 @@ bool GetAccountHandler::onValidate() {
     userinfo&   data    = m_command->getDataStruct().info;
     int32_t     diff    = data.ttime - time(nullptr);
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    user_t userb;
 
 #ifdef DEBUG
     // this is special, just local info
     if((abs(diff)>22)) {
         DLOG("ERROR: high time difference (%d>2s)\n", diff);
-        return false;
+        errorCode = ErrorCodes::Code::eHighTimeDifference;
     }
 #else
     if((abs(diff)>2)) {
@@ -76,15 +77,14 @@ bool GetAccountHandler::onValidate() {
 
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
-    if(data.abank != m_offi.svid && data.bbank != m_offi.svid) {
-        DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", data.abank, data.bbank, m_offi.svid );
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    user_t userb;
-    if(!m_offi.get_user(userb, data.bbank, data.buser)) {
-        DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
-        errorCode = ErrorCodes::Code::eGetUserFail;
+    if (!errorCode) {
+        if(data.abank != m_offi.svid && data.bbank != m_offi.svid) {
+            DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", data.abank, data.bbank, m_offi.svid );
+            errorCode = ErrorCodes::Code::eBankNotFound;
+        } else if(!m_offi.get_user(userb, data.bbank, data.buser)) {
+            DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
+            errorCode = ErrorCodes::Code::eGetUserFail;
+        }
     }
 
     if (errorCode) {

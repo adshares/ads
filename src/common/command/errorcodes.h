@@ -41,7 +41,8 @@ public:
         eGetBlockInfoUnavailable,
         eIncorrectType,
         eBadLength,
-        eInvalidMessageFile
+        eInvalidMessageFile,
+        eHighTimeDifference
     };
 
 private:
@@ -77,7 +78,8 @@ private:
         { Code::eGetBlockInfoUnavailable, "Block info is unavailable" },
         { Code::eIncorrectType, "Incorrect type" },
         { Code::eBadLength, "Bad length"},
-        { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"}
+        { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"},
+        { Code::eHighTimeDifference, "High time difference"}
    };
 
 public:

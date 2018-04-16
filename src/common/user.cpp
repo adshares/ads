@@ -44,6 +44,7 @@
 #include "command/getblock.h"
 #include "command/getmessage.h"
 #include "command/getmessagelist.h"
+#include "command/factory.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -366,12 +367,9 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
                 free(data);
                 return(NULL);
             }
-            txs=boost::make_shared<usertxs>(data,len);
-            //TODO, no fee calculation available without parsing the transaction
-            //deduct=0;
-            //fee=0;
+            command = command::factory::makeCommand(*data);
+            command->setData((char*)data);
             free(data);
-            return(txs);
         }
         return(NULL);
     } else if(!run.compare(txsname[TXSTYPE_BRO])) {

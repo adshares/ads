@@ -44,8 +44,11 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     m_pt.put("current_block_time", now);
     m_pt.put("previous_block_time", now - BLOCKSEC);
 
-    std::stringstream tx_data;
-    Helper::ed25519_key2text(tx_data, txs->getData(), txs->getDataSize() + txs->getSignatureSize());
+    std::stringstream tx_data, full_data;
+    full_data.write((char*)txs->getData(), txs->getDataSize());
+    full_data.write((char*)txs->getAdditionalData(), txs->getAdditionalDataSize());
+    full_data.write((char*)txs->getSignature(), txs->getSignatureSize());
+    Helper::ed25519_key2text(tx_data, (uint8_t*)full_data.str().c_str(), txs->getDataSize() + txs->getAdditionalDataSize() + txs->getSignatureSize());
     m_pt.put("tx.data",tx_data.str());
     m_logpt.put("tx.data",tx_data.str());
 
