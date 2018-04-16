@@ -42,8 +42,12 @@ unsigned char* SendMany::getResponse() {
 }
 
 void SendMany::setData(char* data) {
-    //! NOTE that this function sets only data, without additional data
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
+    char *data_ptr = data + getDataSize();
+    std::copy(data_ptr, data_ptr + getAdditionalDataSize(), getAdditionalData());
+    data_ptr += getAdditionalDataSize();
+    std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
+    initTransactionVector();
 }
 
 void SendMany::setResponse(char* response) {
