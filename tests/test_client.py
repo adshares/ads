@@ -2,7 +2,7 @@ import time
 
 from .conftest import exec_esc_cmd, create_client_env, create_init_client, manual_init_node_process
 from .conftest import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
-from .utils import create_node, update_user_env
+from .utils import create_node, update_user_env, get_user_address
 
 
 def test_get_me(init_node_process):
@@ -79,18 +79,25 @@ def test_get_accounts(init_node_process):
     assert len(response['accounts']) == 2
 
 
+def test_get_account(init_node_process, client_id="2"):
+    address = get_user_address(client_id)
+
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': address})
+    assert response['account']['address'] == address
 
 
+def test_set_account_status(init_node_process, client_id="2"):
+    client_address = get_user_address(client_id)
 
-# def test_get_account(init_node_process, client_id="2"):
-#     response = exec_esc_cmd(client_id, {'run': 'get_me'}, with_get_me=False)
-#     address = response['account']['address']
-#
-#     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': address})
-#     import pdb
-#     pdb.set_trace()
-#     assert response['account']['address'] == address
-#     assert response['account']['id'] == client_id
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'set_account_status',
+                                             'address': client_address,
+                                             'status': "10"})
+
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': client_address})
+
+
+    pass
+
 
 
 # def test_create_account_on_another_node(init_node_process, client_id="3"):

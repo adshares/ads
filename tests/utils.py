@@ -53,7 +53,7 @@ def get_user_address(client_id):
     return response['account']['address']
 
 
-def create_node(node_id, client_id, port, offi):
+def create_node_without_start():
     count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
                                     {"run": "get_block"}).get('block', '').get('nodes', ''))
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
@@ -69,6 +69,13 @@ def create_node(node_id, client_id, port, offi):
         time.sleep(10)
         assert time.time() - start_time < 70
 
+    return response
+
+
+def create_node(node_id, client_id, port, offi):
+
+    response = create_node_without_start()
+
     offset_block = response['block']['id'][:3]
     id_block = response['block']['id'][3:]
 
@@ -78,7 +85,7 @@ def create_node(node_id, client_id, port, offi):
                                                                     'key': SECRET, 'port': port, 'offi': offi,
                                                                     'offset_block': offset_block, 'id_block': id_block})
     thr.start()
-    # thr.join()
-    # manual_init_node_process(node_id=node_id, client_id=client_id,
-    #                          key=NEW_PKEY, port=port, offi=offi,
-    #                          offset_block=offset_block, id_block=id_block)
+    thr.join()
+
+
+
