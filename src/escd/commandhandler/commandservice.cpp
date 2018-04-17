@@ -6,6 +6,7 @@
 #include "command/getaccounts.h"
 #include "command/broadcastmsg.h"
 #include "command/changenodekey.h"
+#include "command/getlog.h"
 #include "../office.hpp"
 
 CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
@@ -22,7 +23,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_changeNodeKeyHandler(office, socket),
       m_getBlockHandler(office, socket),
       m_getMessageListHandler(office, socket),
-      m_getMessageHandler(office, socket) {
+      m_getMessageHandler(office, socket),
+      m_getLogHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
@@ -70,6 +72,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
         break;
     case TXSTYPE_MGS:
         m_getMessageListHandler.execute(std::move(command), std::move(usera));
+        break;
+    case TXSTYPE_LOG:
+        m_getLogHandler.execute(std::move(command), std::move(usera));
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

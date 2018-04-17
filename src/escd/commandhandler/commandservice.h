@@ -17,6 +17,7 @@
 #include "getblockhandler.h"
 #include "getmessagelisthandler.h"
 #include "getmessagehandler.h"
+#include "getloghandler.h"
 
 class office;
 
@@ -50,6 +51,7 @@ class CommandService {
     GetBlockHandler        m_getBlockHandler;       ///< get block command handler
     GetMessageListHandler  m_getMessageListHandler; ///< get message list handler
     GetMessageHandler      m_getMessageHandler;     ///< get message handler
+    GetLogHandler          m_getLogHandler;         ///< get log handler
 };
 
 

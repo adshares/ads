@@ -17,6 +17,8 @@ char* print_amount(int64_t amount);
 char* mydate(uint32_t now);
 int check_csum(user_t& u,uint16_t peer,uint32_t uid);
 void printErrorJson(const char* errorMsg);
+void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog);
+void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user);
 }
 
 #endif // JSON_H
