@@ -8,40 +8,10 @@
 #include <boost/property_tree/json_parser.hpp>
 #include "hash.h"
 #include "ascii.h"
+#include "txsname.h"
 #include "command/errorcodes.h"
-#include "command/pods.h"
 
 namespace Helper {
-
-const char* logname[TXSTYPE_MAX]= {
-    "node_started",		//0
-    "unknown",		//1
-    "account_created",	//2
-    "broadcast",		//3
-    "send_one",		//4
-    "send_many",		//5
-    "create_account",	//6
-    "create_node",		//7
-    "retrieve_funds",	//8
-    "change_account_key",	//9
-    "change_node_key",	//10
-    "set_account_status",	//11 NEW
-    "set_node_status",	//12 NEW
-    "unset_account_status",	//13 NEW
-    "unset_node_status",	//14 NEW
-    "log_account",		//15 NEW
-    "dividend",		//16
-    "bank_profit",		//17
-    "unknown",		//18
-    "unknown",		//19
-    "unknown",		//20
-    "unknown",		//21
-    "unknown",		//22
-    "unknown",		//23
-    "unknown",		//24
-    "unknown",		//25
-    "unknown"
-};		//26
 
 void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user) {
     char pkey[65];
@@ -193,7 +163,7 @@ void printErrorJson(const char *errorMsg) {
     boost::property_tree::write_json(std::cout, ptree, true);
 }
 
-void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog) {
+void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1) {
     char filename[64];
     sprintf(filename,"log/%04X_%08X.bin", bank, user);
     int fd=open(filename,O_RDONLY);
@@ -223,13 +193,16 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             //fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             continue;
         }
+        uint16_t txst=ulog.type&0xFF;
+        if (txnType != -1 && txst != txnType) {
+            continue;
+        }
         char info[65];
         info[64]='\0';
         ed25519_key2text(info,ulog.info,32);
         boost::property_tree::ptree logentry;
         uint16_t suffix=crc_acnt(ulog.node,ulog.user);
         char acnt[19];
-        uint16_t txst=ulog.type&0xFF;
         sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
         logentry.put("time",ulog.time);
         logentry.put("date",mydate(ulog.time));

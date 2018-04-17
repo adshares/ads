@@ -49,70 +49,9 @@
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
+#include "helper/txsname.h"
 
 using namespace Helper;
-
-
-const char* txsname[TXSTYPE_MAX]= {
-    "empty",		//0
-    "dividend",		//1
-    "account_created",	//2
-    "broadcast",		//3
-    "send_one",		//4
-    "send_many",		//5
-    "create_account",	//6
-    "create_node",		//7
-    "retrieve_funds",	//8
-    "change_account_key",	//9
-    "change_node_key",	//10
-    "set_account_status",	//11 NEW
-    "set_node_status",	//12 NEW
-    "unset_account_status",	//13 NEW
-    "unset_node_status",	//14 NEW
-    "log_account",		//15 NEW
-    "get_account",		//16 also 'get_me'
-    "get_log",		//17
-    "get_broadcast",	//18
-    "get_blocks",		//19
-    "get_transaction",	//20
-    "get_vipkeys",		//21
-    "get_signatures",	//22
-    "get_block",		//23
-    "get_accounts",		//24
-    "get_message_list",	//25
-    "get_message"
-};		//26
-
-const char* logname[TXSTYPE_MAX]= {
-    "node_started",		//0
-    "unknown",		//1
-    "account_created",	//2
-    "broadcast",		//3
-    "send_one",		//4
-    "send_many",		//5
-    "create_account",	//6
-    "create_node",		//7
-    "retrieve_funds",	//8
-    "change_account_key",	//9
-    "change_node_key",	//10
-    "set_account_status",	//11 NEW
-    "set_node_status",	//12 NEW
-    "unset_account_status",	//13 NEW
-    "unset_node_status",	//14 NEW
-    "log_account",		//15 NEW
-    "dividend",		//16
-    "bank_profit",		//17
-    "unknown",		//18
-    "unknown",		//19
-    "unknown",		//20
-    "unknown",		//21
-    "unknown",		//22
-    "unknown",		//23
-    "unknown",		//24
-    "unknown",		//25
-    "unknown"
-};		//26
-
 
 boost::mutex flog; //to compile LOG()
 FILE* stdlog=stderr; //to compile LOG()
@@ -213,6 +152,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     uint8_t     to_pkey[32];
     uint8_t     to_sign[64];
     uint32_t    to_status=0;
+    std::string txn_type{};
     uint32_t    now=time(NULL);
     uint32_t    to_block=now-(now%BLOCKSEC)-BLOCKSEC;
     usertxs_ptr txs=NULL;
@@ -268,6 +208,10 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     if(json_block) {
         to_block=hexdec(json_block.get());
     }
+    boost::optional<std::string> json_type=pt.get_optional<std::string>("type");
+    if (json_type) {
+        txn_type = json_type.get();
+    }
 
     deduct=0;
     fee=0;
@@ -286,7 +230,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         if(json_from){
             to_from=json_from.get();
         }
-        command.reset(new GetLog(sts.bank, sts.user, to_from));
+        command.reset(new GetLog(sts.bank, sts.user, to_from, txn_type.c_str()));
     } else if(!run.compare(txsname[TXSTYPE_BLG])) {
         boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from){
