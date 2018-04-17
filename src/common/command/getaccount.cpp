@@ -117,8 +117,8 @@ std::string GetAccount::toString(bool /*pretty*/) {
 
 void GetAccount::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
-        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
-        print_user(m_response.globalusera, ptree, false, this->getBankId(), this->getUserId());
+        print_user(m_response.usera, ptree, true, m_data.info.bbank, m_data.info.buser);
+        print_user(m_response.globalusera, ptree, false, m_data.info.bbank, m_data.info.buser);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
