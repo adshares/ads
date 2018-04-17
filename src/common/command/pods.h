@@ -489,4 +489,27 @@ struct GetMessageResponse {
     bool hash_tree_fast;
 };
 
+struct GetLogInfo {
+    GetLogInfo() = default;
+    GetLogInfo(uint16_t node_, uint32_t user_, uint32_t from_)
+        : node(node_), user(user_), from(from_) {
+    }
+
+    uint8_t ttype{TXSTYPE_LOG}; ///< command type
+    uint16_t node{0};           ///< source node
+    uint32_t user{0};           ///< source user
+    uint32_t from{0};           ///< from time
+
+}__attribute__((packed));
+
+struct GetLogData {
+    GetLogData() = default;
+    GetLogData(uint16_t node, uint32_t user, uint32_t from)
+        : info(node, user, from) {
+    }
+
+    GetLogInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H
