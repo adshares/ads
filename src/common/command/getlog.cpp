@@ -2,15 +2,25 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
+#include "helper/txsname.h"
 
 GetLog::GetLog()
     : m_data{} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from)
-        : m_data(bank, user, from) {
+GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from, const char *txnTypeFilter)
+        : m_data(bank, user, from), m_txnTypeFilter(-1) {
     m_responseError = ErrorCodes::Code::eNone;
+    if (strlen(txnTypeFilter) > 0) {
+        int id = Helper::getTxnLogTypeId(txnTypeFilter);
+        if (id >= 0) {
+            m_txnTypeFilter = id;
+        } else {
+            // txn type doesnt exists
+            m_responseError = ErrorCodes::Code::eIncorrectTransaction;
+        }
+    }
     getLastLogsUpdate();
 }
 
@@ -104,6 +114,11 @@ user_t& GetLog::getUserInfo() {
 }
 
 bool GetLog::send(INetworkClient& netClient) {
+    if (m_responseError) {
+        // case when filter transaction type doesn't exists
+        return true;
+    }
+
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
         ELOG("GetLog sending error\n");
         return false;
@@ -153,7 +168,7 @@ std::string GetLog::toString(bool /*pretty*/) {
 void GetLog::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         Helper::print_user(m_response, ptree, true, this->getBankId(), this->getUserId());
-        Helper::print_log(ptree, this->getBankId(), this->getUserId(), m_lastlog);
+        Helper::print_log(ptree, this->getBankId(), this->getUserId(), m_lastlog, m_txnTypeFilter);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
