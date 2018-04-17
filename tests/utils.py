@@ -1,6 +1,7 @@
 import time
+import threading
 
-from . import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd
+from .conftest import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd, manual_init_node_process
 
 
 def update_user_env(client_id, address):
@@ -50,3 +51,34 @@ def create_account(client_id="2", node="0001"):
 def get_user_address(client_id):
     response = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     return response['account']['address']
+
+
+def create_node(node_id, client_id, port, offi):
+    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
+                                    {"run": "get_block"}).get('block', '').get('nodes', ''))
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
+
+    start_time = time.time()
+
+    while True:
+        response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+        if response.get('block'):
+            count = len(response['block']['nodes'])
+            if count > count_blocks:
+                break
+        time.sleep(10)
+        assert time.time() - start_time < 70
+
+    offset_block = response['block']['id'][:3]
+    id_block = response['block']['id'][3:]
+
+    SECRET = '14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0'
+
+    thr = threading.Thread(target=manual_init_node_process, kwargs={'node_id':node_id, 'client_id': client_id,
+                                                                    'key': SECRET, 'port': port, 'offi': offi,
+                                                                    'offset_block': offset_block, 'id_block': id_block})
+    thr.start()
+    # thr.join()
+    # manual_init_node_process(node_id=node_id, client_id=client_id,
+    #                          key=NEW_PKEY, port=port, offi=offi,
+    #                          offset_block=offset_block, id_block=id_block)

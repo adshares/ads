@@ -2,8 +2,6 @@ import asyncio
 import random
 import time
 
-from concurrent import futures
-
 from . import exec_esc_cmd
 from . import INIT_CLIENT_ID
 from .utils import update_user_env

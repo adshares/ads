@@ -1,7 +1,8 @@
 import time
 
-from . import exec_esc_cmd, create_client_env, create_init_client
-from . import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS
+from .conftest import exec_esc_cmd, create_client_env, create_init_client, manual_init_node_process
+from .conftest import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
+from .utils import create_node, update_user_env
 
 
 def test_get_me(init_node_process):
@@ -18,7 +19,9 @@ def test_key_changed(init_node_process):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_me"}, with_get_me=False)
     address = response['account']['address']
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"change_account_key", "pkey": new_public_key, "signature":signature})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_account_key",
+                                             "pkey": new_public_key,
+                                             "signature": signature})
     assert response['result'] == 'PKEY changed'
 
     create_client_env(INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, address=address, secret=new_secret_key)
@@ -57,7 +60,8 @@ def test_create_account(init_node_process, client_id="2"):
     new_secret = '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C'
     signature = 'ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05'
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"change_account_key", "pkey":new_pub_key, "signature": signature}, cmd_extra=['--address', address])
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"change_account_key", "pkey":new_pub_key, "signature": signature},
+                            cmd_extra=['--address', address])
 
     create_client_env(client_id, INIT_NODE_OFFICE_PORT,
                       address=address,
@@ -68,3 +72,45 @@ def test_create_account(init_node_process, client_id="2"):
     response = exec_esc_cmd(client_id, {'run': 'get_me'}, with_get_me=False)
 
     assert response['account']['address'] == address
+
+
+def test_get_accounts(init_node_process):
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': 1}, with_get_me=False)
+    assert len(response['accounts']) == 2
+
+
+
+
+
+# def test_get_account(init_node_process, client_id="2"):
+#     response = exec_esc_cmd(client_id, {'run': 'get_me'}, with_get_me=False)
+#     address = response['account']['address']
+#
+#     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': address})
+#     import pdb
+#     pdb.set_trace()
+#     assert response['account']['address'] == address
+#     assert response['account']['id'] == client_id
+
+
+# def test_create_account_on_another_node(init_node_process, client_id="3"):
+#     create_node("2", INIT_CLIENT_ID, port=8020, offi=8021)
+#     accounts = len(exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'}, with_get_me=False)['accounts'])
+#     response_create = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'create_account', 'node': '0002'})
+#
+#     time_start = time.time()
+#     while True:
+#         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'}, with_get_me=False)
+#         response_log = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_log'})
+#         import pdb
+#         pdb.set_trace()
+#         current_accounts = len(response['accounts'])
+#         if current_accounts > accounts:
+#             print(accounts)
+#         time.sleep(5)
+#         # assert time.time() - time_start < 70
+#
+#     update_user_env(client_id, address)
+
+
+
