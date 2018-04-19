@@ -405,8 +405,8 @@ public:
         pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock(); //most likely no lock needed
         std::size_t len = 0;
         try {             
-             //len = boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
-             len = m_netclient.writeSync(put_msg->data,put_msg->len, 30);
+             len = boost::asio::write(socket_,boost::asio::buffer(put_msg->data,put_msg->len));
+             //len = m_netclient.writeSync(put_msg->data,put_msg->len, 30);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (send_sync): %s\n",svid,e.what());
             leave();
@@ -677,12 +677,12 @@ public:
             }
             if(read_msg_->data[0]==MSGTYPE_MSP) {
                 DLOG("%04X READ msglist header\n",svid);
-                //boost::asio::async_read(socket_,
-                //                        boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
-                //                        boost::bind(&peer::handle_read_msglist,this,boost::asio::placeholders::error));
+                boost::asio::async_read(socket_,
+                                        boost::asio::buffer(read_msg_->data+message::header_length,read_msg_->len-message::header_length),
+                                        boost::bind(&peer::handle_read_msglist,this,boost::asio::placeholders::error));
 
-                m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
-                                      boost::bind(&peer::handle_read_stop,this,boost::asio::placeholders::error));
+                //m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
+                //                      boost::bind(&peer::handle_read_msglist,this,boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_BLK) {
@@ -1180,7 +1180,7 @@ NEXTUSER:
         //        boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
         //                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         m_netclient.asyncRead(read_msg_->data, message::header_length,
-                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC/2);
+                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC);
     }
 
     void handle_read_bank(const boost::system::error_code& error) {
@@ -1694,7 +1694,7 @@ NEXTUSER:
     }
 
     void sync_start(bool server) {
-        DLOG("sync_start\n")
+        DLOG("sync_start %d\n", server)
         pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
         if(server) {
             BLOCK_SERV=true;

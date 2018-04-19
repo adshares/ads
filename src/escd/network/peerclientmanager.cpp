@@ -144,11 +144,12 @@ void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned 
     {        
         std::lock_guard<std::mutex> lck(m_peerMx);
 
+        m_activePeers.erase(svid);
+
         auto peerIt = m_peers.find(std::make_pair(address.s_addr, port));
         if(peerIt!=m_peers.end())
         {
-            m_server.missing_sent_remove((*peerIt).second->svid);            
-            m_activePeers.erase(svid);
+            m_server.missing_sent_remove((*peerIt).second->svid);                        
             m_peers.erase(peerIt);
 
             //if(svids.empty() && !opts_.init && !do_sync) {
@@ -346,7 +347,7 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
         connectPeersFromServerFile(neededPeers);
 
         if(!m_opts.init){
-            connectPeersFromDNS(neededPeers);
+            //connectPeersFromDNS(neededPeers);
         }
     }
 
@@ -483,16 +484,18 @@ bool PeerConnectManager::checkDuplicate(uint16_t svid)
 
 void PeerConnectManager::getMoreHeaders(uint32_t now)
 {
+     DLOG("TRY REQUEST getMoreHeaders \n");
+
     boost::shared_ptr<peer> peer;
 
     {
         std::lock_guard<std::mutex> lck(m_peerMx);
         auto pi = m_activePeers.begin();
 
-        if(m_activePeers.size()>=1)
+        if(pi != m_activePeers.end())
         {
-            int64_t num = ((uint64_t)random())%m_activePeers.size();
-            advance(pi,num);
+            //int64_t num = ((uint64_t)random())%m_activePeers.size();
+            //advance(pi,num);
             peer = pi->second;
         }
         else
