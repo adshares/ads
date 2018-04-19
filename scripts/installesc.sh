@@ -400,6 +400,11 @@ function stopnode
 
     pkill -f $1
     sleep 8
+
+    ps -aux | grep $1
+
+    echo '.............................node shoule not run '$1
+
     pkill -9 -f $1
     sleep 5
 }

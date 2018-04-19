@@ -73,6 +73,7 @@ void signal_handler(int signal) {
         if(stdlog!=NULL) {
             fflush(stdlog);
         }
+
         std::signal(SIGABRT,SIG_DFL);
         abort();
     }
@@ -100,7 +101,7 @@ int main(int argc, char* argv[]) {
     //std::signal(SIGFPE,signal_handler);
     std::signal(SIGUSR1,signal_handler);
     //std::signal(SIGUSR2,signal_handler);
-    stdlog=fopen("log.txt","w");
+    stdlog=fopen("log.txt","w");    
     options opt;
     opt.get(argc,argv);
     FILE *lock=fopen(".lock","a");
@@ -115,7 +116,7 @@ int main(int argc, char* argv[]) {
             server s(opt);
             office o(opt,s);
             s.ofip=&o;
-            s.start();
+            s.run();
             opt.back=0;
             signal=fut.get();
             if(signal==SIGUSR1) {
@@ -338,16 +339,17 @@ bool server::ofip_isreadonly() {
         }
     }
 }*/
-/*int server::duplicate(peer_ptr p) {
-    std::set<peer_ptr> peers;
+int server::duplicate(uint16_t svid) {
+    /*std::set<peer_ptr> peers;
     peer_set(peers);
     for(auto r : peers) {
         if(r!=p && r->svid==p->svid) {
             return 1;
         }
     }
-    return 0;
-}*/
+    return 0;*/
+    return m_peerManager.checkDuplicate(svid);
+}
 void server::get_more_headers(uint32_t now) {
     /*std::set<peer_ptr> peers;
     peer_set(peers);
