@@ -33,7 +33,7 @@ void SetAccountKeyHandler::onExecute() {
     m_usera.time  = data.ttime;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
-    Helper::create256signhash(data.sign, SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+    Helper::create256signhash(data.sign, m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
     // could add set_user here
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {

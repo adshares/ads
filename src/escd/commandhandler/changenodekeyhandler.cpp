@@ -52,7 +52,7 @@ void ChangeNodeKeyHandler::onExecute() {
         m_usera.node = 0;
         m_usera.user = 0;
 
-        Helper::create256signhash(m_command->getSignature(), SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+        Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
         if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
             DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
