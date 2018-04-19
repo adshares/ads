@@ -12,7 +12,7 @@
 class peer : public boost::enable_shared_from_this<peer> {
 
 public:
-    enum state
+    enum PeerState
     {
         ST_INIT = 0,
         ST_CONNECTING,
@@ -144,7 +144,7 @@ public:
     }
 
 
-    state getState()
+    PeerState getState()
     {
         return m_state;
     }
@@ -1180,7 +1180,7 @@ NEXTUSER:
         //        boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
         //                                boost::bind(&peer::handle_read_header,shared_from_this(),boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         m_netclient.asyncRead(read_msg_->data, message::header_length,
-                              boost::bind(&peer::handle_read_header, shared_from_this(), boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC/2);
+                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC/2);
     }
 
     void handle_read_bank(const boost::system::error_code& error) {
@@ -2163,7 +2163,7 @@ NEXTUSER:
 
     PeerClient          m_netclient;
     PeerConnectManager& m_connManager;
-    PEER_STATE          m_state;
+    PeerState           m_state;
 
     std::unique_ptr<boost::thread> iothp_;			//TH
     server& server_;
