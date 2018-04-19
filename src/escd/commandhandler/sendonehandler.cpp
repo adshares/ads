@@ -36,7 +36,7 @@ void SendOneHandler::onExecute() {
     m_usera.time=m_command->getTime();
     m_usera.lpath=lpath;
 
-    Helper::create256signhash(m_command->getSignature(), SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
     uint32_t msid;
     uint32_t mpos;

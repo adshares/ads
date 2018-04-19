@@ -29,7 +29,7 @@ void CreateNodeHandler::onExecute() {
     m_usera.user = 0;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
-    Helper::create256signhash(m_command->getSignature(), SHA256_DIGEST_LENGTH, m_usera.hash, m_usera.hash);
+    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
     //commit changes
     uint32_t msid;

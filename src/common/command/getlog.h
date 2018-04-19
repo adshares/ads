@@ -13,7 +13,13 @@
 class GetLog : public IBlockCommand {
   public:
     GetLog();
-    GetLog(uint16_t bank, uint32_t user, uint32_t from);
+    /** \brief
+     * \param bank - node
+     * \param user - user
+     * \param from - collect logs from blog timestamp
+     * \param txnTypeFilter - text name of transaction to user filter eg. send_one, create_account, "" for all
+     */
+    GetLog(uint16_t bank, uint32_t user, uint32_t from, const char* txnTypeFilter);
 
     //IBlock interface
     /** \brief Return TXSTYPE_LOG as command type . */
@@ -97,6 +103,7 @@ class GetLog : public IBlockCommand {
     GetLogData          m_data;
     user_t              m_response;
     uint32_t            m_lastlog;
+    int                 m_txnTypeFilter;
 };
 
 
