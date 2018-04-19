@@ -28,8 +28,8 @@ class server {
         work_(io_service_),
         acceptor_(io_service_,endpoint_),
         opts_(opts),
-        ioth_(NULL),
-        peers_thread(NULL),
+        //ioth_(NULL),
+        //peers_thread(NULL),
         m_peerManager(*this, opts_),
         clock_thread(NULL),
         do_validate(0),
@@ -48,6 +48,10 @@ class server {
         ELOG("Server down\n");
     }
 
+    void run()
+    {
+        start_thread = new boost::thread(boost::bind(&server::start, this));
+    }
     void start() {
         mkdir("usr",0755); // create dir for bank accounts
         mkdir("inx",0755); // create dir for bank message indeces
@@ -270,6 +274,12 @@ class server {
             clock_thread->interrupt();
             clock_thread->join();
         }
+
+        if(start_thread!=NULL) {
+            start_thread->interrupt();
+            start_thread->join();
+        }
+
 
         threadpool.join_all();
         //peer_killall();
@@ -593,6 +603,7 @@ NEXTUSER:
                             if(svid) {
                                 int ok=deliver(put_msg,svid);
                                 ELOG("REQUESTING MSL from %04X (%d)\n",svid,ok);
+                                DLOG("REQUESTING MSL from %04X (%d)\n",svid,ok);
                             }
                         }
                         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
@@ -767,15 +778,20 @@ NEXTUSER:
 
     //void put_msglist(uint32_t now,message_map& map)
     void msgl_process(servers& header,uint8_t* data) {
+        DLOG("msgl_process \n");
+
         missing_.lock(); // consider changing this to missing_lock
         if(get_msglist!=header.now) {
             missing_.unlock();
+            DLOG("msgl_process exit 1\n");
             return;
         }
         message_map map;
         header.msgl_map((char*)data,map,opts_.svid);
+        DLOG("msgl_process map size %s\n", map.size());
         if(!header.msgl_put(map,(char*)data)) {
             missing_.unlock();
+            DLOG("msgl_process exit 2\n");
             return;
         }
         missing_msgs_.swap(map);
@@ -1755,6 +1771,7 @@ NEXTUSER:
 
     int message_insert(message_ptr msg) {
         if(msg->hash.dat[1]==MSGTYPE_MSG) {
+            DLOG("MSG INSERT TYPE \n", msg->data[0]);
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -3239,6 +3256,8 @@ NEXTUSER:
                     }
                 }
             }
+            DLOG("SYLWESTER usera->msid++ %d %d %d %d %d wei %d\n",usera->msid, utxs.ttime, lnode, luser, lpath, usera->weight);
+
             usera->msid++;
             usera->time=utxs.ttime;
             usera->node=lnode;
@@ -3270,6 +3289,7 @@ NEXTUSER:
             p+=utxs.size;
         }
         if(check_sig) {
+            DLOG("checking signatures for %04X:%08X signum%d\n",msg->svid,msg->msid, sign_num);
             //std::vector<int> sign_valid(tpos_max);
             //std::vector<size_t> sign_mlen(tpos_max);
             //std::vector<size_t> sign_mlen2(tpos_max);
@@ -4668,7 +4688,7 @@ NEXTBANK:
         //finish recycle submitted office messages
         while(msid_>srvs_.nodes[opts_.svid].msid) {
 //FIXME, hangs sometimes !!!
-            ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+            DLOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
             boost::this_thread::sleep(boost::posix_time::seconds(1));
             RETURN_ON_SHUTDOWN();
         }
@@ -4676,17 +4696,17 @@ NEXTBANK:
         std::string line;
         if(ofip_get_msg(msid_+1,line)) {
             while(msid_>srvs_.nodes[opts_.svid].msid) {
-                ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+                DLOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
             }
-            ELOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
+            DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
             if(!write_message(line)) {
-                ELOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
+                DLOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
             while(msid_>srvs_.nodes[opts_.svid].msid) {
-                ELOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+                DLOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
             }
@@ -4894,23 +4914,31 @@ NEXTBANK:
 
     uint16_t getRandomNodeId()
     {
+        uint16_t res = 0;
         if(srvs_.nodes.size() > 0)
         {
-            return (((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+            uint64_t rand =random()&0xFFFF;
+
+            res = (rand%getMaxNodeId());
+            if(res > 3)
+            {
+                int t = 0;
+            }
         }
 
-        return 0;
+        return res;
     }
 
     uint16_t getMaxNodeId()
     {
-        return srvs_.nodes.size();
+    int t =        srvs_.nodes.size();
+        return srvs_.nodes.size()-1;
     }
 
     bool getNode(uint16_t nodeId, node& nodeInfo)
     {
         try{
-            nodeId      =(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+            //nodeId      =(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
             nodeInfo    = srvs_.nodes.at(nodeId);
             return true;
         }
@@ -4930,8 +4958,8 @@ NEXTBANK:
     const char* peers_list();
     //void peers_known(std::set<uint16_t>& list);
     //void connected(std::vector<uint16_t>& list);
-    //int duplicate(peer_ptr participant);
-    int deliver(message_ptr msg,uint16_t svid);
+    int duplicate(uint16_t svid);
+    int deliver(message_ptr msg, uint16_t svid);
     void deliver(message_ptr msg);
     //int update(message_ptr msg,uint16_t svid);
     void update(message_ptr msg);
@@ -4994,11 +5022,13 @@ NEXTBANK:
     //boost::asio::ip::tcp::acceptor acceptor_;
     servers srvs_;
     options& opts_;
-    boost::thread* ioth_;
+    //boost::thread* ioth_;
     boost::thread_group threadpool;
-    boost::thread* peers_thread;
+    //boost::thread* peers_thread;
     PeerConnectManager m_peerManager;
     boost::thread* clock_thread;
+    boost::thread* start_thread;
+
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt
     int do_validate; // keep validation threads running

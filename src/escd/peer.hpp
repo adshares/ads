@@ -152,8 +152,8 @@ public:
     void leave() {
         DLOG("%04X PEER LEAVING address %s:%d\n",svid, addr.c_str(), port);
         m_state = ST_STOPED;
-        stop();
-        m_connManager.leevePeer(addr, port);
+        stop();        
+        m_connManager.leevePeer(svid, addr, port);
         killme=true;
     }    
 
@@ -164,7 +164,7 @@ public:
         //killme=false; //connection established
         addr = socket_.remote_endpoint().address().to_string();
         port = socket_.remote_endpoint().port();
-        //DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(), socket_.remote_endpoint().address().to_string().c_str(),port);
+        DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(), socket_.remote_endpoint().address().to_string().c_str(),port);
         //boost::asio::async_read(socket_, boost::asio::buffer(read_msg_->data,message::header_length),
         //                        boost::bind(&peer::handle_read_header,this,boost::asio::placeholders::error));
         m_state = ST_CONNECTED;
@@ -178,6 +178,7 @@ public:
             leave();
             return;
         }
+        DLOG("%04X PEER ACCEPT\n",svid);
         killme=false; //connection established
         assert(!incoming_);
         addr = socket_.remote_endpoint().address().to_string();
@@ -193,10 +194,10 @@ public:
 
         m_state = ST_CONNECTED;
 
-        m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write, this,
-                                                                boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        //boost::asio::async_write(socket_,boost::asio::buffer(msg->data,msg->len),
-        //                         boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
+        //m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write, this,
+        //                                                        boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+        boost::asio::async_write(socket_,boost::asio::buffer(msg->data,msg->len),
+                                 boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
         //boost::asio::async_read(socket_,
         //                        boost::asio::buffer(read_msg_->data,message::header_length),
         //                        boost::bind(&peer::handle_read_header,this,boost::asio::placeholders::error));
@@ -221,7 +222,7 @@ public:
 
     void update(message_ptr msg) {
         if(killme) {
-            DLOG("%04X KILL detected ! (UPDATE), leaving\n",svid);
+            DLOG("%04X update KILL detected ! (UPDATE), leaving\n",svid);
             return;
         }
         assert(msg->len>4+64);
@@ -241,6 +242,7 @@ public:
         message_ptr put_msg(new message()); // gone ??? !!!
         switch(msg->hashtype()) {
         case MSGTYPE_MSG:
+            DLOG("%04X MESSAGE detected ! (UPDATE)\n", svid);
             put_msg->data[0]=MSGTYPE_PUT;
             put_msg->data[1]=msg->hashval(svid); //msg->data[4+(svid%64)]; // convert to peer-specific hash
             memcpy(put_msg->data+2,&msg->msid,4);
@@ -265,7 +267,7 @@ public:
             memcpy(put_msg->data+6,&msg->svid,2);
             break;
         default:
-            ELOG("%04X FATAL ERROR: bad message type\n",svid);
+            DLOG("%04X FATAL ERROR: bad message type\n",svid);
             exit(-1);
         }
         put_msg->svid=msg->svid;
@@ -319,6 +321,8 @@ public:
     }*/
 
     void deliver(message_ptr msg) {
+
+        DLOG("%04X (DELIVER), START TYPE\n",svid);
         extern candidate_ptr nullcnd;
         if(killme) {
             DLOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
@@ -373,6 +377,7 @@ public:
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
 
+            DLOG("%04X (DELIVER), START ACTION %d\n",svid, msg->data[0]);
             m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
 
             //boost::asio::async_write(socket_,boost::asio::buffer(write_msgs_.front()->data,len),
@@ -485,17 +490,15 @@ public:
 
     void handle_read_header(const boost::system::error_code& error, size_t transfered)
     {
-        if(transfered != 8)
-        {
-            int test = 0;
-        }
+        if(!error){
         DLOG("handle_read_header %d : %d\n", transfered, read_msg_->data[0]);
+        }
+
         handle_read_header(error);
     }
 
     void handle_read_header(const boost::system::error_code& error) {
 
-    DLOG("handle_read_header %d : %d\n", read_msg_->len, read_msg_->data[0]);
         extern message_ptr nullmsg;
         if(killme) {
             ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
@@ -516,6 +519,9 @@ public:
             leave();
             return;
         }
+
+        DLOG("handle_read_header %d : %d\n", read_msg_->len, read_msg_->data[0]);
+
         busy=0; // any incomming data resets the busy flag indicating a responsive peer
         bytes_in+=read_msg_->len;
         files_in++;
@@ -974,6 +980,8 @@ public:
     }
 
     void handle_read_msglist(const boost::system::error_code& error) {
+        ELOG("%04X handle_read_msglist reading msglist: error %d \n",svid, error.value());
+
         if(error) {
             ELOG("%04X ERROR reading msglist\n",svid);
             leave();
@@ -983,18 +991,18 @@ public:
         assert(read_msg_->data!=NULL);
         memcpy(&header.now,read_msg_->data+4,4);
         if(server_.get_msglist!=header.now) {
-            ELOG("%04X ERROR got wrong msglist id\n",svid); // consider updating server
+            DLOG("%04X ERROR got wrong msglist id\n",svid); // consider updating server
             asyncWaitForNewMessageHeader();
             return;
         }
         header.header_get();
         if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))) {
-            ELOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
+            DLOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
             asyncWaitForNewMessageHeader();
             return;
         }
         if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)) {
-            ELOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
+            DLOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
             char hash[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash,read_msg_->data+8,SHA256_DIGEST_LENGTH);
             ELOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
@@ -1003,6 +1011,8 @@ public:
             asyncWaitForNewMessageHeader();
             return;
         }
+        ELOG("%04X handle_read_msglist reading msglis starts \n",svid, error.value());
+
         server_.msgl_process(header,read_msg_->data+8);
         ////FIXME, process check and save in one function
         //std::map<uint64_t,message_ptr> map;
@@ -1365,10 +1375,10 @@ NEXTUSER:
             DLOG("%04X ERROR: connecting to myself\n",svid);
             return(0);
         }
-        /*if(server_.duplicate(this)) {
+        if(server_.duplicate(this->svid)) {
             DLOG("%04X ERROR: server already connected\n",svid);
             return(0);
-        }*/
+        }
         if(peer_hs.head.nod>srvs_.nodes.size() && incoming_) {
             DLOG("%04X ERROR: too high number of servers for incoming connection\n",svid);
             return(0);
@@ -1490,7 +1500,10 @@ NEXTUSER:
         //FIXME, brakes assert in send_sync() !!!
         last_active=now; // protect from disconnect
         do_sync=0; // set peer in sync, we are not in sync (server_.do_sync==1)
-        m_connManager.addActivePeer(svid);
+
+        ELOG("%04X ADD active peer !!!!!!!!!!!\n",svid);
+
+        m_connManager.addActivePeer(svid, shared_from_this());
         m_state = ST_SYNCD;
         return(1);
     }

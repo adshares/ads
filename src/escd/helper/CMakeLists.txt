@@ -1,0 +1,12 @@
+SET (SOURCE
+    ${SOURCE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/bank.cpp
+    PARENT_SCOPE
+    )
+
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/bank.h
+    PARENT_SCOPE
+    )
+
