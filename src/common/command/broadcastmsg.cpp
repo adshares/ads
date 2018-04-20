@@ -2,6 +2,7 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
+#include "helper/hash.h"
 
 BroadcastMsg::BroadcastMsg()
     : m_data{}, m_message(nullptr) {
@@ -102,6 +103,12 @@ bool BroadcastMsg::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 void BroadcastMsg::saveResponse(settings& sts) {
     if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
     sts.msid = m_response.usera.msid;

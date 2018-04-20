@@ -71,6 +71,12 @@ void CreateAccount::saveResponse(settings& sts) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
+    }
+
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }

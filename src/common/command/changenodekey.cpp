@@ -2,6 +2,7 @@
 #include <iostream>
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/hash.h"
 
 ChangeNodeKey::ChangeNodeKey()
     : m_data{} {
@@ -109,6 +110,12 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
 void ChangeNodeKey::saveResponse(settings& sts) {
     if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
     sts.msid = m_response.usera.msid;
