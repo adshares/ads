@@ -94,8 +94,9 @@ class GetBroadcastMsg : public IBlockCommand {
         virtual void            saveResponse(settings& sts)                 override;
 
         //IJsonSerialize interface
-        virtual std::string  toString(bool pretty)                      override;
-        virtual void         toJson(boost::property_tree::ptree &ptree) override;
+        virtual std::string  toString(bool pretty)                          override;
+        virtual void         toJson(boost::property_tree::ptree &ptree)     override;
+        virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
         virtual void readDataBuffer(unsigned char* dataBuffer, int size);
         virtual void printBlg(GetBroadcastResponse &block, std::string &message, boost::property_tree::ptree &ptree);
