@@ -3,6 +3,7 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/hash.h"
+#include "helper/json.h"
 
 ChangeNodeKey::ChangeNodeKey()
     : m_data{} {
@@ -157,4 +158,17 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
+}
+
+void ChangeNodeKey::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::MSGID, m_data.info.msg_id);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::DST_NODE, m_data.info.dst_node);
+    ptree.put(TAG::OLD_PKEY, ed25519_key2text(m_data.info.old_public_key, sizeof(m_data.info.old_public_key)));
+    ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.info.node_new_key, sizeof(m_data.info.node_new_key)));
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }

@@ -139,3 +139,13 @@ void CreateNode::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }
+
+void CreateNode::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.data.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.data.abank);
+    ptree.put(TAG::SRC_USER, m_data.data.auser);
+    ptree.put(TAG::MSGID, m_data.data.amsid);
+    ptree.put(TAG::TIME, m_data.data.ttime);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

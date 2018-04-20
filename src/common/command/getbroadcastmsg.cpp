@@ -310,3 +310,13 @@ void GetBroadcastMsg::readDataBuffer(unsigned char* dataBuffer, int size) {
         m_response.push_back(std::make_pair(response, std::string(message, response.info.msg_length)));
    }
 }
+
+void GetBroadcastMsg::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::BLOCK, m_data.info.block);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

@@ -158,3 +158,17 @@ void SendOne::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }
+
+void SendOne::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.abank);
+    ptree.put(TAG::SRC_USER, m_data.info.auser);
+    ptree.put(TAG::MSGID, m_data.info.namsid);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::DST_NODE, m_data.info.bbank);
+    ptree.put(TAG::DST_USER, m_data.info.buser);
+    ptree.put(TAG::AMOUNT, print_amount(m_data.info.ntmass));
+    ptree.put(TAG::MSG, m_data.info.ntinfo);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

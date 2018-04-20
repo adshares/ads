@@ -173,3 +173,12 @@ void GetLog::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }
+
+void GetLog::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.node);
+    ptree.put(TAG::SRC_USER, m_data.info.user);
+    ptree.put(TAG::FROM, m_data.info.from);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

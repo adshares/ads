@@ -192,3 +192,17 @@ void BroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
     }
 }
+
+void BroadcastMsg::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::MSGID, m_data.info.msg_id);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::MSG_LEN, m_data.info.msg_length);
+    if (m_message) {
+        ptree.put(TAG::MSG, m_message);
+    }
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

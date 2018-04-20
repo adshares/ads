@@ -6,6 +6,7 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/hash.h"
+#include "helper/json.h"
 
 SetAccountKey::SetAccountKey()
     : m_data{} {
@@ -140,4 +141,16 @@ void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
+}
+
+void SetAccountKey::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.abank);
+    ptree.put(TAG::SRC_USER, m_data.auser);
+    ptree.put(TAG::MSGID, m_data.amsid);
+    ptree.put(TAG::TIME, m_data.ttime);
+    ptree.put(TAG::PKEY, ed25519_key2text(m_data.pubkey, sizeof(m_data.pubkey)));
+    ptree.put(TAG::PKEY_SIGN, ed25519_key2text(m_data.pubkeysign, sizeof(m_data.pubkeysign)));
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
