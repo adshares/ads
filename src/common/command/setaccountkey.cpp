@@ -1,5 +1,8 @@
 #include "setaccountkey.h"
+
 #include <iostream>
+#include <algorithm>
+
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 
@@ -111,6 +114,10 @@ bool SetAccountKey::send(INetworkClient& netClient)
 
 void SetAccountKey::saveResponse(settings& sts)
 {
+    if (std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyNotChanged;
+    }
+
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.pkey, m_response.usera.pkey + SHA256_DIGEST_LENGTH, sts.pk);        
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());

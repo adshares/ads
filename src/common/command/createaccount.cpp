@@ -67,6 +67,10 @@ bool CreateAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 void CreateAccount::saveResponse(settings& sts) {
+    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
@@ -176,6 +180,11 @@ void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("new_account.id", m_response.usera.user);
         }
     } else {
+        if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
+            std::stringstream tx_user_hashin{};
+            Helper::ed25519_key2text(tx_user_hashin, m_response.usera.pkey, SHA256_DIGEST_LENGTH);
+            ptree.put("tx.account_public_key_new", tx_user_hashin.str());
+        }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }

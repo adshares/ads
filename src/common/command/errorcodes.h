@@ -43,7 +43,10 @@ public:
         eBadLength,
         eInvalidMessageFile,
         eGetLogFailed,
-        eHighTimeDifference
+        eHighTimeDifference,
+        ePkeyDiffers,
+        ePkeyNotChanged,
+        eHashMismatch
     };
 
 private:
@@ -81,7 +84,10 @@ private:
         { Code::eBadLength, "Bad length"},
         { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"},
         { Code::eGetLogFailed, "Get log failed"},
-        { Code::eHighTimeDifference, "High time difference"}
+        { Code::eHighTimeDifference, "High time difference"},
+        { Code::ePkeyDiffers, "Public key differs from response key"},
+        { Code::ePkeyNotChanged, "Public key not changed" },
+        { Code::eHashMismatch, "Hash mismatch" }
    };
 
 public:

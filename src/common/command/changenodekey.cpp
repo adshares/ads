@@ -106,9 +106,13 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
     return true;
 }
 
-void ChangeNodeKey::saveResponse(settings& sts)
-{
+void ChangeNodeKey::saveResponse(settings& sts) {
+    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
     sts.msid = m_response.usera.msid;
+    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
 uint32_t ChangeNodeKey::getDestBankId() {
@@ -139,6 +143,11 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         ptree.put("result", "Node key changed");
     } else {
+        if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
+            std::stringstream tx_user_hashin{};
+            Helper::ed25519_key2text(tx_user_hashin, m_response.usera.pkey, SHA256_DIGEST_LENGTH);
+            ptree.put("tx.account_public_key_new", tx_user_hashin.str());
+        }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }
