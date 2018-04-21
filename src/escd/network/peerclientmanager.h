@@ -21,7 +21,7 @@ class options;
 
 
 class PeerConnectManager
-{    
+{
     enum{
         DEF_CONN_PERIOD = 5,
         PANIC_CONN_PERIOD = 1
@@ -62,7 +62,7 @@ private:
     void connectPeersFromConfig(int& connNeeded);
     void connectPeersFromDNS(int& connNeeded);
 
-    void connect(node& _node, uint16_t peerid);
+    void connect(node& _node);
     void connect(std::string peer_address, unsigned short port);
     void connect(in_addr peer_address, unsigned short port = 8081);
     void connect(boost::asio::ip::tcp::endpoint endpoint);
@@ -81,19 +81,20 @@ private:
     //std::multimap<uint16_t, boost::shared_ptr<peer>>     m_peers;
     std::map<std::pair<in_addr_t, unsigned short>, boost::shared_ptr<peer>>     m_peers;
     std::map<uint16_t, boost::shared_ptr<peer>>     m_activePeers;
-    //std::vector<uint16_t>                           m_activePeers;
-    std::mutex                                      m_peerMx; //finally it should disapear. Access to peers should be only from io_service thread
+    //std::vector<uint16_t>                           m_activePeerSvid;
+    boost::shared_mutex                             m_peerMx; //finally it should disapear. Access to peers should be only from io_service thread
 
     boost::asio::io_service                         m_ioService;
     boost::asio::ip::tcp::endpoint                  m_endpoint;
     boost::asio::ip::tcp::acceptor                  m_acceptor;
-    boost::asio::io_service::work                   m_work;    
+    boost::asio::io_service::work                   m_work;
     boost::asio::deadline_timer                     m_connectTimer;
 
     uint8_t                                         m_timeout{DEF_CONN_PERIOD};
     bool                                            m_stop{false};
-    boost::thread_attributes                        m_threadAttributes;    
+    boost::thread_attributes                        m_threadAttributes;
     std::unique_ptr<boost::thread>                  m_ioThread;
+    bool                                            m_sourceCounter{0};
 };
 
 #endif // PEERCLIENTMANAGER_HPP
