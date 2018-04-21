@@ -13,9 +13,7 @@ PeerClient::PeerClient(ip::tcp::socket& socket):
 {}
 
 void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const boost::system::error_code& ec)
-{
-    //DLOG(".....................check_deadline ASYNC EC %d timer %d \n", ec.value(), timer.get());
-
+{    
     if (ec == boost::asio::error::operation_aborted) {
         return;
     }
@@ -89,14 +87,11 @@ void PeerClient::checkDeadline()
  }
 
 std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
-{
-    //DLOG(".....................writeSync %d \n", len);
-
+{    
     if(timeout > 0){
         m_deadline.expires_from_now(boost::posix_time::seconds(timeout));
         checkDeadline();
     }
-
 
     m_bytes_transferred = 0;
     m_ec = boost::asio::error::would_block;
@@ -113,23 +108,17 @@ std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
          throw boost::system::system_error(m_ec);
     }
 
-    assert(m_bytes_transferred==len);
-
-    //DLOG("----------Finish writeSync");
-
+    assert(m_bytes_transferred==len);    
 
     return m_bytes_transferred;
 }
 
 std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
-{
-    //DLOG(".....................readSync %d \n", len);
-
+{    
     if(timeout > 0){
         m_deadline.expires_from_now(boost::posix_time::seconds(timeout));
         checkDeadline();
-    }
-    //m_deadline.async_wait(boost::bind(&PeerClient::check_deadline, this, boost::asio::placeholders::error));
+    }    
 
     m_ec = boost::system::error_code(boost::asio::error::would_block);
     m_bytes_transferred = 0;
@@ -152,9 +141,7 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
 }
 
 void PeerClient::asyncRead(void* data, uint32_t len, peerCallback handler, int timeout)
-{
-    //DLOG(".....................asyncRead  %d timeout %d \n", len, timeout);
-
+{    
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
     if(timeout > 0){
@@ -167,9 +154,7 @@ void PeerClient::asyncRead(void* data, uint32_t len, peerCallback handler, int t
 }
 
 void PeerClient::asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpIterator, peerConnectCallback handler, int timeout)
-{
-    //DLOG(".....................asyncConnect timeout %d \n", timeout);
-
+{    
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
     if(timeout > 0){
@@ -181,9 +166,7 @@ void PeerClient::asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpItera
 }
 
 void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int timeout)
-{
-    //DLOG(".....................asyncWrite %d timeout %d\n", len, timeout);
-
+{    
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
     if(timeout > 0){
@@ -197,40 +180,28 @@ void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int 
 
 
 void PeerClient::operationDone(const boost::system::error_code& ec, size_t bytes_transferred)
-{
-    //DLOG(".....................operationDone EC %d size %d \n", ec.value(), bytes_transferred);
-
+{    
     m_deadline.expires_at(boost::posix_time::pos_infin);
     m_ec = ec;
     m_bytes_transferred = bytes_transferred;
 }
 
 void PeerClient::asyncHandleConnect(const boost::system::error_code& ec, boost::shared_ptr<boost::asio::deadline_timer> timer, peerConnectCallback handler)
-{
-    //DLOG(".....................asyncHandleConnect EC %d timer %l \n", ec.value(), timer.get());
-
-    timer->expires_at(boost::posix_time::pos_infin);
-    //if(ec != boost::asio::error::operation_aborted)
+{    
+    timer->expires_at(boost::posix_time::pos_infin);    
     handler(ec);
 }
 
 
 void PeerClient::asyncHandleWrite(const boost::system::error_code& ec, size_t bytes_transferred, boost::shared_ptr<boost::asio::deadline_timer> timer, peerCallback handler)
-{
-    //DLOG(".....................asyncHandleWrite EC %d size %d timer %l\n", ec.value(), bytes_transferred, timer.get());
-
-
-    timer->expires_at(boost::posix_time::pos_infin);
-    //if(ec != boost::asio::error::operation_aborted)
+{    
+    timer->expires_at(boost::posix_time::pos_infin);    
     handler(ec, bytes_transferred);
 }
 
 void PeerClient::asyncHandleRead(const boost::system::error_code& ec, size_t bytes_transferred, boost::shared_ptr<boost::asio::deadline_timer> timer, peerCallback handler)
-{
-    //DLOG(".....................asyncHandleRead EC %d size %d time %l \n", ec.value(), bytes_transferred, timer.get());
-
-    timer->expires_at(boost::posix_time::pos_infin);
-    //if(ec != boost::asio::error::operation_aborted)
+{    
+    timer->expires_at(boost::posix_time::pos_infin);    
     handler(ec, bytes_transferred);
 }
 

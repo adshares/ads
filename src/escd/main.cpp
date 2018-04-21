@@ -63,7 +63,7 @@ std::promise<int> prom;
 
 void signal_handler(int signal) {
     DLOG("\nSIGNAL: %d\n\n",signal);
-    if(signal==SIGSEGV || signal==SIGABRT) {
+    if(signal==SIGSEGV || signal==SIGQUIT || signal==SIGTERM) {
         if(stdout!=NULL) {
             fflush(stdout);
         }
@@ -108,6 +108,10 @@ int main(int argc, char* argv[]) {
     assert(lock!=NULL);
     fprintf(lock,"%s:%d/%d\n",opt.addr.c_str(),opt.port,opt.svid);
     fclose(lock);
+
+    //init rando seed for rand functions
+    srand (time(NULL));
+
     try {
         int signal=SIGUSR1;
         while(signal==SIGUSR1) {

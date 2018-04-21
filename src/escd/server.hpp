@@ -53,6 +53,7 @@ class server {
         start_thread = new boost::thread(boost::bind(&server::start, this));
     }
     void start() {
+        ELOG("SERVER start point\n");
 
         //struct in_addr adds;
         //if(inet_aton(addr.c_str(),&adds)) { //FIXME, check if this accepts "localhost"
@@ -797,7 +798,7 @@ NEXTUSER:
         }
         message_map map;
         header.msgl_map((char*)data,map,opts_.svid);
-        DLOG("msgl_process map size %s\n", map.size());
+        DLOG("msgl_process map size %d\n", map.size());
         if(!header.msgl_put(map,(char*)data)) {
             missing_.unlock();
             DLOG("msgl_process exit 2\n");
@@ -1780,7 +1781,7 @@ NEXTUSER:
 
     int message_insert(message_ptr msg) {
         if(msg->hash.dat[1]==MSGTYPE_MSG) {
-            DLOG("MSG INSERT TYPE \n", msg->data[0]);
+            DLOG("MSG INSERT TYPE \n");
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -2161,6 +2162,7 @@ NEXTUSER:
     }
 
     void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()
+        ELOG("sylwester missing_sent_remove %d \n", svid); // FIXME, do not exit, initiate sync
         missing_.lock();
         for(auto mi=missing_msgs_.begin(); mi!=missing_msgs_.end(); mi++) {
             //mi->second->sent_erase(svid);
@@ -4680,6 +4682,7 @@ NEXTBANK:
     }
 
     void clock() {
+        DLOG("CLOCK, start clock thread\n");
         //while(ofip==NULL){
         //  boost::this_thread::sleep(boost::posix_time::seconds(1));}
         //start office
@@ -4928,19 +4931,14 @@ NEXTBANK:
         {
             uint64_t rand =random()&0xFFFF;
 
-            res = (rand%getMaxNodeId());
-            if(res > 3)
-            {
-                int t = 0;
-            }
+            res = (rand%getMaxNodeId());            
         }
 
         return res;
     }
 
     uint16_t getMaxNodeId()
-    {
-    int t =        srvs_.nodes.size();
+    {    
         return srvs_.nodes.size()-1;
     }
 
