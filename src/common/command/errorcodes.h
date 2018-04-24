@@ -52,7 +52,8 @@ public:
         eCantOpenFile,
         eCantCreateDirectory,
         eFailToProvideTxnInfo,
-        eFailToReadTxnInfo
+        eFailToReadTxnInfo,
+        eFailToGetHashTree
     };
 
 private:
@@ -99,7 +100,8 @@ private:
         { Code::eCantOpenFile, "Can't open a file" },
         { Code::eCantCreateDirectory, "Can't create a directory" },
         { Code::eFailToProvideTxnInfo, "Failed to provide transaction info" },
-        { Code::eFailToReadTxnInfo, "Failed to read transaction" }
+        { Code::eFailToReadTxnInfo, "Failed to read transaction" },
+        { Code::eFailToGetHashTree, "Failed to create msgl hash tree" }
    };
 
 public:

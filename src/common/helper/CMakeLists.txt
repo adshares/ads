@@ -18,4 +18,3 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/hlog.h
     PARENT_SCOPE
     )
-

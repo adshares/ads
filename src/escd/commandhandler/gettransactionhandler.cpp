@@ -3,6 +3,7 @@
 #include "../office.hpp"
 #include "helper/hash.h"
 #include "helper/hlog.h"
+#include "helper/servers.h"
 #include "servers.hpp"
 
 GetTransactionHandler::GetTransactionHandler(office& office, boost::asio::ip::tcp::socket& socket)
@@ -35,17 +36,18 @@ void GetTransactionHandler::onExecute() {
     } else if (!msg->hash_tree_get(m_command->getPosition(), hashes, mnum)) {
         errorCode = ErrorCodes::Code::eFailToReadTxnInfo;
     } else  {
-        //TODO: refactoring of servers.hpp class
-        servers srvs_;
-        srvs_.now=msg->path;
-        ///TODO: put this function to helpers/servers.h
-        srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes);
-        res.path=msg->path;
-        res.msid=msg->msid;
-        res.node=msg->svid;
-        res.tnum=m_command->getPosition();
-        res.len=msg->len;
-        res.hnum=(uint16_t)hashes.size();
+        Helper::Servers servers;
+        servers.setNow(msg->path);
+        if (!servers.getMsglHashTree(msg->svid, msg->msid, mnum, hashes)) {
+            errorCode = ErrorCodes::Code::eFailToGetHashTree;
+        } else {
+            res.path=msg->path;
+            res.msid=msg->msid;
+            res.node=msg->svid;
+            res.tnum=m_command->getPosition();
+            res.len=msg->len;
+            res.hnum=(uint16_t)hashes.size();
+        }
     }
 
     try {
