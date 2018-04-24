@@ -34,6 +34,7 @@ public:
     void start();
     void stop();
     void startAccept();
+    void addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
     void addActivePeer(uint16_t svid, boost::shared_ptr<peer> peer);
     void leevePeer(uint16_t svid, in_addr, unsigned short port);
     void leevePeer(uint16_t svid, std::string address, unsigned short port);
@@ -69,6 +70,7 @@ private:
     void timerNextTick(int timeout);
     void leavePeerImpl(uint16_t svid, in_addr address, unsigned short port);
     void addActivePeerImpl(uint16_t svid, boost::shared_ptr<peer> peer);
+    void addPeerImpl(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
 
     void deliverImpl(message_ptr msg, uint16_t svid);
     void deliverToAllImpl(message_ptr msg);

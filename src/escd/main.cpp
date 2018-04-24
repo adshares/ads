@@ -120,7 +120,7 @@ int main(int argc, char* argv[]) {
             server s(opt);
             office o(opt,s);
             s.ofip=&o;
-            s.run();
+            s.start();
             opt.back=0;
             signal=fut.get();
             if(signal==SIGUSR1) {
