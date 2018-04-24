@@ -5,6 +5,7 @@
 #include <iostream>
 #include "default.hpp"
 #include "hash.hpp"
+#include "command/pods.h"
 
 namespace Helper {
 
@@ -129,7 +130,7 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t mnum,std::vec
 
     if ((--mnum)%2) {
         HashSingleVariant hash;
-        file.seekg(4+32+(2+4+32)*(mnum)-32);
+        file.seekg(sizeof(MessageListHeader) + (mnum * sizeof(MessageRecord)) - sizeof(MessageRecord::hash));
         file.read((char*)&hash, sizeof(hash));
         if(hash.svid!=svid || hash.msid!=msid) {
 //            DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,  tmp.svid,tmp.msid);
@@ -139,7 +140,7 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t mnum,std::vec
         hashes.push_back(hash.ha);
     } else {
         HashDoubleVariant hash;
-        file.seekg(4+32+(2+4+32)*(mnum));
+        file.seekg(sizeof(MessageListHeader) + (mnum * sizeof(MessageRecord)));
         file.read((char*)&hash, sizeof(hash));
         if(hash.svid1!=svid || hash.msid1!=msid) {
 //            DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid, tmp.svid1,tmp.msid1);
