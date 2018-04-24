@@ -19,19 +19,20 @@ class server;
 class node;
 class options;
 
-
 class PeerConnectManager
 {
     enum{
-        DEF_CONN_PERIOD = 5,
-        PANIC_CONN_PERIOD = 1
+        DEF_CONN_PERIOD     = 10,
+        PANIC_CONN_PERIOD   = 2,
+        MAX_INIT_CONN       = 4,
+        CONNECT_TIMEOUT     = 15
     };
 
 public:
     PeerConnectManager(server& server, options& opts);
     ~PeerConnectManager();
 
-    void start();
+    void startConnect();
     void stop();
     void startAccept();
     void addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
@@ -42,6 +43,7 @@ public:
     void deliver(message_ptr msg, uint16_t svid);
     void deliverToAll(message_ptr msg);
     void deliverToReady(message_ptr msg);
+    void update(message_ptr msg, uint16_t svid);
     void updateAll(message_ptr msg);
 
     void getReadyPeers(std::set<uint16_t>& ready);
@@ -74,16 +76,15 @@ private:
 
     void deliverImpl(message_ptr msg, uint16_t svid);
     void deliverToAllImpl(message_ptr msg);
+    void updateImpl(message_ptr msg, uint16_t svid);
     void updateAllImpl(message_ptr msg);
     bool alreadyConnected(in_addr_t addr, unsigned short port);
 
 private:
     options&                                        m_opts;
-    server&                                         m_server;
-    //std::multimap<uint16_t, boost::shared_ptr<peer>>     m_peers;
+    server&                                         m_server;    
     std::map<std::pair<in_addr_t, unsigned short>, boost::shared_ptr<peer>>     m_peers;
-    std::map<uint16_t, boost::shared_ptr<peer>>     m_activePeers;
-    //std::vector<uint16_t>                           m_activePeerSvid;
+    std::map<uint16_t, boost::shared_ptr<peer>>     m_activePeers;    
     boost::shared_mutex                             m_peerMx; //finally it should disapear. Access to peers should be only from io_service thread
 
     boost::asio::io_service                         m_ioService;
