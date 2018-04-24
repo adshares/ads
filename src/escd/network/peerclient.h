@@ -5,6 +5,8 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
+#define DEFAULT_NET_TIMEOUT 15
+
 class peer;
 
 typedef boost::function<void(const boost::system::error_code&, size_t)> peerCallback;
@@ -14,17 +16,18 @@ class PeerClient
 {    
 public:
     PeerClient(boost::asio::ip::tcp::socket &socket);
+    ~PeerClient();
 
-    void asyncRead(void* data, uint32_t len, peerCallback handler, int timeout = 30);
-    void asyncWrite(void* data, uint32_t len, peerCallback handler, int timeout = 30);
-    void asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpIterator, peerConnectCallback handler, int timeout = 15);
+    void asyncRead(void* data, uint32_t len, peerCallback handler, int timeout = DEFAULT_NET_TIMEOUT);
+    void asyncWrite(void* data, uint32_t len, peerCallback handler, int timeout = DEFAULT_NET_TIMEOUT);
+    void asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpIterator, peerConnectCallback handler, int timeout = DEFAULT_NET_TIMEOUT);
 
     //expose writeSync and readSync only for peer
     friend class peer;
 protected:
     //execute only from peer thread
-    std::size_t writeSync(void* data , uint32_t len,  int timeout = 30);
-    std::size_t readSync(void* data , uint32_t len,  int timeout = 30);
+    std::size_t writeSync(void* data , uint32_t len,  int timeout = DEFAULT_NET_TIMEOUT);
+    std::size_t readSync(void* data , uint32_t len,  int timeout = DEFAULT_NET_TIMEOUT);
 
 private:
     void checkDeadline(boost::shared_ptr<boost::asio::deadline_timer> timer, const boost::system::error_code& ec);

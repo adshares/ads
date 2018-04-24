@@ -1179,6 +1179,7 @@ class servers { // also a block
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);
         char filename[64];
+        bzero(filename,64);
         //sprintf(filename,"blk/%03X/%05X/signatures.txt",path>>20,path&0xFFFFF);
         //char hash[4*SHA256_DIGEST_LENGTH];
         //ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
@@ -1188,6 +1189,7 @@ class servers { // also a block
         //	return;}
         //fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
         //fclose(fp);
+        blockdir(path);
         if(ok) {
             //vok++;
             sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
@@ -1198,6 +1200,9 @@ class servers { // also a block
             sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
             DLOG("BLOCK differs (%s)\n",filename);
         }
+
+        DLOG("SIGNATURE,  signatures in %s\n",filename);
+
         svsi_t old;
         svsi_t da;
         memcpy(da,&svid,2);
@@ -1206,6 +1211,7 @@ class servers { // also a block
         int fd=open(filename,O_RDWR|O_CREAT,0644);
         if(fd<0) {
             DLOG("ERROR, failed to save signatures in %s\n",filename);
+            assert(0);
             return;
         }
         int num=0;
@@ -1231,9 +1237,15 @@ class servers { // also a block
         }
     }
     bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok) { // does not use any local data
+        extern boost::mutex siglock;
+        boost::lock_guard<boost::mutex> lock(siglock);
+
         int fd;
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
+
+        DLOG("SIGNATURE,  get signatures in %s\n",filename);
+
         fd=open(filename,O_RDONLY);
         if(fd>=0) {
             struct stat sb;
@@ -1255,14 +1267,25 @@ class servers { // also a block
         }
     }
     void read_signatures(uint32_t path,uint8_t* &data,uint32_t &nok,uint32_t &nno) {
+
+        extern boost::mutex siglock;
+        boost::lock_guard<boost::mutex> lock(siglock);
+
+        DLOG("SIGNATURE,  read signatures \n");
+
         if(!get_signatures(path,data,nok)) {
             nno=0;
             return;
         }
+
+
         int fd;
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
         fd=open(filename,O_RDONLY);
+
+        DLOG("SIGNATURE,  read signatures2 in %s\n",filename);
+
         if(fd>=0) {
             struct stat sb;
             fstat(fd,&sb);
@@ -1277,10 +1300,17 @@ class servers { // also a block
         memcpy(data+8+nok*sizeof(svsi_t),&nno,4);
     }
     bool get_signatures(uint32_t path,uint8_t* data,int nok,int nno) { // does not use any local data
+
+        extern boost::mutex siglock;
+        boost::lock_guard<boost::mutex> lock(siglock);
+
         int fd;
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
         fd=open(filename,O_RDONLY);
+        DLOG("SIGNATURE,  get signatures in %s\n",filename);
+
+
         if(fd>=0) {
             read(fd,data,sizeof(svsi_t)*nok);
             //vok=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
@@ -1323,6 +1353,9 @@ class servers { // also a block
         }
     }
     void del_signatures() {
+        extern boost::mutex siglock;
+        boost::lock_guard<boost::mutex> lock(siglock);
+
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);
         int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
@@ -1522,6 +1555,26 @@ class servers { // also a block
         sprintf(pathname,"blk/%03X/%05X/und",now>>20,now&0xFFFFF);
         mkdir(pathname,0755);
         sprintf(pathname,"blk/%03X/%05X/log",now>>20,now&0xFFFFF);
+        mkdir(pathname,0755);
+        for(auto n=nodes.begin(); n!=nodes.end(); n++) {
+            n->changed.resize(1+n->users/64);
+        }
+        uint32_t nextnow=now+BLOCKSEC;
+        sprintf(pathname,"blk/%03X",nextnow>>20);
+        mkdir(pathname,0755);
+        sprintf(pathname,"blk/%03X/%05X",nextnow>>20,nextnow&0xFFFFF); // to make space for moved files
+        mkdir(pathname,0755);
+    }
+
+    void blockdir(uint32_t blockTime) { //not only dir ... should be called blockstart
+        char pathname[64];
+        sprintf(pathname,"blk/%03X",blockTime>>20);
+        mkdir(pathname,0755);
+        sprintf(pathname,"blk/%03X/%05X",blockTime>>20,blockTime&0xFFFFF);
+        mkdir(pathname,0755);
+        sprintf(pathname,"blk/%03X/%05X/und",blockTime>>20,blockTime&0xFFFFF);
+        mkdir(pathname,0755);
+        sprintf(pathname,"blk/%03X/%05X/log",blockTime>>20,blockTime&0xFFFFF);
         mkdir(pathname,0755);
         for(auto n=nodes.begin(); n!=nodes.end(); n++) {
             n->changed.resize(1+n->users/64);

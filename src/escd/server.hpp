@@ -50,7 +50,7 @@ class server {
 
     void run()
     {
-        start_thread = new boost::thread(boost::bind(&server::start, this));
+        //start_thread = new boost::thread(boost::bind(&server::start, this));
     }
     void start() {
         ELOG("SERVER start point\n");
@@ -233,6 +233,7 @@ class server {
                 while(do_fast>1) { // fast_sync changes the status, FIXME use future/promis
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
                     RETURN_ON_SHUTDOWN();
+                    DLOG("WAIT!!!\n");
                 }
 
                 //recyclemsid(lastpath+BLOCKSEC);
@@ -267,6 +268,7 @@ class server {
     }
 
     void stop() {
+        DLOG("Server STOP\n");
         do_validate = 0;
         //io_service_.stop();
 
@@ -285,14 +287,15 @@ class server {
             clock_thread->join();
         }
 
-        if(start_thread!=NULL) {
+        /*if(start_thread!=NULL) {
             start_thread->interrupt();
             start_thread->join();
-        }
+        }*/
 
 
         threadpool.join_all();
         //peer_killall();
+        DLOG("Server MANAGER STOP\n");
         m_peerManager.stop();
         DLOG("Server shutdown completed\n");
     }
@@ -485,6 +488,8 @@ NEXTUSER:
     }
 
     void load_banks() {
+        ELOG("LOAD BANKS\n");
+
         //create missing bank messages
         uint16_t end=last_srvs_.nodes.size();
         std::set<uint16_t> ready;
@@ -4737,18 +4742,20 @@ NEXTBANK:
             //const char* plist=peers_list();
             const char* plist = m_peerManager.getActualPeerList().c_str();
             int peerCount = m_peerManager.getPeersCount(true);
+            int allpeerCount = m_peerManager.getPeersCount(false);
             if(missing_msgs_.size()) {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+                ELOG("CLOCK1: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                     (int)wait_msgs_.size(),peerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+                     (int)wait_msgs_.size(),peerCount,allpeerCount, srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
                      (int)missing_msgs_.size(),missing_msgs_.begin()->first);
             } else {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                     (int)wait_msgs_.size(),peerCount ,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
             if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='
+                DLOG("SYLWESTER LATE SIGNATURES !!!, set office readonly\n");
                 panic=true;
                 if(!ofip_isreadonly()) {
                     ELOG("LATE SIGNATURES !!!, set office readonly\n");

@@ -10,22 +10,27 @@
 # define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
 # define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
 # define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
+# define MIN_PEERS 8 /* keep at least 8 peers connected */
+# define MAX_PEERS 16 /* keep not more than 16 peers connected */
+# define VALIDATORS 8 /* number of validator threads */
+# define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #else
 # define BLOCKSEC 0x400 /* block period in seconds (17min) */
 # define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
 # define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
 # define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 # define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
+# define MIN_PEERS 8 /* keep at least 8 peers connected */
+# define MAX_PEERS 16 /* keep not more than 16 peers connected */
+# define VALIDATORS 8 /* number of validator threads */
+# define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #endif
 #define VIP_MAX 63 /* maximum number of VIP servers */
 #define TOTALMASS 0x4000000000000000L /* total balance (target) */
 #define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
 #define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
-
 //local parameters (office<->client), not part of network protocol
-#define MIN_PEERS 8 /* keep at least 8 peers connected */
-#define MAX_PEERS 16 /* keep not more than 16 peers connected */
-#define VALIDATORS 8 /* number of validator threads */
+
 #define SYNC_WAIT 8 /* wait before another attempt to download servers */
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
 #define MAX_USER_QUEUE 0x10000 /* maximum number of accounts in create_account queue ("blacklist") */
@@ -46,11 +51,11 @@
 #define SERVER_PORT "8081"
 #ifdef DEBUG
 #define SERVER_DNSA "dev.esc.adshares.net"
-#elif
+#else
 #define SERVER_DNSA "esc.adshares.net"
 #endif
 #define MAXCLIENTS 128
-#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+
 
 #define SERVER_DBL 0x1 /* closed node */
 #define SERVER_VIP 0x2 /* VIP node */
@@ -284,16 +289,16 @@ typedef struct hash_cmp {
 
 #define RETURN_VAL_ON_SHUTDOWN(val) {extern bool finish;if(finish){return(val);}}
 #define RETURN_ON_SHUTDOWN() {extern bool finish;if(finish){return;}}
-#define SHUTDOWN_AND_RETURN_VAL(val) {std::raise(SIGABRT);return(val);}
-#define SHUTDOWN_AND_RETURN() {std::raise(SIGABRT);return;}
+#define SHUTDOWN_AND_RETURN_VAL(val) {std::raise(SIGQUIT);return(val);}
+#define SHUTDOWN_AND_RETURN() {std::raise(SIGQUIT);return;}
 #define RESTART_AND_RETURN() {std::raise(SIGUSR1);return;}
 #ifndef ELOG
-#define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#define ELOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr, "%s:", __TIMESTAMP__);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 #endif
 #ifndef NDEBUG
 //consider printing thread id
 #ifndef DLOG
-#define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
+#define DLOG(...) {extern boost::mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr, "%s:", __TIMESTAMP__);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}
 #endif
 #else
 #define DLOG(...)
