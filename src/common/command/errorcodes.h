@@ -46,7 +46,13 @@ public:
         eHighTimeDifference,
         ePkeyDiffers,
         ePkeyNotChanged,
-        eHashMismatch
+        eHashMismatch,
+        eGotEmptyBlock,
+        eFailedToLoadHash,
+        eCantOpenFile,
+        eCantCreateDirectory,
+        eFailToProvideTxnInfo,
+        eFailToReadTxnInfo
     };
 
 private:
@@ -87,7 +93,13 @@ private:
         { Code::eHighTimeDifference, "High time difference"},
         { Code::ePkeyDiffers, "Public key differs from response key"},
         { Code::ePkeyNotChanged, "Public key not changed" },
-        { Code::eHashMismatch, "Hash mismatch" }
+        { Code::eHashMismatch, "Hash mismatch" },
+        { Code::eGotEmptyBlock, "Got empty block" },
+        { Code::eFailedToLoadHash, "Failed to load hash for block. Try perform get_blocks command to resolve." },
+        { Code::eCantOpenFile, "Can't open a file" },
+        { Code::eCantCreateDirectory, "Can't create a directory" },
+        { Code::eFailToProvideTxnInfo, "Failed to provide transaction info" },
+        { Code::eFailToReadTxnInfo, "Failed to read transaction" }
    };
 
 public:

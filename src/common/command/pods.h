@@ -476,4 +476,38 @@ struct GetLogData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct GetTransactionInfo {
+    GetTransactionInfo() = default;
+    GetTransactionInfo(uint16_t srcNode, uint32_t srcUser, uint32_t time, uint16_t dstNode, uint32_t nodeMsgid, uint32_t pos)
+        : src_node(srcNode), src_user(srcUser), ttime(time), dst_node(dstNode), node_msgid(nodeMsgid), position(pos) {
+    }
+
+    uint8_t ttype{TXSTYPE_TXS}; ///< command type
+    uint16_t src_node{0};       ///< source node
+    uint32_t src_user{0};       ///< source user
+    uint32_t ttime{0};          ///< time
+    uint16_t dst_node{0};       ///< dest node
+    uint32_t node_msgid{0};     ///< node msg id
+    uint16_t position{0};       ///< position
+}__attribute__((packed));
+
+struct GetTransactionData {
+    GetTransactionData() = default;
+    GetTransactionData(uint16_t srcNode_, uint32_t srcUser_, uint32_t time_, uint16_t dstNode_, uint32_t nodeMsgid_, uint32_t pos_)
+        : info(srcNode_, srcUser_, time_, dstNode_, nodeMsgid_, pos_) {
+    }
+
+    GetTransactionInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+struct GetTransactionResponse {
+    uint32_t path;
+    uint32_t msid;
+    uint16_t node;
+    uint16_t tnum;
+    uint16_t len; //64k lentgh limit !
+    uint16_t hnum;
+}__attribute__((packed));
+
 #endif // PODS_H

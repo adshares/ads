@@ -46,11 +46,15 @@ public:
     Servers(const char* filePath);
 
     void load(const char* filePath = nullptr);
+    bool loadNowhash();
 
     ServersHeader getHeader();
     std::vector<ServersNode> getNodes();
     ServersNode getNode(unsigned int nodeId);
     unsigned int getNodesCount();
+    uint8_t* getNowHash();
+
+    void setNow(uint32_t time);
 
 private:
     ServersHeader m_header;

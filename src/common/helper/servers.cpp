@@ -1,6 +1,7 @@
 #include "servers.h"
 
 #include <fstream>
+#include "default.hpp"
 
 namespace Helper {
 
@@ -31,6 +32,35 @@ void Servers::load(const char* filePath) {
         }
         file.close();
     }
+}
+
+bool Servers::loadNowhash() {
+    if (m_filePath.empty()) {
+        char filePath[64];
+        sprintf(filePath, "blk/%03X.now", m_header.ttime>>20);
+        m_filePath = filePath;
+    }
+
+    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
+    if (file.is_open()) {
+        file.seekg(((m_header.ttime&0xFFFFF)/BLOCKSEC)*SHA256_DIGEST_LENGTH);
+        file.read((char*)&m_header.nowHash, sizeof(m_header.nowHash));
+        if (!file) {
+            return false;
+        }
+        file.close();
+    } else {
+        return false;
+    }
+    return true;
+}
+
+void Servers::setNow(uint32_t time) {
+    m_header.ttime = time;
+}
+
+uint8_t* Servers::getNowHash() {
+    return m_header.nowHash;
 }
 
 ServersHeader Servers::getHeader() {
