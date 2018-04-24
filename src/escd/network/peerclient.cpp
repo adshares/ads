@@ -7,7 +7,8 @@
 using namespace boost::asio;
 using namespace boost::lambda;
 
-PeerClient::PeerClient(ip::tcp::socket& socket):
+PeerClient::PeerClient(ip::tcp::socket& socket, peer& peer):
+    m_peer(peer),
     m_socket(socket),
     m_deadline(m_socket.get_io_service())
 {}
@@ -22,7 +23,6 @@ void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const bo
     if (ec == boost::asio::error::operation_aborted ) {
         return;
     }
-
 
     // Check whether the deadline has passed. We compare the deadline against
     // the current time since a new asynchronous operation may have moved the
@@ -39,8 +39,11 @@ void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const bo
       //m_socket.cancel();
       //m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
 
+      DLOG("\nDEADLINE.....................check_deadline error2");
+      m_peer.stop();
+      DLOG("\nDEADLINE.....................check_deadline error3");
 
-      if(m_socket.is_open())
+      /*if(m_socket.is_open())
       {
           DLOG("\nDEADLINE.....................check_deadline error2");
           m_socket.cancel();
@@ -50,7 +53,7 @@ void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const bo
         //DLOG("PEER KILL TIMEOUT locaddr %s:%d remote %s:%d \n",m_socket.local_endpoint().address().to_string().c_str(),
         //     m_socket.local_endpoint().port(), m_socket.remote_endpoint().address().to_string().c_str(),
         //     m_socket.remote_endpoint().port());
-      }
+      }*/
 
 
       // There is no longer an active deadline. The expiry is set to positive
@@ -81,7 +84,7 @@ void PeerClient::checkDeadline()
       //m_socket.cancel()
       //m_ec = boost::asio::error::timed_out;;
 
-      if(m_socket.is_open())
+      /*if(m_socket.is_open())
       {
 
           //m_socket.close();
@@ -92,7 +95,8 @@ void PeerClient::checkDeadline()
         //DLOG("PEER KILL TIMEOUT locaddr %s:%d remote %s:%d \n",m_socket.local_endpoint().address().to_string().c_str(),
         //     m_socket.local_endpoint().port(), m_socket.remote_endpoint().address().to_string().c_str(),
         //     m_socket.remote_endpoint().port());
-      }
+      }*/
+      m_peer.stop();
       //m_socket.cancel();
       //m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
 
@@ -110,6 +114,11 @@ void PeerClient::checkDeadline()
 std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
 {    
     DLOG("PEER PeerClient::writeSync type %d len %d \n", ((char*)data)[0], len);
+
+    m_lastTimeout   =timeout;
+    m_lastOperation = 1;
+    m_lastData      = ((char*)data)[0];
+    m_lastLenght    = len;
 
     if(timeout > 0){
         m_deadline.expires_from_now(boost::posix_time::seconds(timeout));
@@ -143,6 +152,12 @@ std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
 std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
 {
     DLOG("PEER PeerClient::readSync type %d len %d \n", ((char*)data)[0], len);
+    m_lastTimeout   =timeout;
+    m_lastOperation = 2;
+    m_lastData      = ((char*)data)[0];
+    m_lastLenght    = len;
+
+
 
     if(timeout > 0){
         m_deadline.expires_from_now(boost::posix_time::seconds(timeout));
@@ -155,7 +170,7 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
 
 
 
-    if(m_socket.is_open())
+    /*if(m_socket.is_open())
     {
         if(len>0)
         {
@@ -165,7 +180,7 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
         //DLOG("PEER PeerClient::readSync locaddr %s:%d remote %s:%d \n",m_socket.local_endpoint().address().to_string().c_str(),
         //     m_socket.local_endpoint().port(), m_socket.remote_endpoint().address().to_string().c_str(),
         //     m_socket.remote_endpoint().port());
-    }
+    }*/
 
     do{
         m_socket.get_io_service().run_one();
@@ -188,6 +203,12 @@ void PeerClient::asyncRead(void* data, uint32_t len, peerCallback handler, int t
 {    
     DLOG("PEER PeerClient::asyncRead type %d len %d \n", ((char*)data)[0], len);
 
+    m_lastTimeout   =timeout;
+    m_lastOperation = 3;
+    m_lastData      = ((char*)data)[0];
+    m_lastLenght    = len;
+
+
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
     if(timeout > 0){
@@ -205,9 +226,16 @@ void PeerClient::asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpItera
 {    
     DLOG("PEER PeerClient::asyncConnect \n");
 
+    m_lastTimeout   =timeout;
+    m_lastOperation = 5;
+    m_lastData      = 0;//((char*)data)[0];
+    m_lastLenght    = -1;
+
+
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
-    if(timeout > 0){
+    if(timeout > 0)
+    {
         timer->expires_from_now(boost::posix_time::seconds(timeout));
         checkDeadline(timer, boost::asio::error::timed_out);
     }
@@ -229,6 +257,12 @@ void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int 
 {    
     DLOG("PEER PeerClient::asyncWrite type %d len %d \n", ((char*)data)[0], len);
 
+    m_lastTimeout   =timeout;
+    m_lastOperation = 4;
+    m_lastData      = ((char*)data)[0];
+    m_lastLenght    = len;
+
+
     boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
 
     if(timeout > 0){
@@ -239,7 +273,7 @@ void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int 
     boost::asio::async_write(m_socket, boost::asio::buffer(data, len), boost::bind(&PeerClient::asyncHandleWrite, this,
                                             boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred, timer, handler));
 
-    if(m_socket.is_open())
+    /*if(m_socket.is_open())
     {
         if(len>0)
         {
@@ -249,7 +283,7 @@ void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int 
         //DLOG("PEER PeerClient::asyncWrite locaddr %s:%d remote %s:%d \n",m_socket.local_endpoint().address().to_string().c_str(),
         //     m_socket.local_endpoint().port(), m_socket.remote_endpoint().address().to_string().c_str(),
         //     m_socket.remote_endpoint().port());
-    }
+    }*/
 }
 
 
@@ -257,13 +291,13 @@ void PeerClient::operationDone(const boost::system::error_code& ec, size_t bytes
 {    
     DLOG("PEER PeerClient::operationDone start bytes %d res %d\n", m_bytes_transferred, ec.value());
 
-    if (ec.value() == 2)
+    /*if (ec.value() == 2)
     {
         DLOG("PEER PeerClient:: 2\n");
         throw boost::system::system_error(ec);
         //timer->cancel();
         return;
-    }
+    }*/
 
     m_deadline.expires_at(boost::posix_time::pos_infin);
     m_ec = ec;
@@ -285,13 +319,13 @@ void PeerClient::asyncHandleConnect(const boost::system::error_code& ec, boost::
 {
     DLOG("PEER PeerClient::asyncHandleConnect start  res %d\n", ec.value());
 
-    if (ec.value() == 2)
+    /*if (ec.value() == 2)
     {
         DLOG("PEER PeerClient:: 2\n");
         throw boost::system::system_error(ec);
         //timer->cancel();
         return;
-    }
+    }*/
 
     //if(m_socket.is_open())
     {
@@ -309,13 +343,13 @@ void PeerClient::asyncHandleWrite(const boost::system::error_code& ec, size_t by
 {
     DLOG("PEER PeerClient::asyncHandleWrite start  res %d\n", ec.value());
 
-    if (ec.value() == 2)
+    /*if (ec.value() == 2)
     {
         DLOG("PEER PeerClient:: 2\n");
         //timer->cancel();
         throw boost::system::system_error(ec);
         return;
-    }
+    }*/
     /*if (ec == boost::asio::error::operation_aborted) {
         return;
     }*/
@@ -335,13 +369,13 @@ void PeerClient::asyncHandleRead(const boost::system::error_code& ec, size_t byt
 {
     DLOG("PEER PeerClient::asyncHandleRead start  res %d\n", ec.value());
 
-    if (ec.value() == 2)
+    /*if (ec.value() == 2)
     {
         DLOG("PEER PeerClient:: 2\n");
         throw boost::system::system_error(ec);
         //timer->cancel();
         return;
-    }
+    }*/
     /*if (ec == boost::asio::error::operation_aborted) {
         return;
     }*/
