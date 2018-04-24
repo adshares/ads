@@ -10,10 +10,10 @@
 # define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
 # define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
 # define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
-# define MIN_PEERS 8 /* keep at least 8 peers connected */
-# define MAX_PEERS 16 /* keep not more than 16 peers connected */
-# define VALIDATORS 8 /* number of validator threads */
-# define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+# define MIN_PEERS 3 /* keep at least 3 peers connected */
+# define MAX_PEERS 8 /* keep not more than 8 peers connected */
+# define VALIDATORS 4 /* number of validator threads */
+# define CLIENT_POOL 4	/* do not offer more threads that are used for network message validation */
 #else
 # define BLOCKSEC 0x400 /* block period in seconds (17min) */
 # define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */

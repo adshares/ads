@@ -8,8 +8,6 @@
 #include "network/peerclient.h"
 #include "network/peerclientmanager.h"
 
-
-
 class peer : public boost::enable_shared_from_this<peer> {
 
 public:
@@ -25,7 +23,7 @@ public:
     };
 
   public:
-    peer(server& srv,bool in,servers& srvs,options& opts, PeerConnectManager& connManager, std::string addr, uint32_t port):
+    peer(server& srv,bool in,servers& srvs,options& opts, PeerConnectManager& peerManager, std::string addr, uint32_t port):
         svid(BANK_MAX),
         do_sync(1), //remove, use peer_hs.do_sync
         killme(false),
@@ -34,7 +32,7 @@ public:
         work_(peer_io_service_),
         socket_(peer_io_service_),
         m_netclient(socket_, *this),
-        m_connManager(connManager),
+        m_peerManager(peerManager),
         server_(srv),        
         incoming_(in),
         srvs_(srvs),
@@ -59,7 +57,6 @@ public:
 
         m_peerId = s_peerId;
 
-
         if(iothp_){
             std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
             pthread_setname_np(iothp_->native_handle(), thName.c_str());
@@ -72,7 +69,7 @@ public:
 
         try {
 
-            //m_connManager.leevePeer(svid, addr, port);
+            //m_peerManager.leevePeer(svid, addr, port);
 
             if(!peer_io_service_.stopped()){
                 peer_io_service_.stop();
@@ -85,8 +82,6 @@ public:
         catch (std::exception& e) {
             std::cerr << e.what();
         }
-
-
     }
 
     void iorun() {
@@ -98,33 +93,9 @@ public:
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
             DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
-            killme=true;
-            m_connManager.leevePeer(svid, addr, port);
-        }
-        DLOG("%04X PEER IORUN END\n",svid);
-    }
-
-    void stop() { // by server only
-        DLOG("%04X PEER STOP\n", svid);
-        setState(ST_STOPED);
-        m_connManager.leevePeer(svid, addr, port);
-    }
-
-    void stopImpl() { // by server only
-        DLOG("%04X PEER STOP IO THREAD", svid);
-
-        killme=true;
-
-        if(socket_.is_open())
-        {
-            socket_.close();
-            //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-        }
-
-
-        //peer_io_service_.reset();
-        DLOG("%04X PEER STOP IO THREAD DONE", svid);
-    }
+            leave();
+        }        
+    }    
 
     void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {        
         m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, this, boost::asio::placeholders::error), timeout);
@@ -137,71 +108,57 @@ public:
 
     void setState(PeerState state)
     {
-
         if(m_state == ST_AUTHENTCATING && state == PeerState::ST_SYNCD)
         {
-            DLOG("%04X SYLWESTERPEE ER CHANGE STATE FROM %d TO %d\n",svid, m_state, state);
-            m_connManager.addActivePeer(svid, shared_from_this());
+            DLOG("%04X ADD avtive peer%d\n",svid);
+            m_peerManager.addActivePeer(svid, shared_from_this());
         }
-        else if(state == PeerState::ST_SYNCD)
-        {
-            DLOG("%04X SYLWESTERPEE ER CHANGE STATE FROM %d TO %d\n",svid, m_state, state);
-            //assert(0);
 
+        if(m_state != ST_STOPED && state == PeerState::ST_STOPED)
+        {
+            DLOG("%04X LEAVE avtive peer%d\n",svid);
+            m_peerManager.leevePeer(svid, addr, port);
         }
 
         DLOG("%04X PEER CHANGE STATE FROM %d TO %d\n",svid, m_state, state);
         m_state = state;
-
     }
 
     void leave() {
-        DLOG("%04X PEER LEAVING address %s:%d - id%d\n",svid, addr.c_str(), port, m_peerId);
-        stop();        
-        DLOG("LEAVEPEER->\n");
-        //m_connManager.leevePeer(svid, addr, port);
-        DLOG("LEAVEPEER->2\n");
-        killme=true;
+        DLOG("%04X PEER STOP\n", svid);
+        setState(ST_STOPED);
     }    
 
     void accept()
-    { //only incoming connections
+    {
+        //only incoming connections
         assert(socket_.is_open());
         Helper::setSocketTimeout(socket_);
-
-
-        assert(incoming_);
-        killme=false; //connection established
+        assert(incoming_);       
         addr = socket_.remote_endpoint().address().to_string();
         port = socket_.remote_endpoint().port();
-        //manager add
 
-        //m_connManager.addPeer(addr, port, shared_from_this());
-        DLOG("%04X PEER CONNECT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(), socket_.remote_endpoint().address().to_string().c_str(),port);
+        DLOG("%04X PEER CONNECT OK %s:%d\n",svid, addr.c_str() ,port);
         setState(ST_CONNECTED);
         asyncWaitForNewMessageHeader();
     }
 
     void connect(const boost::system::error_code& error)
-    { //only outgoing connection
-        if(error) {
-            //addr = socket_.remote_endpoint().address().to_string();
-            //port = socket_.remote_endpoint().port();
-
-            DLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);
-            killme=true; // not needed, as now killme=true is initial state for outgoing connections
+    {
+        //only outgoing connection
+        if(error) {            
+            DLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);            
             leave();
             return;
         }
 
-
         DLOG("%04X PEER ACCEPT\n",svid);
+
         killme=false; //connection established
         assert(!incoming_);
         assert(addr == socket_.remote_endpoint().address().to_string());
         assert(port == socket_.remote_endpoint().port());
 
-        //m_connManager.addPeer(addr, port, shared_from_this());
         //manager add
         DLOG("%04X PEER ACCEPT OK %d<->%s:%d\n",svid,socket_.local_endpoint().port(),
              socket_.remote_endpoint().address().to_string().c_str(),port);
@@ -215,10 +172,7 @@ public:
         setState(ST_CONNECTED);
 
         m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
-
-        asyncWaitForNewMessageHeader();
-
-        DLOG("END OF CONNECT \n");
+        asyncWaitForNewMessageHeader();        
     }
 
     boost::asio::ip::tcp::socket& socket() {
@@ -332,8 +286,8 @@ public:
       return(msg->len);
     }*/
 
-    void deliver(message_ptr msg) {
-
+    void deliver(message_ptr msg)
+    {
         DLOG("%04X (DELIVER), START TYPE\n",svid);
         extern candidate_ptr nullcnd;
         if(killme) {
@@ -420,7 +374,7 @@ public:
             leave();
         }
         if(len != put_msg->len ){
-            DLOG("LENGTGH ERROR in send_sync\n");
+            DLOG("LEN ERROR in send_sync\n");
             leave();
         }
 
@@ -428,9 +382,7 @@ public:
         if(put_msg->len!=message::header_length) {
 //FIXME, do not unload everything ...
             put_msg->unload(svid);
-        }
-
-        DLOG("----------Finish send_sync");
+        }        
     }
 
     void handle_write(const boost::system::error_code& error, size_t transfered)
@@ -438,12 +390,8 @@ public:
         handle_write(error);
     }
 
-    void handle_write(const boost::system::error_code& error) { //TODO change this later, dont send each message separately if possible
-        if(killme) {
-            DLOG("%04X KILL detected ! (HANDLE WRITE), leaving\n",svid);
-            leave();
-            return;
-        }
+    void handle_write(const boost::system::error_code& error)
+    { //TODO change this later, dont send each message separately if possible
         if (!error) {
             pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
             message* msg=&(*(write_msgs_.front()));
@@ -495,16 +443,12 @@ public:
     }
 
     void handle_read_header(const boost::system::error_code& error, size_t transfered)
-    {
-        if(!error){
-        DLOG("handle_read_header %d : %d\n", transfered, read_msg_->data[0]);
-        }
-
+    {        
         handle_read_header(error);
     }
 
-    void handle_read_header(const boost::system::error_code& error) {
-
+    void handle_read_header(const boost::system::error_code& error)
+    {
         extern message_ptr nullmsg;
         if(killme) {
             ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
@@ -525,16 +469,16 @@ public:
             ELOG("%04X ERROR READ illegal header during startup (%d)\n",svid,(int)read_msg_->data[0]);
             leave();
             return;
-        }
-
-        DLOG("handle_read_header %d : %d\n", read_msg_->len, read_msg_->data[0]);
+        }        
 
         busy=0; // any incomming data resets the busy flag indicating a responsive peer
         bytes_in+=read_msg_->len;
         files_in++;
         last_active=time(NULL); // protect from disconnect
         read_msg_->know_insert_(svid);
-        if(read_msg_->data[0]==MSGTYPE_USR) { //len can be message::header_length in this case :-(
+
+        if(read_msg_->data[0]==MSGTYPE_USR)
+        { //len can be message::header_length in this case :-(
             //FIXME, accept only if needed !!
             DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
 
@@ -666,16 +610,13 @@ public:
                 DLOG("%04X PEER in block mode\n",svid);
                 //could enter a different (sync) read sequence here;
                 //read_msg_->data=(uint8_t*)std::realloc(read_msg_->data,read_msg_->len);
-                assert(read_msg_->len==1+SHA256_DIGEST_LENGTH);
-
-                DLOG("%04X PEER asyncRead handle read stop\n",svid);
+                assert(read_msg_->len==1+SHA256_DIGEST_LENGTH);                
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_read_stop,this,boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_MSP) {
-                DLOG("%04X READ msglist header\n",svid);                
-                DLOG("%04X PEER asyncRead handle read msglist\n",svid);
+                DLOG("%04X READ msglist header\n",svid);                                
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_read_msglist,this,boost::asio::placeholders::error));
                 return;
@@ -684,7 +625,6 @@ public:
                 DLOG("%04X READ block header\n",svid);
                 assert(read_msg_->len==4+64+10+sizeof(header_t) || read_msg_->len==4+64+10);
 
-                DLOG("%04X PEER asyncRead handle_read_block\n",svid);
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_read_block,this,boost::asio::placeholders::error));
                 return;
@@ -693,13 +633,11 @@ public:
                 DLOG("%04X READ next header\n",svid);
                 assert(read_msg_->len==8+SHA256_DIGEST_LENGTH+sizeof(headlink_t));
 
-                DLOG("%04X PEER asyncRead handle_next_header\n",svid);
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_next_header,this,boost::asio::placeholders::error));
                 return;
             }
 
-            DLOG("%04X PEER asyncRead handle_read_body\n",svid);
             m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                   boost::bind(&peer::handle_read_body,this,boost::asio::placeholders::error));
         }
@@ -1160,9 +1098,7 @@ NEXTUSER:
     }
 
     void asyncWaitForNewMessageHeader()
-    {       
-        DLOG("%04X PEER asyncWaitForNewMessageHeader\n",svid);
-
+    {               
         read_msg_ = boost::make_shared<message>();
 
         m_netclient.asyncRead(read_msg_->data, message::header_length,
@@ -1365,7 +1301,7 @@ NEXTUSER:
             DLOG("%04X ERROR: connecting to myself\n",svid);
             return(0);
         }
-        if(server_.duplicate(this->svid)) {
+        if(m_peerManager.checkDuplicate(this->svid)) {
             DLOG("%04X ERROR: server already connected\n",svid);
             return(0);
         }
@@ -2127,6 +2063,9 @@ NEXTUSER:
         return(1);
     }
 
+    friend class PeerConnectManager;
+
+  private:
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
     bool        killme; // kill process initiated
@@ -2137,15 +2076,14 @@ NEXTUSER:
     std::string addr;
     uint32_t    port; // not needed
     int         m_peerId;
-  private:
+
     boost::asio::io_service peer_io_service_;	//TH
     boost::asio::io_service::work work_;		//TH
     boost::asio::ip::tcp::socket socket_;    
 
     PeerClient          m_netclient;
-    PeerConnectManager& m_connManager;
+    PeerConnectManager& m_peerManager;
     PeerState           m_state;
-
 
     std::unique_ptr<boost::thread> iothp_;			//TH
     server& server_;
@@ -2153,9 +2091,7 @@ NEXTUSER:
     servers& srvs_; //FIXME ==server_.srvs_
     options& opts_; //FIXME ==server_.opts_
 
-
     uint32_t msid;
-
     uint32_t peer_path; //used to load data when syncing
 
     handshake_t sync_hs;
