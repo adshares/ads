@@ -26,16 +26,17 @@ PeerConnectManager::PeerConnectManager(server& server, options& opts):
 
 PeerConnectManager::~PeerConnectManager()
 {        
-    /*char name[16];
+    char name[16];
 
     pthread_getname_np(pthread_self(), &name[0], sizeof(name));
 
+    stop();
     m_activePeers.clear();
     m_peers.clear();
 
 
     DLOG("PeerConnectManager MANAGER destructor1 %s\n", name);
-    stop();*/
+
 
     DLOG("PeerConnectManager MANAGER destructor2\n");
     if(!m_ioService.stopped()){

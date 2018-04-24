@@ -33,7 +33,7 @@ public:
         peer_io_service_(),
         work_(peer_io_service_),
         socket_(peer_io_service_),
-        m_netclient(socket_),
+        m_netclient(socket_, *this),
         m_connManager(connManager),
         server_(srv),        
         incoming_(in),
@@ -100,9 +100,6 @@ public:
             DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
             killme=true;
             m_connManager.leevePeer(svid, addr, port);
-            //m_connManager.leavePeerImpl(svid, addr, port);
-            DLOG("%04X FINISH\n");
-            //stop();
         }
         DLOG("%04X PEER IORUN END\n",svid);
     }
@@ -110,7 +107,7 @@ public:
     void stop() { // by server only
         DLOG("%04X PEER STOP\n", svid);
         setState(ST_STOPED);
-        peer_io_service_.dispatch(boost::bind(&peer::stopImpl, this));
+        m_connManager.leevePeer(svid, addr, port);
     }
 
     void stopImpl() { // by server only
@@ -119,13 +116,13 @@ public:
         killme=true;
 
         if(socket_.is_open())
-        {            
-            socket_.cancel();
-            socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+        {
+            socket_.close();
+            //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
         }
 
 
-        peer_io_service_.reset();
+        //peer_io_service_.reset();
         DLOG("%04X PEER STOP IO THREAD DONE", svid);
     }
 
@@ -162,7 +159,7 @@ public:
         DLOG("%04X PEER LEAVING address %s:%d - id%d\n",svid, addr.c_str(), port, m_peerId);
         stop();        
         DLOG("LEAVEPEER->\n");
-        m_connManager.leevePeer(svid, addr, port);
+        //m_connManager.leevePeer(svid, addr, port);
         DLOG("LEAVEPEER->2\n");
         killme=true;
     }    
@@ -1169,7 +1166,7 @@ NEXTUSER:
         read_msg_ = boost::make_shared<message>();
 
         m_netclient.asyncRead(read_msg_->data, message::header_length,
-                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), BLOCKSEC);
+                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), (BLOCKSEC*0.75));
     }
 
     void handle_read_bank(const boost::system::error_code& error) {

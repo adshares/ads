@@ -15,7 +15,7 @@ typedef boost::function<void(const boost::system::error_code&)>         peerConn
 class PeerClient
 {    
 public:
-    PeerClient(boost::asio::ip::tcp::socket &socket);
+    PeerClient(boost::asio::ip::tcp::socket &socket, peer& peer);
     ~PeerClient();
 
     void asyncRead(void* data, uint32_t len, peerCallback handler, int timeout = DEFAULT_NET_TIMEOUT);
@@ -38,11 +38,17 @@ private:
     void asyncHandleRead(const boost::system::error_code& ec, size_t bytes_transferred, boost::shared_ptr<boost::asio::deadline_timer> timer, peerCallback handler);
     void asyncHandleConnect(const boost::system::error_code& ec, boost::shared_ptr<boost::asio::deadline_timer> timer, peerConnectCallback handler);
 
-private:    
+private:
+    peer&                           m_peer;
     boost::asio::ip::tcp::socket&   m_socket;
     boost::asio::deadline_timer     m_deadline;
     boost::system::error_code       m_ec;
     size_t                          m_bytes_transferred{0};
+
+    int                             m_lastTimeout;
+    int                             m_lastOperation;
+    char                            m_lastData;
+    int                             m_lastLenght;
 };
 
 
