@@ -1,14 +1,6 @@
 from . import exec_esc_cmd, create_client_env, create_init_client
 from . import INIT_CLIENT_ID
-from .utils import create_account, get_user_address
-
-
-def get_balance_user(client_id):
-    """
-    Function returns user's balance in str format
-    """
-    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
-    return response_receiver['account']['balance']
+from .utils import create_account, get_user_address, get_balance_user
 
 
 def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):

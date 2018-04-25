@@ -46,9 +46,9 @@ def manual_init_node_process(node_id, client_id, key, port,
     create_init_client()
 
     node_dir = get_node_path_dir(node_id)
-    process = subprocess.Popen([ESCD_BIN_PATH, "-m", "1", "-f", "1"],
+    process = subprocess.Popen([ESCD_BIN_PATH, "-m", "1"],
                                cwd=node_dir, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     blocks_counter = 0
-    for line in process.stderr:
+    for _ in process.stderr:
         pass

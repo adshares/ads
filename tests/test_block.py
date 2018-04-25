@@ -2,7 +2,7 @@ import time
 
 from . import exec_esc_cmd
 from . import INIT_CLIENT_ID
-from .utils import create_node_without_start
+from .utils import create_node_without_start, create_account
 
 
 def test_get_blocks(init_node_process):
@@ -32,7 +32,12 @@ def test_send_and_get_broadcast(init_node_process):
 
 
 def test_get_transaction(init_node_process):
-    pass
+    create_account(5)
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_log', 'type': 'create_account'})
+    exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks'})
+    txid = response['log'][0]['id']
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_transaction', 'txid': txid})
+    assert 'create_account' == response['txn']['type']
 
 
 def test_get_signatures(init_node_process):
@@ -41,13 +46,12 @@ def test_get_signatures(init_node_process):
 
 
 def test_get_message_list(init_node_process):
-    response =exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
     assert len(response['messages']) > 0
 
 
 def test_get_message(init_node_process):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
-    block_time = response['block_time']
     node_msid = response['messages'][0]['node_msid']
     node_id = response['messages'][0]['node_id']
     h = response['messages'][0]['hash']

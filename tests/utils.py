@@ -33,12 +33,13 @@ def create_account(client_id="2", node="0001"):
     address = response['new_account']['address']
 
     time_start = time.time()
-    count_user = len(exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False).get('accounts'))
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
+    count_users = len(response.get('accounts'))
 
     while True:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
-        if accounts > count_user:
+        if accounts > count_users:
             break
         time.sleep(10)
         assert time.time() - time_start < 70
@@ -79,7 +80,7 @@ def create_node(node_id, client_id, port, offi):
     offset_block = response['block']['id'][:3]
     id_block = response['block']['id'][3:]
 
-    SECRET = '14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0'
+    SECRET = 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6'
 
     thr = threading.Thread(target=manual_init_node_process, kwargs={'node_id':node_id, 'client_id': client_id,
                                                                     'key': SECRET, 'port': port, 'offi': offi,
@@ -88,4 +89,10 @@ def create_node(node_id, client_id, port, offi):
     thr.join()
 
 
+def get_balance_user(client_id):
+    """
+    Function returns user's balance in str format
+    """
+    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
+    return response_receiver['account']['balance']
 
