@@ -13,7 +13,7 @@ typedef boost::function<void(const boost::system::error_code&, size_t)> peerCall
 typedef boost::function<void(const boost::system::error_code&)>         peerConnectCallback;
 
 /*!
- * \brief Peer netwrok client. It is is responnsible for asynchronous operation with timeouts.
+ * \brief Peer network client. It is is responnsible for asynchronous operation with timeouts.
  */
 class PeerClient
 {    

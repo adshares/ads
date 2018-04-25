@@ -68,9 +68,6 @@ public:
         DLOG("%04X PEER DESTRUCT address %s port %d\n", svid, addr.c_str(), port);
 
         try {
-
-            //m_peerManager.leevePeer(svid, addr, port);
-
             if(!peer_io_service_.stopped()){
                 peer_io_service_.stop();
             }
@@ -110,13 +107,13 @@ public:
     {
         if(m_state == ST_AUTHENTCATING && state == PeerState::ST_SYNCD)
         {
-            DLOG("%04X ADD avtive peer%d\n",svid);
+            DLOG("%04X ADD avtive peer\n",svid);
             m_peerManager.addActivePeer(svid, shared_from_this());
         }
 
         if(m_state != ST_STOPED && state == PeerState::ST_STOPED)
         {
-            DLOG("%04X LEAVE avtive peer%d\n",svid);
+            DLOG("%04X LEAVE avtive peer\n",svid);
             m_peerManager.leevePeer(svid, addr, port);
         }
 
@@ -483,7 +480,7 @@ public:
             DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
 
             m_netclient.asyncRead(read_msg_->data+message::header_length, read_msg_->len*sizeof(user_t),
-                                  boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error));
+                                  boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error), 30);
 
             return;
         }
@@ -937,7 +934,7 @@ public:
             asyncWaitForNewMessageHeader();
             return;
         }
-        ELOG("%04X handle_read_msglist reading msglis starts \n",svid, error.value());
+        ELOG("%04X handle_read_msglist reading msglis starts %d\n",svid, error.value());
 
         server_.msgl_process(header,read_msg_->data+8);
         ////FIXME, process check and save in one function
@@ -1102,7 +1099,7 @@ NEXTUSER:
         read_msg_ = boost::make_shared<message>();
 
         m_netclient.asyncRead(read_msg_->data, message::header_length,
-                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), (BLOCKSEC*0.75));
+                              boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), (BLOCKSEC));
     }
 
     void handle_read_bank(const boost::system::error_code& error) {

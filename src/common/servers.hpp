@@ -1505,6 +1505,8 @@ class servers { // also a block
     }
 
     uint32_t nextblock() { //returns period_start
+        DLOG("NEXT BLOCK");
+
         now+=BLOCKSEC;
         int num=(now/BLOCKSEC)%BLOCKDIV;
         if(!num) {
@@ -1547,6 +1549,7 @@ class servers { // also a block
     }
 
     void blockdir() { //not only dir ... should be called blockstart
+        DLOG("BLOCKDIR NOW %04X", now);
         char pathname[64];
         sprintf(pathname,"blk/%03X",now>>20);
         mkdir(pathname,0755);
@@ -1567,6 +1570,8 @@ class servers { // also a block
     }
 
     void blockdir(uint32_t blockTime) { //not only dir ... should be called blockstart
+        DLOG("BLOCKDIR TIME %04X", blockTime);
+
         char pathname[64];
         sprintf(pathname,"blk/%03X",blockTime>>20);
         mkdir(pathname,0755);
