@@ -43,6 +43,15 @@ void ed25519_key2text(std::stringstream& text, const uint8_t* key, int len) {
     }
 }
 
+std::string ed25519_key2text(const uint8_t* key, int len) {
+    std::stringstream text{};
+    text.fill('0');
+    for ( int i = 0 ; i < len ; ++i ) {
+        text << std::uppercase<< std::setw(2) << std::hex << static_cast<unsigned int>(key[i]);
+    }
+    return text.str();
+}
+
 void text2key(const std::string& key, std::string& text) {
     int len = key.length();
     for(int i=0; i< len; i+=2)

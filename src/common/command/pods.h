@@ -4,6 +4,36 @@
 #include "default.hpp"
 #include "helper/txsname.h"
 
+/*******************************************************************************************
+ * msglist.dat file structures
+ * Header + n * MessageRecord, n <- header.num_of_msg
+ */
+
+struct MessageListHeader {
+    MessageListHeader() = default;
+    MessageListHeader(uint32_t numOfMsg, uint8_t messageHash[SHA256_DIGEST_LENGTH])
+        : num_of_msg(numOfMsg) {
+        std::copy(messageHash, messageHash + SHA256_DIGEST_LENGTH, messageHash);
+    }
+
+    uint32_t num_of_msg;                    ///< number of messages
+    uint8_t message_hash[SHA256_DIGEST_LENGTH]; ///< message pack hash
+}__attribute__((packed));
+
+/** \brief Single message record */
+struct MessageRecord {
+    MessageRecord() = default;
+    MessageRecord(uint16_t nodeId, uint32_t nodeMsid, uint8_t msgHash[SHA256_DIGEST_LENGTH])
+        : node_id(nodeId), node_msid(nodeMsid) {
+        std::copy(msgHash, msgHash + SHA256_DIGEST_LENGTH, hash);
+    }
+
+    uint16_t node_id;                   ///< node id
+    uint32_t node_msid;                 ///< node message id
+    uint8_t hash[SHA256_DIGEST_LENGTH]; ///< message hash
+}__attribute__((packed));
+/*****************************************************************************************/
+
 /** \brief Struct data for get_me and get_accout response */
 struct accountresponse {
     user_t      usera;
@@ -404,19 +434,6 @@ struct GetMessageListData {
     unsigned char sign[64];
 }__attribute__((packed));
 
-/** \brief Get message list response record */
-struct MessageRecord {
-    MessageRecord() = default;
-    MessageRecord(uint16_t nodeId, uint32_t nodeMsid, uint8_t msgHash[SHA256_DIGEST_LENGTH])
-        : node_id(nodeId), node_msid(nodeMsid) {
-        std::copy(msgHash, msgHash + SHA256_DIGEST_LENGTH, hash);
-    }
-
-    uint16_t node_id;                   ///< node id
-    uint32_t node_msid;                 ///< node message id
-    uint8_t hash[SHA256_DIGEST_LENGTH]; ///< message hash
-}__attribute__((packed));
-
 /** \brief Get message info */
 struct GetMessageInfo {
     GetMessageInfo() = default;
@@ -474,6 +491,40 @@ struct GetLogData {
 
     GetLogInfo info;
     unsigned char sign[64];
+}__attribute__((packed));
+
+struct GetTransactionInfo {
+    GetTransactionInfo() = default;
+    GetTransactionInfo(uint16_t srcNode, uint32_t srcUser, uint32_t time, uint16_t dstNode, uint32_t nodeMsgid, uint32_t pos)
+        : src_node(srcNode), src_user(srcUser), ttime(time), dst_node(dstNode), node_msgid(nodeMsgid), position(pos) {
+    }
+
+    uint8_t ttype{TXSTYPE_TXS}; ///< command type
+    uint16_t src_node{0};       ///< source node
+    uint32_t src_user{0};       ///< source user
+    uint32_t ttime{0};          ///< time
+    uint16_t dst_node{0};       ///< dest node
+    uint32_t node_msgid{0};     ///< node msg id
+    uint16_t position{0};       ///< position
+}__attribute__((packed));
+
+struct GetTransactionData {
+    GetTransactionData() = default;
+    GetTransactionData(uint16_t srcNode_, uint32_t srcUser_, uint32_t time_, uint16_t dstNode_, uint32_t nodeMsgid_, uint32_t pos_)
+        : info(srcNode_, srcUser_, time_, dstNode_, nodeMsgid_, pos_) {
+    }
+
+    GetTransactionInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
+struct GetTransactionResponse {
+    uint32_t path;
+    uint32_t msid;
+    uint16_t node;
+    uint16_t tnum;
+    uint16_t len; //64k lentgh limit !
+    uint16_t hnum;
 }__attribute__((packed));
 
 #endif // PODS_H

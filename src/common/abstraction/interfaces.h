@@ -113,6 +113,7 @@ public:
 class IJsonSerialize {
   public:
     virtual void                            toJson(boost::property_tree::ptree& ptree) = 0;
+    virtual void                            txnToJson(boost::property_tree::ptree& ptree) = 0;
     virtual std::string                     toString(bool preety)   = 0;
 
     virtual ~IJsonSerialize() = default;

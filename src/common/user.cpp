@@ -46,6 +46,7 @@
 #include "command/getmessagelist.h"
 #include "command/factory.h"
 #include "command/getlog.h"
+#include "command/gettransaction.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -261,8 +262,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         boost::optional<std::string> json_txid=pt.get_optional<std::string>("txid");
         if(json_txid && !sts.parse_txid(to_bank,node_msid,node_mpos,json_txid.get())) {
             return(NULL);
-        } //                                           !!!!!!!!!     !!!!!!! !!!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_TXS,sts.bank,sts.user,node_mpos,now,to_bank,node_msid,to_mass,to_info,(const char*)NULL);
+        }
+        command.reset(new GetTransaction(sts.bank, sts.user, to_bank, node_msid, node_mpos, now));
     } else if(!run.compare(txsname[TXSTYPE_VIP])) {
         boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
         if(json_viphash && !parse_key(to_info,json_viphash,32)) {

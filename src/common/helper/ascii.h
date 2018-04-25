@@ -13,6 +13,7 @@ void ed25519_text2key(uint8_t* key,const char* text,int len);
 void ed25519_key2text(char* text,const uint8_t* key,int len);
 
 void ed25519_key2text(std::stringstream& text,const uint8_t* key,int len);
+std::string ed25519_key2text(const uint8_t* key, int len);
 
 void text2key(const std::string& key, std::string& text);
 }
