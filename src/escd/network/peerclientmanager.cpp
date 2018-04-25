@@ -201,10 +201,10 @@ void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned 
             }
 
             if (m_activePeers.size() < MIN_PEERS){
-                m_timeout = PANIC_CONN_PERIOD;
+                m_timeout = PANIC_CONN_ATTEMPT_PERIOD;
             }
             else{
-                m_timeout = DEF_CONN_PERIOD;
+                m_timeout = DEF_CONN_ATTEMPT_PERIOD;
             }
         }
 
@@ -235,7 +235,7 @@ void PeerConnectManager::connect(in_addr peer_address, unsigned short port)
 
         boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
         m_peers[std::make_pair(peer_address.s_addr, port)] = new_peer;
-        new_peer->tryAsyncConnect(iterator, CONNECT_TIMEOUT);
+        new_peer->tryAsyncConnect(iterator, PEER_CONNECT_TIMEOUT);
 
     } catch (std::exception& e){
             DLOG("Connection: %s\n",e.what());
@@ -363,6 +363,8 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
 
 void PeerConnectManager::timerNextTick(int timeout)
 {
+    DLOG("PEER MANAGER NEXT TICK timeout %d\n", timeout);
+
     m_connectTimer.expires_from_now(boost::posix_time::seconds(timeout));
     m_connectTimer.async_wait(boost::bind(&PeerConnectManager::connectPeers, this, boost::asio::placeholders::error));
 }
@@ -370,6 +372,8 @@ void PeerConnectManager::timerNextTick(int timeout)
 void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 {    
     if(error ==  boost::asio::error::operation_aborted){
+        DLOG("ERROR connectPeers\n");
+        assert(0);
         return;
     }
 
@@ -384,11 +388,11 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
             connectPeersFromConfig(neededPeers);
         }
 
+        connectPeersFromServerFile(neededPeers);
+
         if(!m_opts.init && m_server.getMaxNodeId() < 2){
             connectPeersFromDNS(neededPeers);
-        }
-
-        connectPeersFromServerFile(neededPeers);
+        }        
     }    
 
     timerNextTick(m_timeout);

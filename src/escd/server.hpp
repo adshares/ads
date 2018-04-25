@@ -576,8 +576,8 @@ NEXTUSER:
                             uint16_t svid=put_msg->request();
                             if(svid) {
                                 m_peerManager.deliver(put_msg,svid);
-                                ELOG("REQUESTING MSL from %04X (%d)\n",svid);
-                                DLOG("REQUESTING MSL from %04X (%d)\n",svid);
+                                ELOG("REQUESTING MSL from %04X \n",svid);
+                                DLOG("REQUESTING MSL from %04X \n",svid);
                             }
                         }
                         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
@@ -762,7 +762,7 @@ NEXTUSER:
         }
         message_map map;
         header.msgl_map((char*)data,map,opts_.svid);
-        DLOG("msgl_process map size %d\n", map.size());
+        DLOG("msgl_process map size %u\n", map.size());
         if(!header.msgl_put(map,(char*)data)) {
             missing_.unlock();
             DLOG("msgl_process exit 2\n");
@@ -3230,8 +3230,7 @@ NEXTUSER:
                         }
                     }
                 }
-            }
-            DLOG("SYLWESTER usera->msid++ %d %d %d %d %d wei %d\n",usera->msid, utxs.ttime, lnode, luser, lpath, usera->weight);
+            }            
 
             usera->msid++;
             usera->time=utxs.ttime;
@@ -4821,27 +4820,27 @@ NEXTBANK:
 
     //void join(peer_ptr participant);
     //void leave(peer_ptr participant);
-    void peer_set(std::set<peer_ptr>& peers);
+    //void peer_set(std::set<peer_ptr>& peers);
     //void peer_clean();
     //void peer_killall();
-    void disconnect(uint16_t svid);
-    const char* peers_list();
+    //void disconnect(uint16_t svid);
+    //const char* peers_list();
     //void peers_known(std::set<uint16_t>& list);
     //void connected(std::vector<uint16_t>& list);
-    int duplicate(uint16_t svid);
-    int deliver(message_ptr msg, uint16_t svid);
-    void deliver(message_ptr msg);
+    //int duplicate(uint16_t svid);
+    //int deliver(message_ptr msg, uint16_t svid);
+    //void deliver(message_ptr msg);
     //int update(message_ptr msg,uint16_t svid);
-    void update(message_ptr msg);
+    //void update(message_ptr msg);
     //void svid_msid_rollback(message_ptr msg);
-    void start_accept();
-    void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
-    void connect(boost::asio::ip::tcp::resolver::iterator& iterator);
-    void connect(std::string peer_address);
-    void connect(uint16_t svid);
+    //void start_accept();
+    //void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
+    //void connect(boost::asio::ip::tcp::resolver::iterator& iterator);
+    //void connect(std::string peer_address);
+    //void connect(uint16_t svid);
 
-    void peerready(std::set<uint16_t>& ready);
-    void get_more_headers(uint32_t now);
+    //void peerready(std::set<uint16_t>& ready);
+    //void get_more_headers(uint32_t now);
     void ofip_gup_push(gup_t& g);
     void ofip_add_remote_deposit(uint32_t user,int64_t weight);
     void ofip_init(uint32_t myusers);
