@@ -33,6 +33,7 @@ public:
         socket_(peer_io_service_),
         m_netclient(socket_, *this),
         m_peerManager(peerManager),
+        m_state{ST_INIT},
         server_(srv),        
         incoming_(in),
         srvs_(srvs),
@@ -42,11 +43,10 @@ public:
         files_out(0),
         files_in(0),
         bytes_out(0),
-        bytes_in(0),
+        bytes_in(0),        
         BLOCK_MODE(0),
         BLOCK_SERV(false),
-        BLOCK_PEER(false),
-        m_state{ST_INIT}
+        BLOCK_PEER(false)
     {
         read_msg_ = boost::make_shared<message>();
 
@@ -57,10 +57,7 @@ public:
 
         m_peerId = s_peerId;
 
-        if(iothp_){
-            std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
-            pthread_setname_np(iothp_->native_handle(), thName.c_str());
-        }
+        setIoThreadName();
     }
 
     ~peer() {
@@ -78,6 +75,14 @@ public:
         }
         catch (std::exception& e) {
             std::cerr << e.what();
+        }
+    }
+
+    void setIoThreadName()
+    {
+        if(iothp_){
+            std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
+            pthread_setname_np(iothp_->native_handle(), thName.c_str());
         }
     }
 
@@ -113,7 +118,7 @@ public:
 
         if(m_state != ST_STOPED && state == PeerState::ST_STOPED)
         {
-            DLOG("%04X LEAVE avtive peer\n",svid);
+            DLOG("%04X LEAVE active peer\n",svid);
             m_peerManager.leevePeer(svid, addr, port);
         }
 
@@ -121,8 +126,7 @@ public:
         m_state = state;
     }
 
-    void leave() {
-        DLOG("%04X PEER STOP\n", svid);
+    void leave() {        
         setState(ST_STOPED);
     }    
 
@@ -371,7 +375,7 @@ public:
             leave();
         }
         if(len != put_msg->len ){
-            DLOG("LEN ERROR in send_sync\n");
+            DLOG("%04X ERROR in send_sync\n", svid);
             leave();
         }
 
@@ -1282,9 +1286,8 @@ NEXTUSER:
         msid=read_msg_->msid;
         svid=read_msg_->svid;
 
-        //std::string thName = "peer_" + std::to_string(svid);
-        std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
-        pthread_setname_np(iothp_->native_handle(), thName.c_str());
+        //set thread name.
+        setIoThreadName();
 
         setState(ST_AUTHENTCATING);
 
