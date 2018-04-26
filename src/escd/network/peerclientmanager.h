@@ -123,10 +123,10 @@ private:
     std::map<uint16_t, boost::shared_ptr<peer>>     m_activePeers;    
     boost::shared_mutex                             m_peerMx; //finally it should disapear. Access to peers should be only from io_service thread
 
-    boost::asio::io_service                         m_ioService;
-    boost::asio::ip::tcp::endpoint                  m_endpoint;
-    boost::asio::ip::tcp::acceptor                  m_acceptor;
+    boost::asio::io_service                         m_ioService;    
     boost::asio::io_service::work                   m_work;
+    boost::asio::ip::tcp::endpoint                  m_endpoint;
+    boost::asio::ip::tcp::acceptor                  m_acceptor;    
     boost::asio::deadline_timer                     m_connectTimer;
 
     uint8_t                                         m_timeout{DEF_CONN_ATTEMPT_PERIOD};

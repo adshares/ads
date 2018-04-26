@@ -10,26 +10,18 @@
 #include "helper/hlog.h"
 #include "network/peerclientmanager.h"
 
-
 class office;
 class peer;
-//typedef boost::shared_ptr<peer> peer_ptr;
+
 typedef std::shared_ptr<peer> peer_ptr;
 
 class server {
-  public:
-    //server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
+  public:    
     server(options& opts) :
         do_sync(1),
         do_fast(opts.fast?2:0),
         ofip(NULL),
-        //endpoint_(boost::asio::ip::address::from_string(opts.addr), opts.port),	//TH
-        //io_service_(),
-        //work_(io_service_),
-        //acceptor_(io_service_,endpoint_),
         opts_(opts),
-        //ioth_(NULL),
-        //peers_thread(NULL),
         m_peerManager(*this, opts_),
         clock_thread(NULL),
         do_validate(0),
@@ -225,8 +217,7 @@ class server {
             if(do_fast) { //FIXME, do slow sync after fast sync
                 while(do_fast>1) { // fast_sync changes the status, FIXME use future/promis
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
-                    RETURN_ON_SHUTDOWN();
-                    DLOG("WAIT!!!\n");
+                    RETURN_ON_SHUTDOWN();                   
                 }
 
                 do_fast=0;
@@ -247,15 +238,15 @@ class server {
     }
 
     void stop() {        
-        do_validate = 0;        
+        do_validate = 0;
+        m_peerManager.stop();
 
         if(clock_thread!=NULL) {
             clock_thread->interrupt();
             clock_thread->join();
         }
 
-        threadpool.join_all();
-        m_peerManager.stop();
+        threadpool.join_all();        
         DLOG("Server shutdown completed\n");
     }
 
@@ -534,18 +525,16 @@ NEXTUSER:
         now-=now%BLOCKSEC;
         do_validate=1;
         RETURN_ON_SHUTDOWN();
-        ELOG("LOAD CHAIN\n");
+        DLOG("LOAD CHAIN\n");
         for(int v=0; v<VALIDATORS; v++) {
             threadpool.create_thread(boost::bind(&server::validator, this));
         }
 //FIXME, must start with a matching nowhash and load serv_
         if(srvs_.now<now) {
             uint32_t n=headers.size();
-            for(; !n;) {
-                ELOG("LOAD CHAIN 1\n");
+            for(; !n;) {                
                 //boost::this_thread::sleep(boost::posix_time::seconds(1));
-                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers
-                ELOG("LOAD CHAIN 2\n");
+                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers                
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -752,20 +741,15 @@ NEXTUSER:
 
     //void put_msglist(uint32_t now,message_map& map)
     void msgl_process(servers& header,uint8_t* data) {
-        DLOG("msgl_process \n");
-
         missing_.lock(); // consider changing this to missing_lock
         if(get_msglist!=header.now) {
-            missing_.unlock();
-            DLOG("msgl_process exit 1\n");
+            missing_.unlock();            
             return;
         }
         message_map map;
-        header.msgl_map((char*)data,map,opts_.svid);
-        DLOG("msgl_process map size %lu\n", map.size());
+        header.msgl_map((char*)data,map,opts_.svid);       
         if(!header.msgl_put(map,(char*)data)) {
-            missing_.unlock();
-            DLOG("msgl_process exit 2\n");
+            missing_.unlock();            
             return;
         }
         missing_msgs_.swap(map);
@@ -1744,8 +1728,7 @@ NEXTUSER:
     }
 
     int message_insert(message_ptr msg) {
-        if(msg->hash.dat[1]==MSGTYPE_MSG) {
-            DLOG("MSG INSERT TYPE \n");
+        if(msg->hash.dat[1]==MSGTYPE_MSG) {            
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -2125,8 +2108,7 @@ NEXTUSER:
         }
     }
 
-    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()
-        ELOG("sylwester missing_sent_remove %d \n", svid); // FIXME, do not exit, initiate sync
+    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()        
         missing_.lock();
         for(auto mi=missing_msgs_.begin(); mi!=missing_msgs_.end(); mi++) {
             //mi->second->sent_erase(svid);
@@ -4574,7 +4556,7 @@ NEXTBANK:
             }
             DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
             if(!write_message(line)) {
-                DLOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
+                ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
             while(msid_>srvs_.nodes[opts_.svid].msid) {
@@ -4599,7 +4581,7 @@ NEXTBANK:
             int peerCount = m_peerManager.getPeersCount(true);
             int allpeerCount = m_peerManager.getPeersCount(false);
             if(missing_msgs_.size()) {
-                ELOG("CLOCK1: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
                      (int)wait_msgs_.size(),peerCount,allpeerCount, srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
@@ -4609,8 +4591,7 @@ NEXTBANK:
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
-            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='
-                DLOG("SYLWESTER LATE SIGNATURES !!!, set office readonly\n");
+            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='                
                 panic=true;
                 if(!ofip_isreadonly()) {
                     ELOG("LATE SIGNATURES !!!, set office readonly\n");
@@ -4806,8 +4787,7 @@ NEXTBANK:
 
     bool getNode(uint16_t nodeId, node& nodeInfo)
     {
-        try{
-            //nodeId      =(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
+        try{            
             nodeInfo    = srvs_.nodes.at(nodeId);
             return true;
         }
@@ -4818,29 +4798,6 @@ NEXTBANK:
         return false;
     }
 
-    //void join(peer_ptr participant);
-    //void leave(peer_ptr participant);
-    //void peer_set(std::set<peer_ptr>& peers);
-    //void peer_clean();
-    //void peer_killall();
-    //void disconnect(uint16_t svid);
-    //const char* peers_list();
-    //void peers_known(std::set<uint16_t>& list);
-    //void connected(std::vector<uint16_t>& list);
-    //int duplicate(uint16_t svid);
-    //int deliver(message_ptr msg, uint16_t svid);
-    //void deliver(message_ptr msg);
-    //int update(message_ptr msg,uint16_t svid);
-    //void update(message_ptr msg);
-    //void svid_msid_rollback(message_ptr msg);
-    //void start_accept();
-    //void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
-    //void connect(boost::asio::ip::tcp::resolver::iterator& iterator);
-    //void connect(std::string peer_address);
-    //void connect(uint16_t svid);
-
-    //void peerready(std::set<uint16_t>& ready);
-    //void get_more_headers(uint32_t now);
     void ofip_gup_push(gup_t& g);
     void ofip_add_remote_deposit(uint32_t user,int64_t weight);
     void ofip_init(uint32_t myusers);
@@ -4885,16 +4842,13 @@ NEXTBANK:
     hash_t skey;
     //enum { max_connections = 4 }; //unused
     //enum { max_recent_msgs = 1024 }; // this is the block chain :->
-    //boost::asio::ip::tcp::endpoint endpoint_;
-    //boost::asio::io_service io_service_;
-    //boost::asio::io_service::work work_;
-    //boost::asio::ip::tcp::acceptor acceptor_;
+
     servers srvs_;
     options& opts_;
-    //boost::thread* ioth_;
+
     boost::thread_group threadpool;
-    //boost::thread* peers_thread;
-    PeerConnectManager m_peerManager;
+
+    PeerConnectManager m_peerManager; //responsible for managing peers
     boost::thread* clock_thread;
     boost::thread* start_thread;
 
