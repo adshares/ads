@@ -646,16 +646,16 @@ class client : public boost::enable_shared_from_this<client> {
             return;
         }
 
-        if(*m_buf==TXSTYPE_MGS) {
-            //TODO, check access credentials
-            uint32_t len=0;
-            uint8_t *data=NULL;
-            servers srvs_;
-            srvs_.read_messagelist(m_utxs.amsid,data,len); // path=m_utxs.amsid
-            boost::asio::write(m_socket,boost::asio::buffer(data,4+len));
-            free(data);
-            return;
-        }
+//        if(*m_buf==TXSTYPE_MGS) {
+//            //TODO, check access credentials
+//            uint32_t len=0;
+//            uint8_t *data=NULL;
+//            servers srvs_;
+//            srvs_.read_messagelist(m_utxs.amsid,data,len); // path=m_utxs.amsid
+//            boost::asio::write(m_socket,boost::asio::buffer(data,4+len));
+//            free(data);
+//            return;
+//        }
 
         if(*m_buf==TXSTYPE_MSG) {
             //TODO, check access credentials

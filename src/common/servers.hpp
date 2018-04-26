@@ -506,26 +506,28 @@ class servers { // also a block
         //else{
         //	ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
     }
-    void read_messagelist(uint32_t path,uint8_t* &data,uint32_t &len) { // read file for user
-        char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",path>>20,path&0xFFFFF);
-        int fd=open(filename,O_RDONLY);
-        if(fd>=0) {
-            uint32_t msgnum=0;
-            read(fd,&msgnum,4);
-            //struct stat sb;
-            //fstat(fd,&sb);
-            //len=sb.st_size;
-            len=32+msgnum*(2+4+32);
-            data=(uint8_t*)malloc(4+len);
-            memcpy(data,&len,4);
-            read(fd,data+4,len);
-            close(fd);
-        } else {
-            len=0;
-            data=(uint8_t*)malloc(4);
-        }
-    }
+
+    //! replaced by Parser::MsglistParser
+//    void read_messagelist(uint32_t path,uint8_t* &data,uint32_t &len) { // read file for user
+//        char filename[64];
+//        sprintf(filename,"blk/%03X/%05X/msglist.dat",path>>20,path&0xFFFFF);
+//        int fd=open(filename,O_RDONLY);
+//        if(fd>=0) {
+//            uint32_t msgnum=0;
+//            read(fd,&msgnum,4);
+//            //struct stat sb;
+//            //fstat(fd,&sb);
+//            //len=sb.st_size;
+//            len=32+msgnum*(2+4+32);
+//            data=(uint8_t*)malloc(4+len);
+//            memcpy(data,&len,4);
+//            read(fd,data+4,len);
+//            close(fd);
+//        } else {
+//            len=0;
+//            data=(uint8_t*)malloc(4);
+//        }
+//    }
     //TODO, *msg* should go to message.hpp
     /*bool msg_check(std::map<uint64_t,message_ptr>& map)
     {	hash_t hash;

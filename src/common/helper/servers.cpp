@@ -6,6 +6,7 @@
 #include "default.hpp"
 #include "hash.hpp"
 #include "command/pods.h"
+#include "parser/msglistparser.h"
 
 namespace Helper {
 
@@ -111,8 +112,8 @@ unsigned int Servers::getNodesCount() {
     return m_nodes.size();
 }
 
-bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes) {
-    if (!mnum) {
+bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t msg_number,std::vector<hash_s>& hashes) {
+    if (!msg_number) {
         return false;
     }
 
@@ -120,56 +121,50 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t mnum,std::vec
         return false;
     }
 
-    char filename[64];
-    sprintf(filename,"blk/%03X/%05X/msglist.dat", m_header.ttime>>20,m_header.ttime&0xFFFFF);
-    std::ifstream file(filename, std::ifstream::in | std::ifstream::binary);
-    if (!file.is_open()) {
+    Parser::MsglistParser parser(m_header.ttime);
+    if (!parser.load() || parser.isEmpty()) {
 //        DLOG("ERROR %s not found\n",filename);
         return false;
     }
 
-    if ((--mnum)%2) {
-        HashSingleVariant hash;
-        file.seekg(sizeof(MessageListHeader) + (mnum * sizeof(MessageRecord)) - sizeof(MessageRecord::hash));
-        file.read((char*)&hash, sizeof(hash));
-        if(hash.svid!=svid || hash.msid!=msid) {
-//            DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,  tmp.svid,tmp.msid);
-            file.close();
-            return false;
-        }
-        hashes.push_back(hash.ha);
+    uint16_t msg_svid = 0;
+    uint32_t msg_msid = 0;
+    hash_s msg_hash;
+    Parser::MsgIterator it = parser.begin() + (msg_number - 1);
+    msg_svid = it->node_id;
+    msg_msid = it->node_msid;
+
+    if (msg_svid != svid || msg_msid != msid) {
+//        DLOG("ERROR bad index %d %04X:%08X <> %04X:%08X\n", mnum, svid,msid, msg_svid, msg_msid);
+        return false;
+    }
+
+    if (msg_number%2 == 0) {
+        --it;
+        memcpy(&msg_hash, it->hash, sizeof(msg_hash));
+        hashes.push_back(msg_hash);
     } else {
-        HashDoubleVariant hash;
-        file.seekg(sizeof(MessageListHeader) + (mnum * sizeof(MessageRecord)));
-        file.read((char*)&hash, sizeof(hash));
-        if(hash.svid1!=svid || hash.msid1!=msid) {
-//            DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid, tmp.svid1,tmp.msid1);
-            file.close();
-            return false;
-        }
-        if(mnum<m_header.messageCount-1) {
-//            DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,m_header.messageCount);
-            hashes.push_back(hash.ha2);
-        } else {
-//            DLOG("HASHTREE start %d [max:%d]\n",mnum,m_header.messageCount);
+        ++it;
+        if (it != parser.end()) {
+            memcpy(&msg_hash, it->hash, sizeof(msg_hash));
+            hashes.push_back(msg_hash);
         }
     }
 
-    uint32_t htot = 0;
-    file.seekg(4+32+(2+4+32)* m_header.messageCount);
-    file.read((char*)&htot, sizeof(htot));
-    std::vector<uint32_t> add;
+    --msg_number;
+    uint32_t htot = parser.getHashesTotalSize();
     hashtree tree;
-    tree.hashpath(mnum/2, (m_header.messageCount+1)/2, add);
-    for(auto n : add) {
+    if (htot > 0) {
+        std::vector<uint32_t> add;
+        tree.hashpath((msg_number)/2, (m_header.messageCount+1)/2, add);
+        Parser::HashIterator hIt = parser.h_begin();
+        for (auto n : add) {
 //        DLOG("HASHTREE add %d\n",n);
-        assert(n<htot);
-        file.seekg(4+32+(2+4+32)*m_header.messageCount+4+32*n);
-        hash_s phash;
-        file.read((char*)&phash.hash, 32);
-        hashes.push_back(phash);
+            assert(n<htot);
+            hashes.push_back(*hIt);
+            ++hIt;
+        }
     }
-    file.close();
 
     //DEBUG confirm hash
     hash_t nhash;

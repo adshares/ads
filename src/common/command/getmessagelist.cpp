@@ -5,6 +5,7 @@
 #include "helper/json.h"
 #include "helper/hash.h"
 #include "hash.hpp"
+#include "parser/msglistparser.h"
 
 GetMessageList::GetMessageList()
     : m_data{} {
@@ -133,23 +134,14 @@ uint32_t GetMessageList::getBlockTime() {
 }
 
 ErrorCodes::Code GetMessageList::prepareResponse() {
-    uint32_t path = m_data.info.block;
-    char filename[64];
-    uint32_t num_of_msg=0;
-
-    sprintf(filename,"blk/%03X/%05X/msglist.dat", path>>20, path&0xFFFFF);
-    std::ifstream file(filename, std::ifstream::binary | std::ifstream::in);
-    if (!file.is_open()) {
+    Parser::MsglistParser msglistParser(m_data.info.block);
+    if (!msglistParser.load()) {
         return ErrorCodes::Code::eNoMessageListFile;
     } else {
-        file.read((char*)&num_of_msg, sizeof(num_of_msg));
-        file.read((char*)&m_responseTxnHash, sizeof(m_responseTxnHash));
-        for (unsigned int i=0; i<num_of_msg; ++i) {
-            MessageRecord record;
-            file.read((char*)&record, sizeof(record));
-            m_responseMessageList.push_back(record);
-        }
-        file.close();
+        std::copy(msglistParser.getHeaderHash(),
+                  msglistParser.getHeaderHash()+sizeof(m_responseTxnHash),
+                  m_responseTxnHash);
+        m_responseMessageList = msglistParser.getMessageList();
     }
     return ErrorCodes::Code::eNone;
 }

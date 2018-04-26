@@ -73,7 +73,7 @@ public:
 
     void setNow(uint32_t time);
 
-    bool getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes);
+    bool getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t msg_number,std::vector<hash_s>& hashes);
 
 private:
     ServersHeader m_header;
