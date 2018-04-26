@@ -3,6 +3,8 @@
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
 #include "helper/txsname.h"
+#include <fcntl.h>
+#include <sys/stat.h>
 
 GetLog::GetLog()
     : m_data{} {
