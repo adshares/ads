@@ -1189,7 +1189,7 @@ class servers { // also a block
         //	return;}
         //fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
         //fclose(fp);
-        blockdir(path);
+        //blockdir(path);
         if(ok) {
             //vok++;
             sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
@@ -1236,7 +1236,9 @@ class servers { // also a block
             }
         }
     }
-    bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok) { // does not use any local data
+    bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok)
+    {
+        // does not use any local data
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);
 
@@ -1244,7 +1246,7 @@ class servers { // also a block
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
 
-        DLOG("SIGNATURE,  get signatures in %s\n",filename);
+        DLOG("SIGNATURE, get signatures in %s\n",filename);
 
         fd=open(filename,O_RDONLY);
         if(fd>=0) {
@@ -1266,17 +1268,15 @@ class servers { // also a block
             return false;
         }
     }
-    void read_signatures(uint32_t path,uint8_t* &data,uint32_t &nok,uint32_t &nno) {
-
-        extern boost::mutex siglock;
-        boost::lock_guard<boost::mutex> lock(siglock);
-
-        DLOG("SIGNATURE,  read signatures \n");
-
+    void read_signatures(uint32_t path,uint8_t* &data,uint32_t &nok,uint32_t &nno)
+    {
         if(!get_signatures(path,data,nok)) {
             nno=0;
             return;
         }
+
+        extern boost::mutex siglock;
+        boost::lock_guard<boost::mutex> lock(siglock);
 
 
         int fd;
@@ -1299,17 +1299,19 @@ class servers { // also a block
         }
         memcpy(data+8+nok*sizeof(svsi_t),&nno,4);
     }
-    bool get_signatures(uint32_t path,uint8_t* data,int nok,int nno) { // does not use any local data
+    bool get_signatures(uint32_t path,uint8_t* data,int nok,int nno)
+    {
+        // does not use any local data
 
         extern boost::mutex siglock;
-        boost::lock_guard<boost::mutex> lock(siglock);
+        boost::lock_guard<boost::mutex> lock(siglock);        
 
         int fd;
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
         fd=open(filename,O_RDONLY);
-        DLOG("SIGNATURE,  get signatures in %s\n",filename);
 
+        DLOG("SIGNATURE, Get signatures from %s\n",filename);
 
         if(fd>=0) {
             read(fd,data,sizeof(svsi_t)*nok);
@@ -1337,6 +1339,7 @@ class servers { // also a block
     void put_signatures(header_t& head,svsi_t* svsi) { //FIXME, save in a file named based on nowhash ".../sig_%.64s.dat"
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);
+
         int fd;
         char filename[64];
         sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
@@ -1549,7 +1552,7 @@ class servers { // also a block
     }
 
     void blockdir() { //not only dir ... should be called blockstart
-        DLOG("BLOCKDIR NOW %04X", now);
+        DLOG("BLOCKDIR NOW %04X\n", now);
         char pathname[64];
         sprintf(pathname,"blk/%03X",now>>20);
         mkdir(pathname,0755);

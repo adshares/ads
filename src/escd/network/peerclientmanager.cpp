@@ -372,13 +372,12 @@ void PeerConnectManager::timerNextTick(int timeout)
 void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 {    
     if(error ==  boost::asio::error::operation_aborted){
-        DLOG("ERROR connectPeers\n");
-        assert(0);
+        DLOG("ERROR connectPeers\n");        
         return;
     }
 
     int neededPeers = MAX_PEERS - m_peers.size();
-    neededPeers = neededPeers > MAX_INIT_CONN ? MAX_INIT_CONN : neededPeers ;
+    neededPeers = neededPeers > MAX_INIT_CONN ? MAX_INIT_CONN : neededPeers;
 
     //@TODO: ADD check if we cannot access any server.
     //In this case SHUTDOWN_AND_RETURN() should be called

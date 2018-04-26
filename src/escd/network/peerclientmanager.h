@@ -132,7 +132,7 @@ private:
     uint8_t                                         m_timeout{DEF_CONN_ATTEMPT_PERIOD};
     boost::thread_attributes                        m_threadAttributes;
     std::unique_ptr<boost::thread>                  m_ioThread;
-    bool                                            m_sourceCounter{0}; ///< counter which helper to randomlly connect to diffrent peer source (dns, config...)
+    unsigned int                                    m_sourceCounter{0}; ///< counter which helper to randomlly connect to diffrent peer source (dns, config...)
 };
 
 #endif // PEERCLIENTMANAGER_HPP

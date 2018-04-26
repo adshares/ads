@@ -762,7 +762,7 @@ NEXTUSER:
         }
         message_map map;
         header.msgl_map((char*)data,map,opts_.svid);
-        DLOG("msgl_process map size %u\n", map.size());
+        DLOG("msgl_process map size %lu\n", map.size());
         if(!header.msgl_put(map,(char*)data)) {
             missing_.unlock();
             DLOG("msgl_process exit 2\n");

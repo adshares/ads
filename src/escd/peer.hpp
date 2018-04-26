@@ -2058,6 +2058,11 @@ NEXTUSER:
             memcpy(read_msg_->data+1,&read_msg_->len,3);
         }
         return(1);
+    }    
+
+    uint32_t    getSvid()
+    {
+        return svid;
     }
 
     friend class PeerConnectManager;
