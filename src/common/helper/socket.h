@@ -9,9 +9,9 @@
 
 namespace Helper {
 
-void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 10);
+void setSocketTimeout(boost::asio::ip::tcp::socket &socket, unsigned int timeout = 60);
 
-void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 10);
+void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, unsigned int timeout = 60);
 
 void setSocketNoDelay(boost::asio::ip::tcp::socket &socket, bool noDelay);
 void setSocketNoDelay(std::unique_ptr<boost::asio::ip::tcp::socket>, bool noDelay);
