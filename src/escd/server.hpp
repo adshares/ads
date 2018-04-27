@@ -4849,8 +4849,7 @@ NEXTBANK:
     boost::thread_group threadpool;
 
     PeerConnectManager m_peerManager; //responsible for managing peers
-    boost::thread* clock_thread;
-    boost::thread* start_thread;
+    boost::thread* clock_thread;    
 
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt
