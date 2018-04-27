@@ -2,6 +2,8 @@
 #include <iostream>
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/hash.h"
+#include "helper/json.h"
 
 ChangeNodeKey::ChangeNodeKey()
     : m_data{} {
@@ -106,9 +108,19 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
     return true;
 }
 
-void ChangeNodeKey::saveResponse(settings& sts)
-{
+void ChangeNodeKey::saveResponse(settings& sts) {
+    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
+    }
+
     sts.msid = m_response.usera.msid;
+    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
 uint32_t ChangeNodeKey::getDestBankId() {
@@ -139,6 +151,24 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         ptree.put("result", "Node key changed");
     } else {
+        if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
+            std::stringstream tx_user_hashin{};
+            Helper::ed25519_key2text(tx_user_hashin, m_response.usera.pkey, SHA256_DIGEST_LENGTH);
+            ptree.put("tx.account_public_key_new", tx_user_hashin.str());
+        }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
+}
+
+void ChangeNodeKey::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::MSGID, m_data.info.msg_id);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::DST_NODE, m_data.info.dst_node);
+    ptree.put(TAG::OLD_PKEY, ed25519_key2text(m_data.info.old_public_key, sizeof(m_data.info.old_public_key)));
+    ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.info.node_new_key, sizeof(m_data.info.node_new_key)));
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }

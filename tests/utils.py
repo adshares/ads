@@ -1,6 +1,7 @@
 import time
+import threading
 
-from . import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd
+from .conftest import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd, manual_init_node_process
 
 
 def update_user_env(client_id, address):
@@ -32,10 +33,13 @@ def create_account(client_id="2", node="0001"):
     address = response['new_account']['address']
 
     time_start = time.time()
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
+    count_users = len(response.get('accounts'))
+
     while True:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
-        if accounts > 1:
+        if accounts > count_users:
             break
         time.sleep(10)
         assert time.time() - time_start < 70
@@ -48,3 +52,47 @@ def create_account(client_id="2", node="0001"):
 def get_user_address(client_id):
     response = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     return response['account']['address']
+
+
+def create_node_without_start():
+    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
+                                    {"run": "get_block"}).get('block', '').get('nodes', ''))
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
+
+    start_time = time.time()
+
+    while True:
+        response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+        if response.get('block'):
+            count = len(response['block']['nodes'])
+            if count > count_blocks:
+                break
+        time.sleep(10)
+        assert time.time() - start_time < 70
+
+    return response
+
+
+def create_node(node_id, client_id, port, offi):
+
+    response = create_node_without_start()
+
+    offset_block = response['block']['id'][:3]
+    id_block = response['block']['id'][3:]
+
+    SECRET = 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6'
+
+    thr = threading.Thread(target=manual_init_node_process, kwargs={'node_id':node_id, 'client_id': client_id,
+                                                                    'key': SECRET, 'port': port, 'offi': offi,
+                                                                    'offset_block': offset_block, 'id_block': id_block})
+    thr.start()
+    thr.join()
+
+
+def get_balance_user(client_id):
+    """
+    Function returns user's balance in str format
+    """
+    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
+    return response_receiver['account']['balance']
+

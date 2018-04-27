@@ -100,8 +100,9 @@ class ChangeNodeKey : public IBlockCommand {
     virtual uint32_t getUserMessageId();
 
     //IJsonSerialize interface
-    virtual std::string  toString(bool pretty)                      override;
-    virtual void         toJson(boost::property_tree::ptree &ptree) override;
+    virtual std::string  toString(bool pretty)                          override;
+    virtual void         toJson(boost::property_tree::ptree &ptree)     override;
+    virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
   private:
     ChangeNodeKeyData   m_data;

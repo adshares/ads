@@ -30,6 +30,7 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_MGS:
     case TXSTYPE_MSG:
     case TXSTYPE_LOG:
+    case TXSTYPE_TXS:
         commonResponse(std::move(command));
         break;
     default:
@@ -83,7 +84,9 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
 }
 
 void ResponseHandler::commonResponse(std::unique_ptr<IBlockCommand> command) {
-    command->saveResponse(m_sts);
+    if (!command->m_responseError) {
+        command->saveResponse(m_sts);
+    }
     command->toJson(m_pt);
     boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
 }
