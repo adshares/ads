@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 2.8)
-project(esc)
 
 cmake_policy(SET CMP0015 NEW)
 
@@ -9,6 +8,18 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -O3 -fPIC ")
 
+if (NOT CMAKE_PROJECT_CONFIG)
+    set(CMAKE_PROJECT_CONFIG "hpx")
+endif (NOT CMAKE_PROJECT_CONFIG)
+set (CONFIG_FILE "default_${CMAKE_PROJECT_CONFIG}.h.in" )
+project(${CMAKE_PROJECT_CONFIG})
+
+if(EXISTS ${CONFIG_FILE} )
+    message(FATAL_ERROR "Configuration file ${CONFIG_FILE} not exists")
+    return()
+endif(EXISTS ${CONFIG_FILE})
+message("PROJECT CONFIG: " ${CMAKE_PROJECT_CONFIG} )
+configure_file(${CONFIG_FILE} ${CMAKE_SOURCE_DIR}/common/default.h)
 
 IF(CMAKE_BUILD_TYPE MATCHES "Debug")
 add_definitions(-DDEBUG)

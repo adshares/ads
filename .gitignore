@@ -6,3 +6,4 @@ __pycache__
 /deployment
 *.user
 /tests/*.sh
+src/common/default.h
