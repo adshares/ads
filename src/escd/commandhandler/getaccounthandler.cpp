@@ -22,27 +22,31 @@ void GetAccountHandler::onExecute() {
     userinfo&   data    = m_command->getDataStruct().info;
     std::vector<boost::asio::const_buffer> response;
 
-    user_t userb;
-    if(data.abank != data.bbank || data.auser != data.buser) {
-        if(!m_offi.get_user(userb, data.bbank, data.buser)) {
-            DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
-            errorCode = ErrorCodes::Code::eGetUserFail;
-        } else {
-            response.push_back(boost::asio::buffer(&userb, sizeof(user_t)));
-        }
-    } else {
-        response.push_back(boost::asio::buffer(&m_usera, sizeof(user_t)));
+    user_t localAccount(m_usera);
+    user_t remoteAccount;
+
+    if(!m_offi.get_user_global(remoteAccount, data.bbank, data.buser)) {
+        DLOG("FAILED to get global user info %08X:%04X\n", data.bbank, data.buser);
+        errorCode = ErrorCodes::Code::eGetGlobalUserFail;
     }
 
-    //TODO Check why two times we are sending data.
-    if(data.bbank) {
-        if(!m_offi.get_user_global(userb, data.bbank, data.buser)) {
-            DLOG("FAILED to get global user info %08X:%04X\n", data.bbank, data.buser);
-            errorCode = ErrorCodes::Code::eGetGlobalUserFail;
-        } else {
-            response.push_back(boost::asio::buffer(&userb, sizeof(user_t)));
+    if(m_offi.svid == data.bbank)
+    {
+        if(data.buser != data.auser)
+        {
+            if(!m_offi.get_user(localAccount, data.bbank, data.buser))
+            {
+                DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
+                errorCode = ErrorCodes::Code::eGetUserFail;
+            }
         }
     }
+    else {
+        localAccount = remoteAccount;
+    }
+
+    response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
+    response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
 
     if (errorCode) {
         response.clear();

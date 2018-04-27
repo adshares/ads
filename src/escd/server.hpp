@@ -3,31 +3,26 @@
 
 #include <iostream>
 #include <fcntl.h>
+#include <algorithm>
 #include "servers.hpp"
+#include "options.hpp"
 #include "candidate.hpp"
 #include "helper/hlog.h"
-
-
+#include "network/peerclientmanager.h"
 
 class office;
 class peer;
-//typedef boost::shared_ptr<peer> peer_ptr;
+
 typedef std::shared_ptr<peer> peer_ptr;
 
 class server {
-  public:
-    //server(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts) :
+  public:    
     server(options& opts) :
         do_sync(1),
         do_fast(opts.fast?2:0),
         ofip(NULL),
-        endpoint_(boost::asio::ip::tcp::v4(),opts.port),	//TH
-        io_service_(),
-        work_(io_service_),
-        acceptor_(io_service_,endpoint_),
         opts_(opts),
-        ioth_(NULL),
-        peers_thread(NULL),
+        m_peerManager(*this, opts_),
         clock_thread(NULL),
         do_validate(0),
         votes_max(0.0),
@@ -45,7 +40,13 @@ class server {
         ELOG("Server down\n");
     }
 
+    void run()
+    {
+        //start_thread = new boost::thread(boost::bind(&server::start, this));
+    }
     void start() {
+        ELOG("SERVER start point\n");
+
         mkdir("usr",0755); // create dir for bank accounts
         mkdir("inx",0755); // create dir for bank message indeces
         mkdir("blk",0755); // create dir for blocks
@@ -209,15 +210,16 @@ class server {
             }
         }
 
-        ioth_ = new boost::thread(boost::bind(&server::iorun, this));
-        peers_thread = new boost::thread(boost::bind(&server::peers, this));
+        //start connecting to peers
+        m_peerManager.startConnect();
 
         if(do_sync) {
             if(do_fast) { //FIXME, do slow sync after fast sync
                 while(do_fast>1) { // fast_sync changes the status, FIXME use future/promis
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
-                    RETURN_ON_SHUTDOWN();
+                    RETURN_ON_SHUTDOWN();                   
                 }
+
                 do_fast=0;
                 load_banks();
                 srvs_.write_start();
@@ -230,45 +232,21 @@ class server {
         recyclemsid(lastpath+BLOCKSEC);
         RETURN_ON_SHUTDOWN();
         writemsid(); // synced to new position
-        clock_thread = new boost::thread(boost::bind(&server::clock, this));
-        start_accept();
+        clock_thread = new boost::thread(boost::bind(&server::clock, this));        
+        //start accept connections from peers
+        m_peerManager.startAccept();
     }
 
-    void iorun() {
-        while(1) {
-            try {
-                DLOG("Server.Run starting\n");
-                io_service_.run();
-                DLOG("Server.Run finished\n");
-                return;
-            } //Now we know the server is down.
-            catch (std::exception& e) {
-                ELOG("Server.Run error: %s\n",e.what());
-            }
-        }
-    }
-
-    void stop() {
+    void stop() {        
         do_validate = 0;
-        io_service_.stop();
-
-        if(ioth_!=NULL) {
-            ioth_->join();
-        }
-
-        //busy_msgs_.clear(); // not needed
-        if(peers_thread!=NULL) {
-            peers_thread->interrupt();
-            peers_thread->join();
-        }
+        m_peerManager.stop();
 
         if(clock_thread!=NULL) {
             clock_thread->interrupt();
             clock_thread->join();
         }
 
-        threadpool.join_all();
-        peer_killall();
+        threadpool.join_all();        
         DLOG("Server shutdown completed\n");
     }
 
@@ -460,10 +438,12 @@ NEXTUSER:
     }
 
     void load_banks() {
+        ELOG("LOAD BANKS\n");
+
         //create missing bank messages
         uint16_t end=last_srvs_.nodes.size();
         std::set<uint16_t> ready;
-        peerready(ready); //get list of peers available for data download
+        m_peerManager.getReadyPeers(ready); //get list of peers available for data download
         missing_.lock();
         missing_msgs_.clear();
         for(uint16_t bank=1; bank<end; bank++) {
@@ -485,7 +465,7 @@ NEXTUSER:
                 uint32_t maxwait=last_srvs_.nodes[pm->second->svid].users*sizeof(user_t)/1000000; //expect 1Mb connection
                 if(pm->second->cansend(*peer,mynow,maxwait)) {
                     DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
-                    deliver(pm->second,*peer); //LOCK: pio_
+                    m_peerManager.deliver(pm->second,*peer); //LOCK: pio_
                     DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
                     break;
                 }
@@ -498,7 +478,7 @@ NEXTUSER:
                     uint32_t maxwait=last_srvs_.nodes[pm->second->svid].users*sizeof(user_t)/1000000; //expect 1Mb connection
                     if(pm->second->cansend(*peer,mynow,maxwait)) { // wait dependend on message size !!!
                         DLOG("REQUESTING BANK %04X from %04X\n",pm->second->svid,*peer);
-                        deliver(pm->second,*peer); //LOCK: pio_
+                        m_peerManager.deliver(pm->second,*peer); //LOCK: pio_
                         DLOG("REQUESTING BANK %04X from %04X sent\n",pm->second->svid,*peer);
                         break;
                     }
@@ -509,7 +489,7 @@ NEXTUSER:
             //TODO sleep much shorter !!!
             boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
             RETURN_ON_SHUTDOWN();
-            peerready(ready); //get list of peers available for data download
+            m_peerManager.getReadyPeers(ready); //get list of peers available for data download
             missing_.lock();
         }
         missing_.unlock();
@@ -545,14 +525,16 @@ NEXTUSER:
         now-=now%BLOCKSEC;
         do_validate=1;
         RETURN_ON_SHUTDOWN();
+        DLOG("LOAD CHAIN\n");
         for(int v=0; v<VALIDATORS; v++) {
             threadpool.create_thread(boost::bind(&server::validator, this));
         }
 //FIXME, must start with a matching nowhash and load serv_
         if(srvs_.now<now) {
             uint32_t n=headers.size();
-            for(; !n;) {
-                get_more_headers(srvs_.now); // try getting more headers
+            for(; !n;) {                
+                //boost::this_thread::sleep(boost::posix_time::seconds(1));
+                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers                
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -579,11 +561,12 @@ NEXTUSER:
                     while(get_msglist) { // consider using future/promise
                         uint32_t nnow=time(NULL);
                         if(put_msg->got<nnow-MAX_MSGWAIT) {
-                            fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
+                            m_peerManager.fillknown(put_msg); // do this again in case we have a new peer, FIXME, let the peer do this
                             uint16_t svid=put_msg->request();
                             if(svid) {
-                                int ok=deliver(put_msg,svid);
-                                ELOG("REQUESTING MSL from %04X (%d)\n",svid,ok);
+                                m_peerManager.deliver(put_msg,svid);
+                                ELOG("REQUESTING MSL from %04X \n",svid);
+                                DLOG("REQUESTING MSL from %04X \n",svid);
                             }
                         }
                         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
@@ -599,7 +582,7 @@ NEXTUSER:
                 message_ptr put_msg(new message());
                 put_msg->data[0]=MSGTYPE_PAT;
                 memcpy(put_msg->data+1,&srvs_.now,4);
-                deliver(put_msg);
+                m_peerManager.deliverToAll(put_msg);
                 //request missing messages from peers
                 txs_.lock();
                 txs_msgs_.clear();
@@ -648,12 +631,12 @@ NEXTUSER:
                              jt->second->svid,jt->second->msid,jt->second->path);
                         jt->second->len=message::header_length;
                     }
-                    fillknown(jt->second);
+                    m_peerManager.fillknown(jt->second);
                     uint16_t svid=jt->second->request(); //FIXME, maybe request only if this is the next needed message, need to have serv_ ... ready for this check :-/
                     if(svid) {
                         if(srvs_.nodes[jt->second->svid].msid==jt->second->msid-1) { // do not request if previous message not processed
                             DLOG("REQUESTING TXS %04X:%08X from %04X\n",jt->second->svid,jt->second->msid,svid);
-                            deliver(jt->second,svid);
+                            m_peerManager.deliver(jt->second,svid);
                         } else {
                             DLOG("POSTPONING TXS %04X:%08X\n",jt->second->svid,jt->second->msid);
                         }
@@ -729,7 +712,7 @@ NEXTUSER:
                     ELOG("WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
                          (int)headers.size(),srvs_.now,now);
                     //FIXME, insecure !!! better to ask more peers / wait for block with enough votes
-                    get_more_headers(block->now+BLOCKSEC);
+                    m_peerManager.getMoreHeaders(block->now+BLOCKSEC);
                     boost::this_thread::sleep(boost::posix_time::seconds(2));
                     RETURN_ON_SHUTDOWN();
                     headers_.lock();
@@ -753,20 +736,20 @@ NEXTUSER:
         message_ptr put_msg(new message());
         put_msg->data[0]=MSGTYPE_SOK;
         memcpy(put_msg->data+1,&srvs_.now,4);
-        deliver(put_msg);
+        m_peerManager.deliverToAll(put_msg);
     }
 
     //void put_msglist(uint32_t now,message_map& map)
     void msgl_process(servers& header,uint8_t* data) {
         missing_.lock(); // consider changing this to missing_lock
         if(get_msglist!=header.now) {
-            missing_.unlock();
+            missing_.unlock();            
             return;
         }
         message_map map;
-        header.msgl_map((char*)data,map,opts_.svid);
+        header.msgl_map((char*)data,map,opts_.svid);       
         if(!header.msgl_put(map,(char*)data)) {
-            missing_.unlock();
+            missing_.unlock();            
             return;
         }
         missing_msgs_.swap(map);
@@ -1583,7 +1566,7 @@ NEXTUSER:
         dbls_.lock();
         dbl_srvs_.insert(msg->svid);
         dbls_.unlock();
-        update(msg);
+        m_peerManager.updateAll(msg);
     }
 
     void create_double_spend_proof(message_ptr msg1,message_ptr msg2) {
@@ -1745,7 +1728,7 @@ NEXTUSER:
     }
 
     int message_insert(message_ptr msg) {
-        if(msg->hash.dat[1]==MSGTYPE_MSG) {
+        if(msg->hash.dat[1]==MSGTYPE_MSG) {            
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -2074,7 +2057,7 @@ NEXTUSER:
         DLOG("CANDIDATE score:%016lX (added:%016lX)\n",it->second->score,electors[msg->svid]);
         electors[msg->svid]=0;
         cand_.unlock();
-        update(msg); // update others
+        m_peerManager.updateAll(msg); // update others
     }
 
     void blk_validate(message_ptr msg) { // WARNING, this is executed by peer io_service
@@ -2101,7 +2084,7 @@ NEXTUSER:
         last_srvs_.save_signature(last_srvs_.now,msg->svid,msg->data+4,!no);
         //blk_.unlock();
         DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
-        update(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
+        m_peerManager.updateAll(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
         if(last_srvs_.vok>last_srvs_.vtot/2 && opts_.svid) {
             uint32_t now=time(NULL);
             if(now<srvs_.now+BLOCKSEC) {
@@ -2125,7 +2108,7 @@ NEXTUSER:
         }
     }
 
-    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()
+    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()        
         missing_.lock();
         for(auto mi=missing_msgs_.begin(); mi!=missing_msgs_.end(); mi++) {
             //mi->second->sent_erase(svid);
@@ -2181,7 +2164,7 @@ NEXTUSER:
                         //assert((*re)->data!=NULL);
                         DLOG("HASH request:%016lX (%04X) %d:%d\n",(*re)->hash.num,svid,(*re)->svid,(*re)->msid);
                         DLOG("REQUESTING MESSAGE %04X:%08X from %04X\n",(*re)->svid,(*re)->msid,svid);
-                        deliver((*re),svid);
+                        m_peerManager.deliver((*re),svid);
                     }
                 }
                 //checking waiting messages
@@ -2327,7 +2310,7 @@ NEXTUSER:
                     RETURN_ON_SHUTDOWN();
 #endif
                     update_candidates(busy_msg);
-                    update(busy_msg);
+                    m_peerManager.updateAll(busy_msg);
                 } else {
                     ldc_.lock();
                     ldc_msgs_.erase(busy_msg->hash.num);
@@ -3229,7 +3212,8 @@ NEXTUSER:
                         }
                     }
                 }
-            }
+            }            
+
             usera->msid++;
             usera->time=utxs.ttime;
             usera->node=lnode;
@@ -3261,6 +3245,7 @@ NEXTUSER:
             p+=utxs.size;
         }
         if(check_sig) {
+            DLOG("checking signatures for %04X:%08X signum%d\n",msg->svid,msg->msid, sign_num);
             //std::vector<int> sign_valid(tpos_max);
             //std::vector<size_t> sign_mlen(tpos_max);
             //std::vector<size_t> sign_mlen2(tpos_max);
@@ -4333,7 +4318,7 @@ NEXTBANK:
             DLOG("NICE sending double spend %04X:%08X to %04X [%016lX]\n",opts_.svid,msid,pi,msg->hash.num);
             msg->status|=MSGSTAT_BAD;
             txs_insert(msg);
-            update(msg,pi);
+            m_peerManager.update(msg,pi);
         }
         writemsid();
         return(msid_);
@@ -4399,7 +4384,7 @@ NEXTBANK:
             exit(-1);
         }
         ELOG("SENDING candidate\n");
-        update(msg); // update peers even if we are not an elector
+        m_peerManager.updateAll(msg); // update peers even if we are not an elector
     }
 
     candidate_ptr save_candidate(uint32_t blk,const hash_s& h,std::map<uint64_t,hash_s>& add,std::set<uint64_t>& del,uint16_t peer) {
@@ -4518,7 +4503,7 @@ NEXTBANK:
         }
         DLOG("SENDING block (update)\n");
         //deliver(msg);
-        update(msg); //send, even if I am not VIP
+        m_peerManager.updateAll(msg); //send, even if I am not VIP
         //sign for other nodes
         for(auto it=nkeys.begin(); it!=nkeys.end(); it++) {
             uint16_t node=it->first;
@@ -4532,116 +4517,14 @@ NEXTBANK:
                 continue;
             }
             DLOG("SENDING block signed by %d\n",node);
-            update(msg);
+            m_peerManager.updateAll(msg);
         }
 // save signature in signature lists
 //FIXME, save only if I am important
     }
 
-    void peers() { // connect new peers
-        std::set<uint16_t> list;
-        peers_known(list);
-        for(std::string addr : opts_.peer) {
-            uint16_t peer=opts_.get_svid(addr);
-            if(peer && list.find(peer)==list.end()) {
-                connect(addr);
-                boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
-                list.clear();
-                peers_known(list);
-                RETURN_ON_SHUTDOWN();
-            }
-        }
-        if(!opts_.init) {
-            try {
-                if(!list.size() && last_srvs_.nodes.size()<=2 && opts_.dnsa.size()) { // load peers from DNS if no servers
-                    boost::asio::ip::tcp::resolver resolver(io_service_);
-                    boost::asio::ip::tcp::resolver::query query(opts_.dnsa.c_str(),SERVER_PORT);
-                    boost::asio::ip::tcp::resolver::iterator iterator = resolver.resolve(query);
-                    boost::asio::ip::tcp::resolver::iterator end;
-                    std::map<uint32_t,boost::asio::ip::tcp::resolver::iterator> endpoints;
-                    while(iterator != end) {
-                        srandom(time(NULL));
-                        uint32_t r=random()%0xFFFFFFFF;
-                        endpoints[r]=iterator++;
-                    }
-                    for(auto ep=endpoints.begin(); ep!=endpoints.end(); ep++) {
-                        DLOG("TRY CONNECT to dns peer (%s:%d)\n",ep->second->endpoint().address().to_string().c_str(),
-                             ep->second->endpoint().port());
-                        connect(ep->second);
-                        boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait before connecting to more peers
-                        RETURN_ON_SHUTDOWN();
-                        peers_known(list);
-#ifdef DEBUG
-                        if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
-                            break;
-                        }
-#else
-                        if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
-                            break;
-                        }
-#endif
-                        list.clear();
-                    }
-                }
-            } catch (std::exception& e) {
-                std::cerr << "DNS Connect Exception: " << e.what() << "\n";
-            }
-            boost::this_thread::sleep(boost::posix_time::seconds(2));
-            if(last_srvs_.nodes.size()<=2) {
-                ELOG("FAILED to connect to any peers, fatal\n");
-                SHUTDOWN_AND_RETURN();
-            }
-        }
-        for(;; boost::this_thread::sleep(boost::posix_time::seconds(panic?1:5))) {
-            RETURN_ON_SHUTDOWN();
-            peer_clean(); //cleans all peers with killme==true
-            //uint32_t now=time(NULL)+5; // do not connect if close to block creation time
-            //now-=now%BLOCKSEC;
-            list.clear();
-            peers_known(list);
-            if(panic) {
-                if(list.size()>=2*MIN_PEERS || list.size()>(srvs_.nodes.size()-2)) {
-                    continue;
-                }
-            }
-#ifdef DEBUG
-            else {
-                if(list.size()>=2 || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
-                    continue;
-                }
-            }
-#else
-            else {
-                if(list.size()>=MIN_PEERS || list.size()>(srvs_.nodes.size()-2)/2 /*|| srvs_.now<now*/) {
-                    continue;
-                }
-            }
-#endif
-            for(std::string addr : opts_.peer) {
-                uint16_t peer=opts_.get_svid(addr);
-                if(peer && list.find(peer)==list.end()) {
-                    list.insert(peer);
-                    DLOG("TRY CONNECT to %04X (%s)\n",peer,addr.c_str());
-                    connect(addr);
-                    boost::this_thread::sleep(boost::posix_time::seconds(1)); //wait some time before connecting to more peers
-                    RETURN_ON_SHUTDOWN();
-                }
-            }
-            int16_t peer=(((uint64_t)random())%srvs_.nodes.size())&0xFFFF;
-            if(!peer || peer==opts_.svid || !srvs_.nodes[peer].ipv4 || !srvs_.nodes[peer].port) {
-                //DLOG("IGNORE CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
-                continue;
-            }
-            if(list.find(peer)!=list.end()) {
-                //DLOG("ALREADY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
-                continue;
-            }
-            DLOG("TRY CONNECT to %04X (%08X:%08X)\n",peer,srvs_.nodes[peer].ipv4,srvs_.nodes[peer].port);
-            connect(peer);
-        }
-    }
-
     void clock() {
+        DLOG("CLOCK, start clock thread\n");
         //while(ofip==NULL){
         //  boost::this_thread::sleep(boost::posix_time::seconds(1));}
         //start office
@@ -4659,7 +4542,7 @@ NEXTBANK:
         //finish recycle submitted office messages
         while(msid_>srvs_.nodes[opts_.svid].msid) {
 //FIXME, hangs sometimes !!!
-            ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+            DLOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
             boost::this_thread::sleep(boost::posix_time::seconds(1));
             RETURN_ON_SHUTDOWN();
         }
@@ -4667,17 +4550,17 @@ NEXTBANK:
         std::string line;
         if(ofip_get_msg(msid_+1,line)) {
             while(msid_>srvs_.nodes[opts_.svid].msid) {
-                ELOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+                DLOG("DEBUG, waiting to process local messages (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
             }
-            ELOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
+            DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
             if(!write_message(line)) {
-                ELOG("DEBUG, failed to add office message (%08X), fatal\n",msid_+1);
+                ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
             while(msid_>srvs_.nodes[opts_.svid].msid) {
-                ELOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
+                DLOG("DEBUG, waiting to process office message (%08X>%08X)\n",msid_,srvs_.nodes[opts_.svid].msid);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
             }
@@ -4693,19 +4576,22 @@ NEXTBANK:
         hash_s cand;
         while(1) {
             uint32_t now=time(NULL);
-            const char* plist=peers_list();
+            //const char* plist=peers_list();
+            const char* plist = m_peerManager.getActualPeerList().c_str();
+            int peerCount = m_peerManager.getPeersCount(true);
+            int allpeerCount = m_peerManager.getPeersCount(false);
             if(missing_msgs_.size()) {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                     (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+                     (int)wait_msgs_.size(),peerCount,allpeerCount, srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
                      (int)missing_msgs_.size(),missing_msgs_.begin()->first);
             } else {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                     (int)wait_msgs_.size(),(int)peers_.size(),srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
-            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='
+            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='                
                 panic=true;
                 if(!ofip_isreadonly()) {
                     ELOG("LATE SIGNATURES !!!, set office readonly\n");
@@ -4761,7 +4647,7 @@ NEXTBANK:
                     hash[2*SHA256_DIGEST_LENGTH-1]='?';
                     ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
                     ELOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
-                    deliver(put_msg); // sets BLOCK_MODE for peers
+                    m_peerManager.deliverToAll(put_msg); // sets BLOCK_MODE for peers
                 }
                 prepare_poll(); // sets do_vote, clears candidates and electors
                 do_block=1; //must be before save_candidate
@@ -4869,29 +4755,49 @@ NEXTBANK:
         return(srvs_.now);
     }
 
-    void join(peer_ptr participant);
-    //void leave(peer_ptr participant);
-    void peer_set(std::set<peer_ptr>& peers);
-    void peer_clean();
-    void peer_killall();
-    void disconnect(uint16_t svid);
-    const char* peers_list();
-    void peers_known(std::set<uint16_t>& list);
-    void connected(std::vector<uint16_t>& list);
-    int duplicate(peer_ptr participant);
-    int deliver(message_ptr msg,uint16_t svid);
-    void deliver(message_ptr msg);
-    int update(message_ptr msg,uint16_t svid);
-    void update(message_ptr msg);
-    //void svid_msid_rollback(message_ptr msg);
-    void start_accept();
-    void peer_accept(peer_ptr new_peer,const boost::system::error_code& error);
-    void connect(boost::asio::ip::tcp::resolver::iterator& iterator);
-    void connect(std::string peer_address);
-    void connect(uint16_t svid);
-    void fillknown(message_ptr msg);
-    void peerready(std::set<uint16_t>& ready);
-    void get_more_headers(uint32_t now);
+    servers& getBlockInPorgress()
+    {
+        //TODO probably synchronization needed
+        return srvs_;
+    }
+
+    servers& getLastClosedBlock()
+    {
+        //TODO probably synchronization needed
+        return last_srvs_;
+    }
+
+    uint16_t getRandomNodeId()
+    {
+        uint16_t res = 0;
+        if(srvs_.nodes.size() > 0)
+        {
+            uint64_t rand =random()&0xFFFF;
+
+            res = (rand%getMaxNodeId());            
+        }
+
+        return res;
+    }
+
+    uint16_t getMaxNodeId()
+    {    
+        return srvs_.nodes.size()-1;
+    }
+
+    bool getNode(uint16_t nodeId, node& nodeInfo)
+    {
+        try{            
+            nodeInfo    = srvs_.nodes.at(nodeId);
+            return true;
+        }
+        catch(std::exception& e){
+            ELOG("ERROR: Get Node exception%s", e.what());
+        }
+
+        return false;
+    }
+
     void ofip_gup_push(gup_t& g);
     void ofip_add_remote_deposit(uint32_t user,int64_t weight);
     void ofip_init(uint32_t myusers);
@@ -4936,16 +4842,16 @@ NEXTBANK:
     hash_t skey;
     //enum { max_connections = 4 }; //unused
     //enum { max_recent_msgs = 1024 }; // this is the block chain :->
-    boost::asio::ip::tcp::endpoint endpoint_;
-    boost::asio::io_service io_service_;
-    boost::asio::io_service::work work_;
-    boost::asio::ip::tcp::acceptor acceptor_;
+
     servers srvs_;
     options& opts_;
-    boost::thread* ioth_;
+
     boost::thread_group threadpool;
-    boost::thread* peers_thread;
+
+    PeerConnectManager m_peerManager; //responsible for managing peers
     boost::thread* clock_thread;
+    boost::thread* start_thread;
+
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt
     int do_validate; // keep validation threads running

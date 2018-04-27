@@ -23,8 +23,8 @@ class office {
     //office(boost::asio::io_service& io_service,const boost::asio::ip::tcp::endpoint& endpoint,options& opts,server& srv) :
     office(options& opts,server& srv) :
         readonly(true),
-        run(false),
-        endpoint_(boost::asio::ip::tcp::v4(),opts.offi),
+        run(false),        
+        endpoint_(boost::asio::ip::address::from_string(opts.addr), opts.offi),	//TH
         io_service_(),
         work_(io_service_),
         acceptor_(io_service_,endpoint_),
@@ -382,6 +382,8 @@ class office {
         //if(run){
         //  get_msg(srv_.msid_+1);
         //  start_accept();}
+        DLOG("CLOCK START %d\n", run);
+
         start_accept();
         while(run) {
             uint32_t now=time(NULL);

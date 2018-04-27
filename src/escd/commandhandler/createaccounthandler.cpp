@@ -47,8 +47,8 @@ void CreateAccountHandler::onExecute() {
         m_usera.msid++;
         m_usera.time=m_command->getTime();
         m_usera.lpath=lpath;
-        m_usera.node = 0;
-        m_usera.user = newUser;
+        //m_usera.node = 0;
+
 
         Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
@@ -79,6 +79,8 @@ void CreateAccountHandler::onExecute() {
             }
         }
     }
+
+    m_usera.user = newUser;
 
     try {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));

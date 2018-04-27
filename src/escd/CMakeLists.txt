@@ -15,6 +15,7 @@ set(HEADERSD
 include_directories("../../external")
 
 add_subdirectory(commandhandler)
+add_subdirectory(network)
 
 add_executable(escd ${SOURCED} ${HEADERSD})
 target_link_libraries(escd LINK_PUBLIC common)

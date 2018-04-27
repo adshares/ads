@@ -7,7 +7,8 @@ from . import INIT_CLIENT_ID, INIT_CLIENT_ADDRESS
 from .utils import update_user_env, get_balance_user
 
 
-NODES = []
+USERS = []
+
 
 loop = asyncio.get_event_loop()
 
@@ -20,14 +21,23 @@ async def create_user(id_user, id_node):
     update_user_env(client_id=id_user, address=response['new_account']['address'])
 
 
-async def send_money_async(addresses, amount=0.1):
-    print(addresses)
-    users = addresses
-    address_sender = random.shuffle(users)[0]
-    users.remove(address_sender)
-    address_receiver = random.shuffle(users)
-    print("SEND MONEY TO {} FROM {}".format(address_receiver[0], address_sender[0]))
+async def send_money_async(amount=10):
+    print("=======================================================================")
+    if not USERS:
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
+        print(response)
+        return
+    random.shuffle(USERS)
+    address_sender = USERS[-1]
+    USERS.remove(address_sender)
+    address_receiver = USERS[0]
+    USERS.remove(address_receiver)
+    print("SENDING MONEY FROM {} TO {}".format(address_sender[1], address_receiver[1]))
     start_balance_receiver = get_balance_user(address_receiver[0])
+    await asyncio.sleep(1)
+    start_balance_sender = get_balance_user(address_sender[0])
+    print("STAR BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], start_balance_sender,
+                                                                 address_receiver[1], start_balance_receiver))
 
     message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
 
@@ -35,6 +45,16 @@ async def send_money_async(addresses, amount=0.1):
                                              'address': address_receiver[1],
                                              'message': message,
                                              'amount': amount})
+
+    print("USER {} SEND {} TO {}".format(address_sender[1], amount, address_receiver[1]))
+    assert float(response['tx']['deduct']) == float(amount)
+
+    finish_balance_receiver = get_balance_user(address_receiver[0])
+    await asyncio.sleep(1)
+    finish_balance_sender = get_balance_user(address_sender[0])
+
+    print("FINISH BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], finish_balance_sender,
+                                                                 address_receiver[1], finish_balance_receiver))
 
     await asyncio.sleep(1)
 
@@ -70,7 +90,7 @@ def create_users(count=10):
     users = [create_user(i, node) for i in range(2, count+2)]
     loop.run_until_complete(asyncio.wait(users))
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': node})['accounts']
-    address_list = [(client['id'], client['address']) for client in response]
+    address_list = [(client['id'], client['address']) for client in response if client['id'] != '0']
     return address_list
 
 
@@ -93,7 +113,6 @@ async def create_node(id_node):
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": NEW_PKEY, "node": id_node})
 
-
 def create_nodes(count=2):
     nodes = [create_node(i) for i in range(2, count+2)]
     loop.run_until_complete(asyncio.wait(nodes))
@@ -104,7 +123,6 @@ def create_nodes(count=2):
         if node_id != "0000":
             NODES.append(node_id)
 
-
 # def test_create_nodes(init_node_process, count=10):
 #     create_nodes(count)
 #     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
@@ -112,10 +130,20 @@ def create_nodes(count=2):
 #     assert count_created - 1 == count
 
 
-def test_multi_send_one_money(init_node_process, count_transactions=20):
-    users = create_users(10)
-    print(users)
-    tasks = [send_money_async(users) for _ in users]
+def test_multi_send_one_money(init_node_process, count_transactions=4):
+    global USERS
+    USERS = create_users(count_transactions)
+    response = exec_esc_cmd(INIT_CLIENT_ADDRESS, {'run': 'get_accounts'}, with_get_me=True)
+    print("===================================GET ACCOUNTS ============================")
+    print(response)
+    for user in USERS:
+        response_get_me = exec_esc_cmd(user[0], {'run': 'get_me'}, with_get_me=False)
+        response_get_account = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': user[1]})
+        print("=============================== GET ME ================================")
+        print(response_get_me)
+        print("===============================GET ACCOUNT ============================")
+        print(response_get_account)
+    tasks = [send_money_async() for _ in range(count_transactions)]
     loop = asyncio.get_event_loop()
     loop.run_until_complete(asyncio.wait(tasks))
     assert True

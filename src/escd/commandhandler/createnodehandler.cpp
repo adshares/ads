@@ -25,8 +25,8 @@ void CreateNodeHandler::onExecute() {
 
     m_usera.msid++;
     m_usera.time  = m_command->getTime();
-    m_usera.node = 0;
-    m_usera.user = 0;
+    //m_usera.node = 0;
+    //m_usera.user = 0;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);

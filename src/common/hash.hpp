@@ -1,6 +1,9 @@
 #ifndef HASH_HPP
 #define HASH_HPP
 
+#include <openssl/sha.h>
+#include "default.hpp"
+
 #define MAXTREE 32
 
 class hashtree {

@@ -4,6 +4,8 @@
 #include <boost/program_options.hpp>
 #include <arpa/inet.h>
 #include <iostream>
+#include <fstream>
+#include "default.hpp"
 
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
@@ -144,6 +146,16 @@ class options {
             return(0);
         }
         return((uint16_t)atoi(p+1));
+    }
+
+    void get_address(const std::string& address, std::string& ip, std::string& port, std::string& svid)
+    { // get port from peer address
+        const size_t posPort    = address.find(':');
+        const size_t posId      = address.find('/');
+
+        ip      = address.substr(0, posPort);
+        port    = address.substr(posPort+1, posId - posPort -1);
+        svid    = address.substr(posId+1);
     }
 
 };
