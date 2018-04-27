@@ -4,6 +4,7 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "parser/msglistparser.h"
 
 /** \brief Get message list command class. */
 class GetMessageList : public IBlockCommand {

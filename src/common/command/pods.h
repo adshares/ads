@@ -4,36 +4,6 @@
 #include "default.hpp"
 #include "helper/txsname.h"
 
-/*******************************************************************************************
- * msglist.dat file structures
- * Header + n * MessageRecord, n <- header.num_of_msg
- */
-
-struct MessageListHeader {
-    MessageListHeader() = default;
-    MessageListHeader(uint32_t numOfMsg, uint8_t messageHash[SHA256_DIGEST_LENGTH])
-        : num_of_msg(numOfMsg) {
-        std::copy(messageHash, messageHash + SHA256_DIGEST_LENGTH, messageHash);
-    }
-
-    uint32_t num_of_msg;                    ///< number of messages
-    uint8_t message_hash[SHA256_DIGEST_LENGTH]; ///< message pack hash
-}__attribute__((packed));
-
-/** \brief Single message record */
-struct MessageRecord {
-    MessageRecord() = default;
-    MessageRecord(uint16_t nodeId, uint32_t nodeMsid, uint8_t msgHash[SHA256_DIGEST_LENGTH])
-        : node_id(nodeId), node_msid(nodeMsid) {
-        std::copy(msgHash, msgHash + SHA256_DIGEST_LENGTH, hash);
-    }
-
-    uint16_t node_id;                   ///< node id
-    uint32_t node_msid;                 ///< node message id
-    uint8_t hash[SHA256_DIGEST_LENGTH]; ///< message hash
-}__attribute__((packed));
-/*****************************************************************************************/
-
 /** \brief Struct data for get_me and get_accout response */
 struct accountresponse {
     user_t      usera;

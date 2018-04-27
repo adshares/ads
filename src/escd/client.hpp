@@ -501,47 +501,47 @@ class client : public boost::enable_shared_from_this<client> {
             return;
         }
 
-        if(*m_buf==TXSTYPE_TXS) {
-            message_ptr msg(new message());
-            msg->hash.dat[1]=MSGTYPE_MSG; //prevent assert in hash_tree_get()
-            msg->svid=m_utxs.bbank;
-            msg->msid=m_utxs.buser;
-            uint16_t tnum=m_utxs.amsid;
-            msg->load_path();
-            if(!msg->path || msg->path>m_offi.last_path()) {
-                DLOG("ERROR, failed to provide txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
-                return;
-            }
-            std::vector<hash_s> hashes;
-            uint32_t mnum;
-            if(!msg->hash_tree_get(tnum,hashes,mnum)) {
-                DLOG("ERROR, failed to read txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
-            }
-            servers srvs_;
-            srvs_.now=msg->path;
-            srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes);
-            txspath_t res;
-            res.path=msg->path;
-            res.msid=msg->msid;
-            res.node=msg->svid;
-            res.tnum=tnum;
-            res.len=msg->len; //will be 0 if message not found
-            res.hnum=(uint16_t)hashes.size();
-            boost::asio::write(m_socket,boost::asio::buffer(&res,sizeof(txspath_t)));
-            if(res.len) {
-                boost::asio::write(m_socket,boost::asio::buffer(msg->data,msg->len));
-            }
-            if(res.hnum) { //expect hashes to be correctly aligned and of size hash_s
-                char data[32*res.hnum];
-                for(int i=0; i<res.hnum; i++) {
-                    memcpy(data+32*i,hashes[i].hash,32);
-                }
-                //boost::asio::write(m_socket,boost::asio::buffer(hashes[0].hash,sizeof(hash_s)*res.hnum));
-                boost::asio::write(m_socket,boost::asio::buffer(data,32*res.hnum));
-            }
-            DLOG("SENT path for %08X/%04X:%08X[%04X] len:%d hashes:%d\n",res.path,res.node,res.msid,res.tnum,res.len,res.hnum);
-            return;
-        }
+//        if(*m_buf==TXSTYPE_TXS) {
+//            message_ptr msg(new message());
+//            msg->hash.dat[1]=MSGTYPE_MSG; //prevent assert in hash_tree_get()
+//            msg->svid=m_utxs.bbank;
+//            msg->msid=m_utxs.buser;
+//            uint16_t tnum=m_utxs.amsid;
+//            msg->load_path();
+//            if(!msg->path || msg->path>m_offi.last_path()) {
+//                DLOG("ERROR, failed to provide txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
+//                return;
+//            }
+//            std::vector<hash_s> hashes;
+//            uint32_t mnum;
+//            if(!msg->hash_tree_get(tnum,hashes,mnum)) {
+//                DLOG("ERROR, failed to read txs %hu from %04X:%08X (path:%08X)\n",tnum,msg->svid,msg->msid,msg->path);
+//            }
+//            servers srvs_;
+//            srvs_.now=msg->path;
+//            srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes);
+//            txspath_t res;
+//            res.path=msg->path;
+//            res.msid=msg->msid;
+//            res.node=msg->svid;
+//            res.tnum=tnum;
+//            res.len=msg->len; //will be 0 if message not found
+//            res.hnum=(uint16_t)hashes.size();
+//            boost::asio::write(m_socket,boost::asio::buffer(&res,sizeof(txspath_t)));
+//            if(res.len) {
+//                boost::asio::write(m_socket,boost::asio::buffer(msg->data,msg->len));
+//            }
+//            if(res.hnum) { //expect hashes to be correctly aligned and of size hash_s
+//                char data[32*res.hnum];
+//                for(int i=0; i<res.hnum; i++) {
+//                    memcpy(data+32*i,hashes[i].hash,32);
+//                }
+//                //boost::asio::write(m_socket,boost::asio::buffer(hashes[0].hash,sizeof(hash_s)*res.hnum));
+//                boost::asio::write(m_socket,boost::asio::buffer(data,32*res.hnum));
+//            }
+//            DLOG("SENT path for %08X/%04X:%08X[%04X] len:%d hashes:%d\n",res.path,res.node,res.msid,res.tnum,res.len,res.hnum);
+//            return;
+//        }
 
         if(*m_buf==TXSTYPE_VIP) {
             int len=0;
@@ -646,16 +646,16 @@ class client : public boost::enable_shared_from_this<client> {
             return;
         }
 
-        if(*m_buf==TXSTYPE_MGS) {
-            //TODO, check access credentials
-            uint32_t len=0;
-            uint8_t *data=NULL;
-            servers srvs_;
-            srvs_.read_messagelist(m_utxs.amsid,data,len); // path=m_utxs.amsid
-            boost::asio::write(m_socket,boost::asio::buffer(data,4+len));
-            free(data);
-            return;
-        }
+//        if(*m_buf==TXSTYPE_MGS) {
+//            //TODO, check access credentials
+//            uint32_t len=0;
+//            uint8_t *data=NULL;
+//            servers srvs_;
+//            srvs_.read_messagelist(m_utxs.amsid,data,len); // path=m_utxs.amsid
+//            boost::asio::write(m_socket,boost::asio::buffer(data,4+len));
+//            free(data);
+//            return;
+//        }
 
         if(*m_buf==TXSTYPE_MSG) {
             //TODO, check access credentials

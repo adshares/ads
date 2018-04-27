@@ -506,26 +506,28 @@ class servers { // also a block
         //else{
         //	ELOG("ERROR, failed to write servers to dir: %08X\n",now);}
     }
-    void read_messagelist(uint32_t path,uint8_t* &data,uint32_t &len) { // read file for user
-        char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",path>>20,path&0xFFFFF);
-        int fd=open(filename,O_RDONLY);
-        if(fd>=0) {
-            uint32_t msgnum=0;
-            read(fd,&msgnum,4);
-            //struct stat sb;
-            //fstat(fd,&sb);
-            //len=sb.st_size;
-            len=32+msgnum*(2+4+32);
-            data=(uint8_t*)malloc(4+len);
-            memcpy(data,&len,4);
-            read(fd,data+4,len);
-            close(fd);
-        } else {
-            len=0;
-            data=(uint8_t*)malloc(4);
-        }
-    }
+
+    //! replaced by Parser::MsglistParser
+//    void read_messagelist(uint32_t path,uint8_t* &data,uint32_t &len) { // read file for user
+//        char filename[64];
+//        sprintf(filename,"blk/%03X/%05X/msglist.dat",path>>20,path&0xFFFFF);
+//        int fd=open(filename,O_RDONLY);
+//        if(fd>=0) {
+//            uint32_t msgnum=0;
+//            read(fd,&msgnum,4);
+//            //struct stat sb;
+//            //fstat(fd,&sb);
+//            //len=sb.st_size;
+//            len=32+msgnum*(2+4+32);
+//            data=(uint8_t*)malloc(4+len);
+//            memcpy(data,&len,4);
+//            read(fd,data+4,len);
+//            close(fd);
+//        } else {
+//            len=0;
+//            data=(uint8_t*)malloc(4);
+//        }
+//    }
     //TODO, *msg* should go to message.hpp
     /*bool msg_check(std::map<uint64_t,message_ptr>& map)
     {	hash_t hash;
@@ -620,112 +622,113 @@ class servers { // also a block
         free(data);
         return(1);
     }
-    bool msgl_hash_tree_get(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes) {
-        if(!mnum) {
-            //refuse to provide hashpath without svid-msid index (mnum)
-            return(false);
-        }
-        if(!msg && !header_get()) {
-            return(false);
-        }
-        char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0) {
-            DLOG("ERROR %s not found\n",filename);
-            return(false);
-        }
-        if((--mnum)%2) {
-#pragma pack(1)
-            struct {
-                hash_s ha;
-                uint16_t svid;
-                uint32_t msid;
-            } tmp;
-#pragma pack()
-            assert(sizeof(tmp)==32+2+4);
-            //uint8_t tmp[32+2+4]; // do not read own hash
-            lseek(fd,4+32+(2+4+32)*(mnum)-32,SEEK_SET);
-            read(fd,(char*)&tmp,32+2+4); // do not read own hash
-            //if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
-            if(tmp.svid!=svid || tmp.msid!=msid) {
-                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-                     tmp.svid,tmp.msid);
-                close(fd);
-                return(false);
-            }
-            DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
-            //hashes.push_back(*(hash_s*)(&tmp[0]));
-            hashes.push_back(tmp.ha);
-        } else {
-#pragma pack(1)
-            struct {
-                uint16_t svid1;
-                uint32_t msid1;
-                hash_s ha1;
-                uint16_t svid2;
-                uint32_t msid2;
-                hash_s ha2;
-            }
-            tmp;
-#pragma pack()
-            assert(sizeof(tmp)==2+4+32+2+4+32);
-            //uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
-            lseek(fd,4+32+(2+4+32)*(mnum),SEEK_SET);
-            read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
-            //if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
-            if(tmp.svid1!=svid || tmp.msid1!=msid) {
-                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-                     tmp.svid1,tmp.msid1);
-                close(fd);
-                return(false);
-            }
-            if(mnum<msg-1) {
-                DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
-                //hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));
-                hashes.push_back(tmp.ha2);
-            } else {
-                DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);
-            }
-        }
-        uint32_t htot;
-        lseek(fd,4+32+(2+4+32)*msg,SEEK_SET);
-        read(fd,&htot,4); //needed only for debugging
-        std::vector<uint32_t>add;
-        hashtree tree;
-        tree.hashpath(mnum/2,(msg+1)/2,add);
-        for(auto n : add) {
-            DLOG("HASHTREE add %d\n",n);
-            assert(n<htot);
-            lseek(fd,4+32+(2+4+32)*msg+4+32*n,SEEK_SET);
-            hash_s phash;
-            read(fd,phash.hash,32);
-            hashes.push_back(phash);
-        }
-        close(fd);
-        //DEBUG only, confirm hash
-        hash_t nhash;
-        tree.hashpathrun(nhash,hashes);
-        if(memcmp(msghash,nhash,32)) {
-            DLOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
-            return(false);
-        }
-        //add header hashes
-        //hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
-        //hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
-        hash_s* hashmin=(hash_s*)minhash;
-        hashes.push_back(*hashmin);
-        //hashes.push_back(*(hash_s*)minhash);
-        //DEBUG only, confirm nowhash
-        //tree.addhash(nhash,viphash); // removed to save on _TXS traffic
-        //tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
-        tree.addhash(nhash,minhash);
-        if(memcmp(nowhash,nhash,32)) {
-            DLOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
-            return(false);
-        }
-        return(true);
-    }
+    //! replaced by Parser::MsglistParser
+//    bool msgl_hash_tree_get(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes) {
+//        if(!mnum) {
+//            //refuse to provide hashpath without svid-msid index (mnum)
+//            return(false);
+//        }
+//        if(!msg && !header_get()) {
+//            return(false);
+//        }
+//        char filename[64];
+//        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
+//        int fd=open(filename,O_RDONLY);
+//        if(fd<0) {
+//            DLOG("ERROR %s not found\n",filename);
+//            return(false);
+//        }
+//        if((--mnum)%2) {
+//#pragma pack(1)
+//            struct {
+//                hash_s ha;
+//                uint16_t svid;
+//                uint32_t msid;
+//            } tmp;
+//#pragma pack()
+//            assert(sizeof(tmp)==32+2+4);
+//            //uint8_t tmp[32+2+4]; // do not read own hash
+//            lseek(fd,4+32+(2+4+32)*(mnum)-32,SEEK_SET);
+//            read(fd,(char*)&tmp,32+2+4); // do not read own hash
+//            //if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
+//            if(tmp.svid!=svid || tmp.msid!=msid) {
+//                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+//                     tmp.svid,tmp.msid);
+//                close(fd);
+//                return(false);
+//            }
+//            DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
+//            //hashes.push_back(*(hash_s*)(&tmp[0]));
+//            hashes.push_back(tmp.ha);
+//        } else {
+//#pragma pack(1)
+//            struct {
+//                uint16_t svid1;
+//                uint32_t msid1;
+//                hash_s ha1;
+//                uint16_t svid2;
+//                uint32_t msid2;
+//                hash_s ha2;
+//            }
+//            tmp;
+//#pragma pack()
+//            assert(sizeof(tmp)==2+4+32+2+4+32);
+//            //uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
+//            lseek(fd,4+32+(2+4+32)*(mnum),SEEK_SET);
+//            read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
+//            //if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
+//            if(tmp.svid1!=svid || tmp.msid1!=msid) {
+//                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+//                     tmp.svid1,tmp.msid1);
+//                close(fd);
+//                return(false);
+//            }
+//            if(mnum<msg-1) {
+//                DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
+//                //hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));
+//                hashes.push_back(tmp.ha2);
+//            } else {
+//                DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);
+//            }
+//        }
+//        uint32_t htot;
+//        lseek(fd,4+32+(2+4+32)*msg,SEEK_SET);
+//        read(fd,&htot,4); //needed only for debugging
+//        std::vector<uint32_t>add;
+//        hashtree tree;
+//        tree.hashpath(mnum/2,(msg+1)/2,add);
+//        for(auto n : add) {
+//            DLOG("HASHTREE add %d\n",n);
+//            assert(n<htot);
+//            lseek(fd,4+32+(2+4+32)*msg+4+32*n,SEEK_SET);
+//            hash_s phash;
+//            read(fd,phash.hash,32);
+//            hashes.push_back(phash);
+//        }
+//        close(fd);
+//        //DEBUG only, confirm hash
+//        hash_t nhash;
+//        tree.hashpathrun(nhash,hashes);
+//        if(memcmp(msghash,nhash,32)) {
+//            DLOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
+//            return(false);
+//        }
+//        //add header hashes
+//        //hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
+//        //hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
+//        hash_s* hashmin=(hash_s*)minhash;
+//        hashes.push_back(*hashmin);
+//        //hashes.push_back(*(hash_s*)minhash);
+//        //DEBUG only, confirm nowhash
+//        //tree.addhash(nhash,viphash); // removed to save on _TXS traffic
+//        //tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
+//        tree.addhash(nhash,minhash);
+//        if(memcmp(nowhash,nhash,32)) {
+//            DLOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
+//            return(false);
+//        }
+//        return(true);
+//    }
 
     void update_vipstatus() {
         uint32_t i;

@@ -17,6 +17,7 @@ include_directories("../../external")
 add_subdirectory(abstraction)
 add_subdirectory(helper)
 add_subdirectory(command)
+add_subdirectory(parser)
 
 
 add_library(common ${SOURCE} ${HEADERS})
