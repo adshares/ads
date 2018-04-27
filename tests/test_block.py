@@ -37,7 +37,8 @@ def test_get_transaction(init_node_process):
     exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks'})
     txid = response['log'][0]['id']
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_transaction', 'txid': txid})
-    assert 'create_account' == response['txn']['type']
+    print(response)
+    assert 'create_account' == response['tx']['type']
 
 
 def test_get_signatures(init_node_process):

@@ -32,7 +32,9 @@ async def send_money_async(amount=10):
     address_receiver = USERS[0]
     USERS.remove(address_receiver)
     print("SENDING MONEY FROM {} TO {}".format(address_sender[1], address_receiver[1]))
+    await asyncio.sleep(1)
     start_balance_receiver = get_balance_user(address_receiver[0])
+    await asyncio.sleep(1)
     start_balance_sender = get_balance_user(address_sender[0])
     print("STAR BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], start_balance_sender,
                                                                  address_receiver[1], start_balance_receiver))
@@ -48,9 +50,10 @@ async def send_money_async(amount=10):
 
     difference_receiver = float(start_balance_receiver) + float(amount)
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(1)
 
     finish_balance_receiver = get_balance_user(address_receiver[0])
+    await asyncio.sleep(1)
     finish_balance_sender = get_balance_user(address_sender[0])
 
     print("FINISH BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], finish_balance_sender,
