@@ -28,7 +28,7 @@ void setSocketTimeout(std::unique_ptr<boost::asio::ip::tcp::socket> &socket, uns
 
 void setSocketNoDelay(boost::asio::ip::tcp::socket &socket, bool noDelay)
 {    
-    boost::asio::ip::tcp::no_delay option(true);
+    boost::asio::ip::tcp::no_delay option(noDelay);
     socket.set_option(option);
 }
 

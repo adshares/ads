@@ -28,6 +28,8 @@ public:
         do_sync(1), //remove, use peer_hs.do_sync
         killme(false),
         busy(0),
+        addr(addr),
+        port(port),
         peer_io_service_(),
         work_(peer_io_service_),
         socket_(peer_io_service_),
@@ -37,9 +39,7 @@ public:
         server_(srv),        
         incoming_(in),
         srvs_(srvs),
-        opts_(opts),
-        addr(addr),
-        port(port),
+        opts_(opts),        
         files_out(0),
         files_in(0),
         bytes_out(0),
@@ -172,7 +172,7 @@ public:
 
         setState(ST_CONNECTED);
 
-        m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
+        m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         asyncWaitForNewMessageHeader();        
     }
 
@@ -258,7 +258,7 @@ public:
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
 
-            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));            
+            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         }
         pio_.unlock();
     }
@@ -345,7 +345,7 @@ public:
             int len=write_msgs_.front()->len;
 
             DLOG("%04X (DELIVER), START ACTION %d\n",svid, msg->data[0]);
-            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));            
+            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         }
         pio_.unlock();
     }
@@ -387,12 +387,9 @@ public:
     }
 
     void handle_write(const boost::system::error_code& error, size_t transfered)
-    {
-        handle_write(error);
-    }
-
-    void handle_write(const boost::system::error_code& error)
     { //TODO change this later, dont send each message separately if possible
+        std::ignore = transfered;
+
         if (!error) {
             pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
             message* msg=&(*(write_msgs_.front()));
@@ -433,7 +430,7 @@ public:
                 //int len=message_len(write_msgs_.front());
                 int len=write_msgs_.front()->len;
 
-                m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
+                m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write, this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
             }
             pio_.unlock();
         } else {
@@ -444,12 +441,9 @@ public:
     }
 
     void handle_read_header(const boost::system::error_code& error, size_t transfered)
-    {        
-        handle_read_header(error);
-    }
-
-    void handle_read_header(const boost::system::error_code& error)
     {
+        std::ignore = transfered;
+
         extern message_ptr nullmsg;
         if(killme) {
             ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
@@ -1953,7 +1947,7 @@ NEXTUSER:
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
             DLOG("%04X send after sync [%016lX len:%d]\n",svid,*(uint64_t*)write_msgs_.front()->data,len);
-            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error));
+            m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         }
         asyncWaitForNewMessageHeader();
         //save last synced block to protect peer from disconnect

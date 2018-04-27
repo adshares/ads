@@ -616,7 +616,7 @@ void print_log(boost::property_tree::ptree& pt,settings& sts) {
         logentry.put("amount",print_amount(ulog.weight));
         //FIXME calculate fee
         if(txst==TXSTYPE_PUT) {
-            int64_t amass=fabsl(ulog.weight);
+            int64_t amass=std::abs(ulog.weight);
             if(ulog.node==sts.bank) {
                 logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));
             } else {
