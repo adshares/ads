@@ -2,6 +2,7 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
+#include "helper/hash.h"
 
 SendOne::SendOne()
     : m_data{} {
@@ -60,6 +61,16 @@ bool SendOne::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 void SendOne::saveResponse(settings& sts) {
+    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyDiffers;
+    }
+
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
+    }
+
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
@@ -139,6 +150,25 @@ void SendOne::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
     } else {
+        if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
+            std::stringstream tx_user_hashin{};
+            Helper::ed25519_key2text(tx_user_hashin, m_response.usera.pkey, SHA256_DIGEST_LENGTH);
+            ptree.put("tx.account_public_key_new", tx_user_hashin.str());
+        }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
+}
+
+void SendOne::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.abank);
+    ptree.put(TAG::SRC_USER, m_data.info.auser);
+    ptree.put(TAG::MSGID, m_data.info.namsid);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::DST_NODE, m_data.info.bbank);
+    ptree.put(TAG::DST_USER, m_data.info.buser);
+    ptree.put(TAG::AMOUNT, print_amount(m_data.info.ntmass));
+    ptree.put(TAG::MSG, m_data.info.ntinfo);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }

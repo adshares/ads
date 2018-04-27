@@ -1,7 +1,12 @@
 #include "setaccountkey.h"
+
 #include <iostream>
+#include <algorithm>
+
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
+#include "helper/hash.h"
+#include "helper/json.h"
 
 SetAccountKey::SetAccountKey()
     : m_data{} {
@@ -111,6 +116,16 @@ bool SetAccountKey::send(INetworkClient& netClient)
 
 void SetAccountKey::saveResponse(settings& sts)
 {
+    if (std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+        m_responseError = ErrorCodes::Code::ePkeyNotChanged;
+    }
+
+    std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+    Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
+    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+        m_responseError = ErrorCodes::Code::eHashMismatch;
+    }
+
     sts.msid = m_response.usera.msid;
     std::copy(m_response.usera.pkey, m_response.usera.pkey + SHA256_DIGEST_LENGTH, sts.pk);        
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
@@ -126,4 +141,16 @@ void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
+}
+
+void SetAccountKey::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.abank);
+    ptree.put(TAG::SRC_USER, m_data.auser);
+    ptree.put(TAG::MSGID, m_data.amsid);
+    ptree.put(TAG::TIME, m_data.ttime);
+    ptree.put(TAG::PKEY, ed25519_key2text(m_data.pubkey, sizeof(m_data.pubkey)));
+    ptree.put(TAG::PKEY_SIGN, ed25519_key2text(m_data.pubkeysign, sizeof(m_data.pubkeysign)));
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }

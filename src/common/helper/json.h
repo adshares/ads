@@ -11,6 +11,30 @@ class settings;
 
 namespace Helper {
 
+namespace TAG {
+const char* const TYPE = "type";
+const char* const SRC_NODE = "node";
+const char* const SRC_USER = "user";
+const char* const MSGID = "msg_id";
+const char* const NODE_MSGID = "node_msg_id";
+const char* const TIME = "time";
+const char* const DST_NODE = "destination_node";
+const char* const DST_USER = "destination_user";
+const char* const MSG = "message";
+const char* const MSG_LEN = "message_length";
+const char* const OLD_PKEY = "old_public_key";
+const char* const PKEY = "public_key";
+const char* const NEW_PKEY = "new_public_key";
+const char* const PKEY_SIGN = "public_key_signature";
+const char* const BLOCK = "block_number";
+const char* const FROM = "from";
+const char* const TXN_COUNTER = "transactions_conuter";
+const char* const AMOUNT = "amount";
+const char* const DEDUCT = "deduct";
+const char* const POSITION = "position";
+const char* const SIGN = "signature";
+}
+
 void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user);
 bool parse_amount(int64_t& amount,std::string str_amount);
 char* print_amount(int64_t amount);

@@ -201,3 +201,13 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         ptree.add_child("messages",msghashes);
     }
 }
+
+void GetMessageList::txnToJson(boost::property_tree::ptree& ptree) {
+    using namespace Helper;
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::BLOCK, m_data.info.block);
+    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}

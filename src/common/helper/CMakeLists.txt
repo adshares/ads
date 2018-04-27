@@ -17,6 +17,6 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/json.h
     ${CMAKE_CURRENT_SOURCE_DIR}/servers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/hlog.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/txsname.h
     PARENT_SCOPE
     )
-

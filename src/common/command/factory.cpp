@@ -14,6 +14,7 @@
 #include "getmessage.h"
 #include "getmessagelist.h"
 #include "getlog.h"
+#include "gettransaction.h"
 
 namespace command {
 
@@ -59,6 +60,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_LOG:
         command = std::make_unique<GetLog>();
+        break;
+    case TXSTYPE_TXS:
+        command = std::make_unique<GetTransaction>();
         break;
     default:
         break;

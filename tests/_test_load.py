@@ -20,24 +20,14 @@ async def create_user(id_user, id_node):
     update_user_env(client_id=id_user, address=response['new_account']['address'])
 
 
-async def send_money_async(amount=10):
-    print("=======================================================================")
-    if not USERS:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
-        print(response)
-        return
-    random.shuffle(USERS)
-    address_sender = USERS[-1]
-    USERS.remove(address_sender)
-    address_receiver = USERS[0]
-    USERS.remove(address_receiver)
-    print("SENDING MONEY FROM {} TO {}".format(address_sender[1], address_receiver[1]))
-    await asyncio.sleep(1)
+async def send_money_async(addresses, amount=0.1):
+    print(addresses)
+    users = addresses
+    address_sender = random.shuffle(users)[0]
+    users.remove(address_sender)
+    address_receiver = random.shuffle(users)
+    print("SEND MONEY TO {} FROM {}".format(address_receiver[0], address_sender[0]))
     start_balance_receiver = get_balance_user(address_receiver[0])
-    await asyncio.sleep(1)
-    start_balance_sender = get_balance_user(address_sender[0])
-    print("STAR BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], start_balance_sender,
-                                                                 address_receiver[1], start_balance_receiver))
 
     message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
 
@@ -45,6 +35,7 @@ async def send_money_async(amount=10):
                                              'address': address_receiver[1],
                                              'message': message,
                                              'amount': amount})
+
     print("USER {} SEND {} TO {}".format(address_sender[1], amount, address_receiver[1]))
     assert float(response['tx']['deduct']) == float(amount)
 
@@ -59,8 +50,11 @@ async def send_money_async(amount=10):
     print("FINISH BALANCE FOR SENDER {}: {}. FOR RECEIVER {}: {}".format(address_sender[1], finish_balance_sender,
                                                                  address_receiver[1], finish_balance_receiver))
 
+    await asyncio.sleep(1)
 
+    assert float(response['tx']['deduct']) == float(amount)
 
+    difference_receiver = float(start_balance_receiver) + float(amount)
 
     assert difference_receiver == float(get_balance_user(address_receiver[0]))
 
@@ -91,7 +85,7 @@ def create_users(count=10):
     loop.run_until_complete(asyncio.wait(users))
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': node})['accounts']
     address_list = [(client['id'], client['address']) for client in response if client['id'] != '0']
-    return address_list
+
 
 
 async def create_node(id_node):
@@ -114,15 +108,16 @@ async def create_node(id_node):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": NEW_PKEY, "node": id_node})
 
 
-# def create_nodes(count=2):
-#     nodes = [create_node(i) for i in range(2, count+2)]
-#     loop.run_until_complete(asyncio.wait(nodes))
-#     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
-#     assert len(response['block']['nodes']) - 1 == count
-#     for node in response['block']['nodes']:
-#         node_id = node.get("id")
-#         if node_id != "0000":
-#             NODES.append(node_id)
+
+def create_nodes(count=2):
+    nodes = [create_node(i) for i in range(2, count+2)]
+    loop.run_until_complete(asyncio.wait(nodes))
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+    assert len(response['block']['nodes']) - 1 == count
+    for node in response['block']['nodes']:
+        node_id = node.get("id")
+        if node_id != "0000":
+            NODES.append(node_id)
 
 
 # def test_create_nodes(init_node_process, count=10):
