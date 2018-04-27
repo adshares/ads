@@ -20,20 +20,23 @@ bool MsglistParser::save(const char* filepath) {
         m_filePath = filepath;
     }
 
-    std::ofstream file(m_filePath, std::ofstream::out | std::ofstream::binary);
-    if (!file.is_open()) {
+    std::ofstream file;
+    file.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ifstream::eofbit);
+    try {
+        file.open(m_filePath, std::ofstream::out | std::ofstream::binary);
+
+        file.write((char*)&m_header, sizeof(m_header));
+        for(auto &it : m_msgList) {
+            file.write((char*)&it, sizeof(MessageRecord));
+        }
+
+        uint32_t hashesSize = m_hashes.size();
+        file.write((char*)&hashesSize, sizeof(hashesSize));
+        for (auto &it : m_hashes) {
+            file.write((char*)&it, sizeof(hash_s));
+        }
+    } catch (std::exception&) {
         return false;
-    }
-
-    file.write((char*)&m_header, sizeof(m_header));
-    for(auto &it : m_msgList) {
-        file.write((char*)&it, sizeof(MessageRecord));
-    }
-
-    uint32_t hashesSize = m_hashes.size();
-    file.write((char*)&hashesSize, sizeof(hashesSize));
-    for (auto &it : m_hashes) {
-        file.write((char*)&it, sizeof(hash_s));
     }
 
     return true;
@@ -56,28 +59,28 @@ bool MsglistParser::load(const char *filepath) {
         m_filePath = filepath;
     }
 
-    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
-    if (!file.is_open()) {
+    std::ifstream file;
+    file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
+    try {
+        file.open(m_filePath, std::ifstream::in | std::ifstream::binary);
+
+        file.read((char*)&m_header, sizeof(m_header));
+        for (unsigned int i = 0; i<m_header.num_of_msg; ++i) {
+            MessageRecord item;
+            file.read((char*)&item, sizeof(item));
+            m_msgList.push_back(item);
+        }
+
+        uint32_t hashesSize;
+        file.read((char*)&hashesSize, sizeof(hashesSize));
+
+        for (unsigned int i=0; i<hashesSize; ++i) {
+            hash_s hash;
+            file.read((char*)&hash, sizeof(hash));
+            m_hashes.push_back(hash);
+        }
+    } catch (std::exception&) {
         return false;
-    }
-
-    file.read((char*)&m_header, sizeof(m_header));
-    for (unsigned int i = 0; i<m_header.num_of_msg; ++i) {
-        MessageRecord item;
-        file.read((char*)&item, sizeof(item));
-        m_msgList.push_back(item);
-    }
-    if (!file) {
-        return false;
-    }
-
-    uint32_t hashesSize;
-    file.read((char*)&hashesSize, sizeof(hashesSize));
-
-    for (unsigned int i=0; i<hashesSize; ++i) {
-        hash_s hash;
-        file.read((char*)&hash, sizeof(hash));
-        m_hashes.push_back(hash);
     }
 
     return true;
