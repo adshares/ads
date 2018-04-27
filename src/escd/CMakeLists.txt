@@ -1,3 +1,4 @@
+set(DAEMON_NAME ${PROJECT_NAME}d)
 
 set(SOURCED
    office.hpp
@@ -17,11 +18,11 @@ include_directories("../../external")
 add_subdirectory(commandhandler)
 add_subdirectory(network)
 
-add_executable(escd ${SOURCED} ${HEADERSD})
-target_link_libraries(escd LINK_PUBLIC common)
-target_link_libraries(escd pthread)
-target_link_libraries(escd ssl)
-target_link_libraries(escd crypto)
+add_executable(${DAEMON_NAME} ${SOURCED} ${HEADERSD})
+target_link_libraries(${DAEMON_NAME} LINK_PUBLIC common)
+target_link_libraries(${DAEMON_NAME} pthread)
+target_link_libraries(${DAEMON_NAME} ssl)
+target_link_libraries(${DAEMON_NAME} crypto)
 
-install(TARGETS escd RUNTIME DESTINATION bin)
+install(TARGETS ${DAEMON_NAME} RUNTIME DESTINATION bin)
 

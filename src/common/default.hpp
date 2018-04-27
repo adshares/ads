@@ -4,58 +4,7 @@
 #include <openssl/sha.h>
 #include <boost/thread/mutex.hpp>
 
-#ifdef DEBUG
-# define BLOCKSEC 0x20 /* block period in seconds */
-# define BLOCKDIV 0x4 /* number of blocks for dividend update */
-# define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
-# define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
-# define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
-# define MIN_PEERS 3 /* keep at least 3 peers connected */
-# define MAX_PEERS 8 /* keep not more than 8 peers connected */
-# define VALIDATORS 4 /* number of validator threads */
-# define CLIENT_POOL 4	/* do not offer more threads that are used for network message validation */
-#else
-# define BLOCKSEC 0x400 /* block period in seconds (17min) */
-# define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
-# define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
-# define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
-# define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-# define MIN_PEERS 8 /* keep at least 8 peers connected */
-# define MAX_PEERS 16 /* keep not more than 16 peers connected */
-# define VALIDATORS 8 /* number of validator threads */
-# define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
-#endif
-#define VIP_MAX 63 /* maximum number of VIP servers */
-#define TOTALMASS 0x4000000000000000L /* total balance (target) */
-#define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
-#define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
-//local parameters (office<->client), not part of network protocol
-
-#define SYNC_WAIT 8 /* wait before another attempt to download servers */
-#define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
-#define MAX_USER_QUEUE 0x10000 /* maximum number of accounts in create_account queue ("blacklist") */
-#define MIN_LOG_SIZE (4096+2048) /* when this log size is reached try purging */
-#define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
-#define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
-
-//#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
-//#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
-//#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
-//#define VOTES_MAX 63
-//#define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
-//#define PATHSHIFT 8
-//#define PATHSHIFT 5
-
-#define SERVER_TYPE 1
-#define OFFICE_PORT "9091"
-#define SERVER_PORT "8081"
-#ifdef DEBUG
-#define SERVER_DNSA "dev.esc.adshares.net"
-#else
-#define SERVER_DNSA "esc.adshares.net"
-#endif
-#define MAXCLIENTS 128
-
+#include "default.h"
 
 #define SERVER_DBL 0x1 /* closed node */
 #define SERVER_VIP 0x2 /* VIP node */
@@ -68,8 +17,6 @@
 #define MSGSTAT_VAL 0x8 /* validated */
 #define MSGSTAT_BAD 0x10 /* invalid */
 #define MSGSTAT_SIG 0x20 /* signature failure */
-
-#define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
 #define MSGTYPE_DBL 0	/* double spend proof, maybe we should start with 1 */
 #define MSGTYPE_DBP 1
@@ -98,41 +45,6 @@
 #define MSGTYPE_NHD 24  /* next header data */
 #define MSGTYPE_SOK 99  /* peer synced */
 
-#define TXS_MIN_FEE      (0x1000) /* minimum fee per transaction */
-#define TXS_DIV_FEE      (0x100000)  /* dividend fee collected every BLOCKDIV blocks ( *8_years=MIN_MASS ) */
-#define TXS_KEY_FEE      (0x1000) /* */
-#define TXS_BRO_FEE(x)   (0x1000  +0x10000*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
-#define TXS_PUT_FEE(x)   (0x1000  +((x)>>13)) /* local wires fee (weight) (/8192) */ // 0.0244%
-#define TXS_LNG_FEE(x)   (         ((x)>>13)) /* additional remote wires fee (weight) */
-#define TXS_MPT_FEE(x)   (0x100   +((x)>>13)) /* + MIN_FEE !!! */
-#define TXS_GET_FEE      (0x100000) /* get initiation fee */
-#define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */ // 0.0122%
-#define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
-#define TXS_SUS_FEE      (0x10000) /* 0x0.0001G */
-#define TXS_SBS_FEE      (0x10000) /* 0x0.0001G */
-#define TXS_UUS_FEE      (0x10000) /* 0x0.0001G */
-#define TXS_UBS_FEE      (0x10000) /* 0x0.0001G */
-#define TXS_SAV_FEE      (0x100000) /* 0x0.0001G */
-#define TXS_BNK_FEE      (0x10000000L) /* 0x0.1 G */
-#define TXS_BKY_FEE      (0x10000000L) /* 0x0.1 G */
-#define USER_MIN_MASS    (0x10000000L) /* 0x0.1 G minimum user account mass to send transaction */
-#define USER_MIN_AGE     (BLOCKSEC*4) /* wait at least 4 blocks before deleting an account */
-#define BANK_MIN_UMASS   (0x10000000L) /* 0x0.1G, minimum admin account mass to send transaction */
-#define BANK_MIN_TMASS   (0x1000000000L) /* 0x10G, if bank total mass below this value, bank can be taken over */
-#define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
-#define BANK_MAX         (0xffff)
-#define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */
-#define BANK_USER_FEE(x) (0x1000 + ((BANK_PROFIT(((uint64_t)(x))*(TXS_DIV_FEE/BLOCKDIV)))>>2)) /* every block */
-
-#define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */
-#define MESSAGE_TOO_LONG 0x800000 /* 8MB */
-#define MESSAGE_LEN_OK   0x10000
-#define MESSAGE_TNUM_OK  0x1000
-#define MESSAGE_TNUM_MAX 0xFFF0
-#define MESSAGE_WAIT 5
-#define MESSAGE_TOO_OLD (60*60*24*7)
-#define MESSAGE_CHUNK    0x100000
-#define MESSAGE_MAXAGE 100 /* prefer blocks with all messages older than MAXAGE */
 
 #pragma pack(1)
 typedef struct headlink_s { // header links sent when syncing
@@ -303,6 +215,5 @@ typedef struct hash_cmp {
 #else
 #define DLOG(...)
 #endif
-
 
 #endif // DEFAULT_HPP

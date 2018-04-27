@@ -1,3 +1,5 @@
+set(CLIENT_NAME ${PROJECT_NAME})
+
 set(SRC_LST   
    main.cpp
    responsehandler.cpp
@@ -9,14 +11,14 @@ set(HEADER_FILES
 
 include_directories("../../external")
 
-add_executable(esc ${SRC_LST} ${HEADER_FILES})
+add_executable(${CLIENT_NAME} ${SRC_LST} ${HEADER_FILES})
 
-target_link_libraries(esc LINK_PUBLIC common)
-target_link_libraries(esc pthread)
-target_link_libraries(esc ssl)
-target_link_libraries(esc crypto)
+target_link_libraries(${CLIENT_NAME} LINK_PUBLIC common)
+target_link_libraries(${CLIENT_NAME} pthread)
+target_link_libraries(${CLIENT_NAME} ssl)
+target_link_libraries(${CLIENT_NAME} crypto)
 
-install (TARGETS esc RUNTIME DESTINATION bin)
+install (TARGETS ${CLIENT_NAME} RUNTIME DESTINATION bin)
 
 # if you are building in-source, this is the same as CMAKE_SOURCE_DIR, otherwise
 # this is the top level directory of your build tree
