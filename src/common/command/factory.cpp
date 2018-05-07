@@ -62,6 +62,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     case TXSTYPE_MGS:
         command = std::make_unique<GetMessageList>();
         break;
+    case TXSTYPE_MSG:
+        command = std::make_unique<GetMessage>();
+        break;
     case TXSTYPE_LOG:
         command = std::make_unique<GetLog>();
         break;

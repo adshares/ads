@@ -74,6 +74,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_MGS:
         m_getMessageListHandler.execute(std::move(command), std::move(usera));
         break;
+    case TXSTYPE_MSG:
+        m_getMessageHandler.execute(std::move(command), std::move(usera));
+        break;
     case TXSTYPE_LOG:
         m_getLogHandler.execute(std::move(command), std::move(usera));
         break;

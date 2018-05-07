@@ -165,6 +165,22 @@ void printErrorJson(const char *errorMsg) {
     boost::property_tree::write_json(std::cout, ptree, true);
 }
 
+const std::string print_address(uint16_t node, uint32_t user, int32_t _suffix) {
+    char acnt[19];
+    uint16_t suffix;
+    (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
+    sprintf(acnt,"%04X-%08X-%04X", node, user, suffix);
+    return std::string(acnt);
+}
+
+const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix) {
+    char acnt[19];
+    uint16_t suffix;
+    (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
+    sprintf(acnt,"%04X%08X%04X", node, user, suffix);
+    return std::string(acnt);
+}
+
 void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1) {
     char filename[64];
     sprintf(filename,"log/%04X_%08X.bin", bank, user);
