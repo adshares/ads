@@ -269,15 +269,18 @@ void SendMany::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TYPE, getTxnName(m_data.info.txn_type));
     ptree.put(TAG::SRC_NODE, m_data.info.src_node);
     ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::SRC_ADDRESS, Helper::print_address(m_data.info.src_node, m_data.info.src_user));
     ptree.put(TAG::MSGID, m_data.info.msg_id);
     ptree.put(TAG::TIME, m_data.info.txn_time);
     ptree.put(TAG::TXN_COUNTER, m_data.info.txn_counter);
+    ptree.put(TAG::SENDER_FEE, print_amount(this->getFee()));
     if (m_data.info.txn_counter > 0) {
         boost::property_tree::ptree txns;
         for (auto &it : m_transactions) {
             boost::property_tree::ptree txn;
             txn.put(TAG::DST_NODE, it.dest_node);
             txn.put(TAG::DST_USER, it.dest_user);
+            txn.put(TAG::DST_ADDRESS, Helper::print_address(it.dest_node, it.dest_user));
             txn.put(TAG::AMOUNT, print_amount(it.amount));
             txns.push_back(std::make_pair("", txn));
         }

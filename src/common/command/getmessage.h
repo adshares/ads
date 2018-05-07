@@ -3,6 +3,7 @@
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
+#include "message.hpp"
 #include "default.hpp"
 
 /** \brief Get message command class. */
@@ -95,6 +96,7 @@ class GetMessage : public IBlockCommand {
 
         GetMessageData          m_data;
         commandresponse         m_response;
+        message_ptr             m_responseMsg;
 };
 
 #endif // GETMESSAGE_H

@@ -5,6 +5,7 @@
 #include "helper/json.h"
 #include "helper/hash.h"
 #include "message.hpp"
+#include "command/factory.h"
 
 GetMessage::GetMessage()
     : m_data{} {
@@ -102,41 +103,31 @@ bool GetMessage::send(INetworkClient& netClient) {
         return true;
     }
 
-    if(!netClient.readData(getResponse(), getResponseSize())) {
-        ELOG("GetMessage reading header error\n");
-        return false;
-    }
-
-    uint32_t msglength = 0;
-    if (!netClient.readData((int32_t*)&msglength, sizeof(msglength))) {
+    // msgTypeLength contains type (1B) and length (3B)
+    uint32_t msgTypeLength = 0;
+    if (!netClient.readData((int32_t*)&msgTypeLength, sizeof(msgTypeLength))) {
         ELOG("GetMessage reading length error\n");
         return false;
     }
+    uint32_t msgLength = msgTypeLength >> 8;
+    if (!msgTypeLength || msgLength < message::data_offset) {
+        m_responseError = ErrorCodes::Code::eBadLength;
+        return true;
+    }
+    uint8_t msgType = msgTypeLength & 0xFF;
+    if (msgType != MSGTYPE_MSG) {
+        m_responseError = ErrorCodes::Code::eIncorrectType;
+        return true;
+    }
 
-//    char buffer[msglength];
-//    if (!netClient.readData(buffer, sizeof(buffer))) {
-//        ELOG("GetMessage reading error\n");
-//        return false;
-//    }
-//    GetMessageResponse m_response;
+    char buffer[msgLength];
+    memcpy(buffer, &msgTypeLength, 4);
+    if (!netClient.readData(buffer + 4, msgLength - 4)) {
+        ELOG("GetMessage reading error\n");
+        return false;
+    }
 
-//    message_ptr msg(new message(msglength, (uint8_t*)buffer));
-//    msg->read_head();
-//    m_response.svid = msg->svid;
-//    m_response.msgid = msg->msid;
-//    m_response.time = msg->now;
-//    m_response.length = msg->len;
-//    std::copy(msg->sigh, msg->sigh+SHA256_DIGEST_LENGTH, m_response.signature);
-//    m_response.hash_tree_fast = msg->hash_tree_fast(msg->sigh,msg->data,msg->len,msg->svid,msg->msid);
-
-//    buffer += msg->data + message::data_offset;
-//    uint8_t* end  = msg->data + msg->len;
-//    if ((uint8_t*)buffer > end) {
-//        m_responseError = ErrorCodes::Code::eInvalidMessageFile;
-//        return true;
-//    }
-
-    ///TODO: finish it in future when all commands done
+    m_responseMsg.reset(new message(msgLength, (uint8_t*)buffer));
 
     return true;
 }
@@ -161,6 +152,39 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
     if (m_responseError) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     } else {
+        m_responseMsg->read_head();
+        ptree.put("node", m_responseMsg->svid);
+        ptree.put("node_msid", m_responseMsg->msid);
+        ptree.put("time", m_responseMsg->now);
+        ptree.put("length", m_responseMsg->len);
+        if(!m_responseMsg->hash_tree_fast(m_responseMsg->sigh,m_responseMsg->data,m_responseMsg->len,m_responseMsg->svid,m_responseMsg->msid)) {
+            return;
+        }
+        uint8_t* data_ptr = m_responseMsg->data+message::data_offset;
+        uint8_t* data_end = m_responseMsg->data+m_responseMsg->len;
+        uint32_t mpos = 1;
+        boost::property_tree::ptree transactions;
+        std::unique_ptr<IBlockCommand> command;
+        while (data_ptr < data_end) {
+            command = command::factory::makeCommand(*data_ptr);
+            if (command) {
+                boost::property_tree::ptree txn;
+                command->setData((char*)data_ptr);
+                int size = command->getDataSize()  + command->getAdditionalDataSize() + command->getSignatureSize();
+
+                txn.put("id", Helper::print_msg_id(m_responseMsg->svid, m_responseMsg->msid, mpos++));
+                command->txnToJson(txn);
+                txn.put("size", size);
+
+                data_ptr += size;
+                transactions.push_back(std::make_pair("", txn));
+            } else {
+                m_responseError = ErrorCodes::Code::eIncorrectTransaction;
+                ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+                return;
+            }
+        }
+        ptree.add_child("transactions", transactions);
     }
 }
 
