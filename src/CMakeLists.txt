@@ -30,6 +30,7 @@ SET(CMAKE_CXX_FLAGS -pthread)
 add_subdirectory(common)
 add_subdirectory(esc)
 add_subdirectory(escd)
+add_subdirectory(tools)
 
 IF(EXECUTE_LOCAL_TEST)
 MESSAGE("..............EXECUTE_LOCAL_TEST:         " ${EXECUTE_LOCAL_TEST} )
