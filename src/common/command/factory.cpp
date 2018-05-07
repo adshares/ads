@@ -15,6 +15,7 @@
 #include "getmessagelist.h"
 #include "getlog.h"
 #include "gettransaction.h"
+#include "connected.h"
 
 namespace command {
 
@@ -22,6 +23,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     std::unique_ptr<IBlockCommand>  command;
 
     switch(type) {
+    case TXSTYPE_CON:
+        command = std::make_unique<Connected>();
+        break;
     case TXSTYPE_INF:
         command = std::make_unique<GetAccount>();
         break;

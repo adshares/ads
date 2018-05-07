@@ -16,6 +16,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelist.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getlog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransaction.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/connected.cpp
     PARENT_SCOPE
     )
 
@@ -39,6 +40,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/getmessagelist.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getlog.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransaction.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/connected.h
     PARENT_SCOPE
     )
 

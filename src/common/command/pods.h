@@ -497,4 +497,15 @@ struct GetTransactionResponse {
     uint16_t hnum;
 }__attribute__((packed));
 
+/* inform peers about location */
+struct ConnectedInfo {
+    ConnectedInfo() = default;
+    ConnectedInfo(uint16_t port_, uint32_t ip_address_) : port(port_), ip_address(ip_address_) {
+    }
+
+    uint8_t ttype{TXSTYPE_CON}; ///< command type
+    uint16_t port;              ///< port number
+    uint32_t ip_address;        ///< ip address
+}__attribute__((packed));
+
 #endif // PODS_H
