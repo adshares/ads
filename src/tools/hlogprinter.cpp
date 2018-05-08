@@ -9,13 +9,14 @@
 
 #include "helper/ascii.h"
 #include "helper/json.h"
+#include "helper/hlog.h"
 
 HlogPrinter::HlogPrinter(const std::string& filepath) : DataPrinter(filepath) {
 }
 
 void HlogPrinter::printJson() {
-
     boost::property_tree::ptree pt;
+    Helper::Hlog hlog(pt, (char*)m_filepath.c_str());
     boost::property_tree::write_json(std::cout, pt, true);
 }
 
