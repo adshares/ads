@@ -4,12 +4,20 @@ include_directories("../../external")
 
 SET (SRC_LIST
     main.cpp
-    jsonprinter.cpp
+    dataprinter.cpp
+    msgprinter.cpp
+    srvprinter.cpp
+    msglistprinter.cpp
+    hdrprinter.cpp
     ../../external/ed25519/ed25519.c
     )
 
 SET (HEADERS_LIST
-    jsonprinter.h
+    dataprinter.h
+    msgprinter.h
+    srvprinter.h
+    msglistprinter.h
+    hdrprinter.h
     )
 
 

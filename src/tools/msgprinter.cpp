@@ -1,4 +1,4 @@
-#include "jsonprinter.h"
+#include "msgprinter.h"
 
 #include <fstream>
 #include <iostream>
@@ -10,10 +10,10 @@
 #include "command/factory.h"
 #include "helper/ascii.h"
 
-JsonPrinter::JsonPrinter(const std::string& filepath) : m_filepath(filepath){
+MsgPrinter::MsgPrinter(const std::string& filepath) : DataPrinter(filepath) {
 }
 
-void JsonPrinter::printJson() {
+void MsgPrinter::printJson() {
     std::ifstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
     Header header;
@@ -67,10 +67,10 @@ void JsonPrinter::printJson() {
             std::cout<<"Unsupported transaction, result might be not complete"<<std::endl;
         }
     } catch (std::exception& e) {
-        throw e;
+        throw std::runtime_error(e.what());
     }
 }
 
-void JsonPrinter::printString() {
+void MsgPrinter::printString() {
 
 }

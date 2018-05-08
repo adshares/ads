@@ -1,18 +1,17 @@
 #include <iostream>
 #include <string>
+#include <memory>
 
-#include "jsonprinter.h"
+#include "dataprinter.h"
 
 using namespace std;
 
 static void show_usage(const std::string& app_name) {
-    std::cerr << "Usage: "<<app_name<<" <path_to_msg_file>"<<std::endl;
-    std::cerr << "Example: "<<app_name<<" 03_0001_00000001.msg\n"<<std::endl;
+    std::cout << "Usage: "<<app_name<<" <path_to_file>"<<std::endl;
+    std::cout << "Example: "<<app_name<<" 03_0001_00000001.msg\n"<<std::endl;
+    std::cout << "Example: "<<app_name<<" msglist.dat\n"<<std::endl;
+    std::cout << "Example: "<<app_name<<" servers.srv\n"<<std::endl;
 }
-
-int loadFile();
-
-int printJson();
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -26,11 +25,16 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    std::unique_ptr<DataPrinter> printer = DataPrinterFactory().getPrinter(argv[1]);
+    if (!printer) {
+        std::cerr << "File extension not supported" <<std::endl;
+        return 0;
+    }
+
     try {
-        JsonPrinter printer(argv[1]);
-        printer.printJson();
+        printer->printJson();
     } catch (std::exception& e) {
-        std::cerr <<e.what()<<std::endl;
+        std::cerr <<"Exception: "<<e.what()<<std::endl;
     }
 
     return 0;
