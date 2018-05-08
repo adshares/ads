@@ -6,8 +6,8 @@
 #include <arpa/inet.h>
 #include <memory>
 #include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
 
-#include "abstraction/interfaces.h"
 #include "helper/servers.h"
 #include "helper/ascii.h"
 #include "helper/json.h"
