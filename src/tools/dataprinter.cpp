@@ -10,6 +10,7 @@
 #include "hlogprinter.h"
 #include "signaturesprinter.h"
 #include "datprinter.h"
+#include "vipprinter.h"
 
 DataPrinter::DataPrinter() : m_filepath("") {
 }
@@ -51,6 +52,9 @@ std::unique_ptr<DataPrinter> DataPrinterFactory::getPrinter(const std::string &f
             break;
         case FileType::SIGNATURES_OK:
             dataPrinter = std::make_unique<SignaturesPrinter>(filepath);
+            break;
+        case FileType::VIP:
+            dataPrinter = std::make_unique<VipPrinter>(filepath);
             break;
         default:
             break;

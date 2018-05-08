@@ -13,6 +13,7 @@ SET (SRC_LIST
     hlogprinter.cpp
     signaturesprinter.cpp
     datprinter.cpp
+    vipprinter.cpp
     ../../external/ed25519/ed25519.c
     )
 
@@ -26,6 +27,7 @@ SET (HEADERS_LIST
     hlogprinter.h
     signaturesprinter.h
     datprinter.h
+    vipprinter.h
     )
 
 
