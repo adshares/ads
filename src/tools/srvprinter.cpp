@@ -40,7 +40,7 @@ void SrvPrinter::printJson() {
 
     pt.put("vote_yes", header.voteYes);
     pt.put("vote_no", header.voteNo);
-    pt.put("note_total", header.voteTotal);
+    pt.put("vote_total", header.voteTotal);
 
     boost::property_tree::ptree nodes;
     for (auto &it : srv_nodes) {
