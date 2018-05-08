@@ -3,6 +3,13 @@
 
 #include "dataprinter.h"
 
+namespace {
+struct SignatureItem {
+    uint16_t server_id;
+    uint8_t signature[64];
+}__attribute__((packed));
+}
+
 class SignaturesPrinter : public DataPrinter {
 public:
     SignaturesPrinter(const std::string &filepath);
