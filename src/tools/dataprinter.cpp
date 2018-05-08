@@ -11,6 +11,7 @@
 #include "signaturesprinter.h"
 #include "datprinter.h"
 #include "vipprinter.h"
+#include "inxprinter.h"
 
 DataPrinter::DataPrinter() : m_filepath("") {
 }
@@ -55,6 +56,9 @@ std::unique_ptr<DataPrinter> DataPrinterFactory::getPrinter(const std::string &f
             break;
         case FileType::VIP:
             dataPrinter = std::make_unique<VipPrinter>(filepath);
+            break;
+        case FileType::INX:
+            dataPrinter = std::make_unique<InxPrinter>(filepath);
             break;
         default:
             break;

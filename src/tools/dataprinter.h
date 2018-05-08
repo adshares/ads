@@ -26,7 +26,8 @@ private:
         UNDO,
         HLOG,
         SIGNATURES_OK,
-        VIP
+        VIP,
+        INX
     };
 
     const std::map<const std::string, FileType> fileTypeId = {
@@ -36,8 +37,9 @@ private:
         { ".hdr", FileType::HDR },
         { ".und", FileType::UNDO },
         { ".hlg", FileType::HLOG },
-        { ".ok", FileType::SIGNATURES_OK },
-        { ".vip", FileType::VIP }
+        { ".ok",  FileType::SIGNATURES_OK },
+        { ".vip", FileType::VIP },
+        { ".inx", FileType::INX }
     };
 
 public:
