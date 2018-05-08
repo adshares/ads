@@ -9,6 +9,7 @@
 #include "undoprinter.h"
 #include "hlogprinter.h"
 #include "signaturesprinter.h"
+#include "datprinter.h"
 
 DataPrinter::DataPrinter() : m_filepath("") {
 }
@@ -32,8 +33,12 @@ std::unique_ptr<DataPrinter> DataPrinterFactory::getPrinter(const std::string &f
         case FileType::SRV:
             dataPrinter = std::make_unique<SrvPrinter>(filepath);
             break;
-        case FileType::MSGLIST:
-            dataPrinter = std::make_unique<MsgListPrinter>(filepath);
+        case FileType::DAT:
+            if (boost::filesystem::basename(filepath).compare("msglist") == 0) {
+                dataPrinter = std::make_unique<MsgListPrinter>(filepath);
+            } else {
+                dataPrinter = std::make_unique<DatPrinter>(filepath);
+            }
             break;
         case FileType::HDR:
             dataPrinter = std::make_unique<HdrPrinter>(filepath);

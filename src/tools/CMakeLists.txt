@@ -12,6 +12,7 @@ SET (SRC_LIST
     undoprinter.cpp
     hlogprinter.cpp
     signaturesprinter.cpp
+    datprinter.cpp
     ../../external/ed25519/ed25519.c
     )
 
@@ -24,6 +25,7 @@ SET (HEADERS_LIST
     undoprinter.h
     hlogprinter.h
     signaturesprinter.h
+    datprinter.h
     )
 
 

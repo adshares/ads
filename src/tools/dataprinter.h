@@ -21,7 +21,7 @@ private:
     enum FileType {
         MSG = 0,
         SRV,
-        MSGLIST,
+        DAT,
         HDR,
         UNDO,
         HLOG,
@@ -31,7 +31,7 @@ private:
     const std::map<const std::string, FileType> fileTypeId = {
         { ".msg", FileType::MSG },
         { ".srv", FileType::SRV },
-        { ".dat", FileType::MSGLIST },
+        { ".dat", FileType::DAT },
         { ".hdr", FileType::HDR },
         { ".und", FileType::UNDO },
         { ".hlg", FileType::HLOG },

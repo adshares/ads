@@ -15,8 +15,12 @@ MsgListPrinter::MsgListPrinter(const std::string& filepath) : DataPrinter(filepa
 
 void MsgListPrinter::printJson() {
     Parser::MsglistParser parser(m_filepath.c_str());
-    if (!parser.load() || parser.isEmpty()) {
+    if (!parser.load()) {
         throw std::runtime_error("Can't open msglist.dat file");
+    }
+
+    if (parser.isEmpty()) {
+        throw std::runtime_error("Empty file msglist.dat");
     }
 
     boost::property_tree::ptree pt;
