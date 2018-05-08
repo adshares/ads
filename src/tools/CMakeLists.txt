@@ -9,6 +9,9 @@ SET (SRC_LIST
     srvprinter.cpp
     msglistprinter.cpp
     hdrprinter.cpp
+    undoprinter.cpp
+    hlogprinter.cpp
+    signaturesprinter.cpp
     ../../external/ed25519/ed25519.c
     )
 
@@ -18,6 +21,9 @@ SET (HEADERS_LIST
     srvprinter.h
     msglistprinter.h
     hdrprinter.h
+    undoprinter.h
+    hlogprinter.h
+    signaturesprinter.h
     )
 
 

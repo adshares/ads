@@ -6,6 +6,9 @@
 #include "srvprinter.h"
 #include "msglistprinter.h"
 #include "hdrprinter.h"
+#include "undoprinter.h"
+#include "hlogprinter.h"
+#include "signaturesprinter.h"
 
 DataPrinter::DataPrinter() : m_filepath("") {
 }
@@ -34,6 +37,15 @@ std::unique_ptr<DataPrinter> DataPrinterFactory::getPrinter(const std::string &f
             break;
         case FileType::HDR:
             dataPrinter = std::make_unique<HdrPrinter>(filepath);
+            break;
+        case FileType::UNDO:
+            dataPrinter = std::make_unique<UndoPrinter>(filepath);
+            break;
+        case FileType::HLOG:
+            dataPrinter = std::make_unique<HlogPrinter>(filepath);
+            break;
+        case FileType::SIGNATURES_OK:
+            dataPrinter = std::make_unique<SignaturesPrinter>(filepath);
             break;
         default:
             break;

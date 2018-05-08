@@ -22,14 +22,20 @@ private:
         MSG = 0,
         SRV,
         MSGLIST,
-        HDR
+        HDR,
+        UNDO,
+        HLOG,
+        SIGNATURES_OK
     };
 
     const std::map<const std::string, FileType> fileTypeId = {
         { ".msg", FileType::MSG },
         { ".srv", FileType::SRV },
-        { ".dat", FileType::MSGLIST},
-        { ".hdr", FileType::HDR}
+        { ".dat", FileType::MSGLIST },
+        { ".hdr", FileType::HDR },
+        { ".und", FileType::UNDO },
+        { ".hlg", FileType::HLOG },
+        { ".ok", FileType::SIGNATURES_OK }
     };
 
 public:
