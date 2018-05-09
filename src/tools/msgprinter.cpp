@@ -1,4 +1,4 @@
-#include "jsonprinter.h"
+#include "msgprinter.h"
 
 #include <fstream>
 #include <iostream>
@@ -10,17 +10,16 @@
 #include "command/factory.h"
 #include "helper/ascii.h"
 
-JsonPrinter::JsonPrinter(const std::string& filepath) : m_filepath(filepath){
+MsgPrinter::MsgPrinter(const std::string& filepath) : DataPrinter(filepath) {
 }
 
-void JsonPrinter::printJson() {
+void MsgPrinter::printJson() {
     std::ifstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
     Header header;
 
     try {
         file.open(m_filepath, std::ifstream::in | std::ifstream::binary);
-        std::cout<<"Reading header..."<<std::endl;
         file.read((char*)&header, sizeof(header));
 
         uint32_t length  = header.type_and_length >> 8;
@@ -29,12 +28,10 @@ void JsonPrinter::printJson() {
         }
         length -= sizeof(header);
 
-        std::cout<<"Reading data..."<<std::endl;
         uint8_t buffer[length];
         file.read((char*)&buffer, sizeof(buffer));
         file.close();
 
-        std::cout<<"Printing result..."<<std::endl;
         boost::property_tree::ptree pt;
         // print header
         pt.put("type", (header.type_and_length & 0xFF));
@@ -67,10 +64,10 @@ void JsonPrinter::printJson() {
             std::cout<<"Unsupported transaction, result might be not complete"<<std::endl;
         }
     } catch (std::exception& e) {
-        throw e;
+        throw std::runtime_error(e.what());
     }
 }
 
-void JsonPrinter::printString() {
+void MsgPrinter::printString() {
 
 }
