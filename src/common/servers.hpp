@@ -115,7 +115,7 @@ class servers { // also a block
     }
 
 
-    void create_genesis_block(const std::string& genesis_file, uint32_t now) {
+    void create_genesis_block(const std::string genesis_file, uint32_t now) {
       assert(nodes.size() == 0);
       ELOG("INIT: using genesis file %s\n",genesis_file.c_str());
 
@@ -144,7 +144,7 @@ class servers { // also a block
       nodes.push_back(nn);
 
       uint16_t node_num = 1;
-      for (auto& e : dataNodes) {
+      for (auto e : dataNodes) {
         uint64_t users_weight = 0;
         uint32_t users_count = 0;
         node nn;
@@ -153,7 +153,7 @@ class servers { // also a block
         std::cout << "public_key: " << node_pkey << "\n";
         ed25519_text2key(nn.pk,node_pkey.c_str(),32);
 
-        for (auto& f : e.second.get_child("accounts")) {
+        for (auto f : e.second.get_child("accounts")) {
           user_t u;
           std::string user_pkey = f.second.get<std::string>("public_key");
           ed25519_public_key user_pk;
@@ -195,7 +195,7 @@ class servers { // also a block
         }
     }
 
-    void init(uint32_t newnow, bool /*readonly*/, const std::string& genesis_file = "") {
+    void init(uint32_t newnow, bool /*readonly*/, const std::string genesis_file) {
         uint16_t num=0;
         uint64_t sum=0;
         now=newnow;

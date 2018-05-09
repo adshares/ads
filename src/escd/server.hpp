@@ -156,7 +156,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START with read only database\n");
-                last_srvs_.init(now-BLOCKSEC, true);
+                last_srvs_.init(now-BLOCKSEC, true, "");
                 last_srvs_.update_vipstatus();
                 bank_fee.resize(last_srvs_.nodes.size());
             }
