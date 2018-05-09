@@ -32,6 +32,7 @@
 #include <list>
 #include <netinet/in.h>
 #include <openssl/sha.h>
+#include <openssl/rand.h>
 #include <set>
 #include <stack>
 #include <sys/socket.h>

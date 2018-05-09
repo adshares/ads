@@ -11,6 +11,7 @@
 #define MAX_PEERS 8 /* keep not more than 8 peers connected */
 #define VALIDATORS 4 /* number of validator threads */
 #define CLIENT_POOL 4	/* do not offer more threads that are used for network message validation */
+#define USER_MIN_AGE     (BLOCKSEC*2)
 #else
 #define BLOCKSEC 0x400 /* block period in seconds (17min) */
 #define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
@@ -21,6 +22,7 @@
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+#define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
 #endif
 #define VIP_MAX 63 /* maximum number of VIP servers */
 #define TOTALMASS 0x4000000000000000L /* total balance (target) */
@@ -34,6 +36,8 @@
 #define MIN_LOG_SIZE (4096+2048) /* when this log size is reached try purging */
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
+
+#define AMOUNT_DECIMALS 11
 
 //#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
 //#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
@@ -73,7 +77,6 @@
 #define TXS_BNK_FEE      (0x10000000L) /* 0x0.1 G */
 #define TXS_BKY_FEE      (0x10000000L) /* 0x0.1 G */
 #define USER_MIN_MASS    (0x10000000L) /* 0x0.1 G minimum user account mass to send transaction */
-#define USER_MIN_AGE     (BLOCKSEC*4) /* wait at least 4 blocks before deleting an account */
 #define BANK_MIN_UMASS   (0x10000000L) /* 0x0.1G, minimum admin account mass to send transaction */
 #define BANK_MIN_TMASS   (0x1000000000L) /* 0x10G, if bank total mass below this value, bank can be taken over */
 #define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */

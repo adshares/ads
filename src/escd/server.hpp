@@ -59,7 +59,12 @@ class server {
         last_srvs_.get(lastpath);
         if(opts_.svid) {
             if(!last_srvs_.nodes.size()) {
-                if(!opts_.init) {
+                if(opts_.fast) {
+                  // create empty servers so sync can start and download updated servers
+                  last_srvs_.find_pkey(pkey); // get this node public key
+                  last_srvs_.init_fast(opts_.svid, pkey);
+                  ELOG("CREATING nodes for fast sync\n");
+                } else if(!opts_.init) {
                     ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
                     exit(-1);
                 }
@@ -125,7 +130,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START from a fresh database\n");
-                last_srvs_.init(now-BLOCKSEC);
+                last_srvs_.init(now-BLOCKSEC, false, opts_.genesis);
                 srvs_=last_srvs_;
                 memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
                 period_start=srvs_.nextblock(); //changes now!
@@ -151,7 +156,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START with read only database\n");
-                last_srvs_.init(now-BLOCKSEC);
+                last_srvs_.init(now-BLOCKSEC, true, "");
                 last_srvs_.update_vipstatus();
                 bank_fee.resize(last_srvs_.nodes.size());
             }
@@ -1374,7 +1379,7 @@ NEXTUSER:
             if(last_srvs_.nodes.size()<=it->second->svid) { //maybe not needed
                 continue;
             }
-            if(last_srvs_.nodes[it->second->svid].status & SERVER_DBL ||
+            if((last_srvs_.nodes[it->second->svid].status & SERVER_DBL) ||
                     known_dbl(it->second->svid)) { // ignore also suspected DBL servers
                 DLOG("ELECTOR blk ignore %04X (DBL)\n",it->second->svid);
                 continue;
@@ -1391,6 +1396,10 @@ NEXTUSER:
             svid_rset.insert(it->second->svid);
         }
         blk_.unlock();
+        if(!svid_rset.size() && last_srvs_.now == last_srvs_.nodes[0].mtim){
+          // if this is genesis block then always node1 sends candidate
+          svid_rset.insert(last_srvs_.get_vipuno());
+        }
         if(!svid_rset.size()) {
             ELOG("ERROR, no valid server for this block :-(\n");
         } else {
@@ -1418,7 +1427,7 @@ NEXTUSER:
         ELOG("ELECTOR max:%016lX\n",votes_max);
 // READNLY ? if readonly server and not enough electors ... resync !
 #ifdef DEBUG
-        if(electors.size()<electors_old && electors.size()<srvs_.vtot/2) {
+        if(electors.size()<electors_old && electors.size()<srvs_.vtot/2 && (int)electors.size() < opts_.mins && !opts_.init) {
             ELOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
             exit(-1);
         }
@@ -3155,7 +3164,8 @@ NEXTUSER:
                 //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
                 weight+=div;
             }
-            if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight) { //network accepts total withdrawal from user
+            if(deduct+fee>usera->weight+(int64_t)local_dsu[usera->user].deposit){
+                //network accepts total withdrawal from users and bank owners (otherwise dividend fee may invalidate message included in the next block)
                 ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
                      deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight);
                 close(fd);
@@ -4604,7 +4614,7 @@ NEXTBANK:
                 threadpool.join_all();
                 busy_msgs_.clear();
                 DLOG("STOPed validation to start block\n");
-                if(!do_sync && last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins) { // '<' not '<='
+                 if(!do_sync && last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins && !opts_.init){ // '<' not '<='
                     uint8_t* data;
                     uint32_t nok;
                     header_t head;
@@ -4622,7 +4632,7 @@ NEXTBANK:
                     last_srvs_.del_signatures();
                     last_srvs_.check_signatures(head,(svsi_t*)(data+8),true);
                     free(data);
-                    if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins) { // '<' not '<='
+                    if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins && !opts_.init){ // '<' not '<='
                         ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d) for %08X\n",
                              head.vok,last_srvs_.vtot/2,head.vok,opts_.mins,last_srvs_.now);
                         SHUTDOWN_AND_RETURN();
