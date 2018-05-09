@@ -60,7 +60,7 @@ void PeerClient::checkDeadline()
  }
 
 std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
-{        
+{
     if(timeout > 0){
         m_deadline.expires_from_now(boost::posix_time::seconds(timeout));
         checkDeadline();
