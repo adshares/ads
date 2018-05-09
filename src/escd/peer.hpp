@@ -1285,7 +1285,7 @@ NEXTUSER:
             ELOG("Fast sync VIPHASH: %.*s\n", 2*SHA256_DIGEST_LENGTH, hash_text);
             if(strncmp(hash_text, opts_.viphash.c_str(), 2*SHA256_DIGEST_LENGTH)) {
                 ELOG("Synced to invalid VIPHASH, expected %.*s\n", 2*SHA256_DIGEST_LENGTH, opts_.viphash.c_str());
-                throw std::runtime_error("Synced to invalid VIPHASH");
+                return 0;
             }
         }
 
