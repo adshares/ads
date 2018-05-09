@@ -20,7 +20,6 @@ void MsgPrinter::printJson() {
 
     try {
         file.open(m_filepath, std::ifstream::in | std::ifstream::binary);
-        std::cout<<"Reading header..."<<std::endl;
         file.read((char*)&header, sizeof(header));
 
         uint32_t length  = header.type_and_length >> 8;
@@ -29,12 +28,10 @@ void MsgPrinter::printJson() {
         }
         length -= sizeof(header);
 
-        std::cout<<"Reading data..."<<std::endl;
         uint8_t buffer[length];
         file.read((char*)&buffer, sizeof(buffer));
         file.close();
 
-        std::cout<<"Printing result..."<<std::endl;
         boost::property_tree::ptree pt;
         // print header
         pt.put("type", (header.type_and_length & 0xFF));
