@@ -1183,6 +1183,8 @@ class servers { // also a block
         boost::lock_guard<boost::mutex> lock(siglock);
         char filename[64];
         bzero(filename,64);
+        char filepath[64];
+        bzero(filepath,64);
         //sprintf(filename,"blk/%03X/%05X/signatures.txt",path>>20,path&0xFFFFF);
         //char hash[4*SHA256_DIGEST_LENGTH];
         //ed25519_key2text(hash,sig,2*SHA256_DIGEST_LENGTH);
@@ -1192,7 +1194,9 @@ class servers { // also a block
         //	return;}
         //fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
         //fclose(fp);
-        //blockdir(path);
+
+        sprintf(filepath,"blk/%03X/%05X/",path>>20,path&0xFFFFF);
+
         if(ok) {
             //vok++;
             sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
@@ -1211,6 +1215,11 @@ class servers { // also a block
         memcpy(da,&svid,2);
         memcpy(da+2,sig,2*SHA256_DIGEST_LENGTH);
         //int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+
+        if(!boost::filesystem::exists(filepath)){
+            blockdir(path);
+        }
+
         int fd=open(filename,O_RDWR|O_CREAT,0644);
         if(fd<0) {
             DLOG("ERROR, failed to save signatures in %s\n",filename);
@@ -1590,7 +1599,7 @@ class servers { // also a block
         for(auto n=nodes.begin(); n!=nodes.end(); n++) {
             n->changed.resize(1+n->users/64);
         }
-        uint32_t nextnow=now+BLOCKSEC;
+        uint32_t nextnow=blockTime+BLOCKSEC;
         sprintf(pathname,"blk/%03X",nextnow>>20);
         mkdir(pathname,0755);
         sprintf(pathname,"blk/%03X/%05X",nextnow>>20,nextnow&0xFFFFF); // to make space for moved files

@@ -26,7 +26,7 @@ public:
     peer(server& srv,bool in,servers& srvs,options& opts, PeerConnectManager& peerManager, std::string addr, uint32_t port):
         svid(BANK_MAX),
         do_sync(1), //remove, use peer_hs.do_sync
-        killme(false),
+        //killme(false),
         busy(0),
         addr(addr),
         port(port),
@@ -155,7 +155,8 @@ public:
 
         DLOG("%04X PEER ACCEPT\n",svid);
 
-        killme=false; //connection established
+        //killme=false; //connection established
+        setState(ST_CONNECTED);
         assert(!incoming_);
         assert(addr == socket_.remote_endpoint().address().to_string());
         assert(port == socket_.remote_endpoint().port());
@@ -169,8 +170,6 @@ public:
         msg->busy.insert(svid);
         msg->print(" HANDSHAKE");
         write_msgs_.push_back(msg);
-
-        setState(ST_CONNECTED);
 
         m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
         asyncWaitForNewMessageHeader();        
@@ -190,7 +189,7 @@ public:
     }
 
     void update(message_ptr msg) {
-        if(killme) {
+        if(getState() == ST_STOPED) {
             DLOG("%04X update KILL detected ! (UPDATE), leaving\n",svid);
             return;
         }
@@ -245,10 +244,9 @@ public:
         put_msg->sent.insert(svid);
         put_msg->busy.insert(svid);
         DLOG("%04X HASH %016lX [%016lX] (update) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid);
-        pio_.lock(); //pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+        boost::lock_guard<boost::mutex> lock(pio_);
         if(BLOCK_MODE) {
-            write_msgs_.push_back(put_msg);
-            pio_.unlock();
+            write_msgs_.push_back(put_msg);            
             DLOG("%04X HASH %016lX [%016lX] (update in block mode, waiting) %04X:%08X\n",svid,put_msg->hash.num,*((uint64_t*)put_msg->data),msg->svid,msg->msid); // could be bad allignment
             return;
         }
@@ -259,8 +257,7 @@ public:
             int len=write_msgs_.front()->len;
 
             m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        }
-        pio_.unlock();
+        }        
     }
 
     /*int message_len(message_ptr msg) // shorten candidate vote messages if possible
@@ -291,7 +288,7 @@ public:
     {
         DLOG("%04X (DELIVER), START TYPE\n",svid);
         extern candidate_ptr nullcnd;
-        if(killme) {
+        if(getState() == ST_STOPED) {
             DLOG("%04X KILL detected ! (DELIVER), leaving\n",svid);
             return;
         }
@@ -328,10 +325,10 @@ public:
                 //FIXME, create new message and remove msids that are identical to our last_msid list
             }
         }
-        pio_.lock(); //pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+        boost::lock_guard<boost::mutex> lock(pio_);
+
         if(BLOCK_MODE) {
-            write_msgs_.push_back(msg);
-            pio_.unlock();
+            write_msgs_.push_back(msg);            
             return;
         }
         if(msg->data[0]==MSGTYPE_STP) {
@@ -346,8 +343,7 @@ public:
 
             DLOG("%04X (DELIVER), START ACTION %d\n",svid, msg->data[0]);
             m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        }
-        pio_.unlock();
+        }        
     }
 
     void send_sync(message_ptr put_msg) {
@@ -360,26 +356,26 @@ public:
         */
         //assert(do_sync); //FIXME, failed !!!
 //FIXME, brakes after handle_read_headers() if there are more headers to load
-        if(killme) {
+        if(getState() == ST_STOPED)  {
             DLOG("%04X KILL detected ! (SEND SYNC), leaving\n",svid);
             return;
         }
         put_msg->load(svid);
         busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
-        pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock(); //most likely no lock needed
+        boost::unique_lock<boost::mutex> lock(pio_); //pio_.lock(); //most likely no lock needed
         std::size_t len = 0;
         try {                          
              len = m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (send_sync): %s\n",svid,e.what());
-            leave();
+            throw std::runtime_error("ERROR in write_serv_del()\n");
         }
         if(len != put_msg->len ){
             DLOG("%04X ERROR in send_sync\n", svid);
-            leave();
+            throw std::runtime_error("ERROR in write_serv_del()\n");
         }
 
-        pio_.unlock();
+        lock.unlock();
         if(put_msg->len!=message::header_length) {
 //FIXME, do not unload everything ...
             put_msg->unload(svid);
@@ -391,7 +387,7 @@ public:
         std::ignore = transfered;
 
         if (!error) {
-            pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+            boost::unique_lock<boost::mutex> lock(pio_);
             message* msg=&(*(write_msgs_.front()));
             assert(msg->data!=NULL);
             assert(!msg->not_busy(svid));
@@ -408,7 +404,7 @@ public:
             if(msg->data[0]==MSGTYPE_STP) {
                 DLOG("%04X SERV sent STOP\n",svid);
                 write_msgs_.pop_front();
-                pio_.unlock();
+                lock.unlock();
                 sync_start(true);
                 return;
             }
@@ -431,8 +427,7 @@ public:
                 int len=write_msgs_.front()->len;
 
                 m_netclient.asyncWrite(write_msgs_.front()->data,len, boost::bind(&peer::handle_write, this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-            }
-            pio_.unlock();
+            }            
         } else {
             ELOG("%04X WRITE error %d %s\n",svid,error.value(),error.message().c_str());
             leave();
@@ -445,9 +440,8 @@ public:
         std::ignore = transfered;
 
         extern message_ptr nullmsg;
-        if(killme) {
-            ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);
-            leave();
+        if(getState() == ST_STOPED)  {
+            ELOG("%04X KILL detected ! (HANDLE READ HEADER), leaving\n",svid);            
             return;
         }
         if(error) {
@@ -478,7 +472,7 @@ public:
             DLOG("%04X READ bank %04X [len %08X]\n",svid,read_msg_->svid,read_msg_->len);
 
             m_netclient.asyncRead(read_msg_->data+message::header_length, read_msg_->len*sizeof(user_t),
-                                  boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error), 30);
+                                  boost::bind(&peer::handle_read_bank,this,boost::asio::placeholders::error), REQ_USR_TIMEOUT);
 
             return;
         }
@@ -507,13 +501,12 @@ public:
                 if(read_msg_->data[0]==MSGTYPE_DBP) {
                     read_msg_->data[0]=MSGTYPE_DBG;
                 }
-                if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_DBG) {
-                    pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+                if(read_msg_->data[0]==MSGTYPE_GET || read_msg_->data[0]==MSGTYPE_DBG) {                    
+                    boost::lock_guard<boost::mutex> lock(pio_);
                     if(svid_msid_new[read_msg_->svid]<read_msg_->msid) {
                         svid_msid_new[read_msg_->svid]=read_msg_->msid;
                         DLOG("%04X UPDATE PEER SVID_MSID: %04X:%08X\n",svid,read_msg_->svid,read_msg_->msid);
-                    }
-                    pio_.unlock();
+                    }                    
                 }
                 int ret=server_.message_insert(read_msg_);
                 if(ret) { //NEW, make sure to insert in correct containers
@@ -644,12 +637,12 @@ public:
         std::vector<uint64_t>blk;
         server_.update_list(txs,dbl,blk,svid);
         std::string data;
-        pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+        boost::unique_lock<boost::mutex> lock(pio_);
         for(auto it=txs.begin(); it!=txs.end(); it++) {
             svid_msid_new[*(uint16_t*)(((char*)&(*it))+6)]=*(uint32_t*)(((char*)&(*it))+2); //assume txs sorted
             data.append((const char*)&(*it),sizeof(uint64_t));
         }
-        pio_.unlock();
+        lock.unlock();
         for(auto it=dbl.begin(); it!=dbl.end(); it++) {
             data.append((const char*)&(*it),sizeof(uint64_t));
         }
@@ -723,7 +716,7 @@ public:
     }
 
     void request_next_headers(uint32_t now) { //WARNING, this requests a not validated header, FIXME !!!
-        if(killme) {
+        if(getState() == ST_STOPED) {
             return;
         }
         if(peer_hs.head.now>=now) { // this peer should send this header anytime soon
@@ -819,14 +812,12 @@ public:
             } catch (std::exception& e) {
                 DLOG("%04X CATCH asio error (handle_read_headers): %s\n",svid,e.what());
                 free(data);
-                leave();
-                return;
+                throw std::runtime_error("CATCH asio error (handle_read_headers)");
             }
             if(len!=(int)(SHA256_DIGEST_LENGTH+sizeof(headlink_t)*(num-1))) {
                 ELOG("%04X READ headers error\n",svid);
                 free(data);
-                leave();
-                return;
+                throw std::runtime_error("CATCH asio error (handle_read_headers)");
             }
             char* d=data+SHA256_DIGEST_LENGTH;
             //reed hashes and compare
@@ -1248,15 +1239,13 @@ NEXTUSER:
             DLOG("%04X CATCH asio error (handle_read_servers): %s\n",svid,e.what());
             free(peer_svsi);
             free(peer_nods);
-            leave();
-            return;
+            throw std::runtime_error("CATCH asio error (handle_read_servers)\n");
         }
         if(len!=(int)(peer_hs.head.nod*sizeof(node_t))) {
             ELOG("%04X READ servers error\n",svid);
             free(peer_svsi);
             free(peer_nods);
-            leave();
-            return;
+            throw std::runtime_error("CATCH asio error (handle_read_servers)\n");
         }
         if(server_.last_srvs_.check_nodes(peer_nods,peer_hs.head.nod,peer_hs.head.nodhash)) {
             ELOG("%04X SERVERS incompatible with hash\n",svid);
@@ -1265,8 +1254,7 @@ NEXTUSER:
             ELOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             free(peer_svsi);
             free(peer_nods);
-            leave();
-            return;
+            throw std::runtime_error("CATCH asio error (handle_read_servers)\n");
         }
         DLOG("%04X FINISH SYNC\n",svid);
         server_.fast_sync(true,peer_hs.head,peer_nods,peer_svsi); // should use last_srvs_ instead of sync_...
@@ -1392,14 +1380,15 @@ NEXTUSER:
         try {
             len=m_netclient.readSync(peer_svsi,(peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t), DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
-            DLOG("%04X CATCH asio error (authenticate): %s\n",svid,e.what());
-            leave();
+            DLOG("%04X CATCH asio error (authenticate): %s\n",svid,e.what());            
             free(peer_svsi);
+            throw std::runtime_error("READ block signatures error\n");
             return(0);
         }
         if(len!=(int)((peer_hs.head.vok+peer_hs.head.vno)*sizeof(svsi_t))) {
             ELOG("%04X READ block signatures error\n",svid);
             free(peer_svsi);
+            throw std::runtime_error("ERROR in authenticate:read vok vno\n");
             return(0);
         }
         DLOG("%04X BLOCK signatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
@@ -1615,18 +1604,18 @@ NEXTUSER:
 
     void sync_start(bool server) {
         DLOG("sync_start %d\n", server)
-        pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+        boost::unique_lock<boost::mutex> lock(pio_);
         if(server) {
             BLOCK_SERV=true;
         } else {
             BLOCK_PEER=true;
         }
-        if(!BLOCK_SERV || !BLOCK_PEER) {
-            pio_.unlock();
+        DLOG("sync_start2 %d\n", server)
+        if(!BLOCK_SERV || !BLOCK_PEER) {            
             DLOG("%04X PEER sync_start wait\n",svid);
             return;
         }
-        pio_.unlock(); // start synchronous communication
+        lock.unlock(); // start synchronous communication
         DLOG("%04X PEER sync_start run (no UPDATE PEER SVID_MSID after this)\n",svid);
         bool serv_error;
         bool peer_error;
@@ -1657,6 +1646,7 @@ NEXTUSER:
             }
             sync_finish();
         } catch (std::exception& e) {
+            leave();
             ELOG("%04X CATCH error (sync_start): %s\n",svid,e.what());
         }
     }
@@ -1690,14 +1680,14 @@ NEXTUSER:
         if(data.size()) {
             memcpy(put_msg->data+2,data.c_str(),data.size());
         }
-        try {            
-            m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);
-        } catch (std::exception& e) {
-            DLOG("%04X CATCH asio error (write_serv_del): %s\n",svid,e.what());
-            leave();
-            //throw("ERROR in write_serv_del()\n");
+
+        try{
+            m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);            
         }
-        return;
+        catch (std::exception& e) {
+            DLOG("%04X CATCH asio error (write_serv_del): %s\n",svid,e.what());
+            throw std::runtime_error("ERROR in write_serv_del()");
+        }        
     }
 
     void read_peer_del() {
@@ -1705,13 +1695,12 @@ NEXTUSER:
         try {
             len=m_netclient.readSync(read_msg_->data,2, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
-            DLOG("%04X CATCH asio error (read_peer_del 1): %s\n",svid,e.what());
+            DLOG("%04X CATCH asio error (read_peer_del 1): %s\n",svid, e.what());
+            throw std::runtime_error("ERROR in read_peer_del\n");
         }
         if(2!=len) {
-            ELOG("%04X READ read_peer_del error\n",svid);
-            leave();
-            //throw("ERROR in read_peer_del\n");
-            return;
+            ELOG("%04X READ read_peer_del error\n",svid);            
+            throw std::runtime_error("ERROR in read_peer_del\n");
         }
         assert(read_msg_->data!=NULL);
         memcpy(&peer_del,read_msg_->data,2);
@@ -1728,12 +1717,11 @@ NEXTUSER:
             } catch (std::exception& e) {
                 len=0;
                 DLOG("%04X CATCH asio error (read_peer_del 2): %s\n",svid,e.what());
+                throw std::runtime_error("ERROR in read_peer_del\n");
             }
             if((int)read_msg_->len!=len) {
-                ELOG("%04X READ read_peer_del error\n",svid);
-                leave();
-                //throw("ERROR in read_peer_del\n");
-                return;
+                ELOG("%04X READ read_peer_del error\n",svid);                
+                throw std::runtime_error("ERROR in read_peer_del\n");
             }
             DLOG("%04X PEER read peer del\n",svid);
             for(int i=0; i<peer_del; i++) {
@@ -1743,10 +1731,8 @@ NEXTUSER:
                 memcpy(&dmsid,read_msg_->data+6*i+2,4);
                 PEER_block_del_start[dsvid]=dmsid;
                 if(dsvid>=srvs_.nodes.size()) {
-                    ELOG("%04X ERROR read_peer_del peersvid %04X\n",svid,dsvid);
-                    leave();
-                    //throw("ERROR in read_peer_del\n");
-                    return;
+                    ELOG("%04X ERROR read_peer_del peersvid %04X\n",svid,dsvid);                    
+                    throw std::runtime_error("ERROR read_peer_del peersvid\n");
                 }
                 DLOG("%04X PEER del %04X:%08X\n",svid,dsvid,dmsid);
             }
@@ -1794,14 +1780,14 @@ NEXTUSER:
         if(data.size()) {
             memcpy(put_msg->data+4,data.c_str(),data.size());
         }
+
         try {
             m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);
-        } catch (std::exception& e) {
-            DLOG("%04X CATCH asio error (write_serv_add): %s\n",svid,e.what());
-            leave();
-            //throw("ERROR in write_serv_add()\n");
         }
-        return;
+        catch (std::exception& e) {
+            DLOG("%04X CATCH asio error (write_serv_add): %s\n",svid,e.what());            
+            throw std::runtime_error("ERROR in write_serv_add()\n");
+        }        
     }
 
     bool read_peer_add(bool error) {
@@ -1810,12 +1796,11 @@ NEXTUSER:
             len=m_netclient.readSync(read_msg_->data, 4, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (read_peer_add 1): %s\n",svid,e.what());
+            throw std::runtime_error("ERROR in read_peer_add\n");
         }
         if(4!=len) {
-            ELOG("%04X READ read_peer_add error\n",svid);
-            leave();
-            //throw("ERROR in read_peer_add\n");
-            return(true);
+            ELOG("%04X READ read_peer_add error\n",svid);            
+            throw std::runtime_error("ERROR in read_peer_add\n");
         }
         memcpy(&peer_add,read_msg_->data,4);
         if(!peer_add) {
@@ -1830,12 +1815,11 @@ NEXTUSER:
             } catch (std::exception& e) {
                 len=0;
                 DLOG("%04X CATCH asio error (read_peer_add 2): %s\n",svid,e.what());
+                throw std::runtime_error("ERROR in read_peer_add\n");
             }
             if((int)read_msg_->len!=len) {
-                ELOG("%04X READ read_peer_add error\n",svid);
-                leave();
-                //throw("ERROR in read_peer_add\n");
-                return(true);
+                ELOG("%04X READ read_peer_add error\n",svid);                
+                throw std::runtime_error("ERROR in read_peer_add\n");
             }
         }
 
@@ -1879,9 +1863,9 @@ NEXTUSER:
             memcpy(((char*)&key)+2,read_msg_->data+sizeof(msidsvidhash_t)*i,6);
             if(*(uint16_t*)(((char*)&key)+6)>=srvs_.nodes.size()) {
                 ELOG("%04X ERROR read_peer_missing_messages peersvid %04X\n",svid,*(uint16_t*)(((char*)&key)+6));
-                leave();
+                //leave();
                 //throw("ERROR in read_peer_add\n");
-                return(true);
+                throw std::runtime_error("ERROR read_peer_missing_messages\n");
             }
             PEER_block_del.erase(key);
             PEER_block_add[key]=*(hash_s*)(read_msg_->data+sizeof(msidsvidhash_t)*i+6);
@@ -1905,18 +1889,20 @@ NEXTUSER:
         return(error);
     }
 
-    void write_serv_check(bool error) {
+    void write_serv_check(bool error)
+    {
         DLOG("%04X write_serv_check run\n",svid);
         uint8_t buf[1];
         buf[0]=error;
+
         try {
             m_netclient.writeSync(buf,1, DEFAULT_NET_TIMEOUT);
-        } catch (std::exception& e) {
-            DLOG("%04X CATCH asio error (write_serv_check): %s\n",svid,e.what());
-            leave();
-            //throw("ERROR in write_serv_check()\n");
         }
-        return;
+        catch (std::exception& e) {
+            DLOG("%04X CATCH asio error (write_serv_check): %s\n",svid,e.what());
+            //leave();
+            throw std::runtime_error("ERROR in write_serv_check()\n");
+        }
     }
 
     bool read_peer_check() {
@@ -1926,12 +1912,11 @@ NEXTUSER:
             len=m_netclient.readSync(buf, 1, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (read_peer_check): %s\n",svid,e.what());
+            throw std::runtime_error("ERROR in read_peer_check\n");
         }
         if(1!=len) {
-            ELOG("%04X READ read_peer_check error\n",svid);
-            leave();
-            //throw("ERROR in read_peer_check\n");
-            return(true);
+            ELOG("%04X READ read_peer_check error\n",svid);            
+            throw std::runtime_error("ERROR in read_peer_check\n");
         }
         DLOG("%04X PEER read peer check\n",svid);
         bool error=buf[0];
@@ -1942,7 +1927,7 @@ NEXTUSER:
         ELOG("%04X SYNC OK\n",svid);
         hash_s* hash_p=(hash_s*)last_message_hash;
         server_.save_candidate(BLOCK_MODE,*hash_p,PEER_block_add,PEER_block_del,svid);
-        pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock();
+        boost::lock_guard<boost::mutex> lock(pio_);
         if(!write_msgs_.empty()) {
             //int len=message_len(write_msgs_.front());
             int len=write_msgs_.front()->len;
@@ -1954,8 +1939,7 @@ NEXTUSER:
         last_active=BLOCK_MODE;
         BLOCK_MODE=0;
         BLOCK_SERV=false;
-        BLOCK_PEER=false;
-        pio_.unlock();
+        BLOCK_PEER=false;        
     }
 
     int parse_vote() { //TODO, make this function similar to handle_read_block (make this handle_read_candidate)
@@ -2067,7 +2051,7 @@ NEXTUSER:
   private:
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
-    bool        killme; // kill process initiated
+    //bool        killme; // kill process initiated
     uint32_t    busy; // waiting for response (used during sync load balancing) set to last request time
     uint32_t    last_active; // updated with every block sync, protects from disconnect, could be read only (private)
 
