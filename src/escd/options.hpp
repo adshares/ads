@@ -83,6 +83,15 @@ class options {
             }
             if(vm.count("fast")) {
                 std::cout << "Service fast: " << vm["fast"].as<bool>() << std::endl;
+                if(vm["fast"].as<bool>()) {
+                    if(!vm.count("viphash") || vm["viphash"].as<std::string>().length() == 0) {
+                        std::cerr << "Must provide --viphash for fast sync" << std::endl;
+                        throw new std::exception();
+                    } else if(vm["viphash"].as<std::string>().length() != SHA256_DIGEST_LENGTH*2) {
+                        std::cerr << "Invalid --viphash length" << std::endl;
+                        throw new std::exception();
+                    }
+                }
             }
             if(vm.count("mins")) {
                 std::cout << "Service mins: " << vm["mins"].as<int>() << std::endl;
