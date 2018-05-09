@@ -28,10 +28,12 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_getTransactionHandler(office, socket) {
 }
 
-void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
-    user_t usera;
+void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
+{
+    user_t      usera;
+
     if(!m_offi.get_user(usera, command->getBankId(), command->getUserId())) {
-        ErrorCodes::Code code = ErrorCodes::Code::eWrongSignature;
+        ErrorCodes::Code code = ErrorCodes::Code::eGetUserFail;
         DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
         boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
         return;
@@ -39,52 +41,52 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command) {
 
     switch(command->getType()) {
     case TXSTYPE_INF:
-        m_getAccountHandler.execute(std::move(command), std::move(usera));
+        m_getAccountHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_KEY:
-        m_setAccountHandler.execute(std::move(command), std::move(usera));
+        m_setAccountHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_BNK:
-        m_createNodeHandler.execute(std::move(command), std::move(usera));
+        m_createNodeHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_PUT:
-        m_sendOneHandler.execute(std::move(command), std::move(usera));
+        m_sendOneHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_MPT:
-        m_sendManyHandler.execute(std::move(command), std::move(usera));
+        m_sendManyHandler.execute(std::move(command), usera);
     	break;
     case TXSTYPE_USR:
-        m_createAccountHandler.execute(std::move(command), std::move(usera));
+        m_createAccountHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_NOD:
-        m_getAccountsHandler.execute(std::move(command), std::move(usera));
+        m_getAccountsHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_BRO:
-        m_broadcastMsgHandler.execute(std::move(command), std::move(usera));
+        m_broadcastMsgHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_BLG:
-        m_getBroadcastMsgHandler.execute(std::move(command), std::move(usera));
+        m_getBroadcastMsgHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_BKY:
-        m_changeNodeKeyHandler.execute(std::move(command), std::move(usera));
+        m_changeNodeKeyHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_NDS:
-        m_getBlockHandler.execute(std::move(command), std::move(usera));
+        m_getBlockHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_MGS:
-        m_getMessageListHandler.execute(std::move(command), std::move(usera));
+        m_getMessageListHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_MSG:
         m_getMessageHandler.execute(std::move(command), std::move(usera));
         break;
     case TXSTYPE_LOG:
-        m_getLogHandler.execute(std::move(command), std::move(usera));
+        m_getLogHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_TXS:
-        m_getTransactionHandler.execute(std::move(command), std::move(usera));
+        m_getTransactionHandler.execute(std::move(command), usera);
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());
         break;
-    }
+    }    
 }

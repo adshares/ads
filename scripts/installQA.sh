@@ -15,6 +15,10 @@ peerport=8190
 stopservice="FALSE"
 
 
+hostaddr1=85.10.197.15
+hostaddr2=5.9.56.132
+
+
 if [ $# -eq 4 ]
 then
 officeport=$1
@@ -32,16 +36,20 @@ nodename='escdnodesrv'
 let "user1office = $officeport + 1"
 let "user2office = $officeport + 1"
 let "user3office = $officeport + 2"
+let "user4office = $officeport + 3"
+let "user5office = $officeport + 4"
 
 userpath[1]="user1"
 userpath[2]="user2"
 userpath[3]="user3"
 userpath[4]="user4"
+userpath[5]="user5"
 
 echo ${userpath[1]}
 echo ${userpath[2]}
 echo ${userpath[3]}
-echo ${userpath[3]}
+echo ${userpath[4]}
+echo ${userpath[5]}
 
 
 
@@ -57,12 +65,21 @@ function prepareNode
         echo 'svid='$1 > options.cfg
         echo 'offi='$2 >> options.cfg
         echo 'port='$3 >> options.cfg
-        echo 'addr=127.0.0.1' >> options.cfg
+
+        if [ $i -gt 3 ]
+        then
+            echo 'addr='$hostaddr2 >> options.cfg
+        else
+            echo 'addr='$hostaddr1 >> options.cfg
+        fi
+
         mkdir key
         chmod go-rx key/
-        if [ $i -gt 1 ]
+        if [ $i -gt 1 ] && [ $i -lt 5 ]
         then
-            echo 'peer=127.0.0.1:'$4 >> options.cfg
+            echo 'peer='$hostaddr1':'$4 >> options.cfg
+        else
+            echo 'peer='$hostaddr2':'$4 >> options.cfg
         fi
 
         if [ $i == 2 ]
@@ -82,7 +99,7 @@ function prepareClientKeys
     if [ $2 == 1 ]
     then
     {
-        echo 'host=127.0.0.1'> settings.cfg
+        echo 'host='$hostaddr1> settings.cfg
         echo 'port='$user1office >> settings.cfg
         echo 'address=0001-00000000-XXXX' >> settings.cfg
         echo 'secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0' >> settings.cfg
@@ -92,17 +109,17 @@ function prepareClientKeys
     if [ $2 == 2 ]
     then
     {
-        echo 'host=127.0.0.1' > settings.cfg
+        echo 'host='$hostaddr1 > settings.cfg
         echo 'port='$user2office >> settings.cfg
         echo 'address=0001-00000001-XXXX' >> settings.cfg
-        echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
+        echo 'secret=5BF11F5D01CMAKE_PROJECT_CONFIG30EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
     }
     fi
 
     if [ $2 == 3 ]
     then
     {
-        echo 'host=127.0.0.1' > settings.cfg
+        echo 'host='$hostaddr1 > settings.cfg
         echo 'port='$user3office >> settings.cfg
         echo 'address=0002-00000000-75BD' >> settings.cfg
         echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
@@ -112,10 +129,20 @@ function prepareClientKeys
     if [ $2 == 4 ]
     then
     {
-        echo 'host=127.0.0.1' > settings.cfg
+        echo 'host='$hostaddr1 > settings.cfg
         echo 'port='$user3office >> settings.cfg
         echo 'address=0002-00000001-659C' >> settings.cfg
         echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
+    }
+    fi
+
+    if [ $2 == 5 ]
+    then
+    {
+        echo 'host='$hostaddr2 > settings.cfg
+        echo 'port='$user4office >> settings.cfg
+        echo 'address=0004-00000000-XXXX' >> settings.cfg
+        echo 'secret=D2B8F62A7E335BBD5576C8422844760F22EC378009EEEA790C41E4DC45F23C33' >> settings.cfg
     }
     fi
 
@@ -145,8 +172,6 @@ function prepareClient
 
         username='user'$1
         mkdir $username
-        #ln -s $current/esc $username/esc
-        ln -s $current/ed25519/key $username/key
 
         prepareClientKeys $username $1
 }
@@ -166,7 +191,7 @@ function setUpUser1
 
     sleep 60
 
-    echo 'host=127.0.0.1'> settings.cfg
+    echo 'host='$hostaddr1> settings.cfg
     echo 'port='$user1office >> settings.cfg
     echo 'address=0001-00000000-9B6F' >> settings.cfg
     echo 'secret=FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' >> settings.cfg
@@ -235,7 +260,7 @@ function changeKeysforUser2
 
     echo '.............................changeKeysUser2 config'${userpath[2]}
 
-    echo 'host=127.0.0.1' > settings.cfg
+    echo 'host='$hostaddr1 > settings.cfg
     echo 'port='$user2office >> settings.cfg
     echo 'address=0001-00000001-8B4E' >> settings.cfg
     echo 'secret=5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C' >> settings.cfg
@@ -366,6 +391,40 @@ function changeNode3Key
     sleep 30
 }
 
+function changeNode4Key
+{
+    cd ${nodename[4]}
+
+    echo 'D2B8F62A7E335BBD5576C8422844760F22EC378009EEEA790C41E4DC45F23C33' > key/key.txt
+    cd ..
+
+    cd ${userpath[1]}
+
+    echo '.............................change_node_key'
+
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"BB6D774EA23DFB4D6510F04EFFA79FCA281C046CB39143B101CB451D0919AFA9","node":"4"}') | esc
+
+    cd ..
+    sleep 30
+}
+
+function changeNode5Key
+{
+    cd ${nodename[5]}
+
+    echo 'D2B8F62A7E335BBD5576C8422844760F22EC378009EEEA790C41E4DC45F23C33' > key/key.txt
+    cd ..
+
+    cd ${userpath[1]}
+
+    echo '.............................change_node_key'
+
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"BB6D774EA23DFB4D6510F04EFFA79FCA281C046CB39143B101CB451D0919AFA9","node":"4"}') | esc
+
+    cd ..
+    sleep 30
+}
+
 function getMeMultipleTest
 {
     for i in $(seq 1 $1);
@@ -382,7 +441,7 @@ function getBalanceMultipleTest
     done
 }
 
-function copyserverconf
+function copyserverconfprepareClient
 {
     cd $1
 
@@ -516,12 +575,12 @@ cd $deploypath
 
 
 
-for i in 1 2 3
+for i in 1 2 3 4 5
 do
         echo 'PREPARE NODE'
         let "officeport = $officeport + 1"
         let "serverport = $serverport + 1"
-        let "peerport   = $serverport-1"
+        let "peerport   = $serverport - 1"
 
         nodename[$i]=$nodebasename$i'_'$officeport
 
@@ -531,7 +590,7 @@ do
         echo 'PREPARE NODE END'
 done
 
-for i in 1 2 3 4
+for i in 1 2 3 4 5
 do
     prepareClient $i
 done
@@ -540,6 +599,8 @@ echo '............NODENAMMMEEEEEEE'
 echo ${nodename[1]}
 echo ${nodename[2]}
 echo ${nodename[3]}
+echo ${nodename[4]}
+echo ${nodename[5]}
 
 stopAllNodes
 
@@ -560,6 +621,14 @@ checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 changeNode2Key
 addNode
 changeNode3Key
+addNode
+changeNode4Key
+addNode
+changeNode5Key
+
+addNode
+addNode
+addNode
 
 sleep 60
 
@@ -579,6 +648,8 @@ createAccount ${userpath[3]} "0002"
 sleep 60
 
 copyserverconf ${nodename[3]}
+copyserverconf ${nodename[4]}
+copyserverconf ${nodename[5]}
 startnode ${nodename[3]} "-m 1 -f 1" ${nodename[3]}
 sleep 120
 startnode ${nodename[3]} "-m 1" ${nodename[3]}
@@ -639,11 +710,12 @@ checkBalance ${userpath[4]} "0002-00000001-659C" "60."
 #getBalanceMultipleTest 10
 
 
+sendCash ${userpath[1]} "0004-00000000-XXXX" 111.1234
+sendCash ${userpath[1]} "0005-00000000-XXXX" 221.1234
+
 echo "-------------------------------------------------------------------"
 
-cd ..
-cd scripts
-fulltest.sh
+
 finishTest 0
 
 
