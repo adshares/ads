@@ -86,10 +86,10 @@ class options {
                 if(vm["fast"].as<bool>()) {
                     if(!vm.count("viphash") || vm["viphash"].as<std::string>().length() == 0) {
                         std::cerr << "Must provide --viphash for fast sync" << std::endl;
-                        throw new std::exception();
+                        throw std::runtime_error("Must provide --viphash for fast sync");
                     } else if(vm["viphash"].as<std::string>().length() != SHA256_DIGEST_LENGTH*2) {
                         std::cerr << "Invalid --viphash length" << std::endl;
-                        throw new std::exception();
+                        throw std::runtime_error("Invalid --viphash length");
                     }
                 }
             }

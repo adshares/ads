@@ -36,14 +36,14 @@ public:
         m_netclient(socket_, *this),
         m_peerManager(peerManager),
         m_state{ST_INIT},
-        server_(srv),        
+        server_(srv),
         incoming_(in),
         srvs_(srvs),
-        opts_(opts),        
+        opts_(opts),
         files_out(0),
         files_in(0),
         bytes_out(0),
-        bytes_in(0),        
+        bytes_in(0),
         BLOCK_MODE(0),
         BLOCK_SERV(false),
         BLOCK_PEER(false)
@@ -69,8 +69,8 @@ public:
                 peer_io_service_.stop();
             }
 
-            if(iothp_ && iothp_->joinable()) {                
-                iothp_->join();                
+            if(iothp_ && iothp_->joinable()) {
+                iothp_->join();
             } //try joining yourself error;
         }
         catch (std::exception& e) {
@@ -96,10 +96,10 @@ public:
 //FIXME, wipe out inactive peers (better solution)
             DLOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
             leave();
-        }        
-    }    
+        }
+    }
 
-    void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {        
+    void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {
         m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, this, boost::asio::placeholders::error), timeout);
     }
 
@@ -126,16 +126,16 @@ public:
         m_state = state;
     }
 
-    void leave() {        
+    void leave() {
         setState(ST_STOPED);
-    }    
+    }
 
     void accept()
     {
         //only incoming connections
         assert(socket_.is_open());
         Helper::setSocketTimeout(socket_);
-        assert(incoming_);       
+        assert(incoming_);
         addr = socket_.remote_endpoint().address().to_string();
         port = socket_.remote_endpoint().port();
 
@@ -147,8 +147,8 @@ public:
     void connect(const boost::system::error_code& error)
     {
         //only outgoing connection
-        if(error) {            
-            DLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);            
+        if(error) {
+            DLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);
             leave();
             return;
         }
@@ -173,7 +173,7 @@ public:
         setState(ST_CONNECTED);
 
         m_netclient.asyncWrite(msg->data, msg->len, boost::bind(&peer::handle_write,this,boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
-        asyncWaitForNewMessageHeader();        
+        asyncWaitForNewMessageHeader();
     }
 
     boost::asio::ip::tcp::socket& socket() {
@@ -368,7 +368,7 @@ public:
         busy=time(NULL);//set peer to busy, TODO, set this flag in other methods too
         pio_.lock(); //boost::lock_guard<boost::mutex> lock(pio_); //pio_.lock(); //most likely no lock needed
         std::size_t len = 0;
-        try {                          
+        try {
              len = m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (send_sync): %s\n",svid,e.what());
@@ -383,7 +383,7 @@ public:
         if(put_msg->len!=message::header_length) {
 //FIXME, do not unload everything ...
             put_msg->unload(svid);
-        }        
+        }
     }
 
     void handle_write(const boost::system::error_code& error, size_t transfered)
@@ -464,7 +464,7 @@ public:
             ELOG("%04X ERROR READ illegal header during startup (%d)\n",svid,(int)read_msg_->data[0]);
             leave();
             return;
-        }        
+        }
 
         busy=0; // any incomming data resets the busy flag indicating a responsive peer
         bytes_in+=read_msg_->len;
@@ -605,13 +605,13 @@ public:
                 DLOG("%04X PEER in block mode\n",svid);
                 //could enter a different (sync) read sequence here;
                 //read_msg_->data=(uint8_t*)std::realloc(read_msg_->data,read_msg_->len);
-                assert(read_msg_->len==1+SHA256_DIGEST_LENGTH);                
+                assert(read_msg_->len==1+SHA256_DIGEST_LENGTH);
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_read_stop,this,boost::asio::placeholders::error));
                 return;
             }
             if(read_msg_->data[0]==MSGTYPE_MSP) {
-                DLOG("%04X READ msglist header\n",svid);                                
+                DLOG("%04X READ msglist header\n",svid);
                 m_netclient.asyncRead(read_msg_->data+message::header_length,read_msg_->len-message::header_length,
                                       boost::bind(&peer::handle_read_msglist,this,boost::asio::placeholders::error));
                 return;
@@ -952,7 +952,7 @@ public:
         asyncWaitForNewMessageHeader();
     }
 
-    void write_bank() {                
+    void write_bank() {
         uint32_t path=read_msg_->msid;
         uint16_t bank=read_msg_->svid;
 
@@ -1093,7 +1093,7 @@ NEXTUSER:
     }
 
     void asyncWaitForNewMessageHeader()
-    {               
+    {
         read_msg_ = boost::make_shared<message>();
 
         m_netclient.asyncRead(read_msg_->data, message::header_length,
@@ -1290,13 +1290,14 @@ NEXTUSER:
         memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
         srvs_.header_print(peer_hs.head);
 
-        if(opts_.fast && server_.do_fast) {
+        if(opts_.fast && server_.do_fast)
+        {
             char hash_text[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash_text, peer_hs.head.viphash, SHA256_DIGEST_LENGTH);
             ELOG("Fast sync VIPHASH: %.*s\n", 2*SHA256_DIGEST_LENGTH, hash_text);
             if(strncmp(hash_text, opts_.viphash.c_str(), 2*SHA256_DIGEST_LENGTH)) {
                 ELOG("Synced to invalid VIPHASH, expected %.*s\n", 2*SHA256_DIGEST_LENGTH, opts_.viphash.c_str());
-                throw new std::exception();
+                throw std::runtime_error("Synced to invalid VIPHASH");
             }
         }
 
@@ -1704,7 +1705,7 @@ NEXTUSER:
         if(data.size()) {
             memcpy(put_msg->data+2,data.c_str(),data.size());
         }
-        try {            
+        try {
             m_netclient.writeSync(put_msg->data,put_msg->len, DEFAULT_NET_TIMEOUT);
         } catch (std::exception& e) {
             DLOG("%04X CATCH asio error (write_serv_del): %s\n",svid,e.what());
@@ -2069,7 +2070,7 @@ NEXTUSER:
             memcpy(read_msg_->data+1,&read_msg_->len,3);
         }
         return(1);
-    }    
+    }
 
     uint32_t    getSvid()
     {
@@ -2092,7 +2093,7 @@ NEXTUSER:
 
     boost::asio::io_service peer_io_service_;	//TH
     boost::asio::io_service::work work_;		//TH
-    boost::asio::ip::tcp::socket socket_;    
+    boost::asio::ip::tcp::socket socket_;
 
     PeerClient          m_netclient;
     PeerConnectManager& m_peerManager;
