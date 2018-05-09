@@ -1744,7 +1744,7 @@ class servers { // also a block
         for(auto n=nodes.begin(); n!=nodes.end(); n++) {
             n->changed.resize(1+n->users/64);
         }
-        uint32_t nextnow=now+BLOCKSEC;
+        uint32_t nextnow=blockTime+BLOCKSEC;
         sprintf(pathname,"blk/%03X",nextnow>>20);
         mkdir(pathname,0755);
         sprintf(pathname,"blk/%03X/%05X",nextnow>>20,nextnow&0xFFFFF); // to make space for moved files
