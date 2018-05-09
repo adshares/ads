@@ -1290,6 +1290,16 @@ NEXTUSER:
         memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
         srvs_.header_print(peer_hs.head);
 
+        if(opts_.fast && server_.do_fast) {
+            char hash_text[2*SHA256_DIGEST_LENGTH];
+            ed25519_key2text(hash_text, peer_hs.head.viphash, SHA256_DIGEST_LENGTH);
+            ELOG("Fast sync VIPHASH: %.*s\n", 2*SHA256_DIGEST_LENGTH, hash_text);
+            if(strncmp(hash_text, opts_.viphash.c_str(), 2*SHA256_DIGEST_LENGTH)) {
+                ELOG("Synced to invalid VIPHASH, expected %.*s\n", 2*SHA256_DIGEST_LENGTH, opts_.viphash.c_str());
+                throw new std::exception();
+            }
+        }
+
         //memcpy(&sync_head,&peer_hs.head,sizeof(header_t));
         if(read_msg_->svid==opts_.svid) {
             DLOG("%04X ERROR: connecting to myself\n",svid);
