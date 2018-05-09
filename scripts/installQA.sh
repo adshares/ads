@@ -66,7 +66,7 @@ function prepareNode
         echo 'offi='$2 >> options.cfg
         echo 'port='$3 >> options.cfg
 
-        if [ $i == 4 ]
+        if [ $i -gt 3 ]
         then
             echo 'addr='$hostaddr2 >> options.cfg
         else
@@ -75,9 +75,11 @@ function prepareNode
 
         mkdir key
         chmod go-rx key/
-        if [ $i -gt 1 ]
+        if [ $i -gt 1 ] && [ $i -lt 5 ]
         then
             echo 'peer='$hostaddr1':'$4 >> options.cfg
+        else
+            echo 'peer='$hostaddr2':'$4 >> options.cfg
         fi
 
         if [ $i == 2 ]
@@ -406,6 +408,23 @@ function changeNode4Key
     sleep 30
 }
 
+function changeNode5Key
+{
+    cd ${nodename[5]}
+
+    echo 'D2B8F62A7E335BBD5576C8422844760F22EC378009EEEA790C41E4DC45F23C33' > key/key.txt
+    cd ..
+
+    cd ${userpath[1]}
+
+    echo '.............................change_node_key'
+
+    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"BB6D774EA23DFB4D6510F04EFFA79FCA281C046CB39143B101CB451D0919AFA9","node":"4"}') | esc
+
+    cd ..
+    sleep 30
+}
+
 function getMeMultipleTest
 {
     for i in $(seq 1 $1);
@@ -556,7 +575,7 @@ cd $deploypath
 
 
 
-for i in 1 2 3 4
+for i in 1 2 3 4 5
 do
         echo 'PREPARE NODE'
         let "officeport = $officeport + 1"
@@ -580,6 +599,8 @@ echo '............NODENAMMMEEEEEEE'
 echo ${nodename[1]}
 echo ${nodename[2]}
 echo ${nodename[3]}
+echo ${nodename[4]}
+echo ${nodename[5]}
 
 stopAllNodes
 
@@ -602,6 +623,12 @@ addNode
 changeNode3Key
 addNode
 changeNode4Key
+addNode
+changeNode5Key
+
+addNode
+addNode
+addNode
 
 sleep 60
 
@@ -612,7 +639,7 @@ echo 'server started'
 
 sleep 120
 
-checkBalance ${userpath[1]} "0001-00000001-8B4E" "28prepareClient0."
+checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 
 startnode ${nodename[2]} "-m 1" ${nodename[2]}
 sleep 120
@@ -622,6 +649,7 @@ sleep 60
 
 copyserverconf ${nodename[3]}
 copyserverconf ${nodename[4]}
+copyserverconf ${nodename[5]}
 startnode ${nodename[3]} "-m 1 -f 1" ${nodename[3]}
 sleep 120
 startnode ${nodename[3]} "-m 1" ${nodename[3]}
@@ -683,6 +711,7 @@ checkBalance ${userpath[4]} "0002-00000001-659C" "60."
 
 
 sendCash ${userpath[1]} "0004-00000000-XXXX" 111.1234
+sendCash ${userpath[1]} "0005-00000000-XXXX" 221.1234
 
 echo "-------------------------------------------------------------------"
 
