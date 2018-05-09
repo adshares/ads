@@ -1452,9 +1452,13 @@ NEXTUSER:
 
         if(opts_.mins || svid!=BANK_MAX || !server_.do_sync) {
             if(!read_msg_->svid || read_msg_->svid>=srvs_.nodes.size()) { // READONLY ok
-                ELOG("%04X ERROR reading head (bad svid %04X)\n",svid,read_msg_->svid);
-                leave();
-                return;
+                if(srvs_.nodes[0].status & SERVER_FST) {
+                  //srvs_.init_fast(read_msg_->svid, srvs_.nodes[opts_.svid].pk);
+                } else {
+                    ELOG("%04X ERROR reading head (bad svid %04X)\n",svid,read_msg_->svid);
+                    leave();
+                    return;
+                }
             }
             uint8_t* msha=srvs_.nodes[read_msg_->svid].msha;
             if(read_msg_->data[0]==MSGTYPE_MSG) {
@@ -1487,7 +1491,7 @@ NEXTUSER:
             } else if(read_msg_->data[0]==MSGTYPE_INI || read_msg_->data[0]==MSGTYPE_CND) {
                 read_msg_->hash_signature();
             }
-            if(read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)) {
+            if(!(srvs_.nodes[0].status & SERVER_FST) && read_msg_->check_signature(srvs_.nodes[read_msg_->svid].pk,opts_.svid,msha)) {
                 //FIXME, this can be also a double spend, do not loose it
                 ELOG("%04X BAD signature %04X:%08X (last msid:%08X) %016lX!!!\n\n",svid,read_msg_->svid,read_msg_->msid,
                      srvs_.nodes[read_msg_->svid].msid,read_msg_->hash.num);

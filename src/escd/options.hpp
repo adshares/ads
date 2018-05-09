@@ -30,6 +30,8 @@ class options {
     int svid;
     std::string addr;
     std::string dnsa;
+    std::string genesis;
+    std::string viphash;
     uint32_t ipv4;
     int back;
     std::vector<std::string> peer;
@@ -54,6 +56,8 @@ class options {
             ("peer,r", boost::program_options::value<std::vector<std::string>>(&peer)->composing(),		"peer address:port/id, multiple peers allowed, id as int")
             ("back,b", boost::program_options::value<int>(&back)->default_value(0),				"roll back database given number of blocks (reversible if no commit)")
             ("comm,c", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
+            ("viphash,V", boost::program_options::value<std::string>(&viphash)->default_value(""),      "current viphash of desired network (required with --fast switch)")
+            ("genesis,g", boost::program_options::value<std::string>(&genesis)->default_value(""),      "json file with network state at genesis block (works with --init)")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);

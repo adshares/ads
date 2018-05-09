@@ -35,6 +35,8 @@
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
 
+#define AMOUNT_DECIMALS 11
+
 //#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
 //#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
 //#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
