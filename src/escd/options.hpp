@@ -83,7 +83,7 @@ class options {
             }
             if(vm.count("fast")) {
                 std::cout << "Service fast: " << vm["fast"].as<bool>() << std::endl;
-                if(vm["fast"].as<bool>()) {
+                /*if(vm["fast"].as<bool>()) {
                     if(!vm.count("viphash") || vm["viphash"].as<std::string>().length() == 0) {
                         std::cerr << "Must provide --viphash for fast sync" << std::endl;
                         throw std::runtime_error("Must provide --viphash for fast sync");
@@ -91,7 +91,7 @@ class options {
                         std::cerr << "Invalid --viphash length" << std::endl;
                         throw std::runtime_error("Invalid --viphash length");
                     }
-                }
+                }*/
             }
             if(vm.count("mins")) {
                 std::cout << "Service mins: " << vm["mins"].as<int>() << std::endl;

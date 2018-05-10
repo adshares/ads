@@ -216,7 +216,6 @@ class servers { // also a block
                 memcpy(nn.pk,hash,32);
                 nodes.push_back(nn);
                 nodes.push_back(nn);
-                nodes.push_back(nn);
 
                 int64_t stw=TOTALMASS/(nodes.size()-1); // removed initial tax of 1%
                 for(auto it=nodes.begin();it<nodes.end();it++,num++){
@@ -904,12 +903,12 @@ class servers { // also a block
         vno=0;
         std::vector<uint16_t> svid_rank;
         for(i=1; i<nodes.size(); i++) { //FIXME, start this with 1, not with 0
-            if(nodes[i].status & SERVER_DBL) {
+            if(nodes[i].status & SERVER_DBL ) {
                 continue;
             }
-//            if(i>1 && !nodes[i].msid) { // do not include nodes silent nodes
-//                continue;
-//            }
+            if(i>1 && !nodes[i].msid) { // do not include nodes silent nodes
+                continue;
+            }
             svid_rank.push_back(i);
         }
         std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
@@ -1360,6 +1359,7 @@ class servers { // also a block
         //int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
 
         if(!boost::filesystem::exists(filepath)){
+            DLOG("SIGNATURE,  CREATEBLOCK %s\n",filename);
             blockdir(path);
         }
 
