@@ -14,7 +14,7 @@ serverport=8190
 peerport=8190
 stopservice="FALSE"
 
-hostaddr1=5.9.56.132
+hostaddr1="127.0.0.1"
 
 
 if [ $# -eq 4 ]
@@ -65,6 +65,7 @@ function prepareNode
         if [ $i -gt 1 ]
         then
             echo 'peer='$hostaddr1':'$4 >> options.cfg
+            echo 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' > key/key.txt
         fi
 
         if [ $i == 2 ]
@@ -342,7 +343,7 @@ function changeNode2Key
 
     echo '.............................change_node_key'
 
-    (echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | esc
+    #(echo '{"run":"get_me"}'; echo '{"run":"change_node_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","node":"2"}') | esc
 
     cd ..
 
@@ -562,6 +563,7 @@ checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 changeNode2Key
 addNode
 changeNode3Key
+addNode
 
 sleep 60
 
@@ -577,9 +579,6 @@ checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
 startnode ${nodename[2]} "-m 1" ${nodename[2]}
 sleep 120
 
-createAccount ${userpath[3]} "0002"
-sleep 60
-
 copyserverconf ${nodename[3]}
 startnode ${nodename[3]} "-m 1 -f 1" ${nodename[3]}
 sleep 120
@@ -587,6 +586,10 @@ startnode ${nodename[3]} "-m 1" ${nodename[3]}
 sleep 120
 startnode ${nodename[1]} "-m 1" ${nodename[1]}
 sleep 120
+
+createAccount ${userpath[3]} "0002"
+sleep 60
+
 
 
 echo 'server started one more time'
