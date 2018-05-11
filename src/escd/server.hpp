@@ -2887,8 +2887,7 @@ NEXTUSER:
                 sign_mlen[sign_num]=(size_t)32;
                 sign_mlen2[sign_num]=(size_t)mlen2;
                 memcpy(sign_m__hash[sign_num].hash,usera->hash,32);
-                sign_m[sign_num]=sign_m__hash[sign_num].hash;
-                DLOG("SYLWESTER  CHECK_SIGN PKEY usera %d  startPK %u, signum %d\n",usera->user, usera->pkey, sign_num);
+                sign_m[sign_num]=sign_m__hash[sign_num].hash;                
                 memcpy(sign_pk_hash[sign_num].hash,usera->pkey,32);
                 sign_pk[sign_num]=sign_pk_hash[sign_num].hash;
                 sign_m2[sign_num]=(unsigned char*)p;
@@ -3268,8 +3267,7 @@ NEXTUSER:
             //std::vector<const unsigned char*> sign_rs(tpos_max);
             int ret=ed25519_sign_open_batch2(&sign_m[0],&sign_mlen[0],&sign_m2[0],&sign_mlen2[0],&sign_pk[0],&sign_rs[0],sign_num,&sign_valid[0]);
             if(ret) { //TODO create detailed report (report each failed message)
-                ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);
-                DLOG("SYLWESTER  ERROR checking signatures for PK start %u\n",sign_pk[0]);
+                ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);                
                 close(fd);
                 return(false);
             }
