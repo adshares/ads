@@ -10,10 +10,11 @@ services:
 
 before_script:
 - docker info
+- git config --global http.sslVerify false
+
 
 build_image:
   script:
-    - git config --global http.sslVerify false
     - docker build -t hpxdock:16.04 .
 
 #test:
