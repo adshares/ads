@@ -6,4 +6,5 @@ make clean
 make -j4
 make install
 cd ../scripts
-./installesc.sh 7290 8290 8290 "TRUE"
+./installescQA.sh 7290 8290 8290 "FALSE"
+nohup ./fulltest.sh > test.txt &
