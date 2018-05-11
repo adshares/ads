@@ -1,5 +1,15 @@
+image: docker:stable
+
+# When using dind, it's wise to use the overlayfs driver for
+# improved performance.
+variables:
+  DOCKER_DRIVER: overlay2
+
+services:
+- docker:dind
+
 before_script:
-  - docker info
+- docker info
 
 build_image:
   script:
