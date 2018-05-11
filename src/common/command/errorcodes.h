@@ -53,7 +53,8 @@ public:
         eCantCreateDirectory,
         eFailToProvideTxnInfo,
         eFailToReadTxnInfo,
-        eFailToGetHashTree
+        eFailToGetHashTree,
+        eLockUserFailed
     };
 
 private:
@@ -101,7 +102,8 @@ private:
         { Code::eCantCreateDirectory, "Can't create a directory" },
         { Code::eFailToProvideTxnInfo, "Failed to provide transaction info" },
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
-        { Code::eFailToGetHashTree, "Failed to create msgl hash tree" }
+        { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
+        { Code::eLockUserFailed, "Lock user failed" }
    };
 
 public:

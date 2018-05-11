@@ -16,7 +16,7 @@ class peer;
 typedef std::shared_ptr<peer> peer_ptr;
 
 class server {
-  public:    
+  public:
     server(options& opts) :
         do_sync(1),
         do_fast(opts.fast?2:0),
@@ -222,7 +222,7 @@ class server {
             if(do_fast) { //FIXME, do slow sync after fast sync
                 while(do_fast>1) { // fast_sync changes the status, FIXME use future/promis
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
-                    RETURN_ON_SHUTDOWN();                   
+                    RETURN_ON_SHUTDOWN();
                 }
 
                 do_fast=0;
@@ -237,12 +237,12 @@ class server {
         recyclemsid(lastpath+BLOCKSEC);
         RETURN_ON_SHUTDOWN();
         writemsid(); // synced to new position
-        clock_thread = new boost::thread(boost::bind(&server::clock, this));        
+        clock_thread = new boost::thread(boost::bind(&server::clock, this));
         //start accept connections from peers
         m_peerManager.startAccept();
     }
 
-    void stop() {        
+    void stop() {
         do_validate = 0;
         m_peerManager.stop();
 
@@ -251,7 +251,7 @@ class server {
             clock_thread->join();
         }
 
-        threadpool.join_all();        
+        threadpool.join_all();
         DLOG("Server shutdown completed\n");
     }
 
@@ -537,9 +537,9 @@ NEXTUSER:
 //FIXME, must start with a matching nowhash and load serv_
         if(srvs_.now<now) {
             uint32_t n=headers.size();
-            for(; !n;) {                
+            for(; !n;) {
                 //boost::this_thread::sleep(boost::posix_time::seconds(1));
-                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers                
+                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -748,13 +748,13 @@ NEXTUSER:
     void msgl_process(servers& header,uint8_t* data) {
         missing_.lock(); // consider changing this to missing_lock
         if(get_msglist!=header.now) {
-            missing_.unlock();            
+            missing_.unlock();
             return;
         }
         message_map map;
-        header.msgl_map((char*)data,map,opts_.svid);       
+        header.msgl_map((char*)data,map,opts_.svid);
         if(!header.msgl_put(map,(char*)data)) {
-            missing_.unlock();            
+            missing_.unlock();
             return;
         }
         missing_msgs_.swap(map);
@@ -1737,7 +1737,7 @@ NEXTUSER:
     }
 
     int message_insert(message_ptr msg) {
-        if(msg->hash.dat[1]==MSGTYPE_MSG) {            
+        if(msg->hash.dat[1]==MSGTYPE_MSG) {
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -2094,7 +2094,7 @@ NEXTUSER:
         //blk_.unlock();
         DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
         m_peerManager.updateAll(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
-        if(last_srvs_.vok>last_srvs_.vtot/2 && opts_.svid) {
+        if((last_srvs_.vok>last_srvs_.vtot/2 || opts_.init) && opts_.svid ) {
             uint32_t now=time(NULL);
             if(now<srvs_.now+BLOCKSEC) {
                 panic=false;
@@ -2108,7 +2108,7 @@ NEXTUSER:
         //  //FIXME, in the future, do not disconnect, peer will try syncing again
         //  ELOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
         //  disconnect(msg->svid);}
-        if(last_srvs_.vno>last_srvs_.vtot/2) {
+        if(last_srvs_.vno>last_srvs_.vtot/2 && !opts_.init) {
             ELOG("BAD BLOCK consensus :-( must resync :-( \n"); // FIXME, do not exit, initiate sync
             panic=false;
             ofip_readonly();
@@ -2117,7 +2117,7 @@ NEXTUSER:
         }
     }
 
-    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()        
+    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()
         missing_.lock();
         for(auto mi=missing_msgs_.begin(); mi!=missing_msgs_.end(); mi++) {
             //mi->second->sent_erase(svid);
@@ -2888,6 +2888,7 @@ NEXTUSER:
                 sign_mlen2[sign_num]=(size_t)mlen2;
                 memcpy(sign_m__hash[sign_num].hash,usera->hash,32);
                 sign_m[sign_num]=sign_m__hash[sign_num].hash;
+                DLOG("SYLWESTER  CHECK_SIGN PKEY usera %d  startPK %u, signum %d\n",usera->user, usera->pkey, sign_num);
                 memcpy(sign_pk_hash[sign_num].hash,usera->pkey,32);
                 sign_pk[sign_num]=sign_pk_hash[sign_num].hash;
                 sign_m2[sign_num]=(unsigned char*)p;
@@ -3222,7 +3223,7 @@ NEXTUSER:
                         }
                     }
                 }
-            }            
+            }
 
             usera->msid++;
             usera->time=utxs.ttime;
@@ -3268,6 +3269,7 @@ NEXTUSER:
             int ret=ed25519_sign_open_batch2(&sign_m[0],&sign_mlen[0],&sign_m2[0],&sign_mlen2[0],&sign_pk[0],&sign_rs[0],sign_num,&sign_valid[0]);
             if(ret) { //TODO create detailed report (report each failed message)
                 ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);
+                DLOG("SYLWESTER  ERROR checking signatures for PK start %u\n",sign_pk[0]);
                 close(fd);
                 return(false);
             }
@@ -4335,7 +4337,7 @@ NEXTBANK:
     }
 #endif
 
-    uint32_t write_message(std::string line) { // assume single threaded
+    uint32_t write_message(std::string&& line) { // assume single threaded
         assert(opts_.svid); // READONLY ok
         if(srvs_.nodes[opts_.svid].msid!=msid_) {
             DLOG("ERROR, wrong network msid, postponing message write\n");
@@ -4352,6 +4354,8 @@ NEXTBANK:
             ELOG("FATAL message insert error for own message, dying !!!\n");
             exit(-1);
         }
+
+        line.clear();
         writemsid();
         return(msid_);
         //update(msg);
@@ -4565,7 +4569,7 @@ NEXTBANK:
                 RETURN_ON_SHUTDOWN();
             }
             DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
-            if(!write_message(line)) {
+            if(!write_message(std::move(line))) {
                 ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
@@ -4601,10 +4605,10 @@ NEXTBANK:
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
-            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='                
+            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
                 panic=true;
                 if(!ofip_isreadonly()) {
-                    ELOG("LATE SIGNATURES !!!, set office readonly\n");
+                    ELOG("LATE SIGNATURES !!!, set office readonly vok %d vtot %d\n", last_srvs_.vok, last_srvs_.vtot);
                     ofip_readonly();
                 }
             }
@@ -4777,27 +4781,27 @@ NEXTBANK:
         return last_srvs_;
     }
 
-    uint16_t getRandomNodeId()
+    uint16_t getRandomNodeIndx()
     {
         uint16_t res = 0;
         if(srvs_.nodes.size() > 0)
         {
             uint64_t rand =random()&0xFFFF;
 
-            res = (rand%getMaxNodeId());            
+            res = (rand%(getMaxNodeIndx()));
         }
 
         return res;
     }
 
-    uint16_t getMaxNodeId()
-    {    
+    uint16_t getMaxNodeIndx()
+    {
         return srvs_.nodes.size()-1;
     }
 
     bool getNode(uint16_t nodeId, node& nodeInfo)
     {
-        try{            
+        try{
             nodeInfo    = srvs_.nodes.at(nodeId);
             return true;
         }
@@ -4859,7 +4863,7 @@ NEXTBANK:
     boost::thread_group threadpool;
 
     PeerConnectManager m_peerManager; //responsible for managing peers
-    boost::thread* clock_thread;    
+    boost::thread* clock_thread;
 
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt

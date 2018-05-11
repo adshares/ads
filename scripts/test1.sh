@@ -2,6 +2,7 @@
 
 PATH=$PATH:/$PWD
 
+
 nodebasename='escd'
 deploypath="deployment"
 current=$PWD
@@ -130,7 +131,7 @@ function initFirstNode
 
     cd ${nodename[1]}
 
-    exec -a ${nodename[1]} escd --init 1 &> nodeout.txt &
+    exec -a ${nodename[1]} escd --init 1 &>> nodeout.txt &
     ##escd --init 1 > nodeout.txt &
 
     cd ..
@@ -259,7 +260,7 @@ function sendCash
 
     cd ..
 
-    sleep 25
+#    sleep 25
 }
 
 function sendCashToMany
@@ -510,8 +511,6 @@ function finishTest
 }
 
 cd ..
-rm -rf $deploypath
-mkdir $deploypath
 cd $deploypath
 
 
@@ -527,123 +526,72 @@ do
 
         echo ${nodename[$i]}
 
-        prepareNode $i $officeport $serverport $peerport ${nodename[$i]}
+#        prepareNode $i $officeport $serverport $peerport ${nodename[$i]}
         echo 'PREPARE NODE END'
 done
 
-for i in 1 2 3 4
-do
-    prepareClient $i
-done
+#for i in 1 2 3 4
+#do
+#    prepareClient $i
+#done
 
 echo '............NODENAMMMEEEEEEE'
 echo ${nodename[1]}
 echo ${nodename[2]}
 echo ${nodename[3]}
 
-stopAllNodes
-
-initFirstNode
-setUpUser1
-createAccountForUser2
-#createAccount ${userpath[1]} "0001"
-changeKeysforUser2
-
-for i in {1..4}
-do
-    sendCash ${userpath[1]} "0001-00000001-8B4E" 70.0
-done
-
-
-addNode
-checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
-changeNode2Key
-addNode
-changeNode3Key
-
-sleep 60
-
-copyserverconf ${nodename[2]}
-startnode ${nodename[2]} "-m 1 -f 1" ${nodename[2]}
-
-echo 'server started'
-
-sleep 120
-
-checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
-
-startnode ${nodename[2]} "-m 1" ${nodename[2]}
-sleep 120
-
-createAccount ${userpath[3]} "0002"
-sleep 60
-
-copyserverconf ${nodename[3]}
-startnode ${nodename[3]} "-m 1 -f 1" ${nodename[3]}
-sleep 120
-startnode ${nodename[3]} "-m 1" ${nodename[3]}
-sleep 120
-startnode ${nodename[1]} "-m 1" ${nodename[1]}
-sleep 120
-
-
-echo 'server started one more time'
-
-
-#stime=$(date +%s%N |cut -b1-13)echo $stime
-#endtime=$(date +%s%N)
-#let "period = $endtime - $stime"
-#echo 'PERIOD:'$period
-#echo $stime
-#echo $stime
-#endtime=$(date +%s%N)
-#let "period = $endtime - $stime"
-#echo 'PERIOD:'$period
 
 echo "----------------TEST-----------------"
 
 
-checkBalance ${userpath[1]} "0001-00000001-8B4E" "280."
-checkBalance ${userpath[1]} "0002-00000000-75BD" "68."
-checkBalance ${userpath[3]} "0002-00000000-75BD" "68."
+#checkBalance ${userpath[1]} "0001-00000001-8B4E" "330."
+#checkBalance ${userpath[4]} "0001-00000001-8B4E" "330."
+#checkBalance ${userpath[1]} "0002-00000000-75BD" "67."
+#checkBalance ${userpath[3]} "0002-00000000-75BD" "67."
 
-checkBalance ${userpath[1]} "0002-00000001-659C" "0."
-checkBalance ${userpath[3]} "0002-00000001-659C" "0."
-
-
-sendCash ${userpath[2]} "0002-00000001-659C" 100.001
-sleep 120
-
-checkBalance ${userpath[1]} "0001-00000001-8B4E" "180."
-checkBalance ${userpath[2]} "0001-00000001-8B4E" "180."
-
-checkBalance ${userpath[2]} "0002-00000001-659C" "100."
-checkBalance ${userpath[3]} "0002-00000001-659C" "100."
-
-sendCash ${userpath[4]} "0001-00000001-8B4E" 99.8
-sleep 120
-
-checkBalance ${userpath[3]} "0001-00000001-8B4E" "280."
-checkBalance ${userpath[2]} "0001-00000001-8B4E" "280."
-checkBalance ${userpath[1]} "0002-00000001-659C" "0."
+#checkBalance ${userpath[1]} "0002-00000001-659C" "0."
+#checkBalance ${userpath[3]} "0002-00000001-659C" "0."
 
 
-sendCashToMany ${userpath[1]} "0001-00000001-8B4E" 50  "0002-00000001-659C" 60
-sleep 120
 
-checkBalance ${userpath[2]} "0001-00000001-8B4E" "330."
-checkBalance ${userpath[4]} "0002-00000001-659C" "60."
+echo "--------------------TADAM-----------------------------"
 
+#startnode ${nodename[3]} "" ${nodename[3]}
+#sleep 120
+#startnode ${nodename[2]} "" ${nodename[2]}
+#sleep 120
+#startnode ${nodename[1]} "" ${nodename[1]}
+#sleep 120
 
-#getMeMultipleTest 10
-#getBalanceMultipleTest 10
+#createAccount ${userpath[1]} "0003"
+#sleep 60
+
+cd ${userpath[1]}
+echo '{"run":"get_account","address":"0000-00000000-XXXX"}' | esc
+echo '{"run":"get_account","address":"0001-00000000-XXXX"}' | esc
+
+cd ..
+
+for i in `seq 1 36000`
+do
+        echo  $i
+        sendCash ${userpath[1]} "0001-00000001-XXXX" 0.1
+#        sleep 1
+done
+
+cd ${userpath[1]}
+echo '{"run":"get_account","address":"0001-00000000-XXXX"}' | esc
+cd ..
 
 
 echo "-------------------------------------------------------------------"
 
-cd ..
-cd scripts
-fulltest.sh
-finishTest 0
+cd ${userpath[1]}
+echo '{"run":"get_account","address":"0000-00000000-XXXX"}' | esc
+echo '{"run":"get_account","address":"0001-00000000-XXXX"}' | esc
 
+cd ..
+
+
+finishTest 0
 

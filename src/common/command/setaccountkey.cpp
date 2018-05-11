@@ -43,7 +43,7 @@ int SetAccountKey::getDataSize() {
 }
 
 int SetAccountKey::getResponseSize() {
-    return sizeof(user_t);
+    return sizeof(m_response);
 }
 
 unsigned char* SetAccountKey::getSignature() {

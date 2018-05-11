@@ -231,9 +231,11 @@ void server::ofip_change_pkey(uint8_t* pkey) {
     memcpy(ofip->pkey,pkey,32);
 }
 void server::ofip_readwrite() {
+    DLOG("OFFICE SET READWRITE\n");
     ofip->readonly=false;
 }
 void server::ofip_readonly() {
+    DLOG("OFFICE SET READONLY\n");
     ofip->readonly=true;
 }
 bool server::ofip_isreadonly() {

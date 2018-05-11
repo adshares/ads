@@ -432,12 +432,12 @@ class office {
                 srv_.write_dblspend(message);
             } else
 #endif
-                if(!srv_.write_message(message)) {
+                if(!srv_.write_message(std::move(message))) {
                     file_.unlock();
                     DLOG("ERROR sending message %08X\n",newmsid);
                     continue;
                 }
-            message.clear();
+            //message.clear();
             message_tnum=0;
             file_.unlock();
             del_msg(newmsid);
@@ -774,13 +774,15 @@ class office {
             ELOG("MESSAGE busy, delaying message addition\n");
         }
 
-        while(message_tnum>=MESSAGE_TNUM_MAX) {
+        while(message_tnum>=MESSAGE_TNUM_MAX) {            
             lock.unlock();
+            DLOG("MSID: MAX ID reached wait 100ms \n");
             boost::this_thread::sleep(boost::posix_time::milliseconds(100));
             lock.lock();
         }
 
-        msid=srv_.msid_+1; // check if no conflict !!!
+        msid=srv_.msid_+1; // check if no conflict !!!        
+
         char filename[64];
         sprintf(filename,"ofi/msg_%08X.msd",msid);
         int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
@@ -802,7 +804,8 @@ class office {
         }
         close(md);
         //mpos=message.length()+message::data_offset;
-        mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
+        mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!        
+
         message.append((char*)utxs.getData(), utxs.getDataSize());
         if (utxs.getType() == TXSTYPE_USR) {
             message.append((char*)utxs.getSignature(), utxs.getSignatureSize());

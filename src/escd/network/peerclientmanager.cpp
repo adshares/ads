@@ -63,12 +63,15 @@ void PeerConnectManager::stop()
 
 void PeerConnectManager::startAccept()
 {
+    DLOG("PEER_MANAGER START ACCEPT\n");
     boost::shared_ptr<peer> new_peer(new peer(m_server, true, m_server.getBlockInPorgress(), m_opts, *this, "", 0));
     m_acceptor.async_accept(new_peer->socket(),boost::bind(&PeerConnectManager::peerAccept, this, new_peer, boost::asio::placeholders::error));
 }
 
 void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error)
 {    
+    DLOG("PEER ACCEPT %04X\n", new_peer->m_peerId);
+
     uint32_t now    = time(NULL);
     auto address    = new_peer->socket().remote_endpoint().address().to_string();
     auto port       = new_peer->socket().remote_endpoint().port();
@@ -161,7 +164,7 @@ void PeerConnectManager::leevePeer(uint16_t svid, std::string address, unsigned 
 
 void PeerConnectManager::leevePeer(uint16_t svid, in_addr address, unsigned short port)
 { 
-    m_ioService.dispatch(boost::bind(&PeerConnectManager::leavePeerImpl, this, svid, address, port));
+    m_ioService.post(boost::bind(&PeerConnectManager::leavePeerImpl, this, svid, address, port));
 }
 
 void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned short port)
@@ -170,50 +173,57 @@ void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned 
 
     try
     {
-        boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
+        bool cleanMissing = false;
 
-        auto peerIt = m_peers.find(std::make_pair(address.s_addr, port));
+        {
+            boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
 
-        //assert(peerIt!=m_peers.end());
+            auto peerIt = m_peers.find(std::make_pair(address.s_addr, port));
 
-        if(peerIt!=m_peers.end())
-        {            
-            auto activePeer = m_activePeers.find(svid);
-
-            if(activePeer != m_activePeers.end())
+            if(peerIt!=m_peers.end())
             {
-                if(activePeer->second->port == port)
+                auto activePeer = m_activePeers.find(svid);
+
+                if(activePeer != m_activePeers.end())
                 {
-                    m_activePeers.erase(svid);
-                    //TODO move it outside upgrade_lock
-                    m_server.missing_sent_remove((*peerIt).second->svid);
+                    if(activePeer->second->port == port)
+                    {
+                        m_activePeers.erase(svid);
+                        cleanMissing = true;
+                    }
+                }
+
+                m_peers.erase(peerIt);
+
+                if(m_peers.empty() && !m_opts.init && !m_server.do_sync)
+                {
+                    if(!m_server.ofip_isreadonly()) {
+                        ELOG("ERROR: no peers, set office readonly\n");
+                        m_server.ofip_readonly();
+                    }
+                }
+
+                if (m_activePeers.size() < MIN_PEERS){
+                    m_timeout = PANIC_CONN_ATTEMPT_PERIOD;
+                }
+                else{
+                    m_timeout = DEF_CONN_ATTEMPT_PERIOD;
                 }
             }
+        } //end of boost::upgrade_lock
 
-            m_peers.erase(peerIt);
-
-            if(m_peers.empty() && !m_opts.init && !m_server.do_sync)
-            {
-                if(!m_server.ofip_isreadonly()) {
-                    ELOG("ERROR: no peers, set office readonly\n");
-                    m_server.ofip_readonly();
-                }
-            }
-
-            if (m_activePeers.size() < MIN_PEERS){
-                m_timeout = PANIC_CONN_ATTEMPT_PERIOD;
-            }
-            else{
-                m_timeout = DEF_CONN_ATTEMPT_PERIOD;
-            }
+        if(cleanMissing){
+            m_server.missing_sent_remove(svid);
         }
 
-        timerNextTick(m_timeout);
+        DLOG("%04X PEER LEAVE FINISHED \n", svid);
     }
     catch(std::exception &e)
     {
         ELOG("ERROR: Leave peer exception%s", e.what());
     }
+
+    timerNextTick(m_timeout);
 }
 
 void PeerConnectManager::connect(in_addr peer_address, unsigned short port)
@@ -327,19 +337,19 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
     {
         bool        foundNew{false};
         node        nodeInfo;
-        uint16_t    nodeId     = m_server.getRandomNodeId();
-        uint16_t    maxNodeId  = m_server.getMaxNodeId();
+        uint16_t    nodeIndx      = m_server.getRandomNodeIndx();
+        uint16_t    maxNodeIndx   = m_server.getMaxNodeIndx();
 
-        if(maxNodeId == 0){
-            assert(maxNodeId != 0);
+        if(maxNodeIndx == 0){
+            assert(maxNodeIndx != 0);
             return;
         }
 
         //@TODO: improve efficiency of finding new node
-        for(int i = 0; i<maxNodeId; ++i)
+        for(int i = 0; i<=maxNodeIndx; ++i)
         {
             //Don't connect to myself
-            if(nodeId != m_opts.svid && m_server.getNode(nodeId, nodeInfo))
+            if(nodeIndx != m_opts.svid && m_server.getNode(nodeIndx, nodeInfo))
             {
                 if(nodeInfo.port > 0
                         && m_peers.find(std::make_pair(nodeInfo.ipv4, nodeInfo.port)) == m_peers.end() )
@@ -349,7 +359,7 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
                 }
             }
 
-            nodeId = (++nodeId)%maxNodeId;
+            nodeIndx = (nodeIndx+1)%(maxNodeIndx+1);
         }
 
         if(foundNew){
@@ -389,7 +399,7 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 
         connectPeersFromServerFile(neededPeers);
 
-        if(!m_opts.init && m_server.getMaxNodeId() < 2){
+        if(!m_opts.init){
             connectPeersFromDNS(neededPeers);
         }        
     }    
@@ -501,12 +511,12 @@ std::string PeerConnectManager::getActualPeerList()
     for(auto& peer: m_activePeers)
     {
         ss << ",";
-        if((peer.second)->svid!=BANK_MAX) {
+        if((peer.second)->svid != BANK_MAX) {
             ss << std::to_string((peer.second)->svid);
         } else {
             ss << "-";
         }
-        if((peer.second)->killme) {
+        if((peer.second)->getState() == peer::ST_STOPED) {
             ss << "*";
         }
     }
@@ -563,8 +573,7 @@ void PeerConnectManager::fillknown(message_ptr msg)
 
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
-    if(m_activePeers.size() == 0){
-        DLOG("FILLKNOW peers list empty \n");
+    if(m_activePeers.size() == 0){        
         return;
     }
 
@@ -573,13 +582,11 @@ void PeerConnectManager::fillknown(message_ptr msg)
 
     for(auto it = pi; it != m_activePeers.end(); it++)
     {
-        msg->know_insert(pi->second->svid);
-        DLOG("FILLKNOW peers: %d \n", pi->second->svid);
+        msg->know_insert(pi->second->svid);        
     }
     for(auto it = m_activePeers.begin(); it != pi; it++)
     {
-        msg->know_insert(pi->second->svid);
-        DLOG("FILLKNOW peers: %d \n", pi->second->svid);
+        msg->know_insert(pi->second->svid);        
     }
     ++r;
 }
