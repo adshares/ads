@@ -13,6 +13,7 @@ before_script:
 
 build_image:
   script:
+    - git config --global http.sslVerify false
     - docker build -t hpxdock:16.04 .
 
 #test:
