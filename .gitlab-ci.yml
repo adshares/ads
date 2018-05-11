@@ -4,23 +4,23 @@ image: docker:stable
 # improved performance.
 variables:
   DOCKER_DRIVER: overlay2
-
-services:
-- docker:dind
-
-variables:
   GIT_SSL_NO_VERIFY: "true"
 
-before_script:
-- docker info
+services:
+    - docker:dind
+
+stages:
+    - build
+    - test
 
 build_image:
+  stage: build
   script:
     - docker build -t hpxdock:16.04 .
 
-#test:
-#  before_script:
-#  - /builds/proxy/hpx/tests/scripts/install.sh
-#  - /builds/proxy/hpx/scripts/buildandrunDebug.sh
-#  script:
-#  - pytest /builds/proxy/hpx/tests -s
+test_hpx:
+  before_script:
+  - /builds/proxy/hpx/tests/scripts/install.sh
+  - /builds/proxy/hpx/scripts/buildandrunDebug.sh
+  script:
+  - pytest /builds/proxy/hpx/tests -s
