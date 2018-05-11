@@ -63,12 +63,15 @@ void PeerConnectManager::stop()
 
 void PeerConnectManager::startAccept()
 {
+    DLOG("PEER_MANAGER START ACCEPT\n");
     boost::shared_ptr<peer> new_peer(new peer(m_server, true, m_server.getBlockInPorgress(), m_opts, *this, "", 0));
     m_acceptor.async_accept(new_peer->socket(),boost::bind(&PeerConnectManager::peerAccept, this, new_peer, boost::asio::placeholders::error));
 }
 
 void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error)
 {    
+    DLOG("PEER ACCEPT %04X\n", new_peer->m_peerId);
+
     uint32_t now    = time(NULL);
     auto address    = new_peer->socket().remote_endpoint().address().to_string();
     auto port       = new_peer->socket().remote_endpoint().port();
@@ -334,19 +337,19 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
     {
         bool        foundNew{false};
         node        nodeInfo;
-        uint16_t    nodeId     = m_server.getRandomNodeId();
-        uint16_t    maxNodeId  = m_server.getMaxNodeId();
+        uint16_t    nodeIndx      = m_server.getRandomNodeIndx();
+        uint16_t    maxNodeIndx   = m_server.getMaxNodeIndx();
 
-        if(maxNodeId == 0){
-            assert(maxNodeId != 0);
+        if(maxNodeIndx == 0){
+            assert(maxNodeIndx != 0);
             return;
         }
 
         //@TODO: improve efficiency of finding new node
-        for(int i = 0; i<maxNodeId; ++i)
+        for(int i = 0; i<=maxNodeIndx; ++i)
         {
             //Don't connect to myself
-            if(nodeId != m_opts.svid && m_server.getNode(nodeId, nodeInfo))
+            if(nodeIndx != m_opts.svid && m_server.getNode(nodeIndx, nodeInfo))
             {
                 if(nodeInfo.port > 0
                         && m_peers.find(std::make_pair(nodeInfo.ipv4, nodeInfo.port)) == m_peers.end() )
@@ -356,7 +359,7 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
                 }
             }
 
-            nodeId = (nodeId+1)%maxNodeId;
+            nodeIndx = (nodeIndx+1)%(maxNodeIndx+1);
         }
 
         if(foundNew){
@@ -396,7 +399,7 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 
         connectPeersFromServerFile(neededPeers);
 
-        if(!m_opts.init && m_server.getMaxNodeId() < 2){
+        if(!m_opts.init){
             connectPeersFromDNS(neededPeers);
         }        
     }    

@@ -4781,20 +4781,20 @@ NEXTBANK:
         return last_srvs_;
     }
 
-    uint16_t getRandomNodeId()
+    uint16_t getRandomNodeIndx()
     {
         uint16_t res = 0;
         if(srvs_.nodes.size() > 0)
         {
             uint64_t rand =random()&0xFFFF;
 
-            res = (rand%getMaxNodeId());
+            res = (rand%(getMaxNodeIndx()));
         }
 
         return res;
     }
 
-    uint16_t getMaxNodeId()
+    uint16_t getMaxNodeIndx()
     {
         return srvs_.nodes.size()-1;
     }
