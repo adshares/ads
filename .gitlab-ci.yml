@@ -1,6 +1,13 @@
-test:
-  before_script:
-  - /builds/proxy/hpx/tests/scripts/install.sh
-  - /builds/proxy/hpx/scripts/buildandrunDebug.sh
+before_script:
+  - docker info
+
+build_image:
   script:
-  - pytest /builds/proxy/hpx/tests -s
+    - docker build -t hpxdock:16.04 .
+
+#test:
+#  before_script:
+#  - /builds/proxy/hpx/tests/scripts/install.sh
+#  - /builds/proxy/hpx/scripts/buildandrunDebug.sh
+#  script:
+#  - pytest /builds/proxy/hpx/tests -s
