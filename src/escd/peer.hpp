@@ -445,7 +445,7 @@ public:
             return;
         }
         if(error) {
-            ELOG("%04X READ error %d %s (HEADER) transfered %d\n",svid,error.value(),error.message().c_str(), transfered);
+            ELOG("%04X READ error %d %s (HEADER) transfered %lu\n",svid,error.value(),error.message().c_str(), transfered);
             leave();
             return;
         }
