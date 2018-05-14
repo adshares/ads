@@ -47,6 +47,7 @@
 #include "command/factory.h"
 #include "command/getlog.h"
 #include "command/gettransaction.h"
+#include "command/setaccountstatus.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -373,7 +374,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     }
 
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_SUS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+        command.reset(new SetAccountStatus(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status));
         fee=TXS_SUS_FEE;
     } else if(!run.compare(txsname[TXSTYPE_SBS])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_SBS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);

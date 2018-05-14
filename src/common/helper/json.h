@@ -38,6 +38,7 @@ const char* const POSITION = "position";
 const char* const SIGN = "signature";
 const char* const PORT = "port";
 const char* const IP_ADDRESS = "ip_address";
+const char* const STATUS = "status";
 }
 
 void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user);

@@ -53,7 +53,9 @@ public:
         eCantCreateDirectory,
         eFailToProvideTxnInfo,
         eFailToReadTxnInfo,
-        eFailToGetHashTree
+        eFailToGetHashTree,
+        eAuthorizationError,
+        eStatusSubmitFail
     };
 
 private:
@@ -101,7 +103,9 @@ private:
         { Code::eCantCreateDirectory, "Can't create a directory" },
         { Code::eFailToProvideTxnInfo, "Failed to provide transaction info" },
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
-        { Code::eFailToGetHashTree, "Failed to create msgl hash tree" }
+        { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
+        { Code::eAuthorizationError, "Not authorized to change higher bits"},
+        { Code::eStatusSubmitFail, "Status submission failed"}
    };
 
 public:
