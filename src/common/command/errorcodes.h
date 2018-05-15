@@ -54,6 +54,8 @@ public:
         eFailToProvideTxnInfo,
         eFailToReadTxnInfo,
         eFailToGetHashTree,
+        eAuthorizationError,
+        eStatusSubmitFail,
         eLockUserFailed
     };
 
@@ -100,10 +102,12 @@ private:
         { Code::eFailedToLoadHash, "Failed to load hash for block. Try perform get_blocks command to resolve." },
         { Code::eCantOpenFile, "Can't open a file" },
         { Code::eCantCreateDirectory, "Can't create a directory" },
-        { Code::eFailToProvideTxnInfo, "Failed to provide transaction info" },
+        { Code::eFailToProvideTxnInfo, "Failed to provide transaction info. Try again later." },
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
         { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
-        { Code::eLockUserFailed, "Lock user failed" }
+        { Code::eAuthorizationError, "Not authorized to change higher bits"},
+        { Code::eStatusSubmitFail, "Status submission failed"},
+        { Code::eLockUserFailed, "Lock user failed"}
    };
 
 public:

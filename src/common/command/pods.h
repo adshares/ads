@@ -508,4 +508,30 @@ struct ConnectedInfo {
     uint32_t ip_address;        ///< ip address
 }__attribute__((packed));
 
+struct SetAccountStatusInfo {
+    SetAccountStatusInfo() = default;
+    SetAccountStatusInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_, uint16_t status_)
+        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), buser(buser_), status(status_) {
+    }
+
+    uint8_t ttype{TXSTYPE_SUS}; ///< command type
+    uint16_t abank;             ///< source node
+    uint32_t auser;             ///< source user
+    uint32_t amsid;             ///< msg id
+    uint32_t ttime;             ///< time
+    uint16_t bbank;             ///< dest node
+    uint32_t buser;             ///< dest user
+    int16_t status;             ///< account status
+}__attribute__((packed));
+
+struct SetAccountStatusData {
+    SetAccountStatusData() = default;
+    SetAccountStatusData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_, uint16_t status_)
+        : info(abank_, auser_, amsid_, ttime_, bbank_, buser_, status_) {
+    }
+
+    SetAccountStatusInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H

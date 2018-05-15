@@ -17,6 +17,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/getlog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransaction.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/connected.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/setaccountstatus.cpp
     PARENT_SCOPE
     )
 
@@ -41,6 +42,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/getlog.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransaction.h
     ${CMAKE_CURRENT_SOURCE_DIR}/connected.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/setaccountstatus.h
     PARENT_SCOPE
     )
 
