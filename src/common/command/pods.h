@@ -517,7 +517,7 @@ struct SetAccountStatusInfo {
     uint8_t ttype{TXSTYPE_SUS}; ///< command type
     uint16_t abank;             ///< source node
     uint32_t auser;             ///< source user
-    uint32_t amsid;             ///< block no.
+    uint32_t amsid;             ///< msg id
     uint32_t ttime;             ///< time
     uint16_t bbank;             ///< dest node
     uint32_t buser;             ///< dest user

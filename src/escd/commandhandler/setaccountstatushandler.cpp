@@ -40,7 +40,7 @@ void SetAccountStatusHandler::onExecute() {
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     }
 
-    if(!errorCode) {
+    if(!errorCode && m_command->getDestBankId() == m_offi.svid) {
         if(!m_offi.set_status(m_command->getDestUserId(), m_command->getStatus())) {
             ELOG("ERROR: status submission failed");
             errorCode = ErrorCodes::Code::eStatusSubmitFail;
