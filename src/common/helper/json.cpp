@@ -74,67 +74,36 @@ void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t
     }
 }
 
-#if INTPTR_MAX == INT64_MAX
 bool parse_amount(int64_t& amount,std::string str_amount) {
-    long double val;
-    if(1!=sscanf(str_amount.c_str(),"%Lf",&val)) {
+    size_t dot_pos = str_amount.find('.');
+    if(dot_pos == std::string::npos) {
+        str_amount.insert(str_amount.length(), AMOUNT_DECIMALS, '0');
+    } else {
+        size_t after_dot = str_amount.length() - dot_pos - 1;
+        if(after_dot == 0 || after_dot > AMOUNT_DECIMALS) {
+            return(false);
+        }
+        str_amount.erase(dot_pos, 1).append(AMOUNT_DECIMALS - after_dot, '0');
+    }
+    char * endptr;
+    amount=std::strtoll(str_amount.c_str(), &endptr, 10);
+    if(*endptr != '\0' || errno) {
         return(false);
     }
-    amount=llroundl(val*1000000000.0);
     return(true);
 }
 
 char* print_amount(int64_t amount) {
     static char text[32];
-    const long double div=(long double)1.0/(long double)1000000000.0;
-    long double val=amount;
-    sprintf(text,"%.9Lf",val*div);
+    uint is_neg = amount<0?1:0;
+    std::string str_amount = std::to_string(amount);
+    if(str_amount.length() < AMOUNT_DECIMALS + 1 + is_neg) {
+        str_amount.insert(is_neg, AMOUNT_DECIMALS + 1 + is_neg - str_amount.length(), '0');
+    }
+    str_amount.insert(str_amount.length() - AMOUNT_DECIMALS, 1, '.');
+    strncpy(text, str_amount.c_str(), sizeof(text));
     return(text);
 }
-#elif INTPTR_MAX == INT32_MAX
-bool parse_amount(int64_t& amount,std::string str_amount) {
-    int64_t big=0;//,small=0;
-    char small[11]=" 000000000";
-    int n=sscanf(str_amount.c_str(),"%ld%10s",&big,small);
-    if(n<1) {
-        fprintf(stderr,"ERROR: parse_amount(%s)\n",str_amount.c_str());
-        return(false);
-    }
-    if(n==1 || small[0]!='.') {
-        amount=big*1000000000;
-        //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-        return(true);
-    }
-    for(n=1; n<10; n++) {
-        if(!isdigit(small[n])) {
-            break;
-        }
-    }
-    for(; n<10; n++) {
-        small[n]='0';
-    }
-    if(big>=0) {
-        amount=big*1000000000+atol(small+1);
-    } else {
-        amount=big*1000000000-atol(small+1);
-    }
-    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-    return(true);
-}
-char* print_amount(int64_t amount) {
-    static char text[32];
-    int64_t a=fabsl(amount);
-    if(amount>=0) {
-        sprintf(text,"%ld.%09ld",a/1000000000,a%1000000000);
-    } else {
-        sprintf(text,"-%ld.%09ld",a/1000000000,a%1000000000);
-    }
-    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
-    return(text);
-}
-#else
-#error Unknown pointer size or missing size macros!
-#endif
 
 char* mydate(uint32_t now) {
     time_t      lnow=now;
