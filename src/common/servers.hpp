@@ -1408,6 +1408,7 @@ class servers { // also a block
             struct stat sb;
             fstat(fd,&sb);
             if(!sb.st_size) {
+                close(fd);
                 return false;
             }
             nok=sb.st_size/sizeof(svsi_t);
