@@ -16,7 +16,7 @@ class peer;
 typedef std::shared_ptr<peer> peer_ptr;
 
 class server {
-  public:    
+  public:
     server(options& opts) :
         do_sync(1),
         do_fast(opts.fast?2:0),
@@ -59,7 +59,12 @@ class server {
         last_srvs_.get(lastpath);
         if(opts_.svid) {
             if(!last_srvs_.nodes.size()) {
-                if(!opts_.init) {
+                if(opts_.fast) {
+                  // create empty servers so sync can start and download updated servers
+                  last_srvs_.find_pkey(pkey); // get this node public key
+                  last_srvs_.init_fast(opts_.svid, pkey);
+                  ELOG("CREATING nodes for fast sync\n");
+                } else if(!opts_.init) {
                     ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
                     exit(-1);
                 }
@@ -125,7 +130,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START from a fresh database\n");
-                last_srvs_.init(now-BLOCKSEC);
+                last_srvs_.init(now-BLOCKSEC, false, opts_.genesis);
                 srvs_=last_srvs_;
                 memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
                 period_start=srvs_.nextblock(); //changes now!
@@ -151,7 +156,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START with read only database\n");
-                last_srvs_.init(now-BLOCKSEC);
+                last_srvs_.init(now-BLOCKSEC, true, "");
                 last_srvs_.update_vipstatus();
                 bank_fee.resize(last_srvs_.nodes.size());
             }
@@ -217,7 +222,7 @@ class server {
             if(do_fast) { //FIXME, do slow sync after fast sync
                 while(do_fast>1) { // fast_sync changes the status, FIXME use future/promis
                     boost::this_thread::sleep(boost::posix_time::seconds(1));
-                    RETURN_ON_SHUTDOWN();                   
+                    RETURN_ON_SHUTDOWN();
                 }
 
                 do_fast=0;
@@ -232,12 +237,12 @@ class server {
         recyclemsid(lastpath+BLOCKSEC);
         RETURN_ON_SHUTDOWN();
         writemsid(); // synced to new position
-        clock_thread = new boost::thread(boost::bind(&server::clock, this));        
+        clock_thread = new boost::thread(boost::bind(&server::clock, this));
         //start accept connections from peers
         m_peerManager.startAccept();
     }
 
-    void stop() {        
+    void stop() {
         do_validate = 0;
         m_peerManager.stop();
 
@@ -246,7 +251,7 @@ class server {
             clock_thread->join();
         }
 
-        threadpool.join_all();        
+        threadpool.join_all();
         DLOG("Server shutdown completed\n");
     }
 
@@ -532,9 +537,9 @@ NEXTUSER:
 //FIXME, must start with a matching nowhash and load serv_
         if(srvs_.now<now) {
             uint32_t n=headers.size();
-            for(; !n;) {                
+            for(; !n;) {
                 //boost::this_thread::sleep(boost::posix_time::seconds(1));
-                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers                
+                m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers
                 ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
                 boost::this_thread::sleep(boost::posix_time::seconds(1));
                 RETURN_ON_SHUTDOWN();
@@ -743,13 +748,13 @@ NEXTUSER:
     void msgl_process(servers& header,uint8_t* data) {
         missing_.lock(); // consider changing this to missing_lock
         if(get_msglist!=header.now) {
-            missing_.unlock();            
+            missing_.unlock();
             return;
         }
         message_map map;
-        header.msgl_map((char*)data,map,opts_.svid);       
+        header.msgl_map((char*)data,map,opts_.svid);
         if(!header.msgl_put(map,(char*)data)) {
-            missing_.unlock();            
+            missing_.unlock();
             return;
         }
         missing_msgs_.swap(map);
@@ -1374,7 +1379,7 @@ NEXTUSER:
             if(last_srvs_.nodes.size()<=it->second->svid) { //maybe not needed
                 continue;
             }
-            if(last_srvs_.nodes[it->second->svid].status & SERVER_DBL ||
+            if((last_srvs_.nodes[it->second->svid].status & SERVER_DBL) ||
                     known_dbl(it->second->svid)) { // ignore also suspected DBL servers
                 DLOG("ELECTOR blk ignore %04X (DBL)\n",it->second->svid);
                 continue;
@@ -1391,6 +1396,10 @@ NEXTUSER:
             svid_rset.insert(it->second->svid);
         }
         blk_.unlock();
+        if(!svid_rset.size() && last_srvs_.now == last_srvs_.nodes[0].mtim){
+          // if this is genesis block then always node1 sends candidate
+          svid_rset.insert(last_srvs_.get_vipuno());
+        }
         if(!svid_rset.size()) {
             ELOG("ERROR, no valid server for this block :-(\n");
         } else {
@@ -1418,7 +1427,7 @@ NEXTUSER:
         ELOG("ELECTOR max:%016lX\n",votes_max);
 // READNLY ? if readonly server and not enough electors ... resync !
 #ifdef DEBUG
-        if(electors.size()<electors_old && electors.size()<srvs_.vtot/2) {
+        if(electors.size()<electors_old && electors.size()<srvs_.vtot/2 && (int)electors.size() < opts_.mins && !opts_.init) {
             ELOG("LOST ELECTOR (%d->%d), exiting\n",electors_old,(int)electors.size());
             exit(-1);
         }
@@ -1728,7 +1737,7 @@ NEXTUSER:
     }
 
     int message_insert(message_ptr msg) {
-        if(msg->hash.dat[1]==MSGTYPE_MSG) {            
+        if(msg->hash.dat[1]==MSGTYPE_MSG) {
             return(txs_insert(msg));
         }
         if(msg->hash.dat[1]==MSGTYPE_CND) {
@@ -2085,7 +2094,7 @@ NEXTUSER:
         //blk_.unlock();
         DLOG("BLOCK: yes:%d no:%d max:%d\n",last_srvs_.vok,last_srvs_.vno,last_srvs_.vtot);
         m_peerManager.updateAll(msg); // update others if this is a VIP message, my message was sent already, but second check will not harm
-        if(last_srvs_.vok>last_srvs_.vtot/2 && opts_.svid) {
+        if((last_srvs_.vok>last_srvs_.vtot/2 || opts_.init) && opts_.svid ) {
             uint32_t now=time(NULL);
             if(now<srvs_.now+BLOCKSEC) {
                 panic=false;
@@ -2099,7 +2108,7 @@ NEXTUSER:
         //  //FIXME, in the future, do not disconnect, peer will try syncing again
         //  ELOG("\n\nBLOCK differs, disconnect from %04X! if connected\n\n\n",msg->svid);
         //  disconnect(msg->svid);}
-        if(last_srvs_.vno>last_srvs_.vtot/2) {
+        if(last_srvs_.vno>last_srvs_.vtot/2 && !opts_.init) {
             ELOG("BAD BLOCK consensus :-( must resync :-( \n"); // FIXME, do not exit, initiate sync
             panic=false;
             ofip_readonly();
@@ -2108,7 +2117,7 @@ NEXTUSER:
         }
     }
 
-    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()        
+    void missing_sent_remove(uint16_t svid) { //TODO change name to missing_know_send_remove()
         missing_.lock();
         for(auto mi=missing_msgs_.begin(); mi!=missing_msgs_.end(); mi++) {
             //mi->second->sent_erase(svid);
@@ -2878,7 +2887,7 @@ NEXTUSER:
                 sign_mlen[sign_num]=(size_t)32;
                 sign_mlen2[sign_num]=(size_t)mlen2;
                 memcpy(sign_m__hash[sign_num].hash,usera->hash,32);
-                sign_m[sign_num]=sign_m__hash[sign_num].hash;
+                sign_m[sign_num]=sign_m__hash[sign_num].hash;                
                 memcpy(sign_pk_hash[sign_num].hash,usera->pkey,32);
                 sign_pk[sign_num]=sign_pk_hash[sign_num].hash;
                 sign_m2[sign_num]=(unsigned char*)p;
@@ -3155,7 +3164,8 @@ NEXTUSER:
                 //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
                 weight+=div;
             }
-            if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight) { //network accepts total withdrawal from user
+            if(deduct+fee>usera->weight+(int64_t)local_dsu[usera->user].deposit){
+                //network accepts total withdrawal from users and bank owners (otherwise dividend fee may invalidate message included in the next block)
                 ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
                      deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight);
                 close(fd);
@@ -3212,7 +3222,7 @@ NEXTUSER:
                         }
                     }
                 }
-            }            
+            }
 
             usera->msid++;
             usera->time=utxs.ttime;
@@ -3257,7 +3267,7 @@ NEXTUSER:
             //std::vector<const unsigned char*> sign_rs(tpos_max);
             int ret=ed25519_sign_open_batch2(&sign_m[0],&sign_mlen[0],&sign_m2[0],&sign_mlen2[0],&sign_pk[0],&sign_rs[0],sign_num,&sign_valid[0]);
             if(ret) { //TODO create detailed report (report each failed message)
-                ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);
+                ELOG("ERROR checking signatures for %04X:%08X\n",msg->svid,msg->msid);                
                 close(fd);
                 return(false);
             }
@@ -3901,6 +3911,7 @@ NEXTUSER:
         //char filename[64];
         user_t u,ou;
         const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
+        const int offset_stat=(char*)&u+sizeof(user_t)-(char*)&u.stat;
         assert((char*)&u.rpath<(char*)&u.weight);
         assert((char*)&u.rpath<(char*)&u.csum);
         const int shift=srvs_.now/BLOCKSEC;
@@ -3963,17 +3974,29 @@ NEXTUSER:
                             div+=it->second;
                             it->second=0;
                         }
-                        if(u.weight<=TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath)) { //alow deletion of account
+
+                        if(u.weight<=TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath))
+                        {
+                            //alow deletion of account
                             u.stat|=USER_STAT_DELETED;
                             if(svid==opts_.svid && !do_sync && ofip!=NULL) {
                                 ofip_delete_user(user);
                             }
+
+                            srvs_.user_csum(u,svid,user);
+                            srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
+                            srvs_.nodes[svid].weight+=div;
+                            lseek(fd,-offset_stat,SEEK_CUR);
+                            write(fd,&u.stat,offset_stat);
                         }
-                        srvs_.user_csum(u,svid,user);
-                        srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
-                        srvs_.nodes[svid].weight+=div;
-                        lseek(fd,-offset,SEEK_CUR);
-                        write(fd,&u.rpath,offset);
+                        else
+                        {
+                            srvs_.user_csum(u,svid,user);
+                            srvs_.xor4(srvs_.nodes[svid].hash,u.csum);
+                            srvs_.nodes[svid].weight+=div;
+                            lseek(fd,-offset,SEEK_CUR);
+                            write(fd,&u.rpath,offset);
+                        }
                     }
                 }
             } // write before undo ... not good for sync
@@ -4325,7 +4348,7 @@ NEXTBANK:
     }
 #endif
 
-    uint32_t write_message(std::string line) { // assume single threaded
+    uint32_t write_message(std::string&& line) { // assume single threaded
         assert(opts_.svid); // READONLY ok
         if(srvs_.nodes[opts_.svid].msid!=msid_) {
             DLOG("ERROR, wrong network msid, postponing message write\n");
@@ -4342,6 +4365,8 @@ NEXTBANK:
             ELOG("FATAL message insert error for own message, dying !!!\n");
             exit(-1);
         }
+
+        line.clear();
         writemsid();
         return(msid_);
         //update(msg);
@@ -4555,7 +4580,7 @@ NEXTBANK:
                 RETURN_ON_SHUTDOWN();
             }
             DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
-            if(!write_message(line)) {
+            if(!write_message(std::move(line))) {
                 ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
@@ -4591,10 +4616,10 @@ NEXTBANK:
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
             }
-            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && last_srvs_.vok<last_srvs_.vtot/2) { // '<' not '<='                
+            if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
                 panic=true;
                 if(!ofip_isreadonly()) {
-                    ELOG("LATE SIGNATURES !!!, set office readonly\n");
+                    ELOG("LATE SIGNATURES !!!, set office readonly vok %d vtot %d\n", last_srvs_.vok, last_srvs_.vtot);
                     ofip_readonly();
                 }
             }
@@ -4604,7 +4629,7 @@ NEXTBANK:
                 threadpool.join_all();
                 busy_msgs_.clear();
                 DLOG("STOPed validation to start block\n");
-                if(!do_sync && last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins) { // '<' not '<='
+                 if(!do_sync && last_srvs_.vok<last_srvs_.vtot/2 && last_srvs_.vok<opts_.mins && !opts_.init){ // '<' not '<='
                     uint8_t* data;
                     uint32_t nok;
                     header_t head;
@@ -4622,7 +4647,7 @@ NEXTBANK:
                     last_srvs_.del_signatures();
                     last_srvs_.check_signatures(head,(svsi_t*)(data+8),true);
                     free(data);
-                    if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins) { // '<' not '<='
+                    if(head.vok<last_srvs_.vtot/2 && head.vok<opts_.mins && !opts_.init){ // '<' not '<='
                         ELOG("ERROR, not enough signatures collected (%d<%d && %d<%d) for %08X\n",
                              head.vok,last_srvs_.vtot/2,head.vok,opts_.mins,last_srvs_.now);
                         SHUTDOWN_AND_RETURN();
@@ -4767,27 +4792,27 @@ NEXTBANK:
         return last_srvs_;
     }
 
-    uint16_t getRandomNodeId()
+    uint16_t getRandomNodeIndx()
     {
         uint16_t res = 0;
         if(srvs_.nodes.size() > 0)
         {
             uint64_t rand =random()&0xFFFF;
 
-            res = (rand%getMaxNodeId());            
+            res = (rand%(getMaxNodeIndx()));
         }
 
         return res;
     }
 
-    uint16_t getMaxNodeId()
-    {    
+    uint16_t getMaxNodeIndx()
+    {
         return srvs_.nodes.size()-1;
     }
 
     bool getNode(uint16_t nodeId, node& nodeInfo)
     {
-        try{            
+        try{
             nodeInfo    = srvs_.nodes.at(nodeId);
             return true;
         }
@@ -4849,7 +4874,7 @@ NEXTBANK:
     boost::thread_group threadpool;
 
     PeerConnectManager m_peerManager; //responsible for managing peers
-    boost::thread* clock_thread;    
+    boost::thread* clock_thread;
 
     //uint8_t lasthash[SHA256_DIGEST_LENGTH]; // hash of last block, this should go to path/servers.txt
     //uint8_t prevhash[SHA256_DIGEST_LENGTH]; // hash of previous block, this should go to path/servers.txt

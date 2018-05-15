@@ -115,18 +115,32 @@ class client : public boost::enable_shared_from_this<client> {
                                 boost::bind(&client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
     }
 
-    void handle_read_txs_complete(const boost::system::error_code& error) {
+    void handle_read_txs_complete(const boost::system::error_code& error)
+    {
         if(error) {
-            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
+            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());                        
             m_offi.leave(shared_from_this());
-            return;
         }
 
-        if(m_command) {
+        if(m_command)
+        {
+            auto lockUserId = m_command->getUserId();
+            if(!m_offi.lock_user(lockUserId))
+            {
+                ErrorCodes::Code code = ErrorCodes::Code::eLockUserFailed;
+                DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
+                DLOG("ERROR: %d\n", lockUserId);
+                boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
+                return;
+            }
+
             m_commandService.onExecute(std::move(m_command));
-            m_offi.leave(shared_from_this());
-            return;
+
+            //@TODO: lock , unlock in RAII object.
+            m_offi.unlock_user(lockUserId);
         }
+
+        m_offi.leave(shared_from_this());
     }
 
     //TODO: remove function when all legacy commands reimplemented.

@@ -9,6 +9,7 @@
 #define SERVER_DBL 0x1 /* closed node */
 #define SERVER_VIP 0x2 /* VIP node */
 #define SERVER_UNO 0x4 /* single master node */
+#define SERVER_FST 0x80000000
 
 //#define MSGSTAT_INF 0x0
 #define MSGSTAT_DAT 0x1 /* downloaded */

@@ -1,4 +1,24 @@
-test:
+image: docker:stable
+
+# When using dind, it's wise to use the overlayfs driver for
+# improved performance.
+variables:
+  DOCKER_DRIVER: overlay2
+  GIT_SSL_NO_VERIFY: "true"
+
+services:
+    - docker:dind
+
+stages:
+    - build
+    - test
+
+build_image:
+  stage: build
+  script:
+    - docker build -t hpxdock:16.04 .
+
+test_hpx:
   before_script:
   - /builds/proxy/hpx/tests/scripts/install.sh
   - /builds/proxy/hpx/scripts/buildandrunDebug.sh

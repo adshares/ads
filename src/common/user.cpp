@@ -7,6 +7,7 @@
 #include <iostream>
 #include <iterator>
 #include <list>
+#include <openssl/rand.h>
 #include <sstream>
 #include <stack>
 #include <vector>

@@ -5,7 +5,13 @@
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
 
+#ifdef DEBUG
 #define DEFAULT_NET_TIMEOUT 15
+#define REQ_USR_TIMEOUT     20 //request user bank
+#else
+#define DEFAULT_NET_TIMEOUT 30
+#define REQ_USR_TIMEOUT     60
+#endif
 
 class peer;
 
