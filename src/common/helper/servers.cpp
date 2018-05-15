@@ -117,7 +117,7 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t msg_number,st
         return false;
     }
 
-    if (!m_header.messageCount && !loadHeader()) {
+    if (!loadHeader() && (m_header.messageCount == 0)) {
         return false;
     }
 
@@ -157,12 +157,17 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t msg_number,st
     if (htot > 0) {
         std::vector<uint32_t> add;
         tree.hashpath((msg_number)/2, (m_header.messageCount+1)/2, add);
-        Parser::HashIterator hIt = parser.h_begin();
+        Parser::HashIterator hIt;
         for (auto n : add) {
-//        DLOG("HASHTREE add %d\n",n);
-            assert(n<htot);
-            hashes.push_back(*hIt);
-            ++hIt;
+            hIt = parser.h_begin() + n;
+            if (hIt == parser.h_end()) {
+                it = parser.end() - 1;
+                hash_s lastTxnHash;
+                std::copy(it->hash, it->hash+32, lastTxnHash.hash);
+                hashes.push_back(lastTxnHash);
+            } else {
+                hashes.push_back(*hIt);
+            }
         }
     }
 
