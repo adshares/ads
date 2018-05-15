@@ -82,7 +82,7 @@
 #define BANK_MIN_TMASS   (0x1000000000L) /* 0x10G, if bank total mass below this value, bank can be taken over */
 #define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
 #define BANK_MAX         (0xffff)
-#define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */
+#define BANK_PROFIT(x)   ((x)/16) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (0x1000 + ((BANK_PROFIT(((uint64_t)(x))*(TXS_DIV_FEE/BLOCKDIV)))>>2)) /* every block */
 
 #define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */
