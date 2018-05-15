@@ -286,8 +286,8 @@ class servers { // also a block
     uint32_t read_start() {
         FILE* fp=fopen("blk/start.txt","r");
         if(fp==NULL) {
-            ELOG("ERROR, failed to read blk/start.txt\n");
-            return(0);
+            ELOG("FATAL ERROR: failed to write to blk/start.txt\n");
+            exit(-1);
         }
         uint32_t start;
         fscanf(fp,"%X",&start);

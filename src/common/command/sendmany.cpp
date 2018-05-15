@@ -139,12 +139,15 @@ uint32_t SendMany::getTime() {
 }
 
 int64_t SendMany::getFee() {
-    int64_t fee = TXS_MIN_FEE;
+    int64_t fee = 0;
     for (auto &it : m_transactions) {
         fee+=TXS_MPT_FEE(it.amount);
         if(m_data.info.src_node!=it.dest_node) {
             fee+=TXS_LNG_FEE(it.amount);
         }
+    }
+    if (fee < TXS_MIN_FEE) {
+        fee = TXS_MIN_FEE;
     }
     return fee;
 }
