@@ -18,6 +18,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/getloghandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransactionhandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountstatushandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/setnodestatushandler.cpp
     PARENT_SCOPE
     )
 
@@ -41,6 +42,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/getloghandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/gettransactionhandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/setaccountstatushandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/setnodestatushandler.h
     PARENT_SCOPE
     )
 

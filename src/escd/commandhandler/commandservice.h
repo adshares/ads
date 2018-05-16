@@ -20,6 +20,7 @@
 #include "getloghandler.h"
 #include "gettransactionhandler.h"
 #include "setaccountstatushandler.h"
+#include "setnodestatushandler.h"
 
 class office;
 
@@ -56,6 +57,7 @@ class CommandService {
     GetLogHandler          m_getLogHandler;         ///< get log handler
     GetTransactionHandler  m_getTransactionHandler; ///< get transaction handler
     SetAccountStatusHandler m_setAccountStatusHandler; ///< set account status handler
+    SetNodeStatusHandler   m_setNodeStatusHandler; ///< set node status handler
 };
 
 
