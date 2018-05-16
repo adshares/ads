@@ -55,6 +55,7 @@ public:
         eFailToReadTxnInfo,
         eFailToGetHashTree,
         eAuthorizationError,
+        eAccountStatusOnRemoteNode,
         eStatusSubmitFail,
         eLockUserFailed
     };
@@ -106,6 +107,7 @@ private:
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
         { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
         { Code::eAuthorizationError, "Not authorized to change higher bits"},
+        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
         { Code::eStatusSubmitFail, "Status submission failed"},
         { Code::eLockUserFailed, "Lock user failed"}
    };
