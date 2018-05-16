@@ -46,7 +46,7 @@ void SetAccountKeyHandler::onExecute() {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
-        tlog.node   = data.abank;
+        tlog.node   = 0;
         tlog.user   = data.auser;
         tlog.umid   = data.amsid;
         tlog.nmid   = msid;

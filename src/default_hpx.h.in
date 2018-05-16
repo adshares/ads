@@ -37,7 +37,7 @@
 #define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
 
-#define AMOUNT_DECIMALS 11
+#define AMOUNT_DECIMALS 9
 
 //#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
 //#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
@@ -69,6 +69,7 @@
 #define TXS_GET_FEE      (0x100000) /* get initiation fee */
 #define TXS_GOK_FEE(x)   (         ((x)>>12)) /* get wire fee (allways remote) */ // 0.0122%
 #define TXS_USR_FEE      (0x100000) /* 0x0.001G only for remote applications, otherwise MIN_FEE */
+#define TXS_RUS_FEE      (100000000L) /* additional create user fee for remote applications */
 #define TXS_SUS_FEE      (0x10000) /* 0x0.0001G */
 #define TXS_SBS_FEE      (0x10000) /* 0x0.0001G */
 #define TXS_UUS_FEE      (0x10000) /* 0x0.0001G */
@@ -81,7 +82,7 @@
 #define BANK_MIN_TMASS   (0x1000000000L) /* 0x10G, if bank total mass below this value, bank can be taken over */
 #define BANK_MIN_MTIME   (0x200*BLOCKSEC) /* if no transaction in this period bank can be taken over */
 #define BANK_MAX         (0xffff)
-#define BANK_PROFIT(x)   ((x)>>4) /* 1/16 of fees */
+#define BANK_PROFIT(x)   ((x)/16) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (0x1000 + ((BANK_PROFIT(((uint64_t)(x))*(TXS_DIV_FEE/BLOCKDIV)))>>2)) /* every block */
 
 #define MESSAGE_FEE(x)  (0x1000 + (x)) /* fee for each bank message */

@@ -90,7 +90,10 @@ uint32_t SendOne::getTime() {
 int64_t SendOne::getFee() {
     int64_t fee=TXS_PUT_FEE(m_data.info.ntmass);
     if(m_data.info.abank!=m_data.info.bbank) {
-        fee+=TXS_LNG_FEE(m_data.info.ntmass);
+        fee += TXS_LNG_FEE(m_data.info.ntmass);
+    }
+    if (fee < TXS_MIN_FEE) {
+        fee = TXS_MIN_FEE;
     }
     return fee;
 }

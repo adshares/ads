@@ -47,7 +47,7 @@ void CreateNodeHandler::onExecute() {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
-        tlog.node   = m_command->getBankId();
+        tlog.node   = 0;
         tlog.user   = m_command->getUserId();
         tlog.umid   = m_command->getMessageId();
         tlog.nmid   = msid;
