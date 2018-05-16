@@ -55,6 +55,15 @@ void BroadcastMsgHandler::onExecute() {
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
         tlog.weight = -deduct;
+
+        tInfo info;
+        info.weight = m_usera.weight;
+        info.deduct = m_command->getDeduct();
+        info.fee = m_command->getFee();
+        info.stat = m_usera.stat;
+        memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
+        memcpy(tlog.info, &info, sizeof(tInfo));
+
         m_offi.put_ulog(m_command->getUserId(),  tlog);
     }
 

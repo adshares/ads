@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include "ed25519/ed25519.h"
 #include "message.hpp"
+#include "helper/json.h"
 
 class node {
   public:
@@ -160,7 +161,7 @@ class servers { // also a block
           ed25519_text2key(user_pk,user_pkey.c_str(),32);
 
           std::string user_balance = f.second.get<std::string>("balance");
-          parse_amount(u.weight, user_balance);
+          Helper::parse_amount(u.weight, user_balance);
           init_user(u,node_num,users_count,u.weight,user_pk,now,node_num,users_count);
           put_user(u,node_num,users_count);
           xor4(nn.hash, u.csum);
@@ -286,8 +287,8 @@ class servers { // also a block
     uint32_t read_start() {
         FILE* fp=fopen("blk/start.txt","r");
         if(fp==NULL) {
-            ELOG("ERROR, failed to read blk/start.txt\n");
-            return(0);
+            ELOG("FATAL ERROR: failed to write to blk/start.txt\n");
+            exit(-1);
         }
         uint32_t start;
         fscanf(fp,"%X",&start);
@@ -1408,6 +1409,7 @@ class servers { // also a block
             struct stat sb;
             fstat(fd,&sb);
             if(!sb.st_size) {
+                close(fd);
                 return false;
             }
             nok=sb.st_size/sizeof(svsi_t);
@@ -1817,27 +1819,6 @@ class servers { // also a block
         uint64_t* p=(uint64_t*)nowhash;
         return(*p);
     }
-
-    bool parse_amount(int64_t& amount,std::string str_amount) {
-        size_t dot_pos = str_amount.find('.');
-        if(dot_pos == std::string::npos) {
-            str_amount.insert(str_amount.length(), AMOUNT_DECIMALS, '0');
-        } else {
-            size_t after_dot = str_amount.length() - dot_pos - 1;
-            if(after_dot == 0 || after_dot > AMOUNT_DECIMALS) {
-                return(false);
-            }
-            str_amount.erase(dot_pos, 1).append(AMOUNT_DECIMALS - after_dot, '0');
-        }
-        char * endptr;
-        amount=std::strtoll(str_amount.c_str(), &endptr, 10);
-        if(*endptr != '\0' || errno) {
-            return(false);
-        }
-        return(true);
-    }
-
-
 
 //private:
 //	//boost::mutex mtx_; can not be coppied :-(

@@ -433,245 +433,6 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid) {
     return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
-
-void print_log(boost::property_tree::ptree& pt,settings& sts) {
-    char filename[64];
-    sprintf(filename,"log/%04X_%08X.bin",sts.bank,sts.user);
-    int fd=open(filename,O_RDONLY);
-    if(fd<0) {
-        fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
-        return;
-    }
-    if(sts.lastlog>1) { //guess a good starting position
-        off_t end=lseek(fd,0,SEEK_END);
-        if(end>0) {
-            off_t start=end;
-            off_t tseek=0;
-            while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
-                uint32_t ltime=0;
-                tseek=read(fd,&ltime,sizeof(uint32_t));
-                if(ltime<sts.lastlog-1) { // tollerate 1s difference
-                    lseek(fd,-tseek,SEEK_CUR);
-                    break;
-                }
-            }
-        }
-    }
-    log_t ulog;
-    boost::property_tree::ptree logtree;
-    while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
-        if(ulog.time<sts.lastlog) {
-            //fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
-            continue;
-        }
-        char info[65];
-        info[64]='\0';
-        ed25519_key2text(info,ulog.info,32);
-        boost::property_tree::ptree logentry;
-        uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
-        char acnt[19];
-        uint16_t txst=ulog.type&0xFF;
-        sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
-        logentry.put("time",ulog.time);
-        logentry.put("date",mydate(ulog.time));
-        logentry.put("type_no",ulog.type);
-        // FIXME: properly flag confirmed transactions, which will not be rolled back
-        logentry.put("confirmed", 1);
-        if(txst<TXSTYPE_MAX) {
-            logentry.put("type",logname[txst]);
-        }
-        if(ulog.type & 0x4000) { //errors
-            if(txst==TXSTYPE_NON) { //node start
-                logentry.put("account.error","logerror");
-                logentry.put("account.newtime",ulog.time);
-                logentry.put("account.newdate",mydate(ulog.time));
-                logentry.put("account.badtime",ulog.nmid);
-                logentry.put("account.baddate",mydate(ulog.nmid));
-                logentry.put("account.badblock",ulog.mpos);
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-        }
-        if(ulog.type & 0x8000) { //incomming network transactions (responses) except _GET
-            if(txst==TXSTYPE_NON) { //node start
-                logentry.put("node_start_msid",ulog.nmid);
-                logentry.put("node_start_block",ulog.mpos);
-                int64_t weight;
-                uint8_t hash[8];
-                uint32_t lpath;
-                uint32_t rpath;
-                uint8_t pkey[6];
-                uint16_t stat;
-                memcpy(&weight,ulog.info+ 0,8);
-                memcpy(   hash,ulog.info+ 8,8);
-                memcpy( &lpath,ulog.info+16,4);
-                memcpy( &rpath,ulog.info+20,4);
-                memcpy(   pkey,ulog.info+24,6);
-                memcpy(  &stat,ulog.info+30,2);
-                char hash_hex[17];
-                hash_hex[16]='\0';
-                ed25519_key2text(hash_hex,hash,8);
-                char pkey_hex[13];
-                pkey_hex[12]='\0';
-                ed25519_key2text(pkey_hex,pkey,6);
-                logentry.put("account.balance",print_amount(weight));
-                logentry.put("account.local_change",lpath);
-                logentry.put("account.remote_change",rpath);
-                logentry.put("account.hash_prefix_8",hash_hex);
-                logentry.put("account.public_key_prefix_6",pkey_hex);
-                logentry.put("account.status",stat);
-                logentry.put("account.msid",ulog.umid);
-                logentry.put("account.node",ulog.node);
-                logentry.put("account.id",ulog.user);
-                logentry.put("dividend",print_amount(ulog.weight));
-                uint16_t suffix=sts.crc_acnt(ulog.node,ulog.user);
-                char acnt[19]="";
-                sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
-                logentry.put("account.address",acnt);
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-            if(txst==TXSTYPE_DIV) { //dividend
-                logentry.put("node_msid",ulog.nmid);
-                logentry.put("node_block",ulog.mpos);
-                logentry.put("dividend",print_amount(ulog.weight));
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-            if(txst==TXSTYPE_FEE) { //bank profit
-                logentry.put("profit",print_amount(ulog.weight));
-                if(ulog.nmid) { // bank profit on transactions
-                    logentry.put("node",ulog.node);
-                    logentry.put("node_msid",ulog.nmid);
-                    if(ulog.nmid==sts.bank) {
-                        int64_t fee;
-                        int64_t div;
-                        //int64_t put; //FIXME, useless !!!
-                        memcpy(&fee,ulog.info+ 0,8);
-                        memcpy(&div,ulog.info+ 8,8);
-                        //memcpy(&put,ulog.info+16,8); //FIXME, useless !!!
-                        logentry.put("profit_fee",print_amount(fee));
-                        logentry.put("profit_div",print_amount(div));
-                        //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
-                    }
-                } else { // bank profit at block end
-                    logentry.put("node_block",ulog.mpos);
-                    int64_t div;
-                    int64_t usr;
-                    int64_t get;
-                    int64_t fee;
-                    memcpy(&div,ulog.info+ 0,8);
-                    memcpy(&usr,ulog.info+ 8,8);
-                    memcpy(&get,ulog.info+16,8);
-                    memcpy(&fee,ulog.info+24,8);
-                    logentry.put("profit_div",print_amount(div));
-                    logentry.put("profit_usr",print_amount(usr));
-                    logentry.put("profit_get",print_amount(get));
-                    logentry.put("fee",print_amount(fee));
-                }
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-            if(txst==TXSTYPE_UOK) { //creare remote account
-                logentry.put("node",ulog.node);
-                logentry.put("node_block",ulog.mpos);
-                if(ulog.user) {
-                    logentry.put("account",ulog.user);
-                    logentry.put("address",acnt);
-                    if(ulog.umid) {
-                        logentry.put("request","accepted");
-                    } else {
-                        logentry.put("request","late");
-                    }
-                } else {
-                    logentry.put("request","failed");
-                    logentry.put("amount",print_amount(ulog.weight));
-                }
-                logentry.put("public_key",info);
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-            if(txst==TXSTYPE_BNK) {
-                logentry.put("node_block",ulog.mpos);
-                if(ulog.node) {
-                    logentry.put("node",ulog.node);
-                    logentry.put("request","accepted");
-                } else {
-                    logentry.put("request","failed");
-                    logentry.put("amount",print_amount(ulog.weight));
-                }
-                logentry.put("public_key",info);
-                logtree.push_back(std::make_pair("",logentry));
-                continue;
-            }
-        }
-        logentry.put("node",ulog.node);
-        logentry.put("account",ulog.user);
-        logentry.put("address",acnt);
-        if(!ulog.nmid) {
-            logentry.put("node_block",ulog.mpos);
-        } else {
-            logentry.put("node_msid",ulog.nmid);
-            logentry.put("node_mpos",ulog.mpos);
-            logentry.put("account_msid",ulog.umid);
-        }
-        logentry.put("amount",print_amount(ulog.weight));
-        //FIXME calculate fee
-        if(txst==TXSTYPE_PUT) {
-            int64_t amass=std::abs(ulog.weight);
-            if(ulog.node==sts.bank) {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));
-            } else {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));
-            }
-            logentry.put("message",info);
-        } else {
-            int64_t weight;
-            int64_t deduct;
-            int64_t fee;
-            uint16_t stat;
-            uint8_t key[6];
-            memcpy(&weight,ulog.info+ 0,8);
-            memcpy(&deduct,ulog.info+ 8,8);
-            memcpy(   &fee,ulog.info+16,8);
-            memcpy(  &stat,ulog.info+24,2);
-            memcpy(    key,ulog.info+26,6);
-            char key_hex[13];
-            key_hex[12]='\0';
-            ed25519_key2text(key_hex,key,6);
-            logentry.put("sender_balance",print_amount(weight));
-            logentry.put("sender_amount",print_amount(deduct));
-            if(txst==TXSTYPE_MPT) {
-                if(ulog.node==sts.bank) {
-                    logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
-                } else {
-                    logentry.put("sender_fee",
-                                 print_amount(TXS_MPT_FEE(ulog.weight)+TXS_LNG_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
-                }
-                logentry.put("sender_fee_total",print_amount(fee));
-                key_hex[2*5]='\0';
-                logentry.put("sender_public_key_prefix_5",key_hex);
-            } else {
-                logentry.put("sender_fee",print_amount(fee));
-                logentry.put("sender_public_key_prefix_6",key_hex);
-            }
-            logentry.put("sender_status",stat);
-        }
-        char tx_id[64];
-        if(ulog.type & 0x8000) {
-            logentry.put("inout","in");
-            sprintf(tx_id,"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);
-        } else {
-            logentry.put("inout","out");
-            sprintf(tx_id,"%04X:%08X:%04X",sts.bank,ulog.nmid,ulog.mpos);
-        }
-        logentry.put("id",tx_id);
-        logtree.push_back(std::make_pair("",logentry));
-    }
-    close(fd);
-    pt.add_child("log",logtree);
-}
-
 void print_blg(char *blg,uint32_t len,uint32_t path,boost::property_tree::ptree& blogtree,settings& sts) {
     //boost::property_tree::ptree blogtree;
     usertxs utxs;
@@ -1784,7 +1545,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
               catch (std::exception& e){
                 fprintf(stderr,"ERROR reading global info: %s\n",e.what());}}
             else
-              */if(txs->ttype==TXSTYPE_LOG) {
+              if(txs->ttype==TXSTYPE_LOG) {
                 int len;
                 if(sizeof(int)!=boost::asio::read(socket,boost::asio::buffer(&len,sizeof(int)))) {
                     std::cerr<<"ERROR reading log length\n";
@@ -1804,8 +1565,8 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                     save_log(log,len,txs->ttime,sts);
                     free(log);
                 }
-                print_log(pt,sts);
-            } else {
+                print_log(pt,sts);*/
+//            } else {
                 struct {
                     uint32_t msid;
                     uint32_t mpos;
@@ -1826,7 +1587,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
                     pt.put("tx.node_mpos",m.mpos);
                     pt.put("tx.id",tx_id);
                 }
-            }
+//            }
         }
 
 END:

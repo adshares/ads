@@ -202,7 +202,7 @@ void BroadcastMsg::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::MSG_LEN, m_data.info.msg_length);
     if (m_message) {
-        ptree.put(TAG::MSG, m_message);
+        ptree.put(TAG::MSG, Helper::ed25519_key2text(m_message, m_data.info.msg_length));
     }
-    ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+    ptree.put(TAG::SIGN, Helper::ed25519_key2text(getSignature(), getSignatureSize()));
 }

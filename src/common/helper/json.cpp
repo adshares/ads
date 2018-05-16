@@ -74,67 +74,36 @@ void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t
     }
 }
 
-#if INTPTR_MAX == INT64_MAX
 bool parse_amount(int64_t& amount,std::string str_amount) {
-    long double val;
-    if(1!=sscanf(str_amount.c_str(),"%Lf",&val)) {
+    size_t dot_pos = str_amount.find('.');
+    if(dot_pos == std::string::npos) {
+        str_amount.insert(str_amount.length(), AMOUNT_DECIMALS, '0');
+    } else {
+        size_t after_dot = str_amount.length() - dot_pos - 1;
+        if(after_dot == 0 || after_dot > AMOUNT_DECIMALS) {
+            return(false);
+        }
+        str_amount.erase(dot_pos, 1).append(AMOUNT_DECIMALS - after_dot, '0');
+    }
+    char * endptr;
+    amount=std::strtoll(str_amount.c_str(), &endptr, 10);
+    if(*endptr != '\0' || errno) {
         return(false);
     }
-    amount=llroundl(val*1000000000.0);
     return(true);
 }
 
 char* print_amount(int64_t amount) {
     static char text[32];
-    const long double div=(long double)1.0/(long double)1000000000.0;
-    long double val=amount;
-    sprintf(text,"%.9Lf",val*div);
+    uint is_neg = amount<0?1:0;
+    std::string str_amount = std::to_string(amount);
+    if(str_amount.length() < AMOUNT_DECIMALS + 1 + is_neg) {
+        str_amount.insert(is_neg, AMOUNT_DECIMALS + 1 + is_neg - str_amount.length(), '0');
+    }
+    str_amount.insert(str_amount.length() - AMOUNT_DECIMALS, 1, '.');
+    strncpy(text, str_amount.c_str(), sizeof(text));
     return(text);
 }
-#elif INTPTR_MAX == INT32_MAX
-bool parse_amount(int64_t& amount,std::string str_amount) {
-    int64_t big=0;//,small=0;
-    char small[11]=" 000000000";
-    int n=sscanf(str_amount.c_str(),"%ld%10s",&big,small);
-    if(n<1) {
-        fprintf(stderr,"ERROR: parse_amount(%s)\n",str_amount.c_str());
-        return(false);
-    }
-    if(n==1 || small[0]!='.') {
-        amount=big*1000000000;
-        //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-        return(true);
-    }
-    for(n=1; n<10; n++) {
-        if(!isdigit(small[n])) {
-            break;
-        }
-    }
-    for(; n<10; n++) {
-        small[n]='0';
-    }
-    if(big>=0) {
-        amount=big*1000000000+atol(small+1);
-    } else {
-        amount=big*1000000000-atol(small+1);
-    }
-    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,str_amount.c_str());
-    return(true);
-}
-char* print_amount(int64_t amount) {
-    static char text[32];
-    int64_t a=fabsl(amount);
-    if(amount>=0) {
-        sprintf(text,"%ld.%09ld",a/1000000000,a%1000000000);
-    } else {
-        sprintf(text,"-%ld.%09ld",a/1000000000,a%1000000000);
-    }
-    //fprintf(stderr,"INT:%20ld STR:%s\n",amount,text);
-    return(text);
-}
-#else
-#error Unknown pointer size or missing size macros!
-#endif
 
 char* mydate(uint32_t now) {
     time_t      lnow=now;
@@ -226,7 +195,9 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         logentry.put("date",mydate(ulog.time));
         logentry.put("type_no",ulog.type);
         // FIXME: properly flag confirmed transactions, which will not be rolled back
-        logentry.put("confirmed", 1);
+        uint32_t prev_block=time(NULL);
+        prev_block-=prev_block%BLOCKSEC;
+        logentry.put("confirmed", ulog.time < prev_block - VIP_MAX*VOTE_DELAY ? "yes" : "no");
         if(txst<TXSTYPE_MAX) {
             logentry.put("type",logname[txst]);
         }
@@ -283,14 +254,17 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             }
             if(txst==TXSTYPE_DIV) { //dividend
                 logentry.put("node_msid",ulog.nmid);
-                logentry.put("node_block",ulog.mpos);
+                char blockhex[9];
+                blockhex[8]='\0';
+                sprintf(blockhex,"%08X",ulog.mpos);
+                logentry.put("block_id",blockhex);
                 logentry.put("dividend",print_amount(ulog.weight));
                 logtree.push_back(std::make_pair("",logentry));
                 continue;
             }
             if(txst==TXSTYPE_FEE) { //bank profit
-                logentry.put("profit",print_amount(ulog.weight));
                 if(ulog.nmid) { // bank profit on transactions
+                    logentry.put("profit",print_amount(ulog.weight));
                     logentry.put("node",ulog.node);
                     logentry.put("node_msid",ulog.nmid);
                     if(ulog.nmid==bank) {
@@ -305,7 +279,10 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                         //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
                     }
                 } else { // bank profit at block end
-                    logentry.put("node_block",ulog.mpos);
+                    char blockhex[9];
+                    blockhex[8]='\0';
+                    sprintf(blockhex,"%08X",ulog.mpos);
+                    logentry.put("block_id",blockhex);
                     int64_t div;
                     int64_t usr;
                     int64_t get;
@@ -317,6 +294,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     logentry.put("profit_div",print_amount(div));
                     logentry.put("profit_usr",print_amount(usr));
                     logentry.put("profit_get",print_amount(get));
+                    logentry.put("profit",print_amount(div+usr+get));
                     logentry.put("fee",print_amount(fee));
                 }
                 logtree.push_back(std::make_pair("",logentry));
@@ -324,7 +302,10 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             }
             if(txst==TXSTYPE_UOK) { //creare remote account
                 logentry.put("node",ulog.node);
-                logentry.put("node_block",ulog.mpos);
+                char blockhex[9];
+                blockhex[8]='\0';
+                sprintf(blockhex,"%08X",ulog.mpos);
+                logentry.put("block_id",blockhex);
                 if(ulog.user) {
                     logentry.put("account",ulog.user);
                     logentry.put("address",acnt);
@@ -342,7 +323,10 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 continue;
             }
             if(txst==TXSTYPE_BNK) {
-                logentry.put("node_block",ulog.mpos);
+                char blockhex[9];
+                blockhex[8]='\0';
+                sprintf(blockhex,"%08X",ulog.mpos);
+                logentry.put("block_id",blockhex);
                 if(ulog.node) {
                     logentry.put("node",ulog.node);
                     logentry.put("request","accepted");
@@ -355,11 +339,16 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 continue;
             }
         }
-        logentry.put("node",ulog.node);
-        logentry.put("account",ulog.user);
-        logentry.put("address",acnt);
+        if(ulog.node > 0) {
+            logentry.put("node",ulog.node);
+            logentry.put("account",ulog.user);
+            logentry.put("address",acnt);
+        }
         if(!ulog.nmid) {
-            logentry.put("node_block",ulog.mpos);
+            char blockhex[9];
+            blockhex[8]='\0';
+            sprintf(blockhex,"%08X",ulog.mpos);
+            logentry.put("block_id",blockhex);
         } else {
             logentry.put("node_msid",ulog.nmid);
             logentry.put("node_mpos",ulog.mpos);
