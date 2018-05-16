@@ -96,9 +96,9 @@ uint32_t CreateAccount::getTime() {
 int64_t CreateAccount::getFee() {
     int64_t fee;
     if (this->getBankId() == this->getDestBankId()) {
-        fee = TXS_MIN_FEE;
-    } else {
         fee = TXS_USR_FEE;
+    } else {
+        fee = TXS_USR_FEE + TXS_RUS_FEE;
     }
     return fee;
 }

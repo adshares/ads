@@ -2951,6 +2951,9 @@ NEXTUSER:
                     remote_fee+=TXS_LNG_FEE(utxs.tmass);
                     fee+=TXS_LNG_FEE(utxs.tmass);
                 }
+                if (fee < TXS_MIN_FEE) {
+                    fee = TXS_MIN_FEE;
+                }
             } else if(*p==TXSTYPE_MPT) {
                 char* tbuf=utxs.toaddresses(p);
                 utxs.tmass=0;
@@ -2964,7 +2967,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[1]=0;
-                fee=TXS_MIN_FEE;
+                fee=0;
                 for(int i=0; i<utxs.bbank; i++,tbuf+=6+8) {
                     uint32_t& tuser=to.small[0];
                     uint32_t& tbank=to.small[1];
@@ -3015,6 +3018,9 @@ NEXTUSER:
                     }
                     utxs.tmass+=tmass;
                 }
+                if (fee < TXS_MIN_FEE) {
+                    fee = TXS_MIN_FEE;
+                }
                 deduct=utxs.tmass;
             } else if(*p==TXSTYPE_USR) { // this is local bank
                 if(utxs.abank!=utxs.bbank) {
@@ -3030,9 +3036,9 @@ NEXTUSER:
                 }
                 deduct=USER_MIN_MASS;
                 if(utxs.abank!=utxs.bbank) {
-                    fee=TXS_USR_FEE;
+                    fee=TXS_USR_FEE + TXS_RUS_FEE;
                 } else {
-                    fee=TXS_MIN_FEE;
+                    fee=TXS_USR_FEE;
                 }
             } else if(*p==TXSTYPE_BNK) { // we will get a confirmation from the network
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
@@ -3655,7 +3661,7 @@ NEXTUSER:
             std::set<uint64_t> new_bnk; // list of available banks for takeover
             uint16_t peer=0;
             for(auto it=srvs_.nodes.begin()+1; it!=srvs_.nodes.end(); it++,peer++) { // start with bank=1
-                if(it->mtim+BANK_MIN_MTIME<srvs_.now && it->weight<BANK_MIN_TMASS) {
+                if(it->mtim+BANK_MIN_MTIME<srvs_.now && it->weight<=BANK_MIN_TMASS) {
                     uint64_t bnk=it->weight<<16;
                     bnk|=peer;
                     new_bnk.insert(bnk);
