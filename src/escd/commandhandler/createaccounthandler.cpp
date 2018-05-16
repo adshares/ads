@@ -68,6 +68,15 @@ void CreateAccountHandler::onExecute() {
             tlog.nmid   = msid;
             tlog.mpos   = mpos;
             tlog.weight = -deduct;
+
+            tInfo info;
+            info.weight = m_usera.weight;
+            info.deduct = deduct;
+            info.fee = fee;
+            info.stat = m_usera.stat;
+            memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
+            memcpy(tlog.info, &info, sizeof(tInfo));
+
             m_offi.put_ulog(m_command->getUserId(), tlog);
 
             if (m_command->getBankId() == m_command->getDestBankId()) {

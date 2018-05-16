@@ -69,33 +69,38 @@ void SendManyHandler::onExecute() {
         tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
-        tlog.weight = -deduct - fee;
-        m_offi.put_ulog(m_command->getUserId(),  tlog);
-    
-        if (txns.size() > 0) {
-            std::map<uint64_t, log_t> log;
-            for (unsigned int i=0; i<txns.size(); ++i) {
-                uint64_t key = ((uint64_t)m_command->getUserId()<<32);
-                key|=i;
-                tlog.node = txns[i].dest_node;
-                tlog.user = txns[i].dest_user;
-                tlog.weight = -txns[i].amount;
+        tlog.weight = -deduct;
+
+        tInfo info;
+        info.weight = m_usera.weight;
+        info.deduct = deduct;
+        info.fee = fee;
+        info.stat = m_usera.stat;
+        memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
+        memcpy(tlog.info, &info, sizeof(tInfo));
+
+        std::map<uint64_t, log_t> log;
+        for (unsigned int i=0; i<txns.size(); ++i) {
+            uint64_t key = ((uint64_t)m_command->getUserId()<<32);
+            key|=i;
+            tlog.node = txns[i].dest_node;
+            tlog.user = txns[i].dest_user;
+            tlog.weight = -txns[i].amount;
+            tlog.info[31]=(i?0:1);
+            log[key]=tlog;
+        }
+        m_offi.put_ulog(log);
+
+        tlog.type|=0x8000; //incoming
+        tlog.node=m_command->getBankId();
+        tlog.user=m_command->getUserId();
+        for (unsigned int i=0; i<txns.size(); ++i) {
+            if (txns[i].dest_node == m_offi.svid) {
+                tlog.weight = txns[i].amount;
                 tlog.info[31]=(i?0:1);
-                log[key]=tlog;
-            }
-            m_offi.put_ulog(log);
-    
-            tlog.type|=0x8000; //incoming
-            tlog.node=m_command->getBankId();
-            tlog.user=m_command->getUserId();
-            for (unsigned int i=0; i<txns.size(); ++i) {
-                if (txns[i].dest_node == m_offi.svid) {
-                    tlog.weight = txns[i].amount;
-                    tlog.info[31]=(i?0:1);
-                    m_offi.put_ulog(txns[i].dest_user, tlog);
-                    if (txns[i].amount >= 0) {
-                        m_offi.add_deposit(txns[i].dest_user, txns[i].amount);
-                    }
+                m_offi.put_ulog(txns[i].dest_user, tlog);
+                if (txns[i].amount >= 0) {
+                    m_offi.add_deposit(txns[i].dest_user, txns[i].amount);
                 }
             }
         }
