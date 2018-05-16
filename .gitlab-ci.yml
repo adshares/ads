@@ -1,3 +1,6 @@
+variables:
+  GIT_SSL_NO_VERIFY: "true"
+
 test_hpx:
   before_script:
   - docker login -u hpxdocker -p hpxdocker
