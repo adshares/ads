@@ -1,5 +1,6 @@
 test_hpx:
   before_script:
+  - docker login -u hpxdocker -p hpxdocker
   - /builds/proxy/hpx/tests/scripts/install.sh
   script:
   - pytest /builds/proxy/hpx/tests -s
