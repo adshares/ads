@@ -1,94 +1,94 @@
-#include "setaccountstatus.h"
+#include "unsetaccountstatus.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
-SetAccountStatus::SetAccountStatus()
-    : m_data{TXSTYPE_SUS} {
+UnsetAccountStatus::UnsetAccountStatus()
+    : m_data{TXSTYPE_UUS} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-SetAccountStatus::SetAccountStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status)
-    : m_data{TXSTYPE_SUS, abank, auser, amsid, ttime, bbank, buser, status} {
+UnsetAccountStatus::UnsetAccountStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status)
+    : m_data{TXSTYPE_UUS, abank, auser, amsid, ttime, bbank, buser, status} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-int SetAccountStatus::getType() {
-    return TXSTYPE_SUS;
+int UnsetAccountStatus::getType() {
+    return TXSTYPE_UUS;
 }
 
-unsigned char* SetAccountStatus::getData() {
+unsigned char* UnsetAccountStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
 
-unsigned char* SetAccountStatus::getResponse() {
+unsigned char* UnsetAccountStatus::getResponse() {
     return reinterpret_cast<unsigned char*>(&m_response);
 }
 
-void SetAccountStatus::setData(char* data) {
+void UnsetAccountStatus::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void SetAccountStatus::setResponse(char* response) {
+void UnsetAccountStatus::setResponse(char* response) {
     m_response = *reinterpret_cast<decltype(m_response)*>(response);
 }
 
-int SetAccountStatus::getDataSize() {
+int UnsetAccountStatus::getDataSize() {
     return sizeof(m_data.info);
 }
 
-int SetAccountStatus::getResponseSize() {
+int UnsetAccountStatus::getResponseSize() {
     return sizeof(m_response);
 }
 
-unsigned char* SetAccountStatus::getSignature() {
+unsigned char* UnsetAccountStatus::getSignature() {
     return m_data.sign;
 }
 
-int SetAccountStatus::getSignatureSize() {
+int UnsetAccountStatus::getSignatureSize() {
     return sizeof(m_data.sign);
 }
 
-void SetAccountStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
+void UnsetAccountStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool SetAccountStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
+bool UnsetAccountStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& SetAccountStatus::getUserInfo() {
+user_t& UnsetAccountStatus::getUserInfo() {
     return m_response.usera;
 }
 
-uint32_t SetAccountStatus::getTime() {
+uint32_t UnsetAccountStatus::getTime() {
     return m_data.info.ttime;
 }
 
-uint32_t SetAccountStatus::getUserId() {
+uint32_t UnsetAccountStatus::getUserId() {
     return m_data.info.auser;
 }
 
-uint32_t SetAccountStatus::getBankId() {
+uint32_t UnsetAccountStatus::getBankId() {
     return m_data.info.abank;
 }
 
-int64_t SetAccountStatus::getFee() {
-    return TXS_SUS_FEE;
+int64_t UnsetAccountStatus::getFee() {
+    return TXS_UUS_FEE;
 }
 
-int64_t SetAccountStatus::getDeduct() {
+int64_t UnsetAccountStatus::getDeduct() {
     return 0;
 }
 
-bool SetAccountStatus::send(INetworkClient& netClient)
+bool UnsetAccountStatus::send(INetworkClient& netClient)
 {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SetAccountStatus sending error\n");
+        ELOG("UnsetAccountStatus sending error\n");
         return false;
     }
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        ELOG("SetAccountStatus reading error\n");
+        ELOG("UnsetAccountStatus reading error\n");
         return false;
     }
 
@@ -97,14 +97,14 @@ bool SetAccountStatus::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        ELOG("SetAccountStatus ERROR reading global info\n");
+        ELOG("UnsetAccountStatus ERROR reading global info\n");
         return false;
     }
 
     return true;
 }
 
-void SetAccountStatus::saveResponse(settings& sts) {
+void UnsetAccountStatus::saveResponse(settings& sts) {
     if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
@@ -119,11 +119,11 @@ void SetAccountStatus::saveResponse(settings& sts) {
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
-std::string SetAccountStatus::toString(bool /*pretty*/) {
+std::string UnsetAccountStatus::toString(bool /*pretty*/) {
     return "";
 }
 
-void SetAccountStatus::toJson(boost::property_tree::ptree &ptree) {
+void UnsetAccountStatus::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
     } else {
@@ -131,7 +131,7 @@ void SetAccountStatus::toJson(boost::property_tree::ptree &ptree) {
     }
 }
 
-void SetAccountStatus::txnToJson(boost::property_tree::ptree& ptree) {
+void UnsetAccountStatus::txnToJson(boost::property_tree::ptree& ptree) {
     using namespace Helper;
     ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
     ptree.put(TAG::SRC_NODE, m_data.info.abank);
@@ -144,18 +144,18 @@ void SetAccountStatus::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
-uint32_t SetAccountStatus::getUserMessageId() {
+uint32_t UnsetAccountStatus::getUserMessageId() {
     return m_data.info.amsid;
 }
 
-uint32_t SetAccountStatus::getDestBankId() {
+uint32_t UnsetAccountStatus::getDestBankId() {
     return m_data.info.bbank;
 }
 
-uint32_t SetAccountStatus::getDestUserId() {
+uint32_t UnsetAccountStatus::getDestUserId() {
     return m_data.info.buser;
 }
 
-uint16_t SetAccountStatus::getStatus() {
+uint16_t UnsetAccountStatus::getStatus() {
     return m_data.info.status;
 }

@@ -1,19 +1,19 @@
-#ifndef SETACCOUNTSTATUS_H
-#define SETACCOUNTSTATUS_H
+#ifndef UNSETACCOUNTSTATUS_H
+#define UNSETACCOUNTSTATUS_H
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 
 /*!
- * \brief Class responsible for handling "set_account_status" command.
+ * \brief Class responsible for handling "unset_account_status" command.
  */
-class SetAccountStatus : public IBlockCommand
+class UnsetAccountStatus : public IBlockCommand
 {
 public:
-    SetAccountStatus();
-    SetAccountStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status);
+    UnsetAccountStatus();
+    UnsetAccountStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status);
 
-    /** \brief Return TXSTYPE_SUS as command type . */
+    /** \brief Return TXSTYPE_UUS as command type . */
     virtual int getType()                                      override;
 
     /** \brief Get pointer to command data structure. */

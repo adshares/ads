@@ -56,10 +56,10 @@ public:
         eFailToReadTxnInfo,
         eFailToGetHashTree,
         eAuthorizationError,
-        eAccountStatusOnRemoteNode,
         eStatusSubmitFail,
         eLockUserFailed,
-        eNoNodeStatusChangeAuth
+        eNoNodeStatusChangeAuth,
+        eAccountStatusOnRemoteNode
     };
 
 private:
