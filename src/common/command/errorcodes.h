@@ -56,6 +56,7 @@ public:
         eFailToReadTxnInfo,
         eFailToGetHashTree,
         eAuthorizationError,
+        eAccountStatusOnRemoteNode,
         eStatusSubmitFail,
         eLockUserFailed,
         eNoNodeStatusChangeAuth
@@ -111,7 +112,8 @@ private:
         { Code::eAuthorizationError, "Not authorized to change higher bits" },
         { Code::eStatusSubmitFail, "Status submission failed" },
         { Code::eLockUserFailed, "Lock user failed" },
-        { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" }
+        { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
+        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"}
    };
 
 public:
