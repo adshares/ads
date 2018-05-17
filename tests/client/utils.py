@@ -1,11 +1,51 @@
+import os
+import shutil
 import time
 
-from ..consts import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT
-from .. import utils as tests_utils
+from ..consts import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET
+from ..utils import exec_esc_cmd
+
+
+def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
+    client_id = str(client_id)
+
+    client_path_dir = get_client_dir(client_id)
+
+    options = [
+        "host=%s" %host,
+        "port=%i" %port,
+        "address=%s" %address,
+        "secret=%s" %secret
+    ]
+    with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
+        fh.write("\n".join(options))
+
+
+def ensure_init_client():
+    if not os.path.exists(get_client_dir(INIT_CLIENT_ID)):
+        create_init_client()
+
+
+def create_init_client():
+    clean_client_dir(INIT_CLIENT_ID)
+    create_client_env(INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+                      address=INIT_CLIENT_ADDRESS,
+                      secret=INIT_CLIENT_SECRET)
+
+
+def get_client_dir(client_id):
+    from ..node.utils import get_node_path_dir
+    return get_node_path_dir(client_id, "client")
+
+
+def clean_client_dir(client_id):
+    client_id = str(client_id)
+    client_dir = get_client_dir(client_id)
+    shutil.rmtree(client_dir, ignore_errors=True)
 
 
 def get_user_address(client_id):
-    response = tests_utils.exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
+    response = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     try:
         return response['account']['address']
     except KeyError:
@@ -16,7 +56,7 @@ def get_balance_user(client_id):
     """
     Function returns user's balance in str format
     """
-    response_receiver = tests_utils.exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
+    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     try:
         return response_receiver['account']['balance']
     except KeyError:
@@ -28,7 +68,7 @@ def update_user_env(client_id, address):
     Function updates user's data after create a new user
     """
     message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
                                              "address": address,
                                              'message': message,
                                              "amount": 20})
@@ -37,28 +77,28 @@ def update_user_env(client_id, address):
     new_secret = '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C'
     signature = 'ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05'
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {
+    response = exec_esc_cmd(INIT_CLIENT_ID, {
         "run": "change_account_key",
         "pkey": new_pub_key, "signature": signature},
         cmd_extra=['--address', address])
 
-    tests_utils.create_client_env(client_id,
-                                  INIT_NODE_OFFICE_PORT,
-                                  address=address,
-                                  secret=new_secret)
+    create_client_env(client_id,
+                      INIT_NODE_OFFICE_PORT,
+                      address=address,
+                      secret=new_secret)
 
 
 def create_account(client_id="2", node="0001"):
     # As INIT user, create client with client_id
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
     address = response['new_account']['address']
 
     time_start = time.time()
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
     count_users = len(response.get('accounts'))
 
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
         accounts = len(response.get('accounts')) if response.get('accounts') else 0
         if accounts > count_users:
             break

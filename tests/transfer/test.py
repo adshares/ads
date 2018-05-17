@@ -1,4 +1,3 @@
-from .. import utils as tests_utils
 from ..consts import INIT_CLIENT_ID
 from ..client import utils as client_utils
 
@@ -10,7 +9,7 @@ def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):
 
     message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
+    response = client_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
                                              "address": address_receiver,
                                              'message': message,
                                              "amount": amount})
@@ -32,7 +31,7 @@ def test_send_cash_many_users(init_node_process, amount_1=35.0, amount_2=10.0):
     start_balance_receiver_1 = client_utils.get_balance_user("2")
     start_balance_receiver_2 = client_utils.get_balance_user("3")
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {
+    response = client_utils.exec_esc_cmd(INIT_CLIENT_ID, {
         "run": "send_many",
         "wires": {address_receivers_2: amount_2, address_receivers_1: amount_1}})
 

@@ -1,6 +1,6 @@
 import time
 
-from .. import utils as tests_utils
+from .utils import exec_esc_cmd
 from ..consts import INIT_CLIENT_ID
 
 
@@ -18,14 +18,14 @@ def test_block_created(init_node_process, gen_blocks_count=1):
 
 
 def test_node_create_node(init_node_process, node_id="2"):
-    count_blocks = len(tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
                                     {"run": "get_block"}).get('block', '').get('nodes', ''))
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
 
     start_time = time.time()
 
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+        response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
         if response.get('block'):
             count = len(response['block']['nodes'])
             if count > count_blocks:
@@ -43,7 +43,7 @@ def test_node_create_node(init_node_process, node_id="2"):
     NEW_PKEY = "D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17"
     NEW_PRIV_KEY = "FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6"
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": NEW_PKEY, "node": node_id})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": NEW_PKEY, "node": node_id})
 
     try:
         assert response['result'] == 'Node key changed'
@@ -53,11 +53,11 @@ def test_node_create_node(init_node_process, node_id="2"):
 
 def test_set_node_status(init_node_process, node_id='1', status='8'):
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'set_node_status', 'node': 1, 'status': status})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'set_node_status', 'node': 1, 'status': status})
     current_block = response['current_block_time']
 
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
         if current_block != response['current_block_time']:
             break
 
@@ -65,18 +65,17 @@ def test_set_node_status(init_node_process, node_id='1', status='8'):
         for node in response['block']['nodes']:
             if node['id'] == '000{}'.format(node_id):
                 assert node['status'] == status
-
     except KeyError:
         raise Exception(response)
 
 
 def test_unset_node_status(init_node_process, node_id='1', status='16'):
 
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'unset_node_status', 'node': 1, 'status': status})
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'unset_node_status', 'node': 1, 'status': status})
     current_block = response['current_block_time']
 
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
         if current_block != response['current_block_time']:
             break
 
@@ -84,6 +83,5 @@ def test_unset_node_status(init_node_process, node_id='1', status='16'):
         for node in response['block']['nodes']:
             if node['id'] == '000{}'.format(node_id):
                 assert node['status'] == status
-
     except KeyError:
         raise Exception(response)
