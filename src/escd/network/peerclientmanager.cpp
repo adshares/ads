@@ -1,6 +1,7 @@
 #include "peerclientmanager.h"
 #include <memory>
 #include <pthread.h>
+#include <iterator>
 
 #include "../options.hpp"
 #include "../peer.hpp"
@@ -550,7 +551,7 @@ void PeerConnectManager::getMoreHeaders(uint32_t now)
     auto    peer  = m_activePeers.begin();
     int     num   = random() % (m_activePeers.size());
 
-    advance(peer,num);
+    std::advance(peer,num);
 
     if(peer != m_activePeers.end())
     {
@@ -578,7 +579,7 @@ void PeerConnectManager::fillknown(message_ptr msg)
     }
 
     auto pi = m_activePeers.begin();
-    advance(pi,(r % m_activePeers.size()));
+    std::advance(pi,(r % m_activePeers.size()));
 
     for(auto it = pi; it != m_activePeers.end(); it++)
     {
