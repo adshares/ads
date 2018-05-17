@@ -50,6 +50,7 @@
 #include "command/gettransaction.h"
 #include "command/setaccountstatus.h"
 #include "command/setnodestatus.h"
+#include "command/unsetaccountstatus.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -374,7 +375,6 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         command.reset(new ChangeNodeKey(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey));
         fee = command->getFee();
     }
-
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
         command.reset(new SetAccountStatus(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status));
         fee=TXS_SUS_FEE;
@@ -382,7 +382,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         command.reset(new SetNodeStatus(sts.bank, sts.user, sts.msid, now, to_bank, to_status));
         fee=TXS_SBS_FEE;
     } else if(!run.compare(txsname[TXSTYPE_UUS])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_UUS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);
+        command.reset(new UnsetAccountStatus(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status));
         fee=TXS_UUS_FEE;
     } else if(!run.compare(txsname[TXSTYPE_UBS])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_UBS,sts.bank,sts.user,sts.msid,now,to_bank,to_user,(uint64_t)to_status,to_info,(const char*)to_pkey);

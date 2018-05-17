@@ -1,22 +1,22 @@
-#include "setaccountstatushandler.h"
-#include "command/setaccountstatus.h"
+#include "unsetaccountstatushandler.h"
+#include "command/unsetaccountstatus.h"
 #include "../office.hpp"
 #include "helper/hash.h"
 
-SetAccountStatusHandler::SetAccountStatusHandler(office& office, boost::asio::ip::tcp::socket& socket)
+UnsetAccountStatusHandler::UnsetAccountStatusHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : CommandHandler(office, socket) {
 }
 
-void SetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
+void UnsetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
-        m_command = std::unique_ptr<SetAccountStatus>(dynamic_cast<SetAccountStatus*>(command.release()));
+        m_command = std::unique_ptr<UnsetAccountStatus>(dynamic_cast<UnsetAccountStatus*>(command.release()));
     } catch (std::bad_cast& bc) {
-        ELOG("SetAccountStatus bad_cast caught: %s\n", bc.what());
+        ELOG("UnsetAccountStatus bad_cast caught: %s\n", bc.what());
         return;
     }
 }
 
-void SetAccountStatusHandler::onExecute() {
+void UnsetAccountStatusHandler::onExecute() {
     assert(m_command);
 
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
@@ -40,9 +40,8 @@ void SetAccountStatusHandler::onExecute() {
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     }
 
-
     if(!errorCode) {
-        if(!m_offi.set_account_status(m_command->getDestUserId(), m_command->getStatus())) {
+        if(!m_offi.unset_account_status(m_command->getDestUserId(), m_command->getStatus())) {
             ELOG("ERROR: status submission failed");
             errorCode = ErrorCodes::Code::eStatusSubmitFail;
         }
@@ -92,7 +91,7 @@ void SetAccountStatusHandler::onExecute() {
     }
 }
 
-bool SetAccountStatusHandler::onValidate() {
+bool UnsetAccountStatusHandler::onValidate() {
 
     auto startedTime = time(NULL);
     int32_t diff = m_command->getTime() - startedTime;
@@ -130,7 +129,7 @@ bool SetAccountStatusHandler::onValidate() {
             (0x0 != (m_command->getStatus()&0xF0))) {
 
         DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",
-            m_command->getStatus(), m_command->getDestUserId());
+        m_command->getStatus(), m_command->getDestUserId());
 
         errorCode = ErrorCodes::Code::eAuthorizationError;
     }

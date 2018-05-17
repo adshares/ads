@@ -756,7 +756,7 @@ class office {
         unlink(filename);
     }
 
-    bool set_status(uint32_t buser, uint16_t status) {
+    bool set_account_status(uint32_t buser, uint16_t status) {
         std::lock_guard<boost::mutex> lock(file_);
         user_t u;
         if (lseek(offifd_,buser*sizeof(user_t),SEEK_SET) < 0) {
@@ -765,7 +765,7 @@ class office {
         read(offifd_,&u,sizeof(user_t));
 
         if(!u.msid) {
-            return(false);
+            return false;
         }
 
         uint16_t oldstatus=u.stat;
@@ -775,7 +775,29 @@ class office {
             write(offifd_,&u,sizeof(user_t));
         }
 
-        return(true);
+        return true;
+    }
+
+    bool unset_account_status(uint32_t buser, uint16_t status) {
+        std::lock_guard<boost::mutex> lock(file_);
+        user_t u;
+        if (lseek(offifd_,buser*sizeof(user_t),SEEK_SET) < 0) {
+            return false;
+        }
+        read(offifd_,&u,sizeof(user_t));
+
+        if(!u.msid) {
+            return false;
+        }
+
+        uint16_t oldstatus=u.stat;
+        u.stat&=~(status & 0xFFFE);
+        if(oldstatus!=u.stat) {
+            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+            write(offifd_,&u,sizeof(user_t));
+        }
+
+        return true;
     }
 
     //@TODO: check if we need file_ as a lock.
