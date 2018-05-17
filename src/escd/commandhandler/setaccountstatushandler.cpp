@@ -40,7 +40,7 @@ void SetAccountStatusHandler::onExecute() {
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     }
 
-    if(!errorCode && m_command->getDestBankId() == m_offi.svid) {
+    if(!errorCode) {
         if(!m_offi.set_status(m_command->getDestUserId(), m_command->getStatus())) {
             ELOG("ERROR: status submission failed");
             errorCode = ErrorCodes::Code::eStatusSubmitFail;
@@ -121,13 +121,16 @@ bool SetAccountStatusHandler::onValidate() {
         DLOG("ERROR: bad target user %04X:%08X\n", m_command->getDestBankId(), m_command->getDestUserId());
         errorCode = ErrorCodes::Code::eUserBadTarget;
     }
-    else if(m_command->getDestBankId() == m_offi.svid && // check if other admins have write permissions
-            m_command->getUserId() &&
-            m_command->getUserId()!=m_command->getDestUserId() &&
-            (0x0 != (m_command->getStatus()&0xF))) { //normal users can set only higher bits
+    else if(m_command->getDestBankId() != m_offi.svid) {
+        DLOG("ERROR: changing account status on remote node is not allowed");
+        errorCode = ErrorCodes::Code::eAccountStatusOnRemoteNode;
+    }
+    else if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
+            (0x0 != (m_command->getStatus()&0xF0))) {
 
         DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",
             m_command->getStatus(), m_command->getDestUserId());
+
         errorCode = ErrorCodes::Code::eAuthorizationError;
     }
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
