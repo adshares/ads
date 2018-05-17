@@ -1,98 +1,119 @@
-import time
-import threading
+import json
+import os
+import shutil
+import subprocess
 
-from .conftest import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, create_client_env, exec_esc_cmd, manual_init_node_process
-
-
-def update_user_env(client_id, address):
-    """
-    Function updates user's data after create a new user
-    """
-    message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
-
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
-                                             "address": address,
-                                             'message': message,
-                                             "amount": 20})
-
-    new_pub_key = 'C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196'
-    new_secret = '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C'
-    signature = 'ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05'
-
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_account_key", "pkey": new_pub_key, "signature": signature},
-                            cmd_extra=['--address', address])
-
-    create_client_env(client_id, INIT_NODE_OFFICE_PORT,
-                      address=address,
-                      secret=new_secret)
+from .consts import (ESC_BIN_PATH, INIT_CLIENT_ID,
+                     INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET)
 
 
-def create_account(client_id="2", node="0001"):
-    # As INIT user, create client with client_id
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
-    address = response['new_account']['address']
+def create_node_env(node_id, office_port, server_port, addr="127.0.0.1",
+                    peer_port=None, key=None, id_block=None, offset_block=None):
+    node_id = str(node_id)
 
-    time_start = time.time()
-    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
-    count_users = len(response.get('accounts'))
+    options = [
+        "addr=%s" %addr,
+        "svid=%s" %node_id,
+        "offi=%i" %office_port,
+        "port=%i" %server_port
+    ]
+    if peer_port is not None:
+        options.append("peer=%s:%i"%(addr, peer_port))
 
-    while True:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
-        accounts = len(response.get('accounts')) if response.get('accounts') else 0
-        if accounts > count_users:
-            break
-        time.sleep(10)
-        assert time.time() - time_start < 70
+    node_path_dir = get_node_path_dir(node_id)
+    with open(os.path.join(node_path_dir, "options.cfg"), 'w') as fh:
+        fh.write("\n".join(options))
 
-    update_user_env(client_id, address)
+    node_key_path_dir = os.path.join(node_path_dir, "key")
+    if not os.path.exists(node_key_path_dir):
+        os.makedirs(node_key_path_dir)
 
-    return address
+    os.system("chmod go-rx %s" %node_key_path_dir)
+    if key is not None:
+        node_key_path = os.path.join(node_key_path_dir, "key.txt")
+        with open(node_key_path, 'w') as fh:
+            fh.write(key)
+        os.system("chmod go-r %s" % node_key_path)
 
-
-def get_user_address(client_id):
-    response = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
-    return response['account']['address']
-
-
-def create_node_without_start():
-    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
-                                    {"run": "get_block"}).get('block', '').get('nodes', ''))
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
-
-    start_time = time.time()
-
-    while True:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
-        if response.get('block'):
-            count = len(response['block']['nodes'])
-            if count > count_blocks:
-                break
-        time.sleep(10)
-        assert time.time() - start_time < 70
-
-    return response
+        if offset_block and id_block:
+            prev_node = str(int(node_id) - 1)
+            prev_node_dir = get_node_path_dir(prev_node)
+            shutil.copy(os.path.join(prev_node_dir, 'blk', offset_block, id_block,  'servers.srv'), node_path_dir)
 
 
-def create_node(node_id, client_id, port, offi):
+def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
+    client_id = str(client_id)
 
-    response = create_node_without_start()
+    client_path_dir = get_client_dir(client_id)
 
-    offset_block = response['block']['id'][:3]
-    id_block = response['block']['id'][3:]
-
-    SECRET = 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6'
-
-    thr = threading.Thread(target=manual_init_node_process, kwargs={'node_id':node_id, 'client_id': client_id,
-                                                                    'key': SECRET, 'port': port, 'offi': offi,
-                                                                    'offset_block': offset_block, 'id_block': id_block})
-    thr.start()
-    thr.join()
+    options = [
+        "host=%s" %host,
+        "port=%i" %port,
+        "address=%s" %address,
+        "secret=%s" %secret
+    ]
+    with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
+        fh.write("\n".join(options))
 
 
-def get_balance_user(client_id):
-    """
-    Function returns user's balance in str format
-    """
-    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
-    return response_receiver['account']['balance']
+def ensure_init_client():
+    if not os.path.exists(get_client_dir(INIT_CLIENT_ID)):
+        create_init_client()
 
+
+def create_init_client():
+    clean_client_dir(INIT_CLIENT_ID)
+    create_client_env(INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+                      address=INIT_CLIENT_ADDRESS,
+                      secret=INIT_CLIENT_SECRET)
+
+
+def get_node_path_dir(node_id, prefix="node"):
+    node_id = str(node_id)
+    node_path = os.path.join("/tmp", prefix, node_id)
+    if not os.path.exists(node_path):
+        os.makedirs(node_path)
+    return node_path
+
+
+def clean_node_dir(node_id):
+    node_id = str(node_id)
+    node_dir = get_node_path_dir(node_id)
+    shutil.rmtree(node_dir, ignore_errors=True)
+
+
+def get_client_dir(client_id):
+    return get_node_path_dir(client_id, "client")
+
+
+def clean_client_dir(client_id):
+    client_id = str(client_id)
+    client_dir = get_client_dir(client_id)
+    shutil.rmtree(client_dir, ignore_errors=True)
+
+
+def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeout=10):
+    client_dir = get_client_dir(client_id)
+
+    esc_cmd = [ESC_BIN_PATH]
+    if cmd_extra:
+        esc_cmd.extend(cmd_extra)
+
+    cmds = [js_command]
+    if with_get_me:
+        cmds.insert(0, {'run': "get_me"})
+
+    process = subprocess.Popen(esc_cmd, cwd=client_dir, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+
+    for cmd in cmds:
+        process.stdin.write(str.encode(json.dumps(cmd) + "\n"))
+
+    stdout, stderr = process.communicate(timeout=timeout)
+
+    raw_response = stdout.decode("utf-8")
+    raw_response = raw_response.replace("}\n", "}").replace("}{", "},{")
+
+    responses = json.loads("[%s]" %raw_response)
+
+    return responses[-1]

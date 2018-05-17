@@ -15,7 +15,8 @@ INIT_NODE_OFFICE_PORT = 8003
 INIT_NODE_SERVER_PORT = 8005
 
 
-INIT_CLIENT_ID = '1'
+INIT_CLIENT_ID = '0'
+FIRST_CLIENT = '1'
 INIT_CLIENT_ADDRESS = "0001-00000000-XXXX"
 INIT_CLIENT_SECRET = "14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0"
 
@@ -153,11 +154,13 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeou
 
     raw_response = stdout.decode("utf-8")
     raw_response = raw_response.replace("}\n", "}").replace("}{", "},{")
-    responses = None
-    try:
-        responses = json.loads("[%s]" %raw_response)
-    except json.decoder.JSONDecodeError:
-        import pdb
-        pdb.set_trace()
+
+    responses = json.loads("[%s]" %raw_response)
+
+    with open(os.path.join(client_dir, 'output.txt'), 'a') as file:
+        file.write(json.dumps(responses) + '\n\n')
+
+    with open(os.path.join(client_dir, 'error.txt'), 'a') as file:
+        file.write(stderr.decode("utf-8") + '\n\n')
 
     return responses[-1]

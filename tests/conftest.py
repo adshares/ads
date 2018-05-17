@@ -1,7 +1,7 @@
-from . import (create_node_env, clean_node_dir, get_node_path_dir,
-               clean_client_dir, create_init_client, exec_esc_cmd, create_client_env)
-from . import (INIT_NODE_ID, INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
-               INIT_NODE_SERVER_PORT, ESCD_BIN_PATH)
+from tests import (create_node_env, clean_node_dir, get_node_path_dir,
+                   clean_client_dir, create_init_client, exec_esc_cmd, create_client_env)
+from tests import (INIT_NODE_ID, INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+                   INIT_NODE_SERVER_PORT, ESCD_BIN_PATH, FIRST_CLIENT)
 
 import subprocess
 import pytest

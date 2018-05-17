@@ -4,29 +4,22 @@ import time
 
 from . import exec_esc_cmd
 from . import INIT_CLIENT_ID, INIT_CLIENT_ADDRESS
-from .utils import update_user_env, get_balance_user
+from .utils import update_user_env, get_balance_user, get_user_address
 
 
 USERS = []
 
 
-loop = asyncio.get_event_loop()
-
-
-async def create_user(id_user, id_node):
+def create_user(id_user, id_node):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": id_node})
-
-    await asyncio.sleep(60)
-
-    update_user_env(client_id=id_user, address=response['new_account']['address'])
+    new_account = response['new_account']
+    return new_account['address'], new_account['id']
 
 
 async def send_money_async(amount=10):
-    print("=======================================================================")
     if not USERS:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"}, with_get_me=False)
-        print(response)
         return
+    print("===============================================================================")
     random.shuffle(USERS)
     address_sender = USERS[-1]
     USERS.remove(address_sender)
@@ -87,10 +80,14 @@ async def send_many_money_async(addresses, sender_id, amount=1):
 def create_users(count=10):
     # As INIT user, create client with client_id
     node = '0001'
-    users = [create_user(i, node) for i in range(2, count+2)]
-    loop.run_until_complete(asyncio.wait(users))
+    for i in range(1, count + 1):
+        print('CREATE USER {}'.format(i))
+        create_user(i, node)
+    time.sleep(70)
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': node})['accounts']
     address_list = [(client['id'], client['address']) for client in response if client['id'] != '0']
+    for _id, address in address_list:
+        update_user_env(client_id=_id, address=address)
     return address_list
 
 
@@ -113,6 +110,7 @@ async def create_node(id_node):
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": NEW_PKEY, "node": id_node})
 
+
 def create_nodes(count=2):
     nodes = [create_node(i) for i in range(2, count+2)]
     loop.run_until_complete(asyncio.wait(nodes))
@@ -130,23 +128,40 @@ def create_nodes(count=2):
 #     assert count_created - 1 == count
 
 
-def test_multi_send_one_money(init_node_process, count_transactions=4):
-    global USERS
-    USERS = create_users(count_transactions)
-    response = exec_esc_cmd(INIT_CLIENT_ADDRESS, {'run': 'get_accounts'}, with_get_me=True)
-    print("===================================GET ACCOUNTS ============================")
-    print(response)
-    for user in USERS:
-        response_get_me = exec_esc_cmd(user[0], {'run': 'get_me'}, with_get_me=False)
-        response_get_account = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': user[1]})
-        print("=============================== GET ME ================================")
-        print(response_get_me)
-        print("===============================GET ACCOUNT ============================")
-        print(response_get_account)
-    tasks = [send_money_async() for _ in range(count_transactions)]
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.wait(tasks))
-    assert True
+# def test_multi_send_one_money(init_node_process, count_transactions=20):
+#     global USERS
+#     USERS = create_users(count_transactions)
+#     tasks = [send_money_async() for _ in range(count_transactions)]
+#     loop = asyncio.get_event_loop()
+#     loop.run_until_complete(asyncio.wait(tasks))
+#     assert True
+
+
+def test_vanish_zero_account(init_node_process):
+    address, id_client = create_user(1, id_node=1)
+    time.sleep(60)
+    update_user_env(client_id=id_client, address=address)
+
+    response = exec_esc_cmd(id_client, {'run': 'get_me'}, with_get_me=False)
+
+    start_block = response['current_block_time']
+    start_balance = response['account']['balance']
+
+    count = 0
+    while True:
+        response = exec_esc_cmd(id_client, {'run': 'get_me'}, with_get_me=False)
+        new_block = response['current_block_time']
+        if new_block != start_block:
+            start_block = new_block
+            count += 1
+        if count == 4:
+            break
+        time.sleep(5)
+
+    response = exec_esc_cmd(id_client, {'run': 'get_me'}, with_get_me=False)
+
+    assert float(start_balance) != float(response['account']['balance'])
+
 
 
 
