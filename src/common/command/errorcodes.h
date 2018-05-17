@@ -30,6 +30,7 @@ public:
         eDuplicatedTarget,
         eAmountBelowZero,
         eUserBadTarget,
+        eNodeBadTarget,
         eTimeInFuture,
         eBroadcastNotReady,
         eNoBroadcastFile,
@@ -57,7 +58,8 @@ public:
         eAuthorizationError,
         eAccountStatusOnRemoteNode,
         eStatusSubmitFail,
-        eLockUserFailed
+        eLockUserFailed,
+        eNoNodeStatusChangeAuth
     };
 
 private:
@@ -82,6 +84,7 @@ private:
         { Code::eDuplicatedTarget, "Duplicated target" },
         { Code::eAmountBelowZero, "Amount below zero" },
         { Code::eUserBadTarget, "Bad target user" },
+        { Code::eNodeBadTarget, "Bad target node" },
         { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
         { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
         { Code::eNoBroadcastFile, "No broadcast file to send" },
@@ -106,10 +109,11 @@ private:
         { Code::eFailToProvideTxnInfo, "Failed to provide transaction info. Try again later." },
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
         { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
-        { Code::eAuthorizationError, "Not authorized to change higher bits"},
-        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
-        { Code::eStatusSubmitFail, "Status submission failed"},
-        { Code::eLockUserFailed, "Lock user failed"}
+        { Code::eAuthorizationError, "Not authorized to change higher bits" },
+        { Code::eStatusSubmitFail, "Status submission failed" },
+        { Code::eLockUserFailed, "Lock user failed" },
+        { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
+        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"}
    };
 
 public:

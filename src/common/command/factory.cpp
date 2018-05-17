@@ -17,6 +17,7 @@
 #include "gettransaction.h"
 #include "connected.h"
 #include "setaccountstatus.h"
+#include "setnodestatus.h"
 
 namespace command {
 
@@ -74,6 +75,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_SUS:
         command = std::make_unique<SetAccountStatus>();
+        break;
+    case TXSTYPE_SBS:
+        command = std::make_unique<SetNodeStatus>();
         break;
     default:
         break;

@@ -534,4 +534,29 @@ struct SetAccountStatusData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct SetNodeStatusInfo {
+    SetNodeStatusInfo() = default;
+    SetNodeStatusInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
+        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), status(status_) {
+    }
+
+    uint8_t ttype{TXSTYPE_SBS}; ///< command type
+    uint16_t abank;             ///< source node
+    uint32_t auser;             ///< source user
+    uint32_t amsid;             ///< msg id
+    uint32_t ttime;             ///< time
+    uint16_t bbank;             ///< dest node
+    uint32_t status;            ///< node status
+}__attribute__((packed));
+
+struct SetNodeStatusData {
+    SetNodeStatusData() = default;
+    SetNodeStatusData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
+        : info(abank_, auser_, amsid_, ttime_, bbank_, status_) {
+    }
+
+    SetNodeStatusInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H
