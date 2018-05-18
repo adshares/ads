@@ -2,13 +2,14 @@ import time
 
 from ..consts import INIT_CLIENT_ID
 from .. import utils as tests_utils
-from ..node import utils as node_utils
-from ..client import utils as client_utils
 
 
 def test_get_blocks(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks', 'from': 0, "to": 0})
-    assert len(response['blocks']) > 0
+    try:
+        assert len(response['blocks']) > 0
+    except KeyError:
+        raise Exception(response)
 
 
 def test_send_and_get_broadcast(init_node_process):
@@ -38,7 +39,8 @@ def test_send_and_get_broadcast(init_node_process):
 
 
 def test_get_transaction(init_node_process):
-    client_utils.create_account(5)
+    from ..client.utils import create_account
+    create_account(5)
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_log', 'type': 'create_account'})
     tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks'})
     txid = response['log'][0]['id']
@@ -84,8 +86,9 @@ def test_get_message(init_node_process):
 
 
 def test_retrieve_funds():
+    from ..node.utils import create_node_without_start
     local_account = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'})['account']['address']
-    node_utils.create_node_without_start()
+    create_node_without_start()
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'})
     address = response['accounts'][0]['address']
 
