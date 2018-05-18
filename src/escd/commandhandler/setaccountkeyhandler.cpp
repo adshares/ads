@@ -26,14 +26,14 @@ void SetAccountKeyHandler::onExecute() {
     uint32_t    mpos;
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
-    //execute
+    //execute    
     std::copy(data.pubkey, data.pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
 
     m_usera.msid++;
     m_usera.time  = data.ttime;
     m_usera.lpath = lpath;
     //convert message to hash (use signature as input)
-    Helper::create256signhash(data.sign, m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
+    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
     // could add set_user here
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
@@ -69,11 +69,16 @@ void SetAccountKeyHandler::onExecute() {
 #endif
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
-            boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
+        std::vector<boost::asio::const_buffer> response;
+
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+
+        if(!errorCode) {            
+            commandresponse cresponse{m_usera, msid, mpos};
+            response.emplace_back(boost::asio::buffer(&cresponse, sizeof(cresponse)));
         }
+        boost::asio::write(m_socket, response);
+
     } catch (std::exception& e) {
         ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
