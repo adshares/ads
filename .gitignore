@@ -10,3 +10,4 @@ src/common/default.h
 *.pyc
 _test_load.py
 _test_remote_network.py
+.project
