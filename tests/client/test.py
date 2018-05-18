@@ -1,6 +1,6 @@
 import time
 
-from ..consts import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
+from tests.consts import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
 from ..client.utils import (exec_esc_cmd, create_init_client,
                             create_client_env, get_user_address, update_user_env)
 

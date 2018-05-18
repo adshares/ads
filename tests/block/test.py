@@ -1,7 +1,7 @@
 import time
 
-from ..consts import INIT_CLIENT_ID
-from .. import utils as tests_utils
+from tests.consts import INIT_CLIENT_ID
+from tests import utils as tests_utils
 
 
 def test_get_blocks(init_node_process):
