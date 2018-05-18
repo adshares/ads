@@ -22,6 +22,7 @@
 #include "setaccountstatushandler.h"
 #include "setnodestatushandler.h"
 #include "unsetaccountstatushandler.h"
+#include "unsetnodestatushandler.h"
 
 class office;
 
@@ -60,6 +61,7 @@ class CommandService {
     SetAccountStatusHandler   m_setAccountStatusHandler; ///< set account status handler
     SetNodeStatusHandler      m_setNodeStatusHandler; ///< set node status handler
     UnsetAccountStatusHandler m_unsetAccountStatusHandler; ///< unset account status handler
+    UnsetNodeStatusHandler m_unsetNodeStatusHandler; ///< unset node status handler
 };
 
 

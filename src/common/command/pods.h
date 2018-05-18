@@ -534,28 +534,28 @@ struct AccountStatusData {
     unsigned char sign[64];
 }__attribute__((packed));
 
-struct SetNodeStatusInfo {
-    SetNodeStatusInfo() = default;
-    SetNodeStatusInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
-        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), status(status_) {
+struct NodeStatusInfo {
+    NodeStatusInfo(uint8_t ttype_) : ttype(ttype_) {}
+    NodeStatusInfo(uint8_t ttype_, uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
+        : ttype(ttype_), abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), status(status_) {
     }
 
-    uint8_t ttype{TXSTYPE_SBS}; ///< command type
-    uint16_t abank;             ///< source node
-    uint32_t auser;             ///< source user
-    uint32_t amsid;             ///< msg id
-    uint32_t ttime;             ///< time
-    uint16_t bbank;             ///< dest node
-    uint32_t status;            ///< node status
+    uint8_t ttype;                 ///< command type
+    uint16_t abank{0};             ///< source node
+    uint32_t auser{0};             ///< source user
+    uint32_t amsid{0};             ///< msg id
+    uint32_t ttime{0};             ///< time
+    uint16_t bbank{0};             ///< dest node
+    uint32_t status{0};            ///< node status
 }__attribute__((packed));
 
-struct SetNodeStatusData {
-    SetNodeStatusData() = default;
-    SetNodeStatusData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
-        : info(abank_, auser_, amsid_, ttime_, bbank_, status_) {
+struct NodeStatusData {
+    NodeStatusData(uint8_t ttype_) : info(ttype_) {}
+    NodeStatusData(uint8_t ttype_, uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t status_)
+        : info(ttype_, abank_, auser_, amsid_, ttime_, bbank_, status_) {
     }
 
-    SetNodeStatusInfo info;
+    NodeStatusInfo info;
     unsigned char sign[64];
 }__attribute__((packed));
 

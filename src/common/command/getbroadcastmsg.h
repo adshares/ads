@@ -23,8 +23,8 @@ class GetBroadcastMsg : public IBlockCommand {
         virtual ~GetBroadcastMsg();
 
 
-        /** \brief Return TXSTYPE_KEY as command type . */
-        virtual int  getType()                                      override;
+        /** \brief Return TXSTYPE_BLG as command type . */
+        virtual int getType()                                      override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;

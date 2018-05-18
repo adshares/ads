@@ -1,94 +1,94 @@
-#include "setnodestatus.h"
+#include "unsetnodestatus.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
-SetNodeStatus::SetNodeStatus()
-    : m_data{TXSTYPE_SBS} {
+UnsetNodeStatus::UnsetNodeStatus()
+    : m_data{TXSTYPE_UBS} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-SetNodeStatus::SetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status)
-    : m_data{TXSTYPE_SBS, abank, auser, amsid, ttime, bbank, status} {
+UnsetNodeStatus::UnsetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status)
+    : m_data{TXSTYPE_UBS, abank, auser, amsid, ttime, bbank, status} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-int SetNodeStatus::getType() {
-    return TXSTYPE_SBS;
+int UnsetNodeStatus::getType() {
+    return TXSTYPE_UBS;
 }
 
-unsigned char* SetNodeStatus::getData() {
+unsigned char* UnsetNodeStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
 
-unsigned char* SetNodeStatus::getResponse() {
+unsigned char* UnsetNodeStatus::getResponse() {
     return reinterpret_cast<unsigned char*>(&m_response);
 }
 
-void SetNodeStatus::setData(char* data) {
+void UnsetNodeStatus::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void SetNodeStatus::setResponse(char* response) {
+void UnsetNodeStatus::setResponse(char* response) {
     m_response = *reinterpret_cast<decltype(m_response)*>(response);
 }
 
-int SetNodeStatus::getDataSize() {
+int UnsetNodeStatus::getDataSize() {
     return sizeof(m_data.info);
 }
 
-int SetNodeStatus::getResponseSize() {
+int UnsetNodeStatus::getResponseSize() {
     return sizeof(m_response);
 }
 
-unsigned char* SetNodeStatus::getSignature() {
+unsigned char* UnsetNodeStatus::getSignature() {
     return m_data.sign;
 }
 
-int SetNodeStatus::getSignatureSize() {
+int UnsetNodeStatus::getSignatureSize() {
     return sizeof(m_data.sign);
 }
 
-void SetNodeStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
+void UnsetNodeStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool SetNodeStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
+bool UnsetNodeStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& SetNodeStatus::getUserInfo() {
+user_t& UnsetNodeStatus::getUserInfo() {
     return m_response.usera;
 }
 
-uint32_t SetNodeStatus::getTime() {
+uint32_t UnsetNodeStatus::getTime() {
     return m_data.info.ttime;
 }
 
-uint32_t SetNodeStatus::getUserId() {
+uint32_t UnsetNodeStatus::getUserId() {
     return m_data.info.auser;
 }
 
-uint32_t SetNodeStatus::getBankId() {
+uint32_t UnsetNodeStatus::getBankId() {
     return m_data.info.abank;
 }
 
-int64_t SetNodeStatus::getFee() {
-    return TXS_SBS_FEE;
+int64_t UnsetNodeStatus::getFee() {
+    return TXS_UBS_FEE;
 }
 
-int64_t SetNodeStatus::getDeduct() {
+int64_t UnsetNodeStatus::getDeduct() {
     return 0;
 }
 
-bool SetNodeStatus::send(INetworkClient& netClient)
+bool UnsetNodeStatus::send(INetworkClient& netClient)
 {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SetNodeStatus sending error\n");
+        ELOG("UnsetNodeStatus sending error\n");
         return false;
     }
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        ELOG("SetNodeStatus reading error\n");
+        ELOG("UnsetNodeStatus reading error\n");
         return false;
     }
 
@@ -97,14 +97,14 @@ bool SetNodeStatus::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        ELOG("SetNodeStatus ERROR reading global info\n");
+        ELOG("UnsetNodeStatus ERROR reading global info\n");
         return false;
     }
 
     return true;
 }
 
-void SetNodeStatus::saveResponse(settings& sts) {
+void UnsetNodeStatus::saveResponse(settings& sts) {
     if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
@@ -119,11 +119,11 @@ void SetNodeStatus::saveResponse(settings& sts) {
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
-std::string SetNodeStatus::toString(bool /*pretty*/) {
+std::string UnsetNodeStatus::toString(bool /*pretty*/) {
     return "";
 }
 
-void SetNodeStatus::toJson(boost::property_tree::ptree &ptree) {
+void UnsetNodeStatus::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
     } else {
@@ -131,7 +131,7 @@ void SetNodeStatus::toJson(boost::property_tree::ptree &ptree) {
     }
 }
 
-void SetNodeStatus::txnToJson(boost::property_tree::ptree& ptree) {
+void UnsetNodeStatus::txnToJson(boost::property_tree::ptree& ptree) {
     using namespace Helper;
     ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
     ptree.put(TAG::SRC_NODE, m_data.info.abank);
@@ -143,14 +143,14 @@ void SetNodeStatus::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
-uint32_t SetNodeStatus::getUserMessageId() {
+uint32_t UnsetNodeStatus::getUserMessageId() {
     return m_data.info.amsid;
 }
 
-uint32_t SetNodeStatus::getDestBankId() {
+uint32_t UnsetNodeStatus::getDestBankId() {
     return m_data.info.bbank;
 }
 
-uint32_t SetNodeStatus::getStatus() {
+uint32_t UnsetNodeStatus::getStatus() {
     return m_data.info.status;
 }
