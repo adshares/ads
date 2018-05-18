@@ -1,13 +1,12 @@
 import os
-import pytest
 import shutil
 import subprocess
 import threading
 import time
-from ..consts import (INIT_NODE_OFFICE_PORT, INIT_NODE_ID,
-                      INIT_CLIENT_ID, ESCD_BIN_PATH, INIT_NODE_SERVER_PORT)
 
-from ..utils import exec_esc_cmd
+from tests.consts import (INIT_CLIENT_ID, ESCD_BIN_PATH)
+
+from tests.utils import exec_esc_cmd, generate_keys
 
 
 def get_node_path_dir(node_id, prefix="node"):
@@ -65,7 +64,7 @@ def manual_init_node_process(node_id, client_id, key, port,
     create_node_env(node_id, port, offi, key=key, offset_block=offset_block, id_block=id_block)
 
     # Clean init client per session
-    from ..client.utils import clean_client_dir, create_init_client
+    from tests.client.utils import clean_client_dir, create_init_client
     clean_client_dir(client_id)
     create_init_client()
 
@@ -104,10 +103,10 @@ def create_node_and_run(node_id, client_id, port, offi):
     offset_block = response['block']['id'][:3]
     id_block = response['block']['id'][3:]
 
-    SECRET = 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6'
+    new_secret, new_pub_key, signature = generate_keys()
 
     thr = threading.Thread(target=manual_init_node_process, kwargs={'node_id':node_id, 'client_id': client_id,
-                                                                    'key': SECRET, 'port': port, 'offi': offi,
+                                                                    'key': new_secret, 'port': port, 'offi': offi,
                                                                     'offset_block': offset_block, 'id_block': id_block})
     thr.start()
     # thr.join()

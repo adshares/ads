@@ -2,8 +2,8 @@ import os
 import shutil
 import time
 
-from ..consts import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET
-from ..utils import exec_esc_cmd
+from tests.consts import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET
+from tests.utils import exec_esc_cmd, generate_keys
 
 
 def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
@@ -34,7 +34,7 @@ def create_init_client():
 
 
 def get_client_dir(client_id):
-    from ..node.utils import get_node_path_dir
+    from tests.node.utils import get_node_path_dir
     return get_node_path_dir(client_id, "client")
 
 
@@ -73,9 +73,7 @@ def update_user_env(client_id, address):
                                              'message': message,
                                              "amount": 20})
 
-    new_pub_key = 'C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196'
-    new_secret = '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C'
-    signature = 'ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05'
+    new_secret, new_pub_key, signature = generate_keys()
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {
         "run": "change_account_key",

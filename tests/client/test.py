@@ -1,25 +1,34 @@
+import os
 import time
+import ed25519
 
+from tests.utils import exec_esc_cmd, generate_keys, ValidateObject
 from tests.consts import INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT
-from ..client.utils import (exec_esc_cmd, create_init_client,
-                            create_client_env, get_user_address, update_user_env)
+from tests.client.utils import (create_init_client,create_client_env,
+                                get_user_address, update_user_env)
 
 
 def test_get_me(init_node_process):
     create_init_client()
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_me"}, with_get_me=False)
+
     try:
-        assert response['network_account']['node'] == INIT_NODE_ID
-    except KeyError:
-        raise Exception(response)
+        account = ValidateObject(response['account'])
+    except KeyError as err:
+        raise KeyError(err, response)
+
+    account.validate()
+
+    assert response['network_account']['node'] == INIT_NODE_ID
 
 
 def test_create_account(init_node_process, client_id="1"):
     # As INIT user, create client with client_id
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": "0001"})
-    assert 'new_account' in response
-    assert 'address' in response['new_account']
-    address = response['new_account']['address']
+    try:
+        address = response['new_account']['address']
+    except KeyError as err:
+        raise KeyError(err, response)
 
     time_start = time.time()
     while True:
@@ -39,11 +48,10 @@ def test_create_account(init_node_process, client_id="1"):
                                              "amount": 20})
 
     # Change user keys
-    new_pub_key = 'C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196'
-    new_secret = '5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C'
-    signature = 'ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05'
+    new_secret, new_pub_key, signature = generate_keys()
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run":"change_account_key", "pkey": new_pub_key, "signature": signature},
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_account_key",
+                                             "pkey": new_pub_key, "signature": signature},
                             cmd_extra=['--address', address])
 
     create_client_env(client_id, INIT_NODE_OFFICE_PORT,
@@ -52,52 +60,53 @@ def test_create_account(init_node_process, client_id="1"):
 
     try:
         assert response['result'] == 'PKEY changed'
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
 
     response = exec_esc_cmd(client_id, {'run': 'get_me'}, with_get_me=False)
 
     try:
         assert response['account']['address'] == address
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
 
 
 def test_key_changed(init_node_process, client_id="1"):
-    new_public_key = 'D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17'
-    new_secret_key = 'FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6'
-    signature = '7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006'
+    secret, pub_key = ed25519.create_keypair(entropy=os.urandom)
+
+    new_secret, new_pub_key, signature = generate_keys()
 
     response = exec_esc_cmd(client_id, {'run': "get_me"}, with_get_me=False)
     address = response['account']['address']
 
     response = exec_esc_cmd(client_id, {"run": "change_account_key",
-                                             "pkey": new_public_key,
+                                             "pkey": new_pub_key,
                                              "signature": signature})
 
     try:
         assert response['result'] == 'PKEY changed'
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
 
-    create_client_env(client_id, INIT_NODE_OFFICE_PORT, address=address, secret=new_secret_key)
+    create_client_env(client_id, INIT_NODE_OFFICE_PORT, address=address, secret=new_secret)
 
     response = exec_esc_cmd(client_id, {'run': "get_me"}, with_get_me=False)
 
     try:
-        assert response['account']['public_key'] == new_public_key
-    except KeyError:
-        raise Exception(response)
+        assert response['account']['public_key'] == new_pub_key
+    except KeyError as err:
+        raise KeyError(err, response)
 
 
 def test_get_accounts(init_node_process):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': 1}, with_get_me=False)
 
     try:
-        assert 'accounts' in response
-        assert len(response['accounts']) == 2
-    except KeyError:
-        raise Exception(response)
+        account = ValidateObject(response['accounts'][0])
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        account.validate()
 
 
 def test_get_account(init_node_process, client_id="1"):
@@ -106,9 +115,12 @@ def test_get_account(init_node_process, client_id="1"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': address})
 
     try:
-        assert response['account']['address'] == address
-    except KeyError:
-        raise Exception(response)
+        account = ValidateObject(response['account'])
+    except KeyError as err:
+        raise KeyError(err, response)
+    account.validate()
+
+    assert response['account']['address'] == address
 
 
 def test_set_account_status(init_node_process, client_id="1", status='10'):
@@ -121,9 +133,13 @@ def test_set_account_status(init_node_process, client_id="1", status='10'):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': client_address})
 
     try:
-        assert status == response['account']['status']
-    except KeyError:
-        raise Exception(response)
+        account = ValidateObject(response['account'])
+    except KeyError as err:
+        raise KeyError(err, response)
+
+    account.validate()
+
+    assert status == response['account']['status']
 
 
 def test_unset_account_status(init_node_process, client_id="1", status='8'):
@@ -136,24 +152,37 @@ def test_unset_account_status(init_node_process, client_id="1", status='8'):
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': client_address})
 
     try:
-        assert status == response['account']['status']
-    except KeyError:
-        raise Exception(response)
+        account = ValidateObject(response['account'])
+    except KeyError as err:
+        raise KeyError(err, response)
+
+    account.validate()
+
+    assert status == response['account']['status']
 
 
 def test_create_account_on_another_node(init_node_process, client_id="3"):
-    from ..node.utils import create_node_and_run
+    from tests.node.utils import create_node_and_run
     create_node_and_run("2", INIT_CLIENT_ID, port=8020, offi=8021)
 
     accounts = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'}, with_get_me=False)
+
+    assert 'accounts' in accounts
+
     response_create = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'create_account', 'node': '0002'})
+
+    try:
+        local_account = ValidateObject(response_create['account'])
+    except KeyError as err:
+        raise KeyError(err, response_create)
+
+    local_account.validate()
 
     time_start = time.time()
     address = None
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'}, with_get_me=False)
-        response_log = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_log'})
         if 'accounts' in response:
             current_accounts = len(response['accounts'])
             if current_accounts > len(accounts):

@@ -1,5 +1,5 @@
-from ..consts import INIT_CLIENT_ID
-from ..client import utils as client_utils
+from tests.consts import INIT_CLIENT_ID
+from tests.client import utils as client_utils
 
 
 def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):
