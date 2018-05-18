@@ -125,6 +125,10 @@ bool UnsetAccountStatusHandler::onValidate() {
         DLOG("ERROR: changing account status on remote node is not allowed");
         errorCode = ErrorCodes::Code::eAccountStatusOnRemoteNode;
     }
+    else if(0x0 != (m_command->getStatus()&0x1)) {
+        DLOG("ERROR: not authorized to change first bit for user %08X \n", m_command->getDestUserId());
+        errorCode = ErrorCodes::Code::eAuthorizationError;
+    }
     else if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
             (0x0 != (m_command->getStatus()&0xF0))) {
 
