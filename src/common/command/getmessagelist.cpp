@@ -172,7 +172,7 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
             char nodehex[5];
             nodehex[4]='\0';
             sprintf(nodehex,"%04X", it.node_id);
-            msghash.put("node_id", nodehex);
+            msghash.put("node", nodehex);
 
             msghash.put("node_msid", it.node_msid);
             ed25519_key2text(hash, it.hash,32);

@@ -36,7 +36,7 @@ void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t
         pt.put("account.id",user);
         pt.put("account.msid",u.msid);
         pt.put("account.time",u.time);
-//    pt.put("account.date",mydate(u.time));
+        pt.put("account.date",mydate(u.time));
         pt.put("account.status",u.stat);
         pt.put("account.paired_node",u.node);
         pt.put("account.paired_id",u.user);
