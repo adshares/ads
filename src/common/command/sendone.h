@@ -10,7 +10,7 @@ class SendOne : public IBlockCommand {
         SendOne();
         SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
 
-        /** \brief Return TXSTYPE_KEY as command type . */
+        /** \brief Return TXSTYPE_PUT as command type . */
         virtual int  getType()                                      override;
 
         /** \brief Get pointer to command data structure. */

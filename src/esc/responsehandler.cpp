@@ -34,6 +34,7 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_SUS:
     case TXSTYPE_SBS:
     case TXSTYPE_UUS:
+    case TXSTYPE_UBS:
         commonResponse(std::move(command));
         break;
     default:

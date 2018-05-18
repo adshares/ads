@@ -28,7 +28,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_getTransactionHandler(office, socket),
       m_setAccountStatusHandler(office, socket),
       m_setNodeStatusHandler(office, socket),
-      m_unsetAccountStatusHandler(office, socket) {
+      m_unsetAccountStatusHandler(office, socket),
+      m_unsetNodeStatusHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
@@ -96,6 +97,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         break;
     case TXSTYPE_UUS:
         m_unsetAccountStatusHandler.execute(std::move(command), usera);
+        break;
+    case TXSTYPE_UBS:
+        m_unsetNodeStatusHandler.execute(std::move(command), usera);
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

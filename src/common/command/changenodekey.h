@@ -14,7 +14,7 @@ class ChangeNodeKey : public IBlockCommand {
     ChangeNodeKey(uint16_t srcBank, uint32_t srcUser, uint32_t msid, uint16_t dstNode, uint32_t time, uint8_t pubkey[32]);
 
     //IBlock interface
-    /** \brief Return TXSTYPE_KEY as command type . */
+    /** \brief Return TXSTYPE_BKY as command type . */
     virtual int  getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
