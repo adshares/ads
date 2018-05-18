@@ -20,7 +20,7 @@ class GetAccounts : public IBlockCommand {
         /** \brief Free responseBuffer. */
         virtual ~GetAccounts();
 
-        /** \brief Return TXSTYPE_KEY as command type . */
+        /** \brief Return TXSTYPE_NOD as command type . */
         virtual int  getType()                                      override;
 
         /** \brief Get pointer to command data structure. */

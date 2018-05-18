@@ -1,5 +1,5 @@
-#ifndef SETNODESTATUS_H
-#define SETNODESTATUS_H
+#ifndef UNSETNODESTATUS_H
+#define UNSETNODESTATUS_H
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
@@ -8,16 +8,16 @@
 //TODO think about template class wieh data as templete parameter
 
 /*!
- * \brief Class responsible for handling "set_node_status" command.
+ * \brief Class responsible for handling "unset_node_status" command.
  */
-class SetNodeStatus : public IBlockCommand {
+class UnsetNodeStatus : public IBlockCommand {
   public:
-    SetNodeStatus();
-    SetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status);
+    UnsetNodeStatus();
+    UnsetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status);
 
     bool            checkPubKeySignaure();
 
-    /** \brief Return TXSTYPE_SBS as command type . */
+    /** \brief Return TXSTYPE_UBS as command type . */
     virtual int  getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
@@ -101,4 +101,4 @@ class SetNodeStatus : public IBlockCommand {
     commandresponse   m_response;
 };
 
-#endif // SETNODESTATUS_H
+#endif // UNSETNODESTATUS_H
