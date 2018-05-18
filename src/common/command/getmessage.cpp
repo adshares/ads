@@ -160,6 +160,7 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
         if(!m_responseMsg->hash_tree_fast(m_responseMsg->sigh,m_responseMsg->data,m_responseMsg->len,m_responseMsg->svid,m_responseMsg->msid)) {
             return;
         }
+        ptree.put("hash", Helper::ed25519_key2text(m_responseMsg->sigh, sizeof(m_responseMsg->sigh)));
         uint8_t* data_ptr = m_responseMsg->data+message::data_offset;
         uint8_t* data_end = m_responseMsg->data+m_responseMsg->len;
         uint32_t mpos = 1;
