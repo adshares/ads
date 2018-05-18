@@ -109,7 +109,7 @@ private:
         { Code::eFailToProvideTxnInfo, "Failed to provide transaction info. Try again later." },
         { Code::eFailToReadTxnInfo, "Failed to read transaction" },
         { Code::eFailToGetHashTree, "Failed to create msgl hash tree" },
-        { Code::eAuthorizationError, "Not authorized to change higher bits" },
+        { Code::eAuthorizationError, "Not authorized to change bits" },
         { Code::eStatusSubmitFail, "Status submission failed" },
         { Code::eLockUserFailed, "Lock user failed" },
         { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
