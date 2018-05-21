@@ -74,6 +74,12 @@ void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t
     }
 }
 
+void print_msgid_info(boost::property_tree::ptree& pt, uint16_t node, uint32_t msid, uint32_t mpos){
+    pt.put("tx.node_msid", msid);
+    pt.put("tx.node_mpos", mpos);
+    pt.put("tx.id", Helper::print_msg_id(node, msid, mpos));
+}
+
 bool parse_amount(int64_t& amount,std::string str_amount) {
     size_t dot_pos = str_amount.find('.');
     if(dot_pos == std::string::npos) {
@@ -146,7 +152,7 @@ const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix) {
     char acnt[19];
     uint16_t suffix;
     (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
-    sprintf(acnt,"%04X%08X%04X", node, user, suffix);
+    sprintf(acnt,"%04X:%08X:%04X", node, user, suffix);
     return std::string(acnt);
 }
 
