@@ -189,7 +189,8 @@ void BroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     } else {
-        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
     }
 }
 
