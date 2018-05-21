@@ -8,11 +8,10 @@ from tests.client.utils import (create_init_client,create_client_env,
 
 def test_get_me(init_node_process, client_id='1'):
     create_init_client()
-    create_account(client_id)
-    response = exec_esc_cmd(client_id, {'run': "get_me"}, with_get_me=False)
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_me"}, with_get_me=False)
 
     try:
-        account = ValidateObject(response['account'])
+        account = ValidateObject(response['account_init'])
     except KeyError as err:
         raise KeyError(err, response)
     else:
@@ -74,7 +73,19 @@ def test_key_changed(init_node_process, client_id="1"):
     new_secret, new_pub_key, signature = generate_keys()
 
     response = exec_esc_cmd(client_id, {'run': "get_me"}, with_get_me=False)
+
+    try:
+        account = ValidateObject(response['account'], kind='account')
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        account.validate()
+
     address = response['account']['address']
+    balance = response['account']['balance']
+
+    if float(balance) < 1:
+        raise ValueError("Too low balance {} for change PKEY".format(balance))
 
     response = exec_esc_cmd(client_id, {"run": "change_account_key",
                                              "pkey": new_pub_key,

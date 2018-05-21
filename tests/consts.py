@@ -21,6 +21,11 @@ ACCOUNT_FIELDS = ['id', 'address', 'node', 'msid', 'time', 'date',
                   'local_change', 'remote_change', 'balance', 'public_key',
                   'hash']
 
+ACCOUNT_INIT_USER_FIELDS = ['id', 'address', 'node', 'msid', 'time', 'date',
+                            'status', 'paired_node', 'paired_id',
+                            'local_change', 'remote_change', 'balance', 'public_key',
+                            'hash']
+
 TX_FIELDS = ['data', 'account_hashin', 'account_hashout',
              'deduct', 'fee', 'account_msid', 'account_public_key']
 
@@ -42,16 +47,3 @@ BLOCK_NODE_FIELDS = ['pk', 'hash', 'msha', 'msid', 'mtim', 'balance', 'status',
                      'users', 'port', 'ipv4']
 
 LOG_BASE_FIELDS = ['type', 'date', 'type_on', 'confirmed', 'type']
-
-# TYPE_LOG_NODE_STARTED_4 = ['account', ] + LOG_BASE_FIELDS
-# TYPE_LOG_NODE_STARTED_8 = ['node_start_msid', 'node_start_block', 'dividend'] + LOG_BASE_FIELDS
-# TYPE_LOG_DIVIDEND = ['node_msid', 'node_block', 'dividend']
-# TYPE_LOG_BANK_PROFIT = ['profit', 'node_block', 'profit_div', 'profit_usr', 'profit_get', 'fee']
-# TYPE_LOG_
-#
-# TYPES_LOG_FIELDS = {'node_started_4': TYPE_NODE_STARTED_4,
-#                     'node_started_8': TYPE_NODE_STARTED_8,
-#                     'dividend': TYPE_NODE_DIVIDEND,
-#                     'bank_profit': '',
-#                     'account_created': '',
-#                     'create_node': ''}

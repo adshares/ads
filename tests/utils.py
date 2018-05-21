@@ -5,7 +5,7 @@ import ed25519
 
 from tests.consts import (ESC_BIN_PATH, ACCOUNT_FIELDS, TRANSACTION_FIELDS,
                           TX_FIELDS, BROADCAST_FIELDS, BLOCK_FIELDS, BLOCK_NODE_FIELDS,
-                          LOG_BASE_FIELDS)
+                          LOG_BASE_FIELDS, ACCOUNT_INIT_USER_FIELDS)
 
 
 def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeout=10):
@@ -55,6 +55,7 @@ class ValidateObject(object):
         self.kind = kind
         self.type_objects = {
             'account': ACCOUNT_FIELDS,
+            'account_init': ACCOUNT_INIT_USER_FIELDS,
             'transaction': TRANSACTION_FIELDS,
             'tx': TX_FIELDS,
             'broadcast': BROADCAST_FIELDS,

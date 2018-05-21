@@ -93,24 +93,20 @@ def test_get_message_list(init_node_process):
     ]
 
     messages_fields = [
-        'msghash', 'messages', 'masghash_calculated', 'confirmed'
+        'msghash', 'messages', 'confirmed'
     ]
-
-    try:
-        message = tests_utils.ValidateObject(response['messages'][0], kind='message', fields=message_fields)
-    except KeyError as err:
-        raise KeyError(err, response)
-    else:
-        message.validate()
 
     messages = tests_utils.ValidateObject(response, kind='messages', fields=messages_fields)
     messages.validate()
+
+    message = tests_utils.ValidateObject(response['messages'][0], kind='message', fields=message_fields)
+    message.validate()
 
 
 def test_get_message(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
     node_msid = response['messages'][0]['node_msid']
-    node_id = response['messages'][0]['node_id']
+    node_id = response['messages'][0]['node']
     h = response['messages'][0]['hash']
 
     message_fields = ['node', 'node_msid', 'time', 'langth', 'hash', 'network_txs']

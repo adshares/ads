@@ -67,13 +67,14 @@ def update_user_env(client_id, address):
     """
     Function updates user's data after create a new user
     """
-    message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
-                                             "address": address,
-                                             'message': message,
-                                             "amount": 20})
 
     new_secret, new_pub_key, signature = generate_keys()
+
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account', 'address': address}, with_get_me=False)
+
+    balance = response['account']['balance']
+    if float(balance) < 1:
+        raise ValueError('Too lowe balance {} for change PKEY'.format(balance))
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {
         "run": "change_account_key",
@@ -97,6 +98,12 @@ def create_account(client_id="2", node="0001"):
     time_start = time.time()
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
     count_users = len(response.get('accounts'))
+
+    message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
+                                             "address": address,
+                                             'message': message,
+                                             "amount": 20})
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
