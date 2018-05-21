@@ -21,6 +21,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/setnodestatus.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetaccountstatus.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatus.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.cpp
     PARENT_SCOPE
     )
 
@@ -49,6 +50,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/setnodestatus.h
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetaccountstatus.h
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatus.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.h
     PARENT_SCOPE
     )
 

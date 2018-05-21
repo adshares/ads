@@ -52,6 +52,7 @@
 #include "command/setnodestatus.h"
 #include "command/unsetaccountstatus.h"
 #include "command/unsetnodestatus.h"
+#include "command/retrievefunds.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -360,17 +361,17 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         deduct = command->getDeduct();
         fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_BNK])) {
-        command.reset( new CreateNode(sts.bank, sts.user, sts.msid, now));
+        command.reset(new CreateNode(sts.bank, sts.user, sts.msid, now));
         deduct = command->getDeduct();
         fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {
         txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
         fee=TXS_SAV_FEE;
     } else if(!run.compare(txsname[TXSTYPE_GET])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_GET,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new RetrieveFunds(sts.bank, sts.user, sts.msid, now, to_bank, to_user));
         fee=TXS_GET_FEE;
     } else if(!run.compare(txsname[TXSTYPE_KEY])) {
-        command.reset( new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
+        command.reset(new SetAccountKey(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign));
         fee=TXS_KEY_FEE;
     } else if(!run.compare(txsname[TXSTYPE_BKY])) {
         command.reset(new ChangeNodeKey(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey));
