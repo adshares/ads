@@ -20,6 +20,7 @@
 #include "setnodestatus.h"
 #include "unsetaccountstatus.h"
 #include "unsetnodestatus.h"
+#include "retrievefunds.h"
 
 namespace command {
 
@@ -84,8 +85,11 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     case TXSTYPE_UUS:
         command = std::make_unique<UnsetAccountStatus>();
         break;
-  case TXSTYPE_UBS:
+    case TXSTYPE_UBS:
         command = std::make_unique<UnsetNodeStatus>();
+        break;
+    case TXSTYPE_GET:
+        command = std::make_unique<RetrieveFunds>();
         break;
     default:
         break;
