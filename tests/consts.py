@@ -40,3 +40,18 @@ BLOCK_FIELDS = ['now', 'msg', 'nod', 'div', 'oldhash', 'minhash', 'msghash', 'no
 
 BLOCK_NODE_FIELDS = ['pk', 'hash', 'msha', 'msid', 'mtim', 'balance', 'status',
                      'users', 'port', 'ipv4']
+
+LOG_BASE_FIELDS = ['type', 'date', 'type_on', 'confirmed', 'type']
+
+# TYPE_LOG_NODE_STARTED_4 = ['account', ] + LOG_BASE_FIELDS
+# TYPE_LOG_NODE_STARTED_8 = ['node_start_msid', 'node_start_block', 'dividend'] + LOG_BASE_FIELDS
+# TYPE_LOG_DIVIDEND = ['node_msid', 'node_block', 'dividend']
+# TYPE_LOG_BANK_PROFIT = ['profit', 'node_block', 'profit_div', 'profit_usr', 'profit_get', 'fee']
+# TYPE_LOG_
+#
+# TYPES_LOG_FIELDS = {'node_started_4': TYPE_NODE_STARTED_4,
+#                     'node_started_8': TYPE_NODE_STARTED_8,
+#                     'dividend': TYPE_NODE_DIVIDEND,
+#                     'bank_profit': '',
+#                     'account_created': '',
+#                     'create_node': ''}

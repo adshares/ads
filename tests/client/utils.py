@@ -59,8 +59,8 @@ def get_balance_user(client_id):
     response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     try:
         return response_receiver['account']['balance']
-    except KeyError:
-        raise Exception(response_receiver)
+    except KeyError as err:
+        raise KeyError(err, response_receiver)
 
 
 def update_user_env(client_id, address):
@@ -89,7 +89,10 @@ def update_user_env(client_id, address):
 def create_account(client_id="2", node="0001"):
     # As INIT user, create client with client_id
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
-    address = response['new_account']['address']
+    try:
+        address = response['new_account']['address']
+    except KeyError as err:
+        raise KeyError(err, response)
 
     time_start = time.time()
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)

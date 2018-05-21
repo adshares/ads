@@ -1,8 +1,9 @@
 from tests.consts import INIT_CLIENT_ID
-from tests.client import utils as client_utils
 
 
 def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):
+    from tests.client import utils as client_utils
+
     address_receiver = client_utils.create_account()
 
     start_balance_receiver = client_utils.get_balance_user(client_id)
@@ -25,6 +26,8 @@ def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):
 
 
 def test_send_cash_many_users(init_node_process, amount_1=35.0, amount_2=10.0):
+    from tests.client import utils as client_utils
+
     address_receivers_1 = client_utils.get_user_address("2")
     address_receivers_2 = client_utils.create_account(client_id="3")
 

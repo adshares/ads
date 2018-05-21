@@ -4,7 +4,8 @@ import subprocess
 import ed25519
 
 from tests.consts import (ESC_BIN_PATH, ACCOUNT_FIELDS, TRANSACTION_FIELDS,
-                          TX_FIELDS, BROADCAST_FIELDS, BLOCK_FIELDS, BLOCK_NODE_FIELDS)
+                          TX_FIELDS, BROADCAST_FIELDS, BLOCK_FIELDS, BLOCK_NODE_FIELDS,
+                          LOG_BASE_FIELDS)
 
 
 def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeout=10):
@@ -23,7 +24,6 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None, timeou
                                stderr=subprocess.PIPE, stdin=subprocess.PIPE)
 
     for cmd in cmds:
-        print(str.encode(json.dumps(cmd) + "\n"))
         process.stdin.write(str.encode(json.dumps(cmd) + "\n"))
 
     stdout, stderr = process.communicate(timeout=timeout)
@@ -50,9 +50,8 @@ def generate_keys():
 
 
 class ValidateObject(object):
-    def __init__(self, obj, kind='account', structure=None):
+    def __init__(self, obj, kind='account', fields=None):
         self.obj = obj
-        self.structure = structure
         self.kind = kind
         self.type_objects = {
             'account': ACCOUNT_FIELDS,
@@ -60,22 +59,21 @@ class ValidateObject(object):
             'tx': TX_FIELDS,
             'broadcast': BROADCAST_FIELDS,
             'block': BLOCK_FIELDS,
-            'block_node': BLOCK_NODE_FIELDS,
+            'block_nodes': BLOCK_NODE_FIELDS,
+            'log': LOG_BASE_FIELDS
         }
-        self.fields = self._get_required_fields()
+        self.fields = fields if fields else self._get_required_fields()
 
     def _get_required_fields(self):
-        if self.structure:
-            return self.structure
         fields = self.type_objects.get(self.kind)
         if not fields:
-            raise ValueError("Not correct type '{}'".format(self.kind))
+            raise ValueError("Is not correct type '{}'".format(self.kind))
         return fields
 
     def validate(self):
         for field in self.fields:
             if not field in self.obj:
-                raise KeyError("{} doesn't has field {}".format(self.kind, field),
+                raise KeyError("'{}' doesn't has field '{}'".format(self.kind, field),
                                "Response: {}".format(self.obj))
 
 

@@ -47,13 +47,10 @@ def test_node_create_node(init_node_process, node_id="2"):
         time.sleep(10)
         assert time.time() - start_time < 70
 
-    node = ValidateObject(response['block']['nodes'], kind='block_node')
+    node = ValidateObject(response['block']['nodes'], kind='block_nodes')
     node.validate()
 
-    try:
-        assert '000' in response['block']['nodes'][-1]['id']
-    except KeyError:
-        raise Exception(response)
+    assert '000' in response['block']['nodes'][-1]['id']
 
     node_id = response['block']['nodes'][-1]['id']
 
@@ -63,8 +60,8 @@ def test_node_create_node(init_node_process, node_id="2"):
 
     try:
         assert response['result'] == 'Node key changed'
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
 
 
 def test_set_node_status(init_node_process, node_id='1', status='8'):
@@ -81,8 +78,8 @@ def test_set_node_status(init_node_process, node_id='1', status='8'):
         for node in response['block']['nodes']:
             if node['id'] == '000{}'.format(node_id):
                 assert node['status'] == status
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
 
 
 def test_unset_node_status(init_node_process, node_id='1', status='16'):
@@ -99,5 +96,5 @@ def test_unset_node_status(init_node_process, node_id='1', status='16'):
         for node in response['block']['nodes']:
             if node['id'] == '000{}'.format(node_id):
                 assert node['status'] == status
-    except KeyError:
-        raise Exception(response)
+    except KeyError as err:
+        raise KeyError(err, response)
