@@ -176,6 +176,6 @@ void SendOne::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SRC_ADDRESS, Helper::print_address(m_data.info.abank, m_data.info.auser));
     ptree.put(TAG::DST_ADDRESS, Helper::print_address(m_data.info.bbank, m_data.info.buser));
     ptree.put(TAG::AMOUNT, print_amount(m_data.info.ntmass));
-    ptree.put(TAG::MSG, m_data.info.ntinfo);
+    ptree.put(TAG::MSG, Helper::ed25519_key2text(m_data.info.ntinfo, sizeof(m_data.info.ntinfo)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
