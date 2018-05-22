@@ -101,7 +101,7 @@ def get_time_block():
 
 def create_account(client_id="2", node="0001"):
     # As INIT user, create client with client_id
-    block_time = get_time_block()
+    block_time = get_time_block() * 2
     response = exec_esc_cmd(INIT_CLIENT_ID,
                             {"run": "create_account", "node": node})
     try:
