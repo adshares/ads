@@ -135,11 +135,12 @@ def create_nodes(count=2):
 def test_create_nodes(init_node_process, count=10):
     global BLOCK_TIME
     BLOCK_TIME = get_time_block() * 2
-
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+    count_start = int(response.get('block').get('node_count'))
     create_nodes(count)
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
     count_created = int(response.get('block').get('node_count'))
-    assert count_created - 1 == count
+    assert count_created - 1 - count_start == count
 
 
 def test_multi_send_one_money(init_node_process, count_transactions=16):

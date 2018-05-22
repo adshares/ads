@@ -45,6 +45,13 @@ def test_create_account(init_node_process, client_id="1"):
                                              'message': message,
                                              "amount": 20})
 
+    try:
+        account = ValidateObject(response['account'], kind='account_init')
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        account.validate()
+
     time_start = time.time()
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts"},
