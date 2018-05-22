@@ -127,7 +127,6 @@ int main(int argc, char* argv[]) {
             if(signal==SIGUSR1) {
                 opt.fast=false;
                 opt.init=false;
-                opt.comm=true;
                 ELOG("\n\nRESTARTING\n\n\n");
             } else {
                 ELOG("Shutting down\n");
