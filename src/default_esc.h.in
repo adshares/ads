@@ -2,9 +2,9 @@
 #define DEFAULT_H
 
 #ifdef DEBUG
-#define BLOCKSEC 0x20 /* block period in seconds */
-#define BLOCKDIV 0x4 /* number of blocks for dividend update */
-#define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
+#define BLOCKSEC 32 /* block period in seconds */
+#define BLOCKDIV 4 /* number of blocks for dividend update */
+#define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
 #define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
 #define VIP_MAX 7 /* maximum number of VIP servers */
@@ -15,12 +15,12 @@
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #else
-#define BLOCKSEC 0x400 /* block period in seconds (17min) */
-#define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
-#define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
+#define BLOCKSEC 512 /* block period in seconds (17min) */
+#define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
+#define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-#define VIP_MAX 63 /* maximum number of VIP servers */
+#define VIP_MAX 31 /* maximum number of VIP servers */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
 #define VALIDATORS 8 /* number of validator threads */
