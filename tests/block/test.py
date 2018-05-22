@@ -90,7 +90,7 @@ def test_get_transaction(init_node_process):
     else:
         obj.validate()
 
-    assert 'create_account' == response['network_tx']['type']
+    assert 'create_account' == response['txn']['type']
 
 
 def test_get_signatures(init_node_process):
