@@ -8,5 +8,8 @@ __pycache__
 /tests/*.sh
 src/common/default.h
 *.pyc
+test.txt
+logs.txt
 _test_load.py
 _test_remote_network.py
+.project
