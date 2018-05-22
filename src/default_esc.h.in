@@ -13,6 +13,7 @@
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
+#define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #else
 #define BLOCKSEC 0x400 /* block period in seconds (17min) */
 #define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
@@ -25,6 +26,7 @@
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
+#define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
 
 #define TOTALMASS 3875820600000000000L /* total balance (target) */
@@ -84,7 +86,6 @@
 #define USER_MIN_MASS    (1000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
 #define BANK_MIN_UMASS   (1000000000000L) /* minimum admin account mass to send transaction (1 ADST) */
 #define BANK_MIN_TMASS   (0L) /* if bank total mass <= this value, bank can be taken over AND */
-#define BANK_MIN_MTIME   (1000L*BLOCKSEC) /* AND if no transaction in this period bank can be taken over */
 #define BANK_PROFIT(x)   ((x)/16) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (1000000L * (x) * BLOCKSEC / ONE_YEAR) /* every block */
 #define MESSAGE_FEE(x)   (4096L+(x)) /* fee for each bank message */
