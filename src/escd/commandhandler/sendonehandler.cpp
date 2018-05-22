@@ -50,12 +50,12 @@ void SendOneHandler::onExecute() {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
-        tlog.node   = m_command->getBankId();
-        tlog.user   = m_command->getUserId();
+        tlog.node   = m_command->getDestBankId();
+        tlog.user   = m_command->getDestUserId();
         tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
-        tlog.weight = -deduct - fee;
+        tlog.weight = -deduct;
         memcpy(tlog.info, m_command->getInfoMsg(),32);
         m_offi.put_ulog(m_command->getUserId(),  tlog);
 
