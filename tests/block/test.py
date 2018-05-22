@@ -152,8 +152,12 @@ def test_get_message(init_node_process):
                                          'node_msid': node_msid},
                                         with_get_me=False)
 
-    message = tests_utils.ValidateObject(response['transactions'][0],
-                                         kind='get_message')
+    try:
+        message = tests_utils.ValidateObject(response['transactions'][0],
+                                             kind='get_message')
+    except KeyError as err:
+        raise KeyError(err, response)
+
     message.validate()
 
     assert response['hash'] == h
