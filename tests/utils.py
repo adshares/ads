@@ -91,7 +91,7 @@ class ValidateObject(object):
 
     def validate(self):
         for field in self.fields:
-            if not field in self.obj:
+            if field not in self.obj:
                 raise KeyError("{} doesn't has field {}".format(self.kind,
                                                                 field),
 

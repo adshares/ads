@@ -89,7 +89,6 @@ def test_send_money(count=100):
         amount_1 = random.randint(1, amount)
         amount_2 = random.randint(1, amount)
 
-
         response = exec_esc_cmd(USER_1['client_id'],
                                 {
                                     "run": "send_one",

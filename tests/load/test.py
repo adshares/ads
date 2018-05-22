@@ -113,6 +113,7 @@ def create_node(id_node):
     internal_id_node = ''.join(['0' for _ in range(4 - len(hex_id))] +
                                [hex_id])
 
+
 def create_nodes(count=2):
     for i in range(2, count + 2):
         create_node(i)

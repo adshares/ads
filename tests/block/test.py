@@ -204,4 +204,3 @@ def test_retrieve_funds():
         account.validate()
 
     assert response['account']['address'] == local_address
-
