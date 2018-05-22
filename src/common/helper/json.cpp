@@ -364,12 +364,14 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         logentry.put("amount",print_amount(ulog.weight));
         //FIXME calculate fee
         if(txst==TXSTYPE_PUT) {
-            int64_t amass=std::abs(ulog.weight);
+            int64_t fee;
             if(ulog.node==bank) {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));
+                fee = TXS_PUT_FEE(std::abs(ulog.weight));
             } else {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));
+                fee = TXS_PUT_FEE(std::abs(ulog.weight))+TXS_LNG_FEE(std::abs(ulog.weight));
             }
+
+            logentry.put("sender_fee",print_amount(fee<TXS_MIN_FEE?TXS_MIN_FEE:fee));
             logentry.put("message",info);
         } else {
             int64_t weight;
