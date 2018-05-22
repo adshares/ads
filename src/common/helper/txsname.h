@@ -39,8 +39,9 @@ namespace Helper {
 #define TXSTYPE_NOD 24	/* return users of a node */
 #define TXSTYPE_MGS 25	/* return list of messages */
 #define TXSTYPE_MSG 26	/* return message */
+#define TXSTYPE_GFI 27
 //end
-#define TXSTYPE_MAX 27  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
+#define TXSTYPE_MAX 28  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 
 static const char* txsname[TXSTYPE_MAX]= {
     "empty",		//0
@@ -69,8 +70,9 @@ static const char* txsname[TXSTYPE_MAX]= {
     "get_block",		//23
     "get_accounts",		//24
     "get_message_list",	//25
-    "get_message"
-};		//26
+    "get_message", //26
+    "get_fields" //27
+};
 
 static const char* logname[TXSTYPE_MAX]= {
     "node_started",		//0
@@ -99,8 +101,9 @@ static const char* logname[TXSTYPE_MAX]= {
     "unknown",		//23
     "unknown",		//24
     "unknown",		//25
-    "unknown"
-};		//26
+    "unknown",      //26
+    "unknown"       //27
+};
 
 inline int getTxnTypeId(const char* txnName) {
     for (int i=0; i<TXSTYPE_MAX; ++i)  {

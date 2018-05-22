@@ -52,6 +52,7 @@
 #include "command/setnodestatus.h"
 #include "command/unsetaccountstatus.h"
 #include "command/unsetnodestatus.h"
+#include "command/getfields.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -388,6 +389,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
     } else if(!run.compare(txsname[TXSTYPE_UBS])) {
         command.reset(new UnsetNodeStatus(sts.bank, sts.user, sts.msid, now, to_bank, to_status));
         fee=TXS_UBS_FEE;
+    } else if (!run.compare(txsname[TXSTYPE_GFI])) {
+        command.reset(new GetFields(txn_type.c_str()));
     }
 
     else {
