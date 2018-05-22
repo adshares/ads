@@ -81,7 +81,7 @@
 #define TXS_UUS_FEE      (10000000L) /*  */
 #define TXS_UBS_FEE      (10000000L) /*  */
 #define TXS_SAV_FEE      (10000000L) /*  */
-#define TXS_BNK_FEE      (100000000000000L) /* 1000 ADS */
+#define TXS_BNK_FEE      (500000000000000L) /* 5000 ADS */
 #define TXS_BKY_FEE      (10000000000L) /*  */
 #define USER_MIN_MASS    (1000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
 #define BANK_MIN_UMASS   (1000000000000L) /* minimum admin account mass to send transaction (1 ADST) */
