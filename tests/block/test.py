@@ -3,21 +3,30 @@ import time
 from tests.consts import INIT_CLIENT_ID
 from tests import utils as tests_utils
 
+BLOCK_TIME = 0
+
 
 def test_get_blocks(init_node_process):
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks', 'from': 0, "to": 0})
-    try:
-        assert response == None
-    except Exception as err:
-        raise Exception(err, response)
+    from tests.client.utils import get_time_block
+    global BLOCK_TIME
+    BLOCK_TIME = get_time_block() * 2
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {
+                                            "run": "get_blocks",
+                                            "from": 0,
+                                            "to": 0
+                                        })
+    assert not response
 
 
 def test_send_and_get_broadcast(init_node_process):
-    message = "D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17"
-
+    message = tests_utils.generate_message()
     # send a message
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {"run": "broadcast",
-                                                         "message": message})
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {
+                                            "run": "broadcast",
+                                            "message": message
+                                        })
     try:
         assert response['current_block_time']
     except KeyError as err:
@@ -27,16 +36,23 @@ def test_send_and_get_broadcast(init_node_process):
 
     time_start = time.time()
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_broadcast', 'from': current_time_hex})
+        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                            {
+                                                'run': 'get_broadcast',
+                                                'from': current_time_hex
+                                            })
         if response.get('broadcast'):
             break
-        time.sleep(5)
-        assert time.time() - time_start < 30
+        assert time.time() - time_start < BLOCK_TIME
+        time.sleep(BLOCK_TIME)
     try:
-        obj = tests_utils.ValidateObject(response['broadcast'], kind='broadcast')
+        obj = tests_utils.ValidateObject(response['broadcast'][0],
+                                         kind='broadcast')
     except KeyError as err:
         raise KeyError(err, response)
-    obj.validate()
+
+    else:
+        obj.validate()
 
     assert response['broadcast'][0]['message'] == message
 
@@ -44,64 +60,89 @@ def test_send_and_get_broadcast(init_node_process):
 def test_get_transaction(init_node_process):
     from tests.client.utils import create_account
     create_account(5)
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_log', 'type': 'create_account'})
-    tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks'})
-    txid = response['log'][0]['id']
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_transaction', 'txid': txid})
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {
+                                            'run': 'get_log',
+                                            'type': 'create_account'
+                                        })
 
     try:
-        obj = tests_utils.ValidateObject(response['txn'], 'transaction')
+        log = tests_utils.ValidateObject(response['log'][0], kind='log')
+
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        log.validate()
+
+    tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_blocks'})
+    txid = response['log'][0]['id']
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {
+                                            'run': 'get_transaction',
+                                            'txid': txid
+                                        })
+
+    try:
+        obj = tests_utils.ValidateObject(response['txn'],
+                                         kind='get_transaction')
     except KeyError as err:
         raise KeyError(err, response)
     else:
         obj.validate()
 
-    assert 'create_account' == response['txn']['type']
+    assert 'create_account' == response['network_tx']['type']
 
 
 def test_get_signatures(init_node_process):
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_signatures'})
+    # TODO: This function is not work yet
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {'run': 'get_signatures'})
 
     signatures_fields = ['signatures', 'fork_signatures']
 
     signature_fields = ['node', 'signatures']
 
-    signatures = tests_utils.ValidateObject(response, kind='signatures', structure=signatures_fields)
+    signatures = tests_utils.ValidateObject(response, kind='signatures',
+                                            fields=signatures_fields)
     signatures.validate()
 
-    signature = tests_utils.ValidateObject(response['signatures'], kind='signature', structure=signature_fields)
-    signature.validate()
+    try:
+        signature = tests_utils.ValidateObject(response['signatures'],
+                                               kind='signature',
+                                               fields=signature_fields)
+
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        signature.validate()
 
 
 def test_get_message_list(init_node_process):
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {'run': 'get_message_list'})
 
-    message_fields = [
-        'node', 'node_msid', 'hash'
-    ]
+    messages_fields = ['msghash', 'messages', 'confirmed']
 
-    messages_fields = [
-        'msghash', 'messages', 'masghash_calculated', 'confirmed'
-    ]
+    massage_fields = ['node', 'node_msid', 'hash']
 
-    try:
-        message = tests_utils.ValidateObject(response['messages'][0], kind='message', structure=message_fields)
-    except KeyError as err:
-        raise KeyError(err, response)
+    messages = tests_utils.ValidateObject(response,
+                                          kind='messages',
+                                          fields=messages_fields)
+    messages.validate()
+
+    message = tests_utils.ValidateObject(response['messages'][0],
+                                         kind='messages',
+                                         fields=massage_fields)
 
     message.validate()
 
-    messages = tests_utils.ValidateObject(response, kind='messages', structure=messages_fields)
-    messages.validate()
-
 
 def test_get_message(init_node_process):
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_message_list'})
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {'run': 'get_message_list'})
     node_msid = response['messages'][0]['node_msid']
-    node_id = response['messages'][0]['node_id']
+    node_id = response['messages'][0]['node']
     h = response['messages'][0]['hash']
-
-    message_fields = ['node', 'node_msid', 'time', 'langth', 'hash', 'network_txs']
 
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {'run': 'get_message',
@@ -109,33 +150,58 @@ def test_get_message(init_node_process):
                                          'node_msid': node_msid},
                                         with_get_me=False)
 
-    message = tests_utils.ValidateObject(response, kind='message', structure=message_fields)
+    message = tests_utils.ValidateObject(response['transactions'][0],
+                                         kind='get_message')
     message.validate()
 
-    try:
-        assert response['hash'] == h
-    except KeyError as err:
-        raise KeyError(err, response)
+    assert response['hash'] == h
 
 
 def test_retrieve_funds():
+    # TODO: This function is not work yet
     from tests.node.utils import create_node_without_start
-    local_account = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'})['account']['address']
+
+    local_account = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'})
+
+    try:
+        account = tests_utils.ValidateObject(local_account['account'],
+                                             kind='account_init')
+    except KeyError as err:
+        raise KeyError(err, local_account)
+    else:
+        account.validate()
+
+    local_address = local_account['account']['address']
+
     create_node_without_start()
-    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_accounts', 'node': '2'})
+
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                        {
+                                            'run': 'get_accounts',
+                                            'node': '2'
+                                        })
+
     address = response['accounts'][0]['address']
 
     start_time = time.time()
     while True:
-        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'retrieve_funds', 'address': address})
+        response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                            {
+                                                'run': 'retrieve_funds',
+                                                'address': address}
+                                            )
         if response.get('account'):
             break
-        assert time.time() - start_time < 20
-
-    account = tests_utils.ValidateObject(response)
-    account.validate()
+        assert time.time() - start_time < BLOCK_TIME
+        time.sleep(BLOCK_TIME)
 
     try:
-        assert response['account']['address'] == local_account
+        account = tests_utils.ValidateObject(response['account'],
+                                             kind='account_init')
     except KeyError as err:
         raise KeyError(err, response)
+    else:
+        account.validate()
+
+    assert response['account']['address'] == local_address
+

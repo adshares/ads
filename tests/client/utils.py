@@ -2,8 +2,9 @@ import os
 import shutil
 import time
 
-from tests.consts import INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT, INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET
-from tests.utils import exec_esc_cmd, generate_keys
+from tests.consts import (INIT_CLIENT_ID, INIT_NODE_OFFICE_PORT,
+                          INIT_CLIENT_ADDRESS, INIT_CLIENT_SECRET)
+from tests.utils import exec_esc_cmd, generate_keys, generate_message
 
 
 def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
@@ -12,10 +13,10 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
     client_path_dir = get_client_dir(client_id)
 
     options = [
-        "host=%s" %host,
-        "port=%i" %port,
-        "address=%s" %address,
-        "secret=%s" %secret
+        "host=%s" % host,
+        "port=%i" % port,
+        "address=%s" % address,
+        "secret=%s" % secret
     ]
     with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
         fh.write("\n".join(options))
@@ -56,24 +57,28 @@ def get_balance_user(client_id):
     """
     Function returns user's balance in str format
     """
-    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
+    response_receiver = exec_esc_cmd(client_id, {"run": "get_me"},
+                                     with_get_me=False)
     try:
         return response_receiver['account']['balance']
-    except KeyError:
-        raise Exception(response_receiver)
+    except KeyError as err:
+        raise KeyError(err, response_receiver)
 
 
 def update_user_env(client_id, address):
     """
     Function updates user's data after create a new user
     """
-    message = "000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
-                                             "address": address,
-                                             'message': message,
-                                             "amount": 20})
 
     new_secret, new_pub_key, signature = generate_keys()
+
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {'run': 'get_account', 'address': address},
+                            with_get_me=False)
+
+    balance = response['account']['balance']
+    if float(balance) < 1:
+        raise ValueError('Too lowe balance {} for change PKEY'.format(balance))
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {
         "run": "change_account_key",
@@ -86,22 +91,50 @@ def update_user_env(client_id, address):
                       secret=new_secret)
 
 
+def get_time_block():
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'},
+                            with_get_me=False)
+    current = int(response['current_block_time'])
+    prev = int(response['previous_block_time'])
+    return current - prev
+
+
 def create_account(client_id="2", node="0001"):
     # As INIT user, create client with client_id
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_account", "node": node})
-    address = response['new_account']['address']
+    block_time = get_time_block()
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {"run": "create_account", "node": node})
+    try:
+        address = response['new_account']['address']
+    except KeyError as err:
+        raise KeyError(err, response)
 
     time_start = time.time()
-    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts",  "node": node}, with_get_me=False)
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {'run': "get_accounts",  "node": node},
+                            with_get_me=False)
+
     count_users = len(response.get('accounts'))
 
+    message = generate_message()
+
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "send_one",
+                                             "address": address,
+                                             'message': message,
+                                             "amount": 20})
+
     while True:
-        response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_accounts", "node": node}, with_get_me=False)
-        accounts = len(response.get('accounts')) if response.get('accounts') else 0
+        response = exec_esc_cmd(INIT_CLIENT_ID,
+                                {'run': "get_accounts", "node": node},
+                                with_get_me=False)
+        accounts = len(response.get('accounts')) \
+            if response.get('accounts') \
+            else 0
+
         if accounts > count_users:
             break
-        time.sleep(10)
-        assert time.time() - time_start < 70
+        assert time.time() - time_start < block_time
+        time.sleep(block_time)
 
     update_user_env(client_id, address)
 
