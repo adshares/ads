@@ -878,16 +878,29 @@ public:
             DLOG("%04X FAILED to read header %08X for svid: %04X\n",svid,header.now,svid); //TODO, send error
             return;
         }
-        int len=8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH);
+        uint8_t *sigdata=NULL;
+        uint32_t nok=0;
+        header.get_signatures(header.now,sigdata,nok);
+        header.vok=(uint16_t)nok;
+
+        int len=12+header.vok*sizeof(svsi_t)+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH);
         message_ptr put_msg(new message(len));
         put_msg->data[0]=MSGTYPE_MSP;
         memcpy(put_msg->data+1,&len,3); //bigendian
-        memcpy(put_msg->data+4,&header.now,4);
-        if(header.msgl_get((char*)(put_msg->data+8))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))) {
-            DLOG("%04X FAILED to read msglist %08X\n",svid,header.now); //TODO, send error
-            return;
+        if(sigdata!=NULL){
+          memcpy(put_msg->data+4,sigdata,8+header.vok*sizeof(svsi_t));
+          free(sigdata);
         }
-        DLOG("%04X SENDING block msglist %08X\n",svid,header.now); //TODO, send error
+        else{
+          memcpy(put_msg->data+4,&header.now,4);
+          memcpy(put_msg->data+8,&nok,4);
+        }
+
+        if(header.msgl_get((char*)(put_msg->data+12+header.vok*sizeof(svsi_t)))!=(int)(SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))){
+          DLOG("%04X FAILED to read msglist %08X with %d signatures\n",svid,header.now,header.vok); //TODO, send error
+          return;
+        }
+        DLOG("%04X SENDING block msglist %08X with %d signatures\n",svid,header.now,header.vok); //TODO, send error
         send_sync(put_msg);
     }
 
@@ -908,12 +921,19 @@ public:
             return;
         }
         header.header_get();
-        if(read_msg_->len!=(8+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH))) {
+        uint32_t nok;
+        memcpy(&nok,read_msg_->data+8,4);
+        header.vok=(uint16_t)nok;
+
+        if(read_msg_->len!=(12+header.vok*sizeof(svsi_t)+SHA256_DIGEST_LENGTH+header.msg*(2+4+SHA256_DIGEST_LENGTH)))
+        {
             DLOG("%04X ERROR got wrong msglist length\n",svid); // consider updating server
             asyncWaitForNewMessageHeader();
             return;
         }
-        if(memcmp(read_msg_->data+8,header.msghash,SHA256_DIGEST_LENGTH)) {
+
+        if(memcmp(read_msg_->data+12+header.vok*sizeof(svsi_t),header.msghash,SHA256_DIGEST_LENGTH))
+        {
             DLOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
             char hash[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash,read_msg_->data+8,SHA256_DIGEST_LENGTH);
@@ -922,8 +942,26 @@ public:
             ELOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             asyncWaitForNewMessageHeader();
             return;
+        }        
+
+        if(header.vok*2<server_.last_srvs_.vtot && header.vok<opts_.mins)
+        {
+          ELOG("%04X ERROR not enough signatures (%d<(%d/2&%d))\n",svid,header.vok,server_.last_srvs_.vtot,opts_.mins);
+          asyncWaitForNewMessageHeader();
+          return;
         }
-        ELOG("%04X handle_read_msglist reading msglis starts %d\n",svid, error.value());
+
+        header_t head;
+        header.vno=0;
+        header.header(head);
+        server_.last_srvs_.check_signatures(head,(svsi_t*)(read_msg_->data+12),true);
+
+        if(head.vok*2<server_.last_srvs_.vtot && head.vok<opts_.mins)
+        {
+          ELOG("%04X ERROR not enough signatures after validation (%d<(%d/2&%d))\n",svid,head.vok,server_.last_srvs_.vtot,opts_.mins);
+          asyncWaitForNewMessageHeader();
+          return;
+        }
 
         server_.msgl_process(header,read_msg_->data+8);
         ////FIXME, process check and save in one function
@@ -1403,12 +1441,16 @@ NEXTUSER:
             return(0);
         }
         DLOG("%04X BLOCK signatures recieved ok:%d no:%d\n",svid,peer_hs.head.vok,peer_hs.head.vno);
-        server_.last_srvs_.check_signatures(peer_hs.head, peer_svsi, true);//TODO, check if server_.last_srvs_ has public keys
-        //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
-        if(peer_hs.head.vok*2<server_.last_srvs_.vtot && peer_hs.head.vok<opts_.mins) {
+        if(!(do_sync && opts_.fast && opts_.svid == 0))
+        {
+          server_.last_srvs_.check_signatures(peer_hs.head,peer_svsi,true);//TODO, check if server_.last_srvs_ has public keys
+          //if(peer_hs.head.vok<server_.vip_max/2 && (!opts_.mins || peer_hs.head.vok<opts_.mins)){
+          if(peer_hs.head.vok*2<server_.last_srvs_.vtot && peer_hs.head.vok<opts_.mins)
+          {
             ELOG("%04X READ not enough signatures after validaiton\n",svid);
             free(peer_svsi);
             return(0);
+          }
         }
         //now decide if You want to sync to last stage first ; or load missing blocks and messages first, You can decide based on size of databases and time to next block
         //the decision should be in fact made at the beginning by the server
