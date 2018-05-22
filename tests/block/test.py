@@ -118,6 +118,8 @@ def test_get_signatures(init_node_process):
 
 
 def test_get_message_list(init_node_process):
+    from tests.client.utils import create_account
+    create_account(2)
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {'run': 'get_message_list'})
 

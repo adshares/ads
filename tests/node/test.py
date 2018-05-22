@@ -30,7 +30,7 @@ def test_node_create_node(init_node_process, node_id="2"):
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
 
     try:
-        account = ValidateObject(response['account'])
+        account = ValidateObject(response['account'], kind='account_init')
     except KeyError as err:
         raise KeyError(err, response)
     else:

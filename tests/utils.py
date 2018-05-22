@@ -80,10 +80,7 @@ class ValidateObject(object):
         if fields == 'AUTO':
             _type = self.obj['type']
             return exec_esc_cmd(INIT_CLIENT_ID,
-                                {
-                                    'run': 'get_fields',
-                                    'type': _type
-                                })[_type]
+                                {'run': 'get_fields', 'type': _type})[_type]
         else:
             if not fields:
                 raise ValueError("Is not correct type '{}'".format(self.kind))
@@ -92,10 +89,8 @@ class ValidateObject(object):
     def validate(self):
         for field in self.fields:
             if field not in self.obj:
-                raise KeyError("{} doesn't has field {}".format(self.kind,
-                                                                field),
-
-                               "Response: {}".format(self.obj))
+                raise KeyError("{} doesn't has field {}".format(
+                    self.kind, field), "Response: {}".format(self.obj))
 
 
 def generate_message():

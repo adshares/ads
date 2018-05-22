@@ -13,7 +13,7 @@ def write_out(process, file):
     file.close()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='module')
 def init_node_process(init_blocks_counter=1):
     # Clean node per session
     clean_node_dir(INIT_NODE_ID)

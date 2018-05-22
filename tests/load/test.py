@@ -19,6 +19,12 @@ def create_user(id_user, id_node):
     response = exec_esc_cmd(INIT_CLIENT_ID,
                             {"run": "create_account", "node": id_node})
     new_account = response['new_account']
+    message = generate_message()
+    amount = 100
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'send_one',
+                                             'address': new_account['address'],
+                                             'message': message,
+                                             'amount': amount})
     return new_account['address'], new_account['id']
 
 
@@ -118,6 +124,8 @@ def create_nodes(count=2):
     for i in range(2, count + 2):
         create_node(i)
     start_time = time.time()
+    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
+    start_count_nodes = len(response['block']['nodes'])
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
@@ -129,7 +137,7 @@ def create_nodes(count=2):
         time.sleep(BLOCK_TIME)
 
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
-    assert len(response['block']['nodes']) - 1 == count
+    assert len(response['block']['nodes']) - 1 - start_count_nodes == count
 
 
 def test_create_nodes(init_node_process, count=10):
