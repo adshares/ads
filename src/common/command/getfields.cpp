@@ -103,7 +103,7 @@ void GetFields::toJson(boost::property_tree::ptree& ptree) {
         ptree.clear();
         ptree.add_child(Helper::getTxnName(m_type), result);
     } else {
-        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eIncorrectType));
+        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eIncorrectTransaction));
     }
 }
 
