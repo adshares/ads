@@ -142,8 +142,20 @@ def test_get_message_list(init_node_process):
 
 
 def test_get_message(init_node_process):
+    from tests.client.utils import create_account
+    _, block_time = create_account(3, block_time=True)
+    block_time_hex = hex(int(block_time)).split('x')[-1].upper()
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
-                                        {'run': 'get_message_list'})
+                                        {'run': 'get_message_list',
+                                         'block': block_time_hex})
+
+    messages_fields = ['msghash', 'messages', 'confirmed']
+
+    messages = tests_utils.ValidateObject(response,
+                                          kind='messages',
+                                          fields=messages_fields)
+    messages.validate()
+
     node_msid = response['messages'][0]['node_msid']
     node_id = response['messages'][0]['node']
     h = response['messages'][0]['hash']
@@ -151,7 +163,8 @@ def test_get_message(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {'run': 'get_message',
                                          'node': node_id,
-                                         'node_msid': node_msid},
+                                         'node_msid': node_msid,
+                                         'block': block_time_hex},
                                         with_get_me=False)
 
     try:
