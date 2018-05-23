@@ -4713,6 +4713,7 @@ NEXTBANK:
                 //svid_.unlock();
                 //TODO, maybe last_svid_msgs not needed (this can be read from txs_msgs_[_VAL] when creatin block_all_msgs)
                 RETURN_ON_SHUTDOWN();
+                prepare_poll(); // sets do_vote, clears candidates and electors
                 LAST_block_msgs();
                 message_shash(cand.hash,LAST_block_all_msgs);
                 {
@@ -4724,8 +4725,7 @@ NEXTBANK:
                     ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
                     ELOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
                     m_peerManager.deliverToAll(put_msg); // sets BLOCK_MODE for peers
-                }
-                prepare_poll(); // sets do_vote, clears candidates and electors
+                }                
                 do_block=1; //must be before save_candidate
                 std::map<uint64_t,hash_s> msg_add; // could be also svid_msha
                 std::set<uint64_t> msg_del; // could be also svid_msha
