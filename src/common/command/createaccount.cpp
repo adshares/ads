@@ -174,7 +174,8 @@ std::string CreateAccount::toString(bool /*pretty*/) {
 
 void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
-        print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
         // only for account created in the same node
         if (m_response.usera.user) {
             char nAccountAddress[19]="";

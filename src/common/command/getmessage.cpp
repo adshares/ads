@@ -116,7 +116,7 @@ bool GetMessage::send(INetworkClient& netClient) {
     }
     uint8_t msgType = msgTypeLength & 0xFF;
     if (msgType != MSGTYPE_MSG) {
-        m_responseError = ErrorCodes::Code::eIncorrectType;
+        m_responseError = ErrorCodes::Code::eIncorrectTransaction;
         return true;
     }
 

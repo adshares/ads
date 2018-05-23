@@ -13,3 +13,5 @@ logs.txt
 _test_load.py
 _test_remote_network.py
 .project
+.cproject
+.settings

@@ -25,6 +25,7 @@ def create_user(id_user, id_node):
                                              'address': new_account['address'],
                                              'message': message,
                                              'amount': amount})
+
     return new_account['address'], new_account['id']
 
 
@@ -78,6 +79,7 @@ async def send_money_async(amount=10):
 
 async def send_many_money_async(addresses, sender_id, amount=1):
     logger.info("SEND MONEY TO MANY FROM {}".format(sender_id))
+
     start_balance_receivers = [{'id': client[0],
                                 'address': client[1],
                                 'start_balance': get_balance_user(client[0])}
@@ -108,6 +110,7 @@ def create_users(count=10):
                             {'run': 'get_accounts', 'node': node})['accounts']
     address_list = [(client['id'], client['address'])
                     for client in response if client['id'] != '0']
+
     for _id, address in address_list:
         update_user_env(client_id=_id, address=address)
     return address_list
@@ -124,6 +127,7 @@ def create_nodes(count=2):
     for i in range(2, count + 2):
         create_node(i)
     start_time = time.time()
+
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"})
     start_count_nodes = len(response['block']['nodes'])
 

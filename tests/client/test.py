@@ -1,6 +1,5 @@
 import time
 
-from tests import logger
 from tests.utils import (exec_esc_cmd, generate_keys, ValidateObject,
                          generate_message)
 from tests.consts import (INIT_CLIENT_ID, INIT_NODE_ID, INIT_NODE_OFFICE_PORT)

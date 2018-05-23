@@ -150,6 +150,7 @@ std::string ChangeNodeKey::toString(bool /*pretty*/) {
 void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         ptree.put("result", "Node key changed");
+        Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
     } else {
         if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
             std::stringstream tx_user_hashin{};

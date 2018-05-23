@@ -116,73 +116,92 @@ class servers { // also a block
     }
 
 
-    void create_genesis_block(const std::string genesis_file, uint32_t now) {
-      assert(nodes.size() == 0);
-      ELOG("INIT: using genesis file %s\n",genesis_file.c_str());
+    void create_genesis_block(const std::string genesis_file) {
+        assert(nodes.size() == 0);
+        ELOG("INIT: using genesis file %s\n", genesis_file.c_str());
 
-      boost::property_tree::ptree data;
-      boost::property_tree::read_json(genesis_file, data);
+        boost::property_tree::ptree data;
+        boost::property_tree::read_json(genesis_file, data);
 
-      std::ifstream t(genesis_file);
-      std::string str((std::istreambuf_iterator<char>(t)),
-                       std::istreambuf_iterator<char>());
+        std::ifstream t(genesis_file);
+        std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
-      hash_t genesis_hash;
-      SHA256_CTX sha256;
-      SHA256_Init(&sha256);
-      SHA256_Update(&sha256,str.c_str(),str.length());
-      SHA256_Final(genesis_hash,&sha256);
+        hash_t genesis_hash;
+        SHA256_CTX sha256;
+        SHA256_Init(&sha256);
+        SHA256_Update(&sha256, str.c_str(), str.length());
+        SHA256_Final(genesis_hash, &sha256);
 
-      char hash_text[2*SHA256_DIGEST_LENGTH];
-      ed25519_key2text(hash_text, genesis_hash, SHA256_DIGEST_LENGTH);
-      ELOG("genesis hash: %.*s\n", 2*SHA256_DIGEST_LENGTH, hash_text);
+        char hash_text[2 * SHA256_DIGEST_LENGTH];
+        ed25519_key2text(hash_text, genesis_hash, SHA256_DIGEST_LENGTH);
+        ELOG("genesis hash: %.*s\n", 2 * SHA256_DIGEST_LENGTH, hash_text);
 
-      boost::property_tree::ptree dataNodes = data.get_child("nodes");
+        boost::property_tree::ptree dataConfig = data.get_child("config");
 
-      node nn;
-      nn.mtim = now;
-      memcpy(nn.msha, genesis_hash, SHA256_DIGEST_LENGTH);
-      nodes.push_back(nn);
+        boost::optional < uint32_t > startTimeOpt = dataConfig.get_optional < uint32_t > ("start_time");
 
-      uint16_t node_num = 1;
-      for (auto e : dataNodes) {
-        uint64_t users_weight = 0;
-        uint32_t users_count = 0;
-        node nn;
+        if (startTimeOpt.is_initialized() && startTimeOpt.get() % BLOCKSEC != 0) {
+            ELOG("Invalid genesis start time: %d, must be divisible by %d\n", startTimeOpt.get(), BLOCKSEC);
+            exit(-1);
+        } else {
+            ELOG("Genesis start time: %d\n", startTimeOpt.get());
 
-        std::string node_pkey = e.second.get<std::string>("public_key");
-        std::cout << "public_key: " << node_pkey << "\n";
-        ed25519_text2key(nn.pk,node_pkey.c_str(),32);
-
-        for (auto f : e.second.get_child("accounts")) {
-          user_t u;
-          std::string user_pkey = f.second.get<std::string>("public_key");
-          ed25519_public_key user_pk;
-          ed25519_text2key(user_pk,user_pkey.c_str(),32);
-
-          std::string user_balance = f.second.get<std::string>("balance");
-          Helper::parse_amount(u.weight, user_balance);
-          init_user(u,node_num,users_count,u.weight,user_pk,now,node_num,users_count);
-          put_user(u,node_num,users_count);
-          xor4(nn.hash, u.csum);
-          users_count++;
-          users_weight += u.weight;
         }
 
-        nn.mtim=now;
-        nn.users = users_count;
-        nn.weight = users_weight;
-        init_node_hash(nn);
-        nodes.push_back(nn);
-        node_num++;
-      }
-      update_vipstatus();
-  //    for (auto it = dataNodes.begin(); it != dataNodes.end(); it++)
-  //      {
-  //          std::cout << it->first << ": " << it->second.get<string>("amount") << std::endl;
-  //      }
+        uint32_t startTime = startTimeOpt.get();
 
-  //    exit(-1);
+        uint64_t waitUntil = startTime + BLOCKSEC;
+
+        uint64_t clockNow = time(NULL);
+        while (clockNow < waitUntil) {
+            boost::this_thread::sleep(boost::posix_time::seconds(1));
+            ELOG("Awaiting for genesis block time: %lu s\n", waitUntil - clockNow);
+            clockNow = time(NULL);
+            RETURN_ON_SHUTDOWN()
+            ;
+        }
+
+        node nn;
+        now = nn.mtim = startTime;
+
+        memcpy(nn.msha, genesis_hash, SHA256_DIGEST_LENGTH);
+        nodes.push_back(nn);
+
+        boost::property_tree::ptree dataNodes = data.get_child("nodes");
+
+        uint16_t node_num = 1;
+        for (auto e : dataNodes) {
+            uint64_t users_weight = 0;
+            uint32_t users_count = 0;
+            node nn;
+
+            std::string node_pkey = e.second.get < std::string > ("public_key");
+            ed25519_text2key(nn.pk, node_pkey.c_str(), 32);
+
+            nn.mtim = nodes[0].mtim;
+            nn.users = users_count;
+            nodes.push_back(nn);
+
+            for (auto f : e.second.get_child("accounts")) {
+                user_t u;
+                std::string user_pkey = f.second.get < std::string > ("public_key");
+                ed25519_public_key user_pk;
+                ed25519_text2key(user_pk, user_pkey.c_str(), 32);
+
+                std::string user_balance = f.second.get < std::string > ("balance");
+                parse_amount(u.weight, user_balance);
+                init_user(u, node_num, users_count, u.weight, user_pk, nodes[0].mtim, node_num, users_count);
+                put_user(u, node_num, users_count);
+                xor4(nodes[node_num].hash, u.csum);
+                users_count++;
+                users_weight += u.weight;
+            }
+
+            nodes[node_num].weight = users_weight;
+            init_node_hash(nodes[node_num]);
+            node_num++;
+        }
+        update_vipstatus();
     }
 
     void init_fast(uint16_t node_count, hash_t pk) {
@@ -196,82 +215,81 @@ class servers { // also a block
         }
     }
 
-    void init(uint32_t newnow, bool /*readonly*/, const std::string genesis_file) {
-        uint16_t num=0;
-        uint64_t sum=0;
-        now=newnow;
-        blockdir();
-        if(!nodes.size()) {
-            if(genesis_file.empty()) {
-                // create test network
-                mkdir("key",0700);
-                int fd=open("key/key.txt",O_WRONLY|O_CREAT,0600);
-                close(fd);
-                FILE *fp=fopen("key/key.txt","a");
-                // ed25519/key "author name"
-                fprintf(fp,"14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0\n#PK: 7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF\n#SG: C42B0C170A78C9985319B7A2E17D44E4BD88845FCE21C3FCC00A496AAAB6E8F84AD54E06F0D5FDDE98D370462C4EFAA52A38C8BCB513B7DF597315835244D10A\n");
-                fclose(fp);
-                hash_t hash;
-                ed25519_text2key(hash,"7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF",32);
-                node nn;
-                memcpy(nn.pk,hash,32);
-                nodes.push_back(nn);
-                nodes.push_back(nn);
+    void init(uint32_t newnow) {
+        uint16_t num = 0;
+        uint64_t sum = 0;
 
-                int64_t stw=TOTALMASS/(nodes.size()-1); // removed initial tax of 1%
-                for(auto it=nodes.begin();it<nodes.end();it++,num++){
+        if (!nodes.size()) {
+            now = newnow;
+            blockdir();
+            // create test network
+            mkdir("key", 0700);
+            int fd = open("key/key.txt", O_WRONLY | O_CREAT, 0600);
+            close(fd);
+            FILE *fp = fopen("key/key.txt", "a");
+            // ed25519/key "author name"
+            fprintf(fp,
+                    "14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0\n#PK: 7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF\n#SG: C42B0C170A78C9985319B7A2E17D44E4BD88845FCE21C3FCC00A496AAAB6E8F84AD54E06F0D5FDDE98D370462C4EFAA52A38C8BCB513B7DF597315835244D10A\n");
+            fclose(fp);
+            hash_t hash;
+            ed25519_text2key(hash, "7D21F4EE7DE72EEDDC2EBFFEC5E7F33F140A975A629EE312075BB04610A9CFFF", 32);
+            node nn;
+            memcpy(nn.pk, hash, 32);
+            nodes.push_back(nn);
+            nodes.push_back(nn);
 
-                  if(!num){
+            int64_t stw = TOTALMASS / (nodes.size() - 1); // removed initial tax of 1%
+            for (auto it = nodes.begin(); it < nodes.end(); it++, num++) {
+
+                if (!num) {
                     RAND_bytes(it->msha, sizeof(it->msha));
-                  }
-        //          memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
-        //          memcpy(it->msha,&num,2); // always start with a unique hash
-        //          memcpy(it->msha+2,&now,4); // network id
-                  it->msid=0;
-                  it->mtim=now; // blockchain start time in nodes[0] == network id
-                  it->status=0;
-                  if(num){
+                }
+//          memset(it->msha,0xff,SHA256_DIGEST_LENGTH); //TODO, start servers this way too
+//          memcpy(it->msha,&num,2); // always start with a unique hash
+//          memcpy(it->msha+2,&now,4); // network id
+                it->msid = 0;
+                it->mtim = now; // blockchain start time in nodes[0] == network id
+                it->status = 0;
+                if (num) {
                     //if(num<=VIP_MAX){
-                    if(num==1){
-                      it->status|=SERVER_VIP;}
-                    it->users=1;
+                    if (num == 1) {
+                        it->status |= SERVER_VIP;
+                    }
+                    it->users = 1;
                     // create the first user
                     user_t u;
-                    init_user(u,num,0,stw,it->pk,now,num,0);
-                    put_user(u,num,0);
+                    init_user(u, num, 0, stw, it->pk, now, num, 0);
+                    put_user(u, num, 0);
                     //update_nodehash(num);
-                    memcpy(it->hash,u.csum,SHA256_DIGEST_LENGTH);
-                    it->weight=u.weight;
+                    memcpy(it->hash, u.csum, SHA256_DIGEST_LENGTH);
+                    it->weight = u.weight;
                     init_node_hash(*it);
-                  }
-                  else {
-                    bzero(it->hash,SHA256_DIGEST_LENGTH);
-                    bzero(it->pk,SHA256_DIGEST_LENGTH);
-                    it->users=0;
-                    it->weight=0;
-                  }
+                } else {
+                    bzero(it->hash, SHA256_DIGEST_LENGTH);
+                    bzero(it->pk, SHA256_DIGEST_LENGTH);
+                    it->users = 0;
+                    it->weight = 0;
                 }
-              } else {
-                create_genesis_block(genesis_file, now);
-              }
-        }
-        num = 0;
-
-        for(auto it=nodes.begin(); it<nodes.end(); it++,num++) {
-            if(num){
-                sum+=it->weight;
             }
         }
-        ELOG("INIT: weight diff: %016lX\n",TOTALMASS-sum);
+
+        num = 0;
+        for (auto it = nodes.begin(); it < nodes.end(); it++, num++) {
+            if (num) {
+                sum += it->weight;
+            }
+        }
+
+        ELOG("INIT: weight diff: %016lX\n", TOTALMASS-sum);
         //nodes.begin()->weight=TOTALMASS-sum;
-        assert(num>0);
+        assert(num > 0);
         //vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
-        vtot=1;
+        vtot = 1;
         finish();
         write_start();
-        now=0;
+        now = 0;
         put();
-        now=newnow;
+        now = nodes[0].mtim;
         //return(num<VIP_MAX?num:VIP_MAX);
     }
 

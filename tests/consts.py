@@ -25,6 +25,7 @@ ACCOUNT_FIELDS = ['id', 'address', 'node', 'msid', 'time', 'date',
 
 ACCOUNT_INIT_USER_FIELDS = ['id', 'address', 'node', 'msid', 'time', 'date',
                             'status', 'paired_node', 'paired_id',
+
                             'local_change', 'remote_change', 'balance',
                             'public_key', 'hash']
 
@@ -50,3 +51,4 @@ BLOCK_NODE_FIELDS = ['pk', 'hash', 'msha', 'msid', 'mtim',
                      'balance', 'status', 'users', 'port', 'ipv4']
 
 LOG_BASE_FIELDS = ['type', 'date', 'type_no', 'confirmed']
+

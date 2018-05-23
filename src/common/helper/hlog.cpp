@@ -158,7 +158,7 @@ void Hlog::printJson(boost::property_tree::ptree& pt) {
                 break;
             default:
                 pt.clear();
-                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eIncorrectType));
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eIncorrectTransaction));
                 return;
         }
         logs.push_back(std::make_pair("", log));

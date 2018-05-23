@@ -47,7 +47,7 @@ bool GetAccountsHandler::onValidate() {
         errorCode = ErrorCodes::Code::eBadPath;
     }
     else if (m_command->getDestBankId() > m_offi.last_nodes()) {
-        errorCode = ErrorCodes::Code::eBadNode;
+        errorCode = ErrorCodes::Code::eBankIncorrect;
     }
 
     if (errorCode) {

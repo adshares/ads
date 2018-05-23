@@ -1,6 +1,5 @@
 import pytest
 import subprocess
-import threading
 
 from tests.node.utils import clean_node_dir, create_node_env, get_node_path_dir
 from tests.consts import (INIT_NODE_OFFICE_PORT, INIT_NODE_SERVER_PORT,

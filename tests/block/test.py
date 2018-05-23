@@ -90,7 +90,7 @@ def test_get_transaction(init_node_process):
     else:
         obj.validate()
 
-    assert 'create_account' == response['txn']['type']
+    assert 'create_account' == response['network_tx']['type']
 
 
 def test_get_signatures(init_node_process):
@@ -172,8 +172,8 @@ def test_get_message(init_node_process):
                                              kind='get_message')
     except KeyError as err:
         raise KeyError(err, response)
-
-    message.validate()
+    else:
+        message.validate()
 
     assert response['hash'] == h
 

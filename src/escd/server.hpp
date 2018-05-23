@@ -51,6 +51,50 @@ class server {
         mkdir("inx",0755); // create dir for bank message indeces
         mkdir("blk",0755); // create dir for blocks
         mkdir("vip",0755); // create dir for blocks
+
+
+        if (!opts_.genesis.empty()) {
+            struct stat sb;
+            if (stat("usr/0001.dat", &sb) >= 0) {
+                ELOG("Database exists. Cannot load genesis\n");
+                exit(-1);
+            }
+
+            last_srvs_.create_genesis_block(opts_.genesis);
+            RETURN_ON_SHUTDOWN()
+            ;
+
+            if ((int) last_srvs_.nodes.size() <= (int) opts_.svid) {
+                ELOG("ERROR: svid too high %d<=%d\n", (int )last_srvs_.nodes.size(), (int )opts_.svid);
+                exit(-1);
+            }
+
+            memcpy(pkey, last_srvs_.nodes[opts_.svid].pk, sizeof(hash_t));
+            //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
+            if (!last_srvs_.find_key(pkey, skey)) {
+                char pktext[2 * 32 + 1];
+                pktext[2 * 32] = '\0';
+                ed25519_key2text(pktext, pkey, 32);
+                ELOG("ERROR: failed to find secret key for key:\n%.64s\n", pktext);
+                exit(-1);
+            }
+            last_srvs_.find_more_keys(pkey, nkeys);
+
+            bank_fee.resize(last_srvs_.nodes.size());
+            srvs_ = last_srvs_;
+            memcpy(srvs_.oldhash, last_srvs_.nowhash, SHA256_DIGEST_LENGTH);
+
+            srvs_.now -= BLOCKSEC;
+            period_start = srvs_.nextblock();
+            ELOG("MAKE BLOCKCHAIN\n");
+            message_map empty;
+            //      srvs_.now = last_srvs_.nodes[0].mtim;
+            srvs_.msg = 0;
+            srvs_.msgl_put(empty, NULL);
+            finish_block();
+            write_header();
+        }
+
         uint32_t lastpath=readmsid()-opts_.back*BLOCKSEC;//reads msid_ and path, FIXME, do not read msid, read only path
         //uint32_t lastpath=path;
         //remember start status
@@ -122,6 +166,7 @@ class server {
                     srvs_.msg=0;
                     srvs_.msgl_put(empty,NULL);
                     finish_block();
+                    write_header();
                 }
             } else {
                 //path=0;
@@ -130,7 +175,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START from a fresh database\n");
-                last_srvs_.init(now-BLOCKSEC, false, opts_.genesis);
+                last_srvs_.init(now-BLOCKSEC);
                 srvs_=last_srvs_;
                 memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
                 period_start=srvs_.nextblock(); //changes now!
@@ -156,7 +201,7 @@ class server {
                 start_msid=0;
                 msid_=0;
                 ELOG("START with read only database\n");
-                last_srvs_.init(now-BLOCKSEC, true, "");
+                last_srvs_.init(now-BLOCKSEC);
                 last_srvs_.update_vipstatus();
                 bank_fee.resize(last_srvs_.nodes.size());
             }
@@ -4668,6 +4713,7 @@ NEXTBANK:
                 //svid_.unlock();
                 //TODO, maybe last_svid_msgs not needed (this can be read from txs_msgs_[_VAL] when creatin block_all_msgs)
                 RETURN_ON_SHUTDOWN();
+                prepare_poll(); // sets do_vote, clears candidates and electors
                 LAST_block_msgs();
                 message_shash(cand.hash,LAST_block_all_msgs);
                 {
@@ -4679,8 +4725,7 @@ NEXTBANK:
                     ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
                     ELOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
                     m_peerManager.deliverToAll(put_msg); // sets BLOCK_MODE for peers
-                }
-                prepare_poll(); // sets do_vote, clears candidates and electors
+                }                
                 do_block=1; //must be before save_candidate
                 std::map<uint64_t,hash_s> msg_add; // could be also svid_msha
                 std::set<uint64_t> msg_del; // could be also svid_msha

@@ -138,6 +138,7 @@ std::string SetAccountKey::toString(bool /*pretty*/) {
 void SetAccountKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         ptree.put("result", "PKEY changed");
+        Helper::print_msgid_info(ptree, m_data.abank, m_response.msid, m_response.mpos);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
