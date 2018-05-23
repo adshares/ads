@@ -3,9 +3,16 @@ import time
 from tests.utils import exec_esc_cmd, generate_keys, ValidateObject
 from tests.consts import INIT_CLIENT_ID
 
+BLOCK_TIME = 0
+
 
 def test_block_created(init_node_process, gen_blocks_count=1):
     # Check in log if blocks are created
+    from tests.client.utils import get_time_block
+
+    global BLOCK_TIME
+    BLOCK_TIME = get_time_block() * 2
+
     blocks_counter = 0
     for line in init_node_process.stderr:
         if b"NEW BLOCK created\n" in line:
@@ -17,13 +24,13 @@ def test_block_created(init_node_process, gen_blocks_count=1):
     assert gen_blocks_count == blocks_counter
 
 
-def test_node_create_node(init_node_process, node_id="2"):
-    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID,
-                                    {"run": "get_block"}).get('block', '').get('nodes', ''))
+def test_create_node(init_node_process, node_id="2"):
+    count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"}).
+                       get('block', '').get('nodes', ''))
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
 
     try:
-        account = ValidateObject(response['account'])
+        account = ValidateObject(response['account'], kind='account_init')
     except KeyError as err:
         raise KeyError(err, response)
     else:
@@ -44,8 +51,8 @@ def test_node_create_node(init_node_process, node_id="2"):
         count = len(response['block']['nodes'])
         if count > count_blocks:
             break
-        time.sleep(10)
-        assert time.time() - start_time < 70
+        assert time.time() - start_time < BLOCK_TIME
+        time.sleep(BLOCK_TIME)
 
     node = ValidateObject(response['block']['nodes'], kind='block_nodes')
     node.validate()
@@ -56,7 +63,12 @@ def test_node_create_node(init_node_process, node_id="2"):
 
     new_secret, new_pub_key, signature = generate_keys()
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "change_node_key", "pkey": new_pub_key, "node": node_id})
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {
+                                "run": "change_node_key",
+                                "pkey": new_pub_key,
+                                "node": node_id
+                            })
 
     try:
         assert response['result'] == 'Node key changed'
@@ -66,13 +78,20 @@ def test_node_create_node(init_node_process, node_id="2"):
 
 def test_set_node_status(init_node_process, node_id='1', status='8'):
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'set_node_status', 'node': 1, 'status': status})
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {
+                                'run': 'set_node_status',
+                                'node': 1,
+                                'status': status
+                            })
     current_block = response['current_block_time']
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
-        if current_block != response['current_block_time']:
+        if current_block != response['current_block_time'] and \
+                'error' not in response:
             break
+        time.sleep(3)
 
     try:
         for node in response['block']['nodes']:
@@ -84,13 +103,20 @@ def test_set_node_status(init_node_process, node_id='1', status='8'):
 
 def test_unset_node_status(init_node_process, node_id='1', status='16'):
 
-    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'unset_node_status', 'node': 1, 'status': status})
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {
+                                'run': 'unset_node_status',
+                                'node': 1,
+                                'status': status
+                            })
     current_block = response['current_block_time']
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
-        if current_block != response['current_block_time']:
+        if current_block != response['current_block_time'] and \
+                'error' not in response:
             break
+        time.sleep(3)
 
     try:
         for node in response['block']['nodes']:
