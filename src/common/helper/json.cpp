@@ -8,6 +8,7 @@
 #include <iostream>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
 #include "hash.h"
 #include "ascii.h"
 #include "txsname.h"
@@ -363,12 +364,14 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         logentry.put("amount",print_amount(ulog.weight));
         //FIXME calculate fee
         if(txst==TXSTYPE_PUT) {
-            int64_t amass=std::abs(ulog.weight);
+            int64_t fee;
             if(ulog.node==bank) {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)));
+                fee = TXS_PUT_FEE(std::abs(ulog.weight));
             } else {
-                logentry.put("sender_fee",print_amount(TXS_PUT_FEE(amass)+TXS_LNG_FEE(amass)));
+                fee = TXS_PUT_FEE(std::abs(ulog.weight))+TXS_LNG_FEE(std::abs(ulog.weight));
             }
+
+            logentry.put("sender_fee",print_amount(fee<TXS_MIN_FEE?TXS_MIN_FEE:fee));
             logentry.put("message",info);
         } else {
             int64_t weight;
@@ -387,12 +390,11 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             logentry.put("sender_balance",print_amount(weight));
             logentry.put("sender_amount",print_amount(deduct));
             if(txst==TXSTYPE_MPT) {
-                if(ulog.node==bank) {
-                    logentry.put("sender_fee",print_amount(TXS_MPT_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
-                } else {
-                    logentry.put("sender_fee",
-                                 print_amount(TXS_MPT_FEE(ulog.weight)+TXS_LNG_FEE(ulog.weight)+(key[5]?TXS_MIN_FEE:0)));
-                }
+                if(ulog.node==bank){
+                  logentry.put("sender_fee",print_amount((int64_t)((boost::multiprecision::int128_t)fee * std::abs(ulog.weight) / deduct)));}
+                else{
+                  logentry.put("sender_fee",
+                    print_amount((int64_t)((boost::multiprecision::int128_t)fee * std::abs(ulog.weight) / deduct)));}
                 logentry.put("sender_fee_total",print_amount(fee));
                 key_hex[2*5]='\0';
                 logentry.put("sender_public_key_prefix_5",key_hex);

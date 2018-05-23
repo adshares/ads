@@ -2,9 +2,9 @@
 #define DEFAULT_H
 
 #ifdef DEBUG
-#define BLOCKSEC 0x20 /* block period in seconds */
-#define BLOCKDIV 0x4 /* number of blocks for dividend update */
-#define MAX_UNDO 0x8 /* maximum history of block undo files in blocks */
+#define BLOCKSEC 32 /* block period in seconds */
+#define BLOCKDIV 4 /* number of blocks for dividend update */
+#define MAX_UNDO 8 /* maximum history of block undo files in blocks */
 #define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
 #define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
 #define VIP_MAX 7 /* maximum number of VIP servers */
@@ -13,18 +13,20 @@
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
+#define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #else
-#define BLOCKSEC 0x400 /* block period in seconds (17min) */
-#define BLOCKDIV 0x400 /* number of blocks for dividend update (dividend period 10 days) */
-#define MAX_UNDO 0x800 /* maximum history of block undo files in blocks (20 days) */
+#define BLOCKSEC 512 /* block period in seconds (17min) */
+#define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
+#define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-#define VIP_MAX 63 /* maximum number of VIP servers */
+#define VIP_MAX 31 /* maximum number of VIP servers */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
+#define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
 
 #define TOTALMASS 3875820600000000000L /* total balance (target) */
@@ -79,12 +81,11 @@
 #define TXS_UUS_FEE      (10000000L) /*  */
 #define TXS_UBS_FEE      (10000000L) /*  */
 #define TXS_SAV_FEE      (10000000L) /*  */
-#define TXS_BNK_FEE      (100000000000000L) /* 1000 ADS */
+#define TXS_BNK_FEE      (500000000000000L) /* 5000 ADS */
 #define TXS_BKY_FEE      (10000000000L) /*  */
 #define USER_MIN_MASS    (1000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
 #define BANK_MIN_UMASS   (1000000000000L) /* minimum admin account mass to send transaction (1 ADST) */
 #define BANK_MIN_TMASS   (0L) /* if bank total mass <= this value, bank can be taken over AND */
-#define BANK_MIN_MTIME   (1000L*BLOCKSEC) /* AND if no transaction in this period bank can be taken over */
 #define BANK_PROFIT(x)   ((x)/16) /* 1/16 of fees */
 #define BANK_USER_FEE(x) (1000000L * (x) * BLOCKSEC / ONE_YEAR) /* every block */
 #define MESSAGE_FEE(x)   (4096L+(x)) /* fee for each bank message */
