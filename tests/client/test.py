@@ -230,7 +230,6 @@ def test_create_account_on_another_node(init_node_process, client_id="1"):
                             with_get_me=False)
 
     assert 'accounts' in accounts
-    logger.info(accounts)
 
     response_create = exec_esc_cmd(client_id,
                                    {'run': 'create_account', 'node': '0002'})
@@ -248,16 +247,18 @@ def test_create_account_on_another_node(init_node_process, client_id="1"):
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID,
-                                {'run': 'get_accounts', 'node': '2'},
+                                {'run': 'get_accounts', 'node': '0002'},
                                 with_get_me=False)
+        print(response)
         if 'accounts' in response:
             current_accounts = len(response['accounts'])
             if current_accounts > len(accounts):
-                for user in response['accounts']:
-                    if user['id'] != '0':
-                        address = user['address']
-                        break
+                print(response['accounts'])
+                if response['accounts'][-1]['id'] != '0':
+                    address = response['accounts'][-1]['address']
+                    break
+
         time.sleep(5)
         assert time.time() - time_start < BLOCK_TIME
 
-        update_user_env(client_id, address)
+    update_user_env(client_id, address)
