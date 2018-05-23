@@ -559,4 +559,29 @@ struct NodeStatusData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct RetrieveFundsInfo {
+    RetrieveFundsInfo() = default;
+    RetrieveFundsInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_)
+        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), buser(buser_) {
+    }
+
+    uint8_t ttype {TXSTYPE_GET};///< command type
+    uint16_t abank{0};          ///< source node
+    uint32_t auser{0};          ///< source user
+    uint32_t amsid{0};          ///< msg id
+    uint32_t ttime{0};          ///< time
+    uint16_t bbank{0};          ///< dest node
+    uint32_t buser{0};          ///< dest user
+}__attribute__((packed));
+
+struct RetrieveFundsData {
+    RetrieveFundsData() = default;
+    RetrieveFundsData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_)
+        : info(abank_, auser_, amsid_, ttime_, bbank_, buser_) {
+    }
+
+    RetrieveFundsInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H
