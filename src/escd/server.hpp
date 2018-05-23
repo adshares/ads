@@ -3403,26 +3403,7 @@ NEXTUSER:
             memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
             bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
             log[0]=alog;
-        } else if(myput_fee) {
-            local_fee=BANK_PROFIT(local_fee);
-            lodiv_fee=BANK_PROFIT(lodiv_fee);
-            myput_fee=BANK_PROFIT(myput_fee);
-            log_t alog;
-            alog.time=now;
-            alog.type=TXSTYPE_FEE|0x8000; //incoming
-            alog.node=msg->svid;
-            alog.user=0;
-            alog.umid=0;
-            alog.nmid=msg->msid;
-            alog.mpos=0;
-            alog.weight=myput_fee;
-            memcpy(alog.info,&local_fee,sizeof(int64_t)); //FIXME, useless !!!
-            memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t)); //FIXME, useless !!!
-            memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
-            bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
-            log[0]=alog;
         }
-
 
         //commit remote deposits
         deposit_.lock();
