@@ -131,6 +131,7 @@ class client : public boost::enable_shared_from_this<client> {
                 DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
                 DLOG("ERROR: %d\n", lockUserId);
                 boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
+                m_offi.leave(shared_from_this());
                 return;
             }
 
