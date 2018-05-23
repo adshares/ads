@@ -727,7 +727,7 @@ void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asi
             ed25519_key2text(tx_user_hashout,hashout,32);
             pt.put("tx.account_hashout",tx_user_hashout);
             //FIXME calculate deduction and fee
-            pt.put("tx.deduct",print_amount(deduct));
+            pt.put("tx.deduct",print_amount(deduct+fee));
             pt.put("tx.fee",print_amount(fee));
         }
 

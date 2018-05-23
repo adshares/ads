@@ -78,7 +78,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
         Helper::ed25519_key2text(tx_user_hashout, hashout.data(), SHA256_DIGEST_LENGTH);
         m_pt.put("tx.account_hashout",  std::move(tx_user_hashout.str()));
         //FIXME calculate deduction and fee
-        m_pt.put("tx.deduct", print_amount(txs->getDeduct()));
+        m_pt.put("tx.deduct", print_amount(txs->getDeduct()+txs->getFee()));
         m_pt.put("tx.fee", print_amount(txs->getFee()));
 
         if(m_sts.msid == 1) {
