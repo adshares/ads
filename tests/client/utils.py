@@ -99,22 +99,16 @@ def get_time_block():
     return current - prev
 
 
-def create_account(client_id="2", node="0001"):
+def create_account(client_id="2", node="0001", block_time=False):
     # As INIT user, create client with client_id
     block_time = get_time_block() * 2
     response = exec_esc_cmd(INIT_CLIENT_ID,
                             {"run": "create_account", "node": node})
     try:
         address = response['new_account']['address']
+        current_time = response['current_block_time']
     except KeyError as err:
         raise KeyError(err, response)
-
-    time_start = time.time()
-    response = exec_esc_cmd(INIT_CLIENT_ID,
-                            {'run': "get_accounts",  "node": node},
-                            with_get_me=False)
-
-    count_users = len(response.get('accounts'))
 
     message = generate_message()
 
@@ -122,6 +116,13 @@ def create_account(client_id="2", node="0001"):
                                              "address": address,
                                              'message': message,
                                              "amount": 20})
+
+    time_start = time.time()
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {'run': "get_accounts",  "node": node},
+                            with_get_me=False)
+
+    count_users = len(response.get('accounts'))
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID,
@@ -137,5 +138,8 @@ def create_account(client_id="2", node="0001"):
         time.sleep(block_time)
 
     update_user_env(client_id, address)
+
+    if block_time:
+        return address, current_time
 
     return address

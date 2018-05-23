@@ -119,9 +119,11 @@ def test_get_signatures(init_node_process):
 
 def test_get_message_list(init_node_process):
     from tests.client.utils import create_account
-    create_account(2)
+    _, block_time = create_account(2, block_time=True)
+    block_time_hex = hex(int(block_time)).split('x')[-1].upper()
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
-                                        {'run': 'get_message_list'})
+                                        {'run': 'get_message_list',
+                                         'block': block_time_hex})
 
     messages_fields = ['msghash', 'messages', 'confirmed']
 

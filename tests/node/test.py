@@ -24,7 +24,7 @@ def test_block_created(init_node_process, gen_blocks_count=1):
     assert gen_blocks_count == blocks_counter
 
 
-def test_node_create_node(init_node_process, node_id="2"):
+def test_create_node(init_node_process, node_id="2"):
     count_blocks = len(exec_esc_cmd(INIT_CLIENT_ID, {"run": "get_block"}).
                        get('block', '').get('nodes', ''))
     response = exec_esc_cmd(INIT_CLIENT_ID, {"run": "create_node"})
@@ -88,8 +88,10 @@ def test_set_node_status(init_node_process, node_id='1', status='8'):
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
-        if current_block != response['current_block_time']:
+        if current_block != response['current_block_time'] and \
+                'error' not in response:
             break
+        time.sleep(3)
 
     try:
         for node in response['block']['nodes']:
@@ -111,8 +113,10 @@ def test_unset_node_status(init_node_process, node_id='1', status='16'):
 
     while True:
         response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
-        if current_block != response['current_block_time']:
+        if current_block != response['current_block_time'] and \
+                'error' not in response:
             break
+        time.sleep(3)
 
     try:
         for node in response['block']['nodes']:
