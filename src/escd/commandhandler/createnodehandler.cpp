@@ -88,7 +88,7 @@ bool CreateNodeHandler::onValidate() {
 
     if (m_command->getBankId() != m_offi.svid) {
         ELOG("ERROR: bad bank\n");
-	errorCode = ErrorCodes::Code::eBadNode;
+    errorCode = ErrorCodes::Code::eBankIncorrect;
     } else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
         ELOG("OFFICE: reject transaction in readonly mode (todo: add notification)\n");
 	errorCode = ErrorCodes::Code::eReadOnlyMode;
