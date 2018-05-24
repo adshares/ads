@@ -126,6 +126,7 @@ std::string UnsetNodeStatus::toString(bool /*pretty*/) {
 void UnsetNodeStatus::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
+        print_msgid_info(ptree, m_data.info.abank, m_response.msid, m_response.mpos);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
