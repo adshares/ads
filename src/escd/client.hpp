@@ -72,16 +72,10 @@ class client : public boost::enable_shared_from_this<client> {
             return;
         }
 
-        if(*m_buf == TXSTYPE_KEY) {
-            // additional confirmation signature
-            m_more = 64;
-        }
-
         //if(*m_buf==TXSTYPE_KEY)
+
         m_command = command::factory::makeCommand(*m_buf);
 
-        //get  size of command
-        m_len = txslen[(int)*m_buf] + 64 + m_more;
 
         if(m_command) {
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
@@ -89,6 +83,14 @@ class client : public boost::enable_shared_from_this<client> {
         } else {
             //DLOG(< "Client txstype " << m_addr << ":" << port << "\n";
             //read command. First character is already taken that is why we have buf+1 and len-1.
+            //get  size of command
+
+            if(*m_buf == TXSTYPE_KEY) {
+                // additional confirmation signature
+                m_more = 64;
+            }
+
+            m_len = txslen[(int)*m_buf] + 64 + m_more;
             boost::asio::async_read(m_socket,boost::asio::buffer(m_buf+1, m_len-1),
                                     boost::bind(&client::handle_read_txs, shared_from_this(), boost::asio::placeholders::error));
         }
@@ -125,23 +127,28 @@ class client : public boost::enable_shared_from_this<client> {
         if(m_command)
         {
             auto lockUserId = m_command->getUserId();
-            if(!m_offi.lock_user(lockUserId))
-            {
-                ErrorCodes::Code code = ErrorCodes::Code::eLockUserFailed;
-                DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
-                DLOG("ERROR: %d\n", lockUserId);
-                boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
-                m_offi.leave(shared_from_this());
-                return;
-            }
 
-            m_commandService.onExecute(std::move(m_command));
+            try{
+                if(m_offi.lock_user(lockUserId)){
+                    m_commandService.onExecute(std::move(m_command));
+                }
+                else{
+                    ErrorCodes::Code code = ErrorCodes::Code::eLockUserFailed;
+                    ELOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
+                    ELOG("ERROR: %d\n", lockUserId);
+                    boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
+                }
+            }
+            catch (std::exception& e)
+            {
+                ELOG("ERROR exception in handle_read_txs_complete %s\n", e.what());
+            }
 
             //@TODO: lock , unlock in RAII object.
             m_offi.unlock_user(lockUserId);
         }
 
-        m_offi.leave(shared_from_this());
+        m_offi.leave(shared_from_this());        
     }
 
     //TODO: remove function when all legacy commands reimplemented.
