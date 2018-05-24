@@ -10,6 +10,9 @@ BroadcastMsg::BroadcastMsg()
 
 BroadcastMsg::BroadcastMsg(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t msg_length, const char* msg, uint32_t time)
     : m_data(src_bank, src_user, msg_id, time, msg_length) {
+    if (msg_length > MAX_BROADCAST_LENGTH) {
+        throw std::runtime_error(ErrorCodes().getErrorMsg(ErrorCodes::Code::eBroadcastMaxLength));
+    }
     m_message = new unsigned char[msg_length];
     memcpy(m_message, msg, msg_length);
 }

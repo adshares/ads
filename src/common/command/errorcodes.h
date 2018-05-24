@@ -12,7 +12,6 @@ public:
     enum Code {
         eNone = 0,
         eBadPath,
-        eBadNode,
         eBadUser,
         eBankNotFound,
         eUserNotFound,
@@ -43,7 +42,6 @@ public:
         eGetSignatureUnavailable,
         eIncorrectType,
         eBadLength,
-        eInvalidMessageFile,
         eGetLogFailed,
         eHighTimeDifference,
         ePkeyDiffers,
@@ -60,14 +58,15 @@ public:
         eStatusSubmitFail,
         eLockUserFailed,
         eNoNodeStatusChangeAuth,
-        eAccountStatusOnRemoteNode
+        eAccountStatusOnRemoteNode,
+        eCommandParseError,
+        eBroadcastMaxLength
     };
 
 private:
     const std::map<ErrorCodes::Code, const char*> errorCodeMsg = {
         { Code::eNone, "No error" },
         { Code::eBadPath, "Bad path" },
-        { Code::eBadNode, "Bad node" },
         { Code::eBadUser, "Bad user" },
         { Code::eBankNotFound, "Can't open bank file" },
         { Code::eUserNotFound, "Read user failed" },
@@ -98,7 +97,6 @@ private:
         { Code::eGetSignatureUnavailable, "Signature is unavailable" },
         { Code::eIncorrectType, "Incorrect type" },
         { Code::eBadLength, "Bad length"},
-        { Code::eInvalidMessageFile, "Invalid message file. File might be corrupted"},
         { Code::eGetLogFailed, "Get log failed"},
         { Code::eHighTimeDifference, "High time difference"},
         { Code::ePkeyDiffers, "Public key differs from response key"},
@@ -115,7 +113,9 @@ private:
         { Code::eStatusSubmitFail, "Status submission failed" },
         { Code::eLockUserFailed, "Lock user failed" },
         { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
-        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"}
+        { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
+        { Code::eCommandParseError, "Parse error, check input data"},
+        { Code::eBroadcastMaxLength, "Broadcast message max length exceeded"}
    };
 
 public:

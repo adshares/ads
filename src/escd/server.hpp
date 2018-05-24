@@ -2960,6 +2960,11 @@ NEXTUSER:
                     return(false);
                 }
             } else if(*p==TXSTYPE_BRO) {
+                if (utxs.bbank > MAX_BROADCAST_LENGTH) {
+                    DLOG("ERROR: max boradcast length exceeded\n");
+                    close(fd);
+                    return(false);
+                }
                 //log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
                 log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,tmpos);
                 //utxs.print_broadcast(p);
@@ -3403,26 +3408,7 @@ NEXTUSER:
             memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
             bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
             log[0]=alog;
-        } else if(myput_fee) {
-            local_fee=BANK_PROFIT(local_fee);
-            lodiv_fee=BANK_PROFIT(lodiv_fee);
-            myput_fee=BANK_PROFIT(myput_fee);
-            log_t alog;
-            alog.time=now;
-            alog.type=TXSTYPE_FEE|0x8000; //incoming
-            alog.node=msg->svid;
-            alog.user=0;
-            alog.umid=0;
-            alog.nmid=msg->msid;
-            alog.mpos=0;
-            alog.weight=myput_fee;
-            memcpy(alog.info,&local_fee,sizeof(int64_t)); //FIXME, useless !!!
-            memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t)); //FIXME, useless !!!
-            memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
-            bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
-            log[0]=alog;
         }
-
 
         //commit remote deposits
         deposit_.lock();
@@ -3846,7 +3832,7 @@ NEXTUSER:
                 } else { //commit withdraw after lockup (all funds)
                     delta=u.weight;
                     delta_gok=u.weight-TXS_GOK_FEE(delta);
-                    fee=TXS_GOK_FEE(delta);
+                    fee=TXS_GOK_FEE(delta)+TXS_LNG_FEE(delta_gok);
                     u.weight=0;
                     srvs_.nodes[bbank].weight-=delta;
                     to.small[0]=tx->auser; //assume big endian
@@ -3866,7 +3852,7 @@ NEXTUSER:
                 tlog.umid=0;
                 tlog.nmid=0;
                 tlog.mpos=srvs_.now;
-                memcpy(tlog.info+ 8,&delta_gok,8); // sender_cost
+                memcpy(tlog.info+ 8,&delta,8); // sender_cost
                 memcpy(tlog.info+16,&fee,8);
                 memcpy(tlog.info+24,&u.stat,2);
                 memcpy(tlog.info+26,&u.pkey,6);
@@ -3876,7 +3862,7 @@ NEXTUSER:
                     tlog.type=TXSTYPE_GET|0x8000; //incoming
                     tlog.node=bbank;
                     tlog.user=tx->buser;
-                    tlog.weight=delta_gok;
+                    tlog.weight=delta-fee;
                     log[key]=tlog;
                 }
                 //put_log(abank,tx->auser,tlog); //put_blklog
@@ -3886,7 +3872,7 @@ NEXTUSER:
                     tlog.type=TXSTYPE_GET; //outgoing
                     tlog.node=abank;
                     tlog.user=tx->auser;
-                    tlog.weight=-delta_gok;
+                    tlog.weight=-(delta-fee);
                     log[key]=tlog;
                 }
                 //put_log(bbank,tx->buser,tlog); //put_blklog

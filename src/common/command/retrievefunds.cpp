@@ -1,94 +1,94 @@
-#include "unsetnodestatus.h"
+#include "retrievefunds.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 
-UnsetNodeStatus::UnsetNodeStatus()
-    : m_data{TXSTYPE_UBS} {
+RetrieveFunds::RetrieveFunds()
+    : m_data{} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-UnsetNodeStatus::UnsetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status)
-    : m_data{TXSTYPE_UBS, abank, auser, amsid, ttime, bbank, status} {
+RetrieveFunds::RetrieveFunds(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser)
+    : m_data{abank, auser, amsid, ttime, bbank, buser} {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-int UnsetNodeStatus::getType() {
-    return TXSTYPE_UBS;
+int RetrieveFunds::getType() {
+    return TXSTYPE_GET;
 }
 
-unsigned char* UnsetNodeStatus::getData() {
+unsigned char* RetrieveFunds::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
 
-unsigned char* UnsetNodeStatus::getResponse() {
+unsigned char* RetrieveFunds::getResponse() {
     return reinterpret_cast<unsigned char*>(&m_response);
 }
 
-void UnsetNodeStatus::setData(char* data) {
+void RetrieveFunds::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void UnsetNodeStatus::setResponse(char* response) {
+void RetrieveFunds::setResponse(char* response) {
     m_response = *reinterpret_cast<decltype(m_response)*>(response);
 }
 
-int UnsetNodeStatus::getDataSize() {
+int RetrieveFunds::getDataSize() {
     return sizeof(m_data.info);
 }
 
-int UnsetNodeStatus::getResponseSize() {
+int RetrieveFunds::getResponseSize() {
     return sizeof(m_response);
 }
 
-unsigned char* UnsetNodeStatus::getSignature() {
+unsigned char* RetrieveFunds::getSignature() {
     return m_data.sign;
 }
 
-int UnsetNodeStatus::getSignatureSize() {
+int RetrieveFunds::getSignatureSize() {
     return sizeof(m_data.sign);
 }
 
-void UnsetNodeStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
+void RetrieveFunds::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }
 
-bool UnsetNodeStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
+bool RetrieveFunds::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& UnsetNodeStatus::getUserInfo() {
+user_t& RetrieveFunds::getUserInfo() {
     return m_response.usera;
 }
 
-uint32_t UnsetNodeStatus::getTime() {
+uint32_t RetrieveFunds::getTime() {
     return m_data.info.ttime;
 }
 
-uint32_t UnsetNodeStatus::getUserId() {
+uint32_t RetrieveFunds::getUserId() {
     return m_data.info.auser;
 }
 
-uint32_t UnsetNodeStatus::getBankId() {
+uint32_t RetrieveFunds::getBankId() {
     return m_data.info.abank;
 }
 
-int64_t UnsetNodeStatus::getFee() {
-    return TXS_UBS_FEE;
+int64_t RetrieveFunds::getFee() {
+    return TXS_GET_FEE;
 }
 
-int64_t UnsetNodeStatus::getDeduct() {
+int64_t RetrieveFunds::getDeduct() {
     return 0;
 }
 
-bool UnsetNodeStatus::send(INetworkClient& netClient)
+bool RetrieveFunds::send(INetworkClient& netClient)
 {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("UnsetNodeStatus sending error\n");
+        ELOG("RetrieveFunds sending error\n");
         return false;
     }
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        ELOG("UnsetNodeStatus reading error\n");
+        ELOG("RetrieveFunds reading error\n");
         return false;
     }
 
@@ -97,14 +97,14 @@ bool UnsetNodeStatus::send(INetworkClient& netClient)
     }
 
     if(!netClient.readData(getResponse(), getResponseSize())) {
-        ELOG("UnsetNodeStatus ERROR reading global info\n");
+        ELOG("RetrieveFunds ERROR reading global info\n");
         return false;
     }
 
     return true;
 }
 
-void UnsetNodeStatus::saveResponse(settings& sts) {
+void RetrieveFunds::saveResponse(settings& sts) {
     if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
@@ -119,20 +119,20 @@ void UnsetNodeStatus::saveResponse(settings& sts) {
     std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
 }
 
-std::string UnsetNodeStatus::toString(bool /*pretty*/) {
+std::string RetrieveFunds::toString(bool /*pretty*/) {
     return "";
 }
 
-void UnsetNodeStatus::toJson(boost::property_tree::ptree &ptree) {
+void RetrieveFunds::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
-        print_msgid_info(ptree, m_data.info.abank, m_response.msid, m_response.mpos);
+        Helper::print_msgid_info(ptree, m_data.info.abank, m_response.msid, m_response.mpos);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     }
 }
 
-void UnsetNodeStatus::txnToJson(boost::property_tree::ptree& ptree) {
+void RetrieveFunds::txnToJson(boost::property_tree::ptree& ptree) {
     using namespace Helper;
     ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
     ptree.put(TAG::SRC_NODE, m_data.info.abank);
@@ -140,18 +140,18 @@ void UnsetNodeStatus::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::MSGID, m_data.info.amsid);
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::DST_NODE, m_data.info.bbank);
-    ptree.put(TAG::STATUS, m_data.info.status);
+    ptree.put(TAG::DST_USER, m_data.info.buser);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
-uint32_t UnsetNodeStatus::getUserMessageId() {
+uint32_t RetrieveFunds::getUserMessageId() {
     return m_data.info.amsid;
 }
 
-uint32_t UnsetNodeStatus::getDestBankId() {
+uint32_t RetrieveFunds::getDestBankId() {
     return m_data.info.bbank;
 }
 
-uint32_t UnsetNodeStatus::getStatus() {
-    return m_data.info.status;
+uint32_t RetrieveFunds::getDestUserId() {
+    return m_data.info.buser;
 }

@@ -67,7 +67,9 @@ int main(int argc, char* argv[]) {
             txs = run_json(sts, line, deduct, fee, t2);
 
             if( !txs && ! t2) {
-                ELOG("PARSE Problem: %s\n", line.c_str());
+                boost::property_tree::ptree pt;
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                boost::property_tree::write_json(std::cout, pt, sts.nice);
                 continue;
             }
 

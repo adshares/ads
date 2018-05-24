@@ -1,39 +1,32 @@
-#include "broadcastmsghandler.h"
-#include "command/broadcastmsg.h"
+#include "retrievefundshandler.h"
+#include "command/retrievefunds.h"
 #include "../office.hpp"
 #include "helper/hash.h"
 
-BroadcastMsgHandler::BroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
+RetrieveFundsHandler::RetrieveFundsHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : CommandHandler(office, socket) {
 }
 
-
-void BroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
+void RetrieveFundsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
-        m_command = std::unique_ptr<BroadcastMsg>(dynamic_cast<BroadcastMsg*>(command.release()));
+        m_command = std::unique_ptr<RetrieveFunds>(dynamic_cast<RetrieveFunds*>(command.release()));
     } catch (std::bad_cast& bc) {
-        DLOG("BroadcastMsg bad_cast caught: %s", bc.what());
+        ELOG("RetrieveFunds bad_cast caught: %s\n", bc.what());
         return;
     }
-
 }
 
-void BroadcastMsgHandler::onExecute() {
+void RetrieveFundsHandler::onExecute() {
     assert(m_command);
 
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee{0};
-    int64_t     deduct{0};
-
-    deduct = m_command->getDeduct();
-    fee = m_command->getFee();
 
     //commit changes
     m_usera.msid++;
-    m_usera.time=m_command->getTime();
-    m_usera.lpath=lpath;
+    m_usera.time  = m_command->getTime();
+    m_usera.lpath = lpath;
 
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
@@ -41,20 +34,21 @@ void BroadcastMsgHandler::onExecute() {
     uint32_t mpos;
 
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
+        ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    } else {
-        m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
+    }
+
+    if(!errorCode) {
+        m_offi.set_user(m_command->getUserId(), m_usera, m_command->getDeduct()+m_command->getFee());
 
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
-        tlog.node   = m_command->getAdditionalDataSize();
-        tlog.user   = m_command->getUserId();
+        tlog.node   = m_command->getDestBankId();
+        tlog.user   = m_command->getDestUserId();
         tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
-        tlog.weight = -deduct;
 
         tInfo info;
         info.weight = m_usera.weight;
@@ -64,7 +58,8 @@ void BroadcastMsgHandler::onExecute() {
         memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
         memcpy(tlog.info, &info, sizeof(tInfo));
 
-        m_offi.put_ulog(m_command->getUserId(),  tlog);
+        tlog.weight = -m_command->getDeduct();
+        m_offi.put_ulog(m_command->getUserId(), tlog);
     }
 
     try {
@@ -73,20 +68,24 @@ void BroadcastMsgHandler::onExecute() {
             commandresponse response{m_usera, msid, mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
-    } catch (std::exception&) {
-        DLOG("ERROR responding to client %08X\n",m_usera.user);
+    } catch (std::exception& e) {
+        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
+bool RetrieveFundsHandler::onValidate() {
 
+    auto startedTime = time(NULL);
+    int32_t diff = m_command->getTime() - startedTime;
 
-bool BroadcastMsgHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
     int64_t deduct = m_command->getDeduct();
     int64_t fee = m_command->getFee();
 
-    if (fee < 0 || m_command->getAdditionalDataSize() > MAX_BROADCAST_LENGTH) {
-        errorCode = ErrorCodes::Code::eBroadcastMaxLength;
+    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+
+    if(diff>1) {
+        DLOG("ERROR: time in the future (%d>1s)\n", diff);
+        errorCode = ErrorCodes::Code::eTimeInFuture;
     }
     else if(m_command->getBankId()!=m_offi.svid) {
         errorCode = ErrorCodes::Code::eBankNotFound;
@@ -99,6 +98,10 @@ bool BroadcastMsgHandler::onValidate() {
     }
     else if(m_usera.msid != m_command->getUserMessageId()) {
         errorCode = ErrorCodes::Code::eBadMsgId;
+    }
+    else if(m_command->getBankId() == m_command->getDestBankId()) {
+        DLOG("ERROR: bad bank %04X, use PUT\n", m_command->getDestBankId());
+        errorCode = ErrorCodes::Code::eBankIncorrect;
     }
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",

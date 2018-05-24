@@ -22,6 +22,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetaccountstatushandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatushandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.cpp
     PARENT_SCOPE
     )
 
@@ -49,6 +50,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetaccountstatushandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatushandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.h
     PARENT_SCOPE
     )
 

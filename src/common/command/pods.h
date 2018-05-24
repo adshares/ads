@@ -504,8 +504,33 @@ struct ConnectedInfo {
     }
 
     uint8_t ttype{TXSTYPE_CON}; ///< command type
-    uint16_t port;              ///< port number
-    uint32_t ip_address;        ///< ip address
+    uint16_t port{0};           ///< port number
+    uint32_t ip_address{0};     ///< ip address
+}__attribute__((packed));
+
+struct TransactionAcceptedInfo {
+    TransactionAcceptedInfo() = default;
+    TransactionAcceptedInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_, uint8_t public_key[32])
+        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), buser(buser_) {
+        std::copy(public_key, public_key + 32, publicKey);
+    }
+
+    uint8_t ttype{TXSTYPE_UOK};  ///< command type
+    uint16_t abank{0};          ///< source node
+    uint32_t auser{0};          ///< source user
+    uint32_t amsid{0};          ///< msg id
+    uint32_t ttime{0};          ///< time
+    uint16_t bbank{0};          ///< dest node
+    uint32_t buser{0};          ///< dest user
+    uint8_t  publicKey[32];     ///< new account public key
+}__attribute__((packed));
+
+struct TransactionFailedInfo {
+    TransactionFailedInfo() = default;
+    TransactionFailedInfo(int msgSize) : message_size(msgSize) {
+    }
+    uint8_t ttype{TXSTYPE_NON};  ///< command type
+    uint32_t message_size;       ///< message size
 }__attribute__((packed));
 
 struct AccountStatusInfo {
@@ -579,6 +604,29 @@ struct GetSignaturesData {
     }
 
     GetSignaturesInfo info;
+
+struct RetrieveFundsInfo {
+    RetrieveFundsInfo() = default;
+    RetrieveFundsInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_)
+        : abank(abank_), auser(auser_), amsid(amsid_), ttime(ttime_), bbank(bbank_), buser(buser_) {
+    }
+
+    uint8_t ttype {TXSTYPE_GET};///< command type
+    uint16_t abank{0};          ///< source node
+    uint32_t auser{0};          ///< source user
+    uint32_t amsid{0};          ///< msg id
+    uint32_t ttime{0};          ///< time
+    uint16_t bbank{0};          ///< dest node
+    uint32_t buser{0};          ///< dest user
+}__attribute__((packed));
+
+struct RetrieveFundsData {
+    RetrieveFundsData() = default;
+    RetrieveFundsData(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_)
+        : info(abank_, auser_, amsid_, ttime_, bbank_, buser_) {
+    }
+
+    RetrieveFundsInfo info;
     unsigned char sign[64];
 }__attribute__((packed));
 
