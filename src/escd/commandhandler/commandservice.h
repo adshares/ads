@@ -23,11 +23,8 @@
 #include "setnodestatushandler.h"
 #include "unsetaccountstatushandler.h"
 #include "unsetnodestatushandler.h"
-<<<<<<< src/escd/commandhandler/commandservice.h
 #include "getsignatureshandler.h"
-=======
 #include "retrievefundshandler.h"
->>>>>>> src/escd/commandhandler/commandservice.h
 
 class office;
 
