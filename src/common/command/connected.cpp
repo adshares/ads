@@ -96,11 +96,7 @@ std::string Connected::toString(bool /*pretty*/) {
     return "";
 }
 
-void Connected::toJson(boost::property_tree::ptree& ptree) {
-    if (m_responseError) {
-        ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
-    } else {
-    }
+void Connected::toJson(boost::property_tree::ptree& /*ptree*/) {
 }
 
 void Connected::txnToJson(boost::property_tree::ptree& ptree) {
