@@ -46,6 +46,7 @@
 #define MSGTYPE_NHD 24  /* next header data */
 #define MSGTYPE_SOK 99  /* peer synced */
 
+#define MAX_BROADCAST_LENGTH  32000 //64k in hex multiplied by 2
 
 #pragma pack(1)
 typedef struct headlink_s { // header links sent when syncing

@@ -85,7 +85,10 @@ bool BroadcastMsgHandler::onValidate() {
     int64_t deduct = m_command->getDeduct();
     int64_t fee = m_command->getFee();
 
-    if(m_command->getBankId()!=m_offi.svid) {
+    if (fee < 0 || m_command->getAdditionalDataSize() > MAX_BROADCAST_LENGTH) {
+        errorCode = ErrorCodes::Code::eBroadcastMaxLength;
+    }
+    else if(m_command->getBankId()!=m_offi.svid) {
         errorCode = ErrorCodes::Code::eBankNotFound;
     }
     else if(!m_offi.svid) {

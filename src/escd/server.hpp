@@ -2960,6 +2960,11 @@ NEXTUSER:
                     return(false);
                 }
             } else if(*p==TXSTYPE_BRO) {
+                if (utxs.bbank > MAX_BROADCAST_LENGTH) {
+                    DLOG("ERROR: max boradcast length exceeded\n");
+                    close(fd);
+                    return(false);
+                }
                 //log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,mpos);
                 log_broadcast(lpath,p,utxs.size,usera->hash,usera->pkey,msg->msid,tmpos);
                 //utxs.print_broadcast(p);
