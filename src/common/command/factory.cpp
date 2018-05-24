@@ -105,7 +105,7 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     }
 
     //assert(command);
-    //assert(command->getType() != type);
+    //assert(command->getType() == type);
 
     return command;
 }
