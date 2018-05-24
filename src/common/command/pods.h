@@ -604,6 +604,8 @@ struct GetSignaturesData {
     }
 
     GetSignaturesInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
 
 struct RetrieveFundsInfo {
     RetrieveFundsInfo() = default;
