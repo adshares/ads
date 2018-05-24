@@ -767,9 +767,9 @@ class client : public boost::enable_shared_from_this<client> {
         } else if(*m_buf==TXSTYPE_USR) {
             deduct=USER_MIN_MASS;
             if(m_utxs.abank!=m_utxs.bbank) {
-                fee=TXS_USR_FEE;
+                fee=TXS_USR_FEE + TXS_RUS_FEE;
             } else {
-                fee=TXS_MIN_FEE;
+                fee=TXS_USR_FEE;
             }
             if(deduct+fee+USER_MIN_MASS>usera.weight) { //check in advance before creating new user
                 DLOG("ERROR: too low balance %ld+%ld+%ld>%ld\n",deduct,fee,USER_MIN_MASS,usera.weight);
