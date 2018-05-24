@@ -39,7 +39,7 @@ namespace Helper {
 #define TXSTYPE_NOD 24	/* return users of a node */
 #define TXSTYPE_MGS 25	/* return list of messages */
 #define TXSTYPE_MSG 26	/* return message */
-#define TXSTYPE_GFI 27
+#define TXSTYPE_GFI 27  /* return fileds of transactio type */
 //end
 #define TXSTYPE_MAX 28  /* should be 0xFE, with txslen[0xFE]=max_fixed_transaction_size */
 

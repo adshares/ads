@@ -16,6 +16,8 @@
 #include "getlog.h"
 #include "gettransaction.h"
 #include "connected.h"
+#include "transactionaccepted.h"
+#include "transactionfailed.h"
 #include "setaccountstatus.h"
 #include "setnodestatus.h"
 #include "unsetaccountstatus.h"
@@ -30,6 +32,12 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     switch(type) {
     case TXSTYPE_CON:
         command = std::make_unique<Connected>();
+        break;
+    case TXSTYPE_NON:
+        command = std::make_unique<TransactionFailed>();
+        break;
+    case TXSTYPE_UOK:
+        command = std::make_unique<TransactionAccepted>();
         break;
     case TXSTYPE_INF:
         command = std::make_unique<GetAccount>();
@@ -92,6 +100,7 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         command = std::make_unique<RetrieveFunds>();
         break;
     default:
+        std::cerr<<"Unsupported transaction type "<<type<<" "<<Helper::getTxnName(type)<<std::endl;
         break;
     }
 
