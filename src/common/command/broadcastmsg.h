@@ -1,6 +1,8 @@
 #ifndef BROADCASTMSG_H
 #define BROADCASTMSG_H
 
+#define MAX_BROADCAST_LENGTH  32000 //64k in hex multiplied by 2
+
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"

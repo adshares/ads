@@ -57,7 +57,8 @@ public:
         eLockUserFailed,
         eNoNodeStatusChangeAuth,
         eAccountStatusOnRemoteNode,
-        eCommandParseError
+        eCommandParseError,
+        eBroadcastMaxLength
     };
 
 private:
@@ -109,7 +110,8 @@ private:
         { Code::eLockUserFailed, "Lock user failed" },
         { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
         { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
-        { Code::eCommandParseError, "Parse error, check input data"}
+        { Code::eCommandParseError, "Parse error, check input data"},
+        { Code::eBroadcastMaxLength, "Broadcast message max length exceeded"}
    };
 
 public:
