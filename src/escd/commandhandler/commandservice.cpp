@@ -29,7 +29,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_setAccountStatusHandler(office, socket),
       m_setNodeStatusHandler(office, socket),
       m_unsetAccountStatusHandler(office, socket),
-      m_unsetNodeStatusHandler(office, socket) {
+      m_unsetNodeStatusHandler(office, socket),
+      m_getSignaturesHandler(office, socket) {
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
@@ -100,6 +101,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         break;
     case TXSTYPE_UBS:
         m_unsetNodeStatusHandler.execute(std::move(command), usera);
+        break;
+    case TXSTYPE_SIG:
+        m_getSignaturesHandler.execute(std::move(command), usera);
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

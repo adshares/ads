@@ -53,6 +53,7 @@
 #include "command/unsetaccountstatus.h"
 #include "command/unsetnodestatus.h"
 #include "command/getfields.h"
+#include "command/getsignatures.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -277,7 +278,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         } //                                           !!!!!!!!                             !!!!!!!
         txs=boost::make_shared<usertxs>(TXSTYPE_VIP,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
     } else if(!run.compare(txsname[TXSTYPE_SIG])) { //                 !!!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_SIG,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new GetSignatures(sts.bank, sts.user, now, to_block));
     } else if(!run.compare(txsname[TXSTYPE_NDS])) { //                 !!!!!!!!
         command.reset(new GetBlock(sts.bank, sts.user, to_block, now));
     } else if(!run.compare(txsname[TXSTYPE_NOD])) { //                 !!!!!!!!

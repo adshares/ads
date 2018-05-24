@@ -6,6 +6,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/servers.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/hlog.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/socket.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/signatures.cpp
     PARENT_SCOPE
     )
 
@@ -18,5 +19,6 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/servers.h
     ${CMAKE_CURRENT_SOURCE_DIR}/hlog.h
     ${CMAKE_CURRENT_SOURCE_DIR}/txsname.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/signatures.h
     PARENT_SCOPE
     )
