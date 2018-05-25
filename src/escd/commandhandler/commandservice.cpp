@@ -84,7 +84,7 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         m_getMessageListHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_MSG:
-        m_getMessageHandler.execute(std::move(command), std::move(usera));
+        m_getMessageHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_LOG:
         m_getLogHandler.execute(std::move(command), usera);
@@ -106,6 +106,7 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         break;
     case TXSTYPE_SIG:
         m_getSignaturesHandler.execute(std::move(command), usera);
+        break;
     case TXSTYPE_GET:
         m_retrieveFundsHandler.execute(std::move(command), usera);
         break;

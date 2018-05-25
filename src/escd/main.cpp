@@ -178,8 +178,8 @@ void office::handle_accept(client_ptr c, const boost::system::error_code& error)
 
     if (!error) {
         try {
-            c->start();
             join(c);
+            c->start();            
         } catch (std::exception& e) {            
             DLOG("Client exception: %s\n",e.what());
             leave(c);
