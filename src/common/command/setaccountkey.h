@@ -92,6 +92,9 @@ class SetAccountKey : public IBlockCommand {
     /** \brief Save command response to settings object. */
     virtual void            saveResponse(settings& sts)                 override;
 
+    /**  \brief Get message id. */
+    virtual  uint32_t       getUserMessageId();
+
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
