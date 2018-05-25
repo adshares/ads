@@ -3224,7 +3224,7 @@ NEXTUSER:
                 deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight+(int64_t)local_dsu[utxs.auser].deposit){
                 //network accepts total withdrawal from users and bank owners (otherwise dividend fee may invalidate message included in the next block)
                 ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-                     deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight);
+                     deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight+(int64_t)local_dsu[utxs.auser].deposit);
                 close(fd);
                 return(false);
             }
