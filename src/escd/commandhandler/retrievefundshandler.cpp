@@ -103,6 +103,9 @@ bool RetrieveFundsHandler::onValidate() {
         DLOG("ERROR: bad bank %04X, use PUT\n", m_command->getDestBankId());
         errorCode = ErrorCodes::Code::eBankIncorrect;
     }
+    else if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
+        errorCode = ErrorCodes::Code::eUserBadTarget;
+    }
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
