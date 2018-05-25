@@ -1304,7 +1304,7 @@ NEXTUSER:
 
         setState(ST_AUTHENTCATING);
 
-        DLOG("%04X PEER HEADER %04X:\n",svid,svid);
+        DLOG("%04X PEER HEADER %04X:\n",svid,msid);
         assert(read_msg_->data!=NULL);
         memcpy(&peer_hs,read_msg_->data+4+64+10,sizeof(handshake_t));
         srvs_.header_print(peer_hs.head);

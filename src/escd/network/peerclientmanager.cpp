@@ -78,7 +78,7 @@ void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boos
     auto port       = new_peer->socket().remote_endpoint().port();
     in_addr_t addr  = inet_addr(address.c_str());
 
-    if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port) )
+    if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->m_peerId) )
     { 
         new_peer->leave();
         DLOG("WARNING: dropping connection %d\n", new_peer->m_peerId);
@@ -111,7 +111,7 @@ void PeerConnectManager::addActivePeer(uint16_t svid, boost::shared_ptr<peer> pe
     m_ioService.dispatch(boost::bind(&PeerConnectManager::addActivePeerImpl, this, svid, peer));
 }
 
-void PeerConnectManager::addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer)
+/*void PeerConnectManager::addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer)
 {
     DLOG("Add active thread peer port: %ud\n",port);
     m_ioService.dispatch(boost::bind(&PeerConnectManager::addPeerImpl, this, address, port, peer));
@@ -137,7 +137,7 @@ void PeerConnectManager::addPeerImpl(std::string address, unsigned short port, b
     {
         ELOG("ERROR: Leave peer exception%s", e.what());
     }
-}
+}*/
 
 void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<peer> peer)
 {
@@ -227,13 +227,13 @@ void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned 
     timerNextTick(m_timeout);
 }
 
-void PeerConnectManager::connect(in_addr peer_address, unsigned short port)
+void PeerConnectManager::connect(in_addr peer_address, unsigned short port, uint16_t svid)
 {
     try
     {
         DLOG("TRY CONNECT to peer %s : %d\n", inet_ntoa(peer_address), port);
 
-        if(alreadyConnected(peer_address.s_addr, port)){
+        if(alreadyConnected(peer_address.s_addr, port, svid)){
             DLOG("PEER already connected %s : %d\n", inet_ntoa(peer_address), port);
             return;
         }
@@ -253,29 +253,29 @@ void PeerConnectManager::connect(in_addr peer_address, unsigned short port)
     }
 }
 
-void PeerConnectManager::connect(boost::asio::ip::tcp::endpoint endpoint)
+void PeerConnectManager::connect(boost::asio::ip::tcp::endpoint endpoint, uint16_t svid)
 {
     auto addr = endpoint.address().to_string();
     auto port = endpoint.port();
 
     in_addr   inaddr;
     if(inet_aton(addr.c_str(), &inaddr) == 0){
-        connect(inaddr, port);
+        connect(inaddr, port, svid);
     }
 }
 
-void PeerConnectManager::connect(node& nodeInfo)
+void PeerConnectManager::connect(node& nodeInfo, uint16_t svid)
 {
     in_addr addr{nodeInfo.ipv4};
 
-    connect(addr, static_cast<unsigned short>(nodeInfo.port));
+    connect(addr, static_cast<unsigned short>(nodeInfo.port), svid);
 }
 
-void PeerConnectManager::connect(std::string peer_address, unsigned short port)
+void PeerConnectManager::connect(std::string peer_address, unsigned short port, uint16_t svid)
 {
     in_addr   addr;
     if(inet_aton(peer_address.c_str(), &addr) != 0 ){
-        connect(addr, port);
+        connect(addr, port, svid);
     }
 }
 
@@ -293,8 +293,8 @@ void PeerConnectManager::connectPeersFromConfig(int& connNeeded)
 
         m_opts.get_address(addr, peer_address, port, svid);
 
-        DLOG("TRY CONNECT to config peer (%s:%s)\n", peer_address.c_str(), port.c_str());
-        connect(peer_address, atoi(port.c_str()));
+        DLOG("TRY CONNECT to config peer (%s:%s:%s)\n", peer_address.c_str(), port.c_str(), svid.c_str());
+        connect(peer_address, atoi(port.c_str()), atoi(svid.c_str()));
         --connNeeded;
     }
 }
@@ -323,7 +323,7 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
 
             DLOG("TRY CONNECT to dns peer (%s:%d)\n",ep->second->endpoint().address().to_string().c_str(),
                  ep->second->endpoint().port());
-                 connect(ep->second->endpoint());
+                 connect(ep->second->endpoint(), BANK_MAX);
                  --connNeeded;
         }
     }
@@ -364,8 +364,8 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
         }
 
         if(foundNew){
-           DLOG("TRY CONNECT to file peer (%08X:%08X)\n", nodeInfo.ipv4, nodeInfo.port);
-           connect(nodeInfo);
+           DLOG("TRY CONNECT to file peer (%08X:%08X) svid %04X \n", nodeInfo.ipv4, nodeInfo.port, nodeIndx);
+           connect(nodeInfo, nodeIndx);
         }
         --connNeeded;
     }
@@ -409,14 +409,21 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 }
 
 
-bool PeerConnectManager::alreadyConnected(in_addr_t address, unsigned short port)
+bool PeerConnectManager::alreadyConnected(in_addr_t address, unsigned short port, uint16_t svid)
 {    
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);    
+
+    auto activePeer = m_activePeers.find(svid);
+
+    if( activePeer != m_activePeers.end()){
+        DLOG("%04X PEER alreadyConnected\n", svid);
+        return true;
+    }
 
     auto peer = m_peers.find(std::make_pair(address, port));
 
     if( peer != m_peers.end()){
-        DLOG("%d PEER alreadyConnected address %d\n", peer->second->svid, port);
+        DLOG("%04X PEER alreadyConnected address %d\n", peer->second->svid, port);
         return true;
     }
 
