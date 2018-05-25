@@ -99,6 +99,7 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_SIG:
         command = std::make_unique<GetSignatures>();
+        break;
     case TXSTYPE_GET:
         command = std::make_unique<RetrieveFunds>();
         break;
