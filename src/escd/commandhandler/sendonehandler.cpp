@@ -110,10 +110,7 @@ bool SendOneHandler::onValidate() {
     else if(!m_offi.check_user(m_command->getDestBankId(), 0)) {
         DLOG("ERROR: bad target node %04X\n", m_command->getDestBankId());
         errorCode = ErrorCodes::Code::eNodeBadTarget;
-    }
-    else if(m_command->getUserId()) {
-        errorCode = ErrorCodes::Code::eNoNodeStatusChangeAuth;
-    }
+    }    
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
