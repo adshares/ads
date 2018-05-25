@@ -3840,7 +3840,7 @@ NEXTUSER:
                     if(abank==opts_.svid) {
                         myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));
                     }
-                    //bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(delta_gok))>>2; //reduce bank fee
+                    bank_fee[bbank]-=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //reduce bank fee
                     deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok);
                 }
                 u.time=srvs_.now;
