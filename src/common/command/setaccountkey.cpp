@@ -90,6 +90,11 @@ user_t& SetAccountKey::getUserInfo() {
     return m_response.usera;
 }
 
+uint32_t SetAccountKey::getUserMessageId()
+{
+    return m_data.amsid;
+}
+
 bool SetAccountKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )) {

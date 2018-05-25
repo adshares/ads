@@ -584,6 +584,29 @@ struct NodeStatusData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct GetSignaturesInfo {
+    GetSignaturesInfo() = default;
+    GetSignaturesInfo(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint32_t block_)
+        : abank(abank_), auser(auser_), ttime(ttime_), block(block_) {
+    }
+
+    uint8_t ttype{TXSTYPE_SIG};    ///< command type
+    uint16_t abank{0};             ///< source node
+    uint32_t auser{0};             ///< source user
+    uint32_t ttime{0};             ///< time
+    uint32_t block{0};             ///< block number
+}__attribute__((packed));
+
+struct GetSignaturesData {
+    GetSignaturesData() = default;
+    GetSignaturesData(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint32_t block_)
+        : info(abank_, auser_, ttime_, block_) {
+    }
+
+    GetSignaturesInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 struct RetrieveFundsInfo {
     RetrieveFundsInfo() = default;
     RetrieveFundsInfo(uint16_t abank_, uint32_t auser_, uint32_t amsid_, uint32_t ttime_, uint16_t bbank_, uint32_t buser_)

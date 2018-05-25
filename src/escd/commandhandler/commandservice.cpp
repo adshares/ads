@@ -30,7 +30,9 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_setNodeStatusHandler(office, socket),
       m_unsetAccountStatusHandler(office, socket),
       m_unsetNodeStatusHandler(office, socket),
-      m_retrieveFundsHandler(office, socket) {
+      m_getSignaturesHandler(office, socket),
+      m_retrieveFundsHandler(office, socket)
+{
 }
 
 void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
@@ -82,7 +84,7 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         m_getMessageListHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_MSG:
-        m_getMessageHandler.execute(std::move(command), std::move(usera));
+        m_getMessageHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_LOG:
         m_getLogHandler.execute(std::move(command), usera);
@@ -101,6 +103,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         break;
     case TXSTYPE_UBS:
         m_unsetNodeStatusHandler.execute(std::move(command), usera);
+        break;
+    case TXSTYPE_SIG:
+        m_getSignaturesHandler.execute(std::move(command), usera);
         break;
     case TXSTYPE_GET:
         m_retrieveFundsHandler.execute(std::move(command), usera);

@@ -83,19 +83,38 @@ void SendOneHandler::onExecute() {
 }
 
 bool SendOneHandler::onValidate() {
+    auto startedTime = time(NULL);
+    int32_t diff = m_command->getTime() - startedTime;
+
     int64_t deduct = m_command->getDeduct();
     int64_t fee = m_command->getFee();
+
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
-    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
+    if(diff>1) {
+        DLOG("ERROR: time in the future (%d>1s)\n", diff);
+        errorCode = ErrorCodes::Code::eTimeInFuture;
+    }
+    else if(m_command->getBankId()!=m_offi.svid) {
+        errorCode = ErrorCodes::Code::eBankNotFound;
+    }
+    else if(!m_offi.svid) {
+        errorCode = ErrorCodes::Code::eBankIncorrect;
+    }
+    else if(m_offi.readonly) {
+        errorCode = ErrorCodes::Code::eReadOnlyMode;
+    }
+    else if(m_usera.msid != m_command->getUserMessageId()) {
+        errorCode = ErrorCodes::Code::eBadMsgId;
+    }
+    else if(!m_offi.check_user(m_command->getDestBankId(), 0)) {
+        DLOG("ERROR: bad target node %04X\n", m_command->getDestBankId());
+        errorCode = ErrorCodes::Code::eNodeBadTarget;
+    }    
+    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         errorCode = ErrorCodes::Code::eLowBalance;
-    }
-    else if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
-        // does not check if account closed [consider adding this slow check]
-        DLOG("ERROR: bad target user %04X:%08X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        errorCode = ErrorCodes::Code::eUserBadTarget;
     }
 
     if (errorCode) {

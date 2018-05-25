@@ -1,35 +1,27 @@
-#ifndef SETACCOUNTKEY_H
-#define SETACCOUNTKEY_H
+#ifndef GETSIGNATURES_H
+#define GETSIGNATURES_H
 
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
-#include "default.hpp"
-
-//TODO think about template class wieh data as templete parameter
+#include "helper/signatures.h"
 
 /*!
- * \brief Class responsible for handling "change_account_key" command.
+ * \brief Class responsible for handling "get_signatures" command.
  */
-class SetAccountKey : public IBlockCommand {
-  public:
-    SetAccountKey();
-    SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64]);
+class GetSignatures : public IBlockCommand
+{
+public:
+    GetSignatures();
+    GetSignatures(uint16_t abank, uint32_t auser, uint32_t ttime, uint32_t block);
 
-    bool            checkPubKeySignaure();
-    accountkey&     getDataStruct() {
-        return m_data;
-    }
-
-    //IBlock interface
-
-    /** \brief Return TXSTYPE_KEY as command type . */
-    virtual int  getType()                                      override;
+    /** \brief Return TXSTYPE_SIG as command type . */
+    virtual int getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
-    virtual unsigned char*  getData()                           override;
+    virtual unsigned char* getData()                           override;
 
     /** \brief Get pointer to response data. */
-    virtual unsigned char*  getResponse()                       override;
+    virtual unsigned char* getResponse()                       override;
 
     /** \brief Put data as a char list and put convert it to data structure. */
     virtual void setData(char* data)                            override;
@@ -44,7 +36,7 @@ class SetAccountKey : public IBlockCommand {
     virtual int getResponseSize()                               override;
 
     /** \brief Get pointer to signature data. */
-    virtual unsigned char*  getSignature()                      override;
+    virtual unsigned char* getSignature()                      override;
 
     /** \brief Get signature size. */
     virtual int getSignatureSize()                              override;
@@ -92,18 +84,18 @@ class SetAccountKey : public IBlockCommand {
     /** \brief Save command response to settings object. */
     virtual void            saveResponse(settings& sts)                 override;
 
-    /**  \brief Get message id. */
-    virtual  uint32_t       getUserMessageId();
-
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-  private:
-    accountkey          m_data;
-    commandresponse     m_response;
+    uint32_t getBlockNumber();
 
+private:
+    std::vector<Helper::Signature> m_signaturesOk;
+    std::vector<Helper::Signature> m_signaturesNo;
+    GetSignaturesData   m_data;
+    commandresponse     m_response;
 };
 
-#endif // SETACCOUNTKEY_H
+#endif

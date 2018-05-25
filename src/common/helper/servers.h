@@ -55,6 +55,7 @@ struct HashDoubleVariant {
     hash_s ha2{};
 }__attribute__((packed));
 
+
 class Servers {
 
 public:
