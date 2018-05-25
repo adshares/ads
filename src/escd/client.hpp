@@ -129,8 +129,17 @@ class client : public boost::enable_shared_from_this<client> {
             auto lockUserId = m_command->getUserId();
 
             try{
-                if(m_offi.lock_user(lockUserId)){
-                    m_commandService.onExecute(std::move(m_command));
+                if(m_offi.lock_user(lockUserId))
+                {
+                    try
+                    {
+                        m_commandService.onExecute(std::move(m_command));
+                    }
+                    catch (std::exception& e)
+                    {
+                        ELOG("ERROR exception in onExecute %s\n", e.what());
+                    }
+                    m_offi.unlock_user(lockUserId);
                 }
                 else{
                     ErrorCodes::Code code = ErrorCodes::Code::eLockUserFailed;
@@ -145,7 +154,7 @@ class client : public boost::enable_shared_from_this<client> {
             }
 
             //@TODO: lock , unlock in RAII object.
-            m_offi.unlock_user(lockUserId);
+
         }
 
         m_offi.leave(shared_from_this());        
