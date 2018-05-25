@@ -66,6 +66,7 @@
 #define TXS_PUT_FEE(x)   (0x10000  +((x)>>13)) /* local wires fee (weight) (/8192) */ // 0.0122%
 #define TXS_LNG_FEE(x)   (          ((x)>>13)) /* additional remote wires fee (weight) */
 #define TXS_MPT_FEE(x)   (0x1000   +((x)>>13)) /* + MIN_FEE !!! */
+#define TXS_MINMPT_FEE(n) TXS_MIN_FEE /* minimum fee for send_many; n is the number of recipients */
 #define TXS_GET_FEE      (0x1000000) /* get initiation fee */
 #define TXS_GOK_FEE(x)   (          ((x)>>12)) /* get wire fee (allways remote) */ // 0.0244%
 #define TXS_USR_FEE      (0x10000000) /* 0x0.27G create user account fee */

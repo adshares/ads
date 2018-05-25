@@ -3068,8 +3068,8 @@ NEXTUSER:
                     }
                     utxs.tmass+=tmass;
                 }
-                if (fee < TXS_MIN_FEE) {
-                    fee = TXS_MIN_FEE;
+                if (fee < TXS_MINMPT_FEE(utxs.bbank)) {
+                    fee = TXS_MINMPT_FEE(utxs.bbank);
                 }
                 deduct=utxs.tmass;
             } else if(*p==TXSTYPE_USR) { // this is local bank

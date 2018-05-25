@@ -65,32 +65,33 @@
 
 #define ONE_YEAR (3600*24*365)
 
-#define TXS_MIN_FEE      10000L     //(0x1000) /* minimum fee per transaction */
-#define TXS_DIV_FEE      (100000000L * BLOCKSEC * BLOCKDIV / ONE_YEAR)  //(0x100000)  /* dividend fee collected every BLOCKDIV blocks ( $0.1 / year ) */
-#define TXS_KEY_FEE      10000000L     //(0x1000) /* */
-#define TXS_BRO_FEE(x)   (TXS_MIN_FEE + 50000L*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
-#define TXS_PUT_FEE(x)   ((x) / 2000) /* local wires fee (weight)*/ // 0.05%
-#define TXS_LNG_FEE(x)   ((x) / 2000) /* additional remote wires fee (weight)   0.05% */
-#define TXS_MPT_FEE(x)   ((x) / 2000) /* local multiple wires fee (weight) 0.05% */
-#define TXS_GET_FEE      (1000000) /* get initiation fee */
-#define TXS_GOK_FEE(x)   ((x) / 1000) /* get wire fee (allways remote) 0.1% */
-#define TXS_USR_FEE      (100000000L) /* create user fee */
-#define TXS_RUS_FEE      (100000000L) /* additional create user fee for remote applications */
-#define TXS_SUS_FEE      (10000000L) /*  */
-#define TXS_SBS_FEE      (10000000L) /*  */
-#define TXS_UUS_FEE      (10000000L) /*  */
-#define TXS_UBS_FEE      (10000000L) /*  */
-#define TXS_SAV_FEE      (10000000L) /*  */
-#define TXS_BNK_FEE      (500000000000000L) /* 5000 ADS */
-#define TXS_BKY_FEE      (10000000000L) /*  */
-#define USER_MIN_MASS    (1000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
-#define BANK_MIN_UMASS   (1000000000000L) /* minimum admin account mass to send transaction (1 ADST) */
-#define BANK_MIN_TMASS   (0L) /* if bank total mass <= this value, bank can be taken over AND */
-#define BANK_PROFIT(x)   ((x)/16) /* 1/16 of fees */
-#define BANK_USER_FEE(x) (1000000L * (x) * BLOCKSEC / ONE_YEAR) /* every block */
-#define MESSAGE_FEE(x)   (4096L+(x)) /* fee for each bank message */
+#define TXS_MIN_FEE       10000L      //(0x1000) /* minimum fee per transaction */
+#define TXS_DIV_FEE       (20000000L)  //(0x100000)  /* dividend fee collected every BLOCKDIV blocks ( $0.1 / year ) */
+#define TXS_KEY_FEE       10000000L     //(0x1000) /* */
+#define TXS_BRO_FEE(x)    (TXS_MIN_FEE + 50000L*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
+#define TXS_PUT_FEE(x)    ((x) / 2000) /* local wires fee (weight)*/ // 0.05%
+#define TXS_LNG_FEE(x)    ((x) / 2000) /* additional remote wires fee (weight)   0.05% */
+#define TXS_MPT_FEE(x)    ((x) / 2000) /* local multiple wires fee (weight) 0.05% */
+#define TXS_MINMPT_FEE(n) ((n)<10 ? 10000L : (1000L * (n))) /* minimum fee for send_many; n is the number of recipients */
+#define TXS_GET_FEE       (1000000L) /* get initiation fee */
+#define TXS_GOK_FEE(x)    ((x) / 1000) /* get wire fee (allways remote) 0.1% */
+#define TXS_USR_FEE       (100000000L) /* create user fee */
+#define TXS_RUS_FEE       (100000000L) /* additional create user fee for remote applications */
+#define TXS_SUS_FEE       (10000000L) /*  */
+#define TXS_SBS_FEE       (10000000L) /*  */
+#define TXS_UUS_FEE       (10000000L) /*  */
+#define TXS_UBS_FEE       (10000000L) /*  */
+#define TXS_SAV_FEE       (10000000L) /*  */
+#define TXS_BNK_FEE       (100000000000000L) /* 1000 ADS */
+#define TXS_BKY_FEE       (10000000000L) /*  */
+#define USER_MIN_MASS     (20000000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
+#define BANK_MIN_UMASS    (100000000000L) /* minimum admin account mass to send transaction (1 ADST) */
+#define BANK_MIN_TMASS    (0L) /* if bank total mass <= this value, bank can be taken over AND */
+#define BANK_PROFIT(x)    ((x)/5) /* 1/5 of fees */
+#define BANK_USER_FEE(x)  (1000L * (x)) /* every block */
+#define MESSAGE_FEE(x)    (4096L + (x)) /* fee for each bank message */
 
-#define BANK_MAX         (0xffff)  // Max number of banks. svid must be lower
+#define BANK_MAX          (0xffff)  // Max number of banks. svid must be lower
 
 #define MESSAGE_TOO_LONG 0x800000 /* 8MB */
 #define MESSAGE_LEN_OK   0x10000
