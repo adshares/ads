@@ -68,7 +68,7 @@
 #define TXS_MIN_FEE       10000L      //(0x1000) /* minimum fee per transaction */
 #define TXS_DIV_FEE       (20000000L)  //(0x100000)  /* dividend fee collected every BLOCKDIV blocks ( $0.1 / year ) */
 #define TXS_KEY_FEE       10000000L     //(0x1000) /* */
-#define TXS_BRO_FEE(x)    (TXS_MIN_FEE + 50000L*(x)) /* + len_fee (length) MAX_BLG_SIZE=1G */
+#define TXS_BRO_FEE(x)    ((x)<32 ? TXS_MIN_FEE : (TXS_MIN_FEE + 1000L*(x-32))) /* x = length */
 #define TXS_PUT_FEE(x)    ((x) / 2000) /* local wires fee (weight)*/ // 0.05%
 #define TXS_LNG_FEE(x)    ((x) / 2000) /* additional remote wires fee (weight)   0.05% */
 #define TXS_MPT_FEE(x)    ((x) / 2000) /* local multiple wires fee (weight) 0.05% */
