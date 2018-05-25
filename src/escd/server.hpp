@@ -3841,7 +3841,7 @@ NEXTUSER:
                         myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));
                     }
                     //bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(delta_gok))>>2; //reduce bank fee
-                    deposit[to.big]+=delta_gok;
+                    deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok);
                 }
                 u.time=srvs_.now;
                 srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
