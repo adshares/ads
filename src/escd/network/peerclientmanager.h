@@ -42,7 +42,7 @@ public:
     /** Stop connection thread and all peers */
     void stop();
     /** Add new peer to list of already connected peers*/
-    void addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
+    //void addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
     /** Add peer to list of active(connected and synced) peers*/
     void addActivePeer(uint16_t svid, boost::shared_ptr<peer> peer);
     /** Remove peer from connected peers*/
@@ -92,20 +92,20 @@ private:
     /** Accept new peer */
     void peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error);
     /** Connect to peer */
-    void connect(node& _node);
+    void connect(node& _node, uint16_t svid);
     /** Connect to peer */
-    void connect(std::string peer_address, unsigned short port);
+    void connect(std::string peer_address, unsigned short port, uint16_t svid);
     /** Connect to peer */
-    void connect(in_addr peer_address, unsigned short port = 8081);
+    void connect(in_addr peer_address, unsigned short port, uint16_t svid);
     /** Connect to peer */
-    void connect(boost::asio::ip::tcp::endpoint endpoint);
+    void connect(boost::asio::ip::tcp::endpoint endpoint, uint16_t svid);
     /** Check if peer is already connected */
-    bool alreadyConnected(in_addr_t addr, unsigned short port);
+    bool alreadyConnected(in_addr_t addr, unsigned short port, uint16_t svid);
 
     /** Remove peer form peer lists (Done in peer manager thread) */
     void leavePeerImpl(uint16_t svid, in_addr address, unsigned short port);
     /** Add peer to connected peer lists (Done in peer manager thread) */
-    void addPeerImpl(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
+    //void addPeerImpl(std::string address, unsigned short port, boost::shared_ptr<peer> peer);
     /** Add peer to active peer lists (Done in peer manager thread) */
     void addActivePeerImpl(uint16_t svid, boost::shared_ptr<peer> peer);
 
