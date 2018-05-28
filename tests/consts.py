@@ -48,12 +48,13 @@ BROADCAST_FIELDS = ['block_time', 'block_date', 'node', 'account',
                     'data', 'signature', 'input_hash', 'public_key',
                     'verify', 'node_msid', 'node_mpos', 'id']
 
-BLOCK_FIELDS = ['now', 'msg', 'nod', 'div', 'oldhash', 'minhash',
-                'msghash', 'nodhash', 'viphash', 'nowhash',
-                'vok', 'vno', 'vtot', 'pay']
+BLOCK_FIELDS = ['id', 'time', 'message_count', 'oldhash', 'minhash', 'msghash',
+                'nodhash', 'viphash', 'nowhash', 'vote_yes', 'vote_no',
+                'vote_total', 'node_count', 'dividend_balance', 'devident_pay']
 
-BLOCK_NODE_FIELDS = ['pk', 'hash', 'msha', 'msid', 'mtim',
-                     'balance', 'status', 'users', 'port', 'ipv4']
+BLOCK_NODE_FIELDS = ['id', 'public_key', 'public_key', 'message_hash', 'msid',
+                     'mtim', 'balance', 'status', 'account_count', 'port',
+                     'ipv4']
 
 LOG_BASE_FIELDS = ['type', 'date', 'type_no', 'confirmed']
 
