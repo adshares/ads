@@ -632,4 +632,29 @@ struct RetrieveFundsData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct GetVipKeysInfo {
+    GetVipKeysInfo() = default;
+    GetVipKeysInfo(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint8_t vhash_[32])
+        : abank(abank_), auser(auser_), ttime(ttime_) {
+        std::copy(vhash_, vhash_+32, viphash);
+    }
+
+    uint8_t ttype {TXSTYPE_VIP};///< command type
+    uint16_t abank{0};          ///< source node
+    uint32_t auser{0};          ///< source user
+    uint32_t ttime{0};          ///< time
+    uint8_t viphash[32]{};       ///< vip hash
+
+}__attribute__((packed));
+
+struct GetVipKeysData {
+    GetVipKeysData() = default;
+    GetVipKeysData(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint8_t vhash_[32])
+        : info(abank_, auser_, ttime_, vhash_) {
+    }
+
+    GetVipKeysInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H

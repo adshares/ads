@@ -25,6 +25,7 @@
 #include "unsetnodestatushandler.h"
 #include "getsignatureshandler.h"
 #include "retrievefundshandler.h"
+#include "getvipkeyshandler.h"
 
 class office;
 
@@ -66,6 +67,7 @@ class CommandService {
     UnsetNodeStatusHandler    m_unsetNodeStatusHandler; ///< unset node status handler
     GetSignaturesHandler      m_getSignaturesHandler; ///< get signatures handler
     RetrieveFundsHandler      m_retrieveFundsHandler; ///< retrieve funds handler
+    GetVipKeysHandler         m_getVipKeysHandler; ///< get vip keys handler
 };
 
 

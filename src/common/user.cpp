@@ -55,6 +55,7 @@
 #include "command/getfields.h"
 #include "command/getsignatures.h"
 #include "command/retrievefunds.h"
+#include "command/getvipkeys.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -276,8 +277,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
         if(json_viphash && !parse_key(to_info,json_viphash,32)) {
             return(NULL);
-        } //                                           !!!!!!!!                             !!!!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_VIP,sts.bank,sts.user,to_block,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        }
+        command.reset(new GetVipKeys(sts.bank, sts.user, now, to_info));
     } else if(!run.compare(txsname[TXSTYPE_SIG])) { //                 !!!!!!!!
         command.reset(new GetSignatures(sts.bank, sts.user, now, to_block));
     } else if(!run.compare(txsname[TXSTYPE_NDS])) { //                 !!!!!!!!
