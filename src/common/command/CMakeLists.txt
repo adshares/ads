@@ -26,6 +26,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/getfields.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatures.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeys.cpp
     PARENT_SCOPE
     )
 
@@ -59,6 +60,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/getfields.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatures.h
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeys.h
     PARENT_SCOPE
     )
 
