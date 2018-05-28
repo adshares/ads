@@ -3784,6 +3784,9 @@ NEXTUSER:
         for(auto it=blk_get.begin(); it!=blk_get.end(); it++) {
             uint16_t abank=ppi_abank(it->first);
             uint16_t bbank=ppi_bbank(it->first);
+            if(!abank || !bbank || abank >= srvs_.nodes.size() || bbank >= srvs_.nodes.size()) {
+              continue; // fix for invalid retrieve_funds target
+            }
             update.insert(abank);
             update.insert(bbank);
             if(bbank!=svid) {
