@@ -20,4 +20,5 @@ pull_esc:
   - chmod 400 ~/.ssh/id_rsa
   - cd /builds/proxy/hpx
   - git checkout develop
+  - git pull
   - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
