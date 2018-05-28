@@ -55,7 +55,7 @@ MESSAGE = generate_message()
 COUNT = 0
 
 
-def test_many_transactions_send_money_on_same_node(count=1000):
+def test_many_transactions_send_money_on_same_node(count=1000, amount=0.001):
     response = exec_esc_cmd(USER_2['client_id'], {'run': 'create_account',
                                                   'node': NODE_1})
     client_id_1 = response['new_account']['id']
@@ -73,22 +73,29 @@ def test_many_transactions_send_money_on_same_node(count=1000):
     time.sleep(64)
 
     balance_start_1 = get_balance_user(client_id_1)
-    balance_start_1 = get_balance_user(client_id_2)
+    balance_start_2 = get_balance_user(client_id_2)
 
     assert balance_start_1 == balance_start_1
+
+    sum_fee_user_1 = 0
+    sum_fee_user_2 = 0
 
     for _ in range(count):
         response = exec_esc_cmd(client_id_1, {'run': 'send_one',
                                               'address': client_id_2,
                                               'message': MESSAGE,
-                                              'amount': 0.001})
+                                              'amount': amount})
         assert 'error' in response
+        sum_fee_user_1 += float(response['tx']['fee'])
 
         response = exec_esc_cmd(client_id_2, {'run': 'send_one',
                                               'address': client_id_1,
                                               'message': MESSAGE,
-                                              'amount': 0.001})
+                                              'amount': amount})
         assert 'error' in response
+        sum_fee_user_2 += float(response['tx']['fee'])
+
+    assert sum_fee_user_1 == sum_fee_user_2
 
     time.sleep(64)
 
@@ -96,6 +103,9 @@ def test_many_transactions_send_money_on_same_node(count=1000):
     balance_finish_2 = get_balance_user(client_id_2)
 
     assert balance_finish_1 == balance_finish_2
+
+    assert balance_start_1 - sum_fee_user_1 == balance_finish_1
+    assert balance_start_2 - sum_fee_user_2 == balance_finish_2
 
 
 def update_user_env(client_id, address):
