@@ -6,7 +6,9 @@
 #include <openssl/sha.h>
 #include <string>
 #include <vector>
+#include <boost/property_tree/ptree.hpp>
 #include "default.hpp"
+
 
 namespace Helper {
 
@@ -24,7 +26,9 @@ struct ServersHeader {
     uint8_t nowHash[SHA256_DIGEST_LENGTH];
     uint16_t voteYes{0};
     uint16_t voteNo{0};
-    uint16_t voteTotal{0};
+    uint16_t voteTotal{0};    
+
+    void toJson(boost::property_tree::ptree& node);
 }__attribute__((packed));
 
 struct ServersNode {
@@ -38,6 +42,8 @@ struct ServersNode {
     uint32_t accountCount{0};
     uint32_t port{0};
     uint32_t ipv4{0};
+
+    void toJson(boost::property_tree::ptree& node);
 }__attribute__((packed));
 
 struct HashSingleVariant {
