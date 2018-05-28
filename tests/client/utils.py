@@ -18,7 +18,6 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         "address=%s" % address,
         "secret=%s" % secret
     ]
-    print(options)
     with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
         fh.write("\n".join(options))
 
