@@ -21,7 +21,7 @@ pull_esc:
   - cd /builds/EnterpriseServiceChain/esc
   - git checkout develop
   - git pull
-  script
+  script:
   - git clone git@github.com:EnterpriseServiceChain/esc.git /builds/EnterpriseServiceChain/escprod
   - cd /builds/EnterpriseServiceChain/escprod
   - git checkout /builds/EnterpriseServiceChain/esc src
