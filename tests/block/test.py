@@ -12,6 +12,25 @@ def set_block_time():
     BLOCK_TIME = get_time_block() * 2
 
 
+def test_send_again(init_nde_process):
+    response_1 = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                          {'run': 'get_accounts'},
+                                          with_get_me=False)
+
+    try:
+        response_1['tx']['data']
+    except KeyError as err:
+        raise (err, KeyError)
+
+    data = response_1['tx']['data']
+
+    response_2 = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                          {'run': 'send_again',
+                                           'data': data},  with_get_me=False)
+
+    assert response_1 == response_2
+
+
 def test_get_block(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
 
