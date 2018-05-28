@@ -10,10 +10,14 @@ from tests.client.utils import (create_init_client, create_client_env,
 BLOCK_TIME = 0
 
 
-def test_get_me(init_node_process, client_id='1'):
-    create_init_client()
+def set_block_time():
     global BLOCK_TIME
     BLOCK_TIME = get_time_block() * 2
+
+
+def test_get_me(init_node_process, client_id='1'):
+    set_block_time()
+    create_init_client()
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': "get_me"},
                             with_get_me=False)
 
@@ -154,6 +158,15 @@ def test_get_account(init_node_process, client_id="1"):
         account.validate()
 
     assert response['account']['address'] == address
+
+
+def test_get_account_non_existing_user(init_node_process,
+                                       address='0001-00000000-FFFF'):
+
+    response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account',
+                                             'address': address})
+
+    assert 'error' not in response, 'Response: {}'.format(response)
 
 
 def test_set_account_status(init_node_process, client_id="1", status='10'):
