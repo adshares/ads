@@ -1,12 +1,12 @@
 import os
 
-HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
-HPX_PROJECT_CONFIG = os.environ.get('DCMAKE_PROJECT_CONFIG', 'hpx')
+ESC_ROOT = os.path.dirname(os.path.dirname(__file__))
+ESC_PROJECT_CONFIG = os.environ.get('DCMAKE_PROJECT_CONFIG', 'esc')
 
-DCMAKE_PROJECT_CONFIG_D = "{}d".format(HPX_PROJECT_CONFIG)
-BIN_PATH = os.path.join(HPX_ROOT, "build", 'esc',
-                        HPX_PROJECT_CONFIG)
-D_BIN_PATH = os.path.join(HPX_ROOT, "build", 'escd',
+DCMAKE_PROJECT_CONFIG_D = "{}d".format(ESC_PROJECT_CONFIG)
+BIN_PATH = os.path.join(ESC_ROOT, "build", 'esc',
+                        ESC_PROJECT_CONFIG)
+D_BIN_PATH = os.path.join(ESC_ROOT, "build", 'escd',
                           DCMAKE_PROJECT_CONFIG_D)
 
 

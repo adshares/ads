@@ -55,9 +55,9 @@
 #define OFFICE_PORT "9091"
 #define SERVER_PORT "8081"
 #ifdef DEBUG
-#define SERVER_DNSA "dev.esc.adshares.net"
+#define SERVER_DNSA "devseed.dns.loc"
 #else
-#define SERVER_DNSA "esc.adshares.net"
+#define SERVER_DNSA "seed.dns.loc"
 #endif
 #define MAXCLIENTS 128
 

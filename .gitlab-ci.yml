@@ -3,14 +3,14 @@ variables:
 
 test_esc:
   before_script:
-  - mkdir -p /builds/proxy/hpx/build
-  - cd /builds/proxy/hpx/build
-  - cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_PROJECT_CONFIG=esc -DCMAKE_BUILD_TYPE=Debug /builds/proxy/hpx/src
+  - mkdir -p /builds/proxy/esc/build
+  - cd /builds/proxy/esc/build
+  - cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_PROJECT_CONFIG=esc -DCMAKE_BUILD_TYPE=Debug ../src
   - make clean
   - make -j4
-  - export PYTHONPATH=/builds/proxy/hpx:$PYTHONPATH
+  - export PYTHONPATH=/builds/proxy/esc:$PYTHONPATH
   script:
-  - pytest /builds/proxy/hpx/tests -s
+  - pytest /builds/proxy/esc/tests -s
 
 pull_esc:
   script:
@@ -18,7 +18,7 @@ pull_esc:
   - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
   - chmod 400 ~/.ssh/id_rsa
-  - cd /builds/proxy/hpx
+  - cd /builds/proxy/esc
   - git checkout develop
   - git pull
   - git push git@github.com:EnterpriseServiceChain/esc.git develop:master

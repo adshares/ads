@@ -30,7 +30,7 @@ sudo apt-get install openssl libboost-all-dev libssl-dev
 Start with cloning the git directory.
 
 ```
-git clone https://github.com/adshares/esc.git
+git clone https://github.com/EnterpriseServiceChain/esc
 ```
 
 Before compiling ESC You could check if the ed25519 cryptography software is working correctly and what compile option gives You better speed for Your CPU.
@@ -79,9 +79,9 @@ Create a directory for Your first node and the first user and create links to ex
 
 ```
 mkdir /tmp/node1
-ln -s $PWD/hpx /tmp/node1/hpx
+ln -s $PWD/esc /tmp/node1/esc
 mkdir /tmp/user0
-ln -s $PWD/hpx /tmp/user0/hpx
+ln -s $PWD/esc /tmp/user0/esc
 ln -s $PWD/ed25519/key  /tmp/user0/key
 cd /tmp/node1/
 ```
@@ -94,13 +94,13 @@ cd ../node1
 echo 'svid=1' > options.cfg
 echo 'offi=9091' >> options.cfg
 echo 'port=8091' >> options.cfg
-./hpxd --init 1
+./escd --init 1
 ```
 
 The program will detect that it is in an empty directory and will create an initial setup with a single node and an administrator account for the node. The current version is compiled with temporary development setting with a much shorter block period (32s, defined in default.hpp). Keep the node running for at least 1 block period to initialize the block-chain correctly. You can stop a node by typing a dot (".") followed by enter. Currently, killing the node with a signal (^C) may destroy the database files. You can continue with the same block-chain by running the code again with the '--init 1' switch.
 
 ```
-./hpxd --init 1
+./escd --init 1
 ```
 
 The first node will start with the default node secret key stored in key/key.txt . The secret key to the admin account is the same. Secret keys can be created by running the key executable with a selected brain-key-string (ed25519/key "brain-key-string"). Both keys can be changed later. In production the node key and the admin key should differ for security reasons.
@@ -123,7 +123,7 @@ chmod go-r settings.cfg
 This is the account address of our user 0001-00000000-XXXX. Last 4 characters should be hex characters defining the checksum. If 'XXXX' is provided the checksum is not tested. Let's try to connect to the node and get the current status of our user.
 
 ```
-echo '{"run":"get_me"}' | ./hpx 2>err.txt
+echo '{"run":"get_me"}' | ./esc 2>err.txt
 ```
 
 This command should list the current status of the user. We should get something like this:
@@ -196,7 +196,10 @@ SG: ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4
 The secret keys are printed in the lines starting with "SK:". The line starting with "SG:" contains the signature of an empty phrase signed with the secret key. This signature is uses as checksum when creating a new account. Let's change the key for the admin account now:
 
 ```
-(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17","signature":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | ./hpx
+(echo '{"run":"get_me"}'; echo '{"run":"change_account_key",
+"pkey":"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17",
+"signature
+":"7A1CA8AF3246222C2E06D2ADE525A693FD81A2683B8A8788C32B7763DF6037A5DF3105B92FEF398AF1CDE0B92F18FE68DEF301E4BF7DB0ABC0AEA6BE24969006"}') | ./esc
 ```
 
 After this the admin needs a new secret key to connect to its account, so let's fix the settings.txt file.
@@ -211,37 +214,37 @@ echo 'secret= FF767FC8FAF9CFA8D2C3BD193663E8B8CAC85005AD56E085FAB179B52BD88DD6' 
 And confirm that we can connect again with the new key.
 
 ```
-echo '{"run":"get_me"}' | ./hpx 2>err.txt
+echo '{"run":"get_me"}' | ./esc 2>err.txt
 ```
 
 The output should indicate that our transaction id was incremented and is now equal 2 ("msid": "2",). Let's now create the second user.
 
 ```
-(echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./hpx
+(echo '{"run":"get_me"}'; echo '{"run":"create_account","node":"0001"}') | ./esc
 ```
 
 The new user is managed by our node so the creation process will be fast and the node will report the new account number for the local user in the paired_id field ("paired_id": "1"). Let's read the status of the new user account.
 
 ```
-echo '{"run":"get_account","address":"0001-00000001-XXXX"}' | ./hpx
+echo '{"run":"get_account","address":"0001-00000001-XXXX"}' | ./esc
 ```
 
 We should see that the correct new account address is "0001-00000001-8B4E". The balance of the new user is too small to make any transactions so let's send him some funds.
 
 ```
-(echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./hpx
+(echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":0.1,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
 ```
 
 The new balance shold be 0.362144000
 
 ```
-echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./hpx 2>/dev/null | grep balance
+echo '{"run":"get_account","address":"0001-00000001-8B4E"}' | ./esc 2>/dev/null | grep balance
 ```
 
 Let's change the public key of the new user by connecting as the new user with the current coppied key. Do not forget to use the "--address 0001-00000001-8B4E" here, otherwise You will change Your own public key. In normal cases You don't know the corresponding secret key so You will loose Your account. 
 
 ```
-(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | ./hpx  --address 0001-00000001-8B4E
+(echo '{"run":"get_me"}'; echo '{"run":"change_account_key","pkey":"C9965A1417F52B22514559B7608E4E2C1238FCA3602382C535D42D1759A2F196","signature":"ED8479C0EDA3BB02B5B355E05F66F8161811F5AD9AE9473AA91E2DA32457EAB850BC6A04D6D4D5DDFAB4B192D2516D266A38CEA4251B16ABA1DF1B91558A4A05"}' )  | ./esc  --address 0001-00000001-8B4E
 ```
 
 The output should indicate that the public key was changed.
@@ -255,20 +258,20 @@ echo 'host=127.0.0.1' >> settings.cfg
 echo 'address=0001-00000001-8B4E ' >> settings.cfg
 echo 'secret= 5BF11F5D0130EC994F04B6C5321566A853B7393C33F12E162A6D765ADCCCB45C ' >> settings.cfg
 chmod go-r settings.cfg
-echo '{"run":"get_me"}' | ../user0/hpx
+echo '{"run":"get_me"}' | ../user0/esc
 ```
 
 The output should indicate that You have successfully connected to the node as user "0001-00000001-8B4E". You don't have enough funds to create a new node. User0 will help You.
 
 ```
 cd ../user0
-(echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":70.0,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./hpx
+(echo '{"run":"get_me"}'; echo '{"run":"send_one","address":"0001-00000001-8B4E","amount":70.0,"message":"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F"}') | ./esc
 ```
 
 Let's now try to create a new node. The new node will get the public key of the requesting user.
 
 ```
-(echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ../user0/hpx
+(echo '{"run":"get_me"}'; echo '{"run":"create_node"}') | ../user0/esc
 ```
 
 It will take at least 1 block time for the network to create a new node. You can examine the log of the first node. Before block creation the node should show now info about 3 nodes (the first one is the unused node number 0). You should see lines like these
@@ -306,13 +309,13 @@ cp ../node1/blk/595/EA9C0/servers.txt ./
 Now we should be able to connect the new node to the network.
 
 ```
-../node1/hpxd -m 1 -f 1
+../node1/escd -m 1 -f 1
 ```
 
 The connection should be established shortly. You can stop the node again by pressing '.' and enter. The -m switch indicates that we need only 1 signature to trust the blocks (we have only 1 node). The -f switch indicates that we want to start from the current status of the block-chain. After stopping the second node, we should start it again without the -f option to load the missing blocks.
 
 ```
-../node1/hpxd -m 1
+../node1/escd -m 1
 ```
 
 Connecting more nodes can be done iteratively . The nodes broadcast their IPs and ports on the network so there is no need to provide many peers in the options.cfg file.

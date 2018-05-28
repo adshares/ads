@@ -51,9 +51,9 @@
 #define OFFICE_PORT "8800"
 #define SERVER_PORT "9900"
 #ifdef DEBUG
-#define SERVER_DNSA "dev.hpx.adshares.net"
+#define SERVER_DNSA "devseed.hprox.com"
 #else
-#define SERVER_DNSA "hpx.adshares.net"
+#define SERVER_DNSA "seed.hprox.com"
 #endif
 #define MAXCLIENTS 128
 
