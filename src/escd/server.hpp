@@ -3784,6 +3784,9 @@ NEXTUSER:
         for(auto it=blk_get.begin(); it!=blk_get.end(); it++) {
             uint16_t abank=ppi_abank(it->first);
             uint16_t bbank=ppi_bbank(it->first);
+            if(!abank || !bbank || abank >= srvs_.nodes.size() || bbank >= srvs_.nodes.size()) {
+              continue; // fix for invalid retrieve_funds target
+            }
             update.insert(abank);
             update.insert(bbank);
             if(bbank!=svid) {
@@ -3840,7 +3843,7 @@ NEXTUSER:
                     if(abank==opts_.svid) {
                         myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));
                     }
-                    bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //reduce bank fee
+                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //reduce bank fee
                     deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok);
                 }
                 u.time=srvs_.now;
