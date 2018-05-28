@@ -17,8 +17,8 @@ pull_hpx:
   script:
   - mkdir ~/.ssh
   - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
-  - chmod 400 ~/.ssh/id_rsa
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+  - chmod 400 ~/.ssh/id_rsa
   - md5sum ~/.ssh/id_rsa
   - cd /builds/proxy/hpx
   - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
