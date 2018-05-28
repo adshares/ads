@@ -15,6 +15,7 @@ variables:
 
 pull_hpx:
   script:
+  - mkdir ~/.ssh
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
   - cd /builds/proxy/hpx
   - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
