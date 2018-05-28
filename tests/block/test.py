@@ -6,10 +6,75 @@ from tests import utils as tests_utils
 BLOCK_TIME = 0
 
 
-def test_get_blocks(init_node_process):
+def set_block_time():
     from tests.client.utils import get_time_block
     global BLOCK_TIME
     BLOCK_TIME = get_time_block() * 2
+
+
+def test_send_again(init_node_process):
+    response_1 = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                          {'run': 'get_accounts'},
+                                          with_get_me=False)
+
+    try:
+        response_1['tx']['data']
+    except KeyError as err:
+        raise (err, KeyError)
+
+    data = response_1['tx']['data']
+
+    response_2 = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
+                                          {'run': 'send_again',
+                                           'data': data},  with_get_me=False)
+
+    assert response_1 == response_2
+
+
+def test_get_block(init_node_process):
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+
+    get_block = tests_utils.ValidateObject(response, kind='get_block')
+    get_block.validate()
+
+    try:
+        block = tests_utils.ValidateObject(response['block'], kind='block')
+    except KeyError as err:
+        raise (err, response)
+    else:
+        block.validate()
+
+    try:
+        node = tests_utils.ValidateObject(response['block']['nodes'][0],
+                                          kind='block_nodes')
+    except KeyError as err:
+        raise KeyError(err, response)
+    else:
+        node.validate()
+
+
+def test_get_vipkeys(init_node_process):
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+
+    try:
+        block = tests_utils.ValidateObject(response['block'], kind='block')
+    except KeyError as err:
+        raise (err, response)
+
+    viphash = response['block']['viphash']
+
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_vipkeys',
+                                                         'viphash': viphash})
+
+    fields = ['viphash', 'vipkeys']
+
+    vipkyes = tests_utils.ValidateObject(response,
+                                         kind='get_vipkyes',
+                                         fields=fields)
+    vipkyes.validate()
+
+
+def _test_get_blocks(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {
                                             "run": "get_blocks",
@@ -20,6 +85,7 @@ def test_get_blocks(init_node_process):
 
 
 def test_send_and_get_broadcast(init_node_process):
+    set_block_time()
     message = tests_utils.generate_message()
     # send a message
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
@@ -90,24 +156,23 @@ def test_get_transaction(init_node_process):
     else:
         obj.validate()
 
-    assert 'create_account' == response['network_tx']['type']
+    assert 'create_account' == response['txn']['type']
 
 
 def test_get_signatures(init_node_process):
-    # TODO: This function is not work yet
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {'run': 'get_signatures'})
 
-    signatures_fields = ['signatures', 'fork_signatures']
+    signatures_fields = ['signatures']
 
-    signature_fields = ['node', 'signatures']
+    signature_fields = ['node', 'signature']
 
     signatures = tests_utils.ValidateObject(response, kind='signatures',
                                             fields=signatures_fields)
     signatures.validate()
 
     try:
-        signature = tests_utils.ValidateObject(response['signatures'],
+        signature = tests_utils.ValidateObject(response['signatures'][0],
                                                kind='signature',
                                                fields=signature_fields)
 
@@ -143,7 +208,7 @@ def test_get_message_list(init_node_process):
 
 def test_get_message(init_node_process):
     from tests.client.utils import create_account
-    _, block_time = create_account(3, block_time=True)
+    _, block_time = create_account(7, block_time=True)
     block_time_hex = hex(int(block_time)).split('x')[-1].upper()
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {'run': 'get_message_list',
@@ -178,9 +243,9 @@ def test_get_message(init_node_process):
     assert response['hash'] == h
 
 
-def test_retrieve_funds():
-    # TODO: This function is not work yet
+def __test_retrieve_funds():
     from tests.node.utils import create_node_without_start
+    set_block_time()
 
     local_account = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'})
 

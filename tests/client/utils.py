@@ -45,6 +45,12 @@ def clean_client_dir(client_id):
     shutil.rmtree(client_dir, ignore_errors=True)
 
 
+def clean_clients_dir():
+    client_dir = get_client_dir(INIT_CLIENT_ID)
+    main_client_dir = os.path.join(*client_dir.split('/')[:-1])
+    shutil.rmtree(main_client_dir, ignore_errors=True)
+
+
 def get_user_address(client_id):
     response = exec_esc_cmd(client_id, {"run": "get_me"}, with_get_me=False)
     try:

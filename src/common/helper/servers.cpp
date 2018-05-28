@@ -3,10 +3,14 @@
 
 #include <fstream>
 #include <iostream>
+#include <arpa/inet.h>
 #include "default.hpp"
 #include "hash.hpp"
 #include "command/pods.h"
 #include "parser/msglistparser.h"
+#include "helper/ascii.h"
+#include "helper/json.h"
+
 
 namespace Helper {
 
@@ -187,6 +191,63 @@ bool Servers::getMsglHashTree(uint16_t svid,uint32_t msid,uint32_t msg_number,st
     }
 
     return true;
+}
+
+void ServersHeader::toJson(boost::property_tree::ptree& blocktree)
+{
+    char value[65];
+    value[64]='\0';
+
+    //blocktree.put("version", version);
+    blocktree.put("time", ttime);
+    blocktree.put("message_count", messageCount);
+
+    Helper::ed25519_key2text(value, oldHash, 32);
+    blocktree.put("oldhash", value);
+    Helper::ed25519_key2text(value, minHash, 32);
+    blocktree.put("minhash", value);
+    Helper::ed25519_key2text(value, msgHash, 32);
+    blocktree.put("msghash", value);
+    Helper::ed25519_key2text(value, nodHash, 32);
+    blocktree.put("nodhash", value);
+    Helper::ed25519_key2text(value, vipHash, 32);
+    blocktree.put("viphash", value);
+    Helper::ed25519_key2text(value, nowHash, 32);
+    blocktree.put("nowhash", value);
+    blocktree.put("vote_yes", voteYes);
+    blocktree.put("vote_no", voteNo);
+    blocktree.put("vote_total", voteTotal);
+    blocktree.put("node_count", nodesCount);
+
+    blocktree.put("dividend_balance", Helper::print_amount(dividendBalance));
+    if(!((ttime/BLOCKSEC)%BLOCKDIV)) {
+        blocktree.put("dividend_pay","true");
+    } else {
+        blocktree.put("dividend_pay","false");
+    }
+}
+
+void ServersNode::toJson(boost::property_tree::ptree& node)
+{
+    char value[65];
+    value[64]='\0';
+
+    Helper::ed25519_key2text(value, publicKey, 32);
+    node.put("public_key", value);
+    Helper::ed25519_key2text(value, (uint8_t*)hash, 32);
+    node.put("hash", value);
+    Helper::ed25519_key2text(value, messageHash, 32);
+    node.put("message_hash", value);
+    node.put("msid", messageId);
+    node.put("mtim", messageTime);
+    node.put("balance", print_amount(weight));
+    node.put("status", status);
+    node.put("account_count", accountCount);
+    node.put("port", port);
+
+    struct in_addr ip_addr;
+    ip_addr.s_addr = ipv4;
+    node.put("ipv4", inet_ntoa(ip_addr));
 }
 
 }

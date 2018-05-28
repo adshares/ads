@@ -1,5 +1,32 @@
+import time
+
 from tests.consts import INIT_CLIENT_ID
-from tests.utils import generate_message
+from tests.utils import generate_message, exec_esc_cmd, ValidateObject
+
+BLOCK_TIME = 0
+
+
+def set_block_time():
+    from tests.client.utils import get_time_block
+    global BLOCK_TIME
+    BLOCK_TIME = get_time_block() * 2
+
+
+def test_send_many_to_unknown_address(init_node_process):
+    set_block_time()
+
+    unknown_address = '0001-00000000-9AAA'
+    message = generate_message()
+
+    response = exec_esc_cmd(INIT_CLIENT_ID,
+                            {
+                                "run": "send_one",
+                                "address": unknown_address,
+                                "message": message,
+                                "amount": 1
+                            })
+
+    assert 'error' not in response
 
 
 def test_send_cash_one_user(init_node_process, amount=100.0, client_id='2'):

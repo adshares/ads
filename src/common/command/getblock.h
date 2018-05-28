@@ -106,7 +106,7 @@ class GetBlock : public IBlockCommand {
         virtual ErrorCodes::Code prepareResponse();
 
         /** \brief Prints info for single node */
-        virtual void printSingleNode(boost::property_tree::ptree& tree, unsigned int nodeId);
+        void printSingleNode(boost::property_tree::ptree& tree, int nodeId, ServersNode& serverNode);
 
     public:
         GetBlockData    m_data;

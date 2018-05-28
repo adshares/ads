@@ -169,7 +169,7 @@ std::string GetBlock::toString(bool /*pretty*/) {
     return "";
 }
 
-void GetBlock::printSingleNode(boost::property_tree::ptree& tree, unsigned int nodeId) {
+void GetBlock::printSingleNode(boost::property_tree::ptree& tree, int nodeId, ServersNode& serverNode) {
     boost::property_tree::ptree node;
 
     char nodehex[5];
@@ -177,26 +177,7 @@ void GetBlock::printSingleNode(boost::property_tree::ptree& tree, unsigned int n
     sprintf(nodehex,"%04X", nodeId);
     node.put("id", nodehex);
 
-    std::vector<ServersNode>::iterator nodeIt = m_responseNodes.begin() + nodeId;
-
-    char hash[65];
-    hash[64]='\0';
-    Helper::ed25519_key2text(hash, nodeIt->publicKey, 32);
-    node.put("public_key", hash);
-    Helper::ed25519_key2text(hash, (uint8_t*)&nodeIt->hash[0], 32);
-    node.put("hash", hash);
-    Helper::ed25519_key2text(hash, nodeIt->messageHash, 32);
-    node.put("message_hash", hash);
-    node.put("msid", nodeIt->messageId);
-    node.put("mtim", nodeIt->messageTime);
-    node.put("balance", print_amount(nodeIt->weight));
-    node.put("status", nodeIt->status);
-    node.put("account_count", nodeIt->accountCount);
-    node.put("port", nodeIt->port);
-
-    struct in_addr ip_addr;
-    ip_addr.s_addr = nodeIt->ipv4;
-    node.put("ipv4", inet_ntoa(ip_addr));
+    serverNode.toJson(node);
 
     tree.push_back(std::make_pair("",node));
 }
@@ -216,37 +197,10 @@ void GetBlock::toJson(boost::property_tree::ptree& ptree) {
         sprintf(blockhex,"%08X",m_data.info.block+BLOCKSEC);
         ptree.put("block_next",blockhex);
 
-        blocktree.put("time", m_responseHeader.ttime);
-        blocktree.put("message_count", m_responseHeader.messageCount);
-
-        char hash[65];
-        hash[64]='\0';
-        Helper::ed25519_key2text(hash, m_responseHeader.oldHash, 32);
-        blocktree.put("oldhash", hash);
-        Helper::ed25519_key2text(hash, m_responseHeader.minHash, 32);
-        blocktree.put("minhash", hash);
-        Helper::ed25519_key2text(hash, m_responseHeader.msgHash, 32);
-        blocktree.put("msghash", hash);
-        Helper::ed25519_key2text(hash, m_responseHeader.nodHash, 32);
-        blocktree.put("nodhash", hash);
-        Helper::ed25519_key2text(hash, m_responseHeader.vipHash, 32);
-        blocktree.put("viphash", hash);
-        Helper::ed25519_key2text(hash, m_responseHeader.nowHash, 32);
-        blocktree.put("nowhash", hash);
-        blocktree.put("vote_yes", m_responseHeader.voteYes);
-        blocktree.put("vote_no", m_responseHeader.voteNo);
-        blocktree.put("vote_total", m_responseHeader.voteTotal);
-
-        blocktree.put("dividend_balance", Helper::print_amount(m_responseHeader.dividendBalance));
-        if(!((m_responseHeader.ttime/BLOCKSEC)%BLOCKDIV)) {
-            blocktree.put("dividend_pay","true");
-        } else {
-            blocktree.put("dividend_pay","false");
-        }
-        blocktree.put("node_count", m_responseHeader.nodesCount);
+        m_responseHeader.toJson(blocktree);
         boost::property_tree::ptree nodes;
         for (unsigned int i=0; i<m_responseNodes.size(); ++i) {
-            printSingleNode(nodes, i);
+            printSingleNode(nodes, i, m_responseNodes[i]);
         }
         blocktree.add_child("nodes", nodes);
         ptree.add_child("block", blocktree);
