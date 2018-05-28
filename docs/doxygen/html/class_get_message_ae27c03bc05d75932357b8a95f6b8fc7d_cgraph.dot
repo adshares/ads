@@ -1,0 +1,13 @@
+digraph "GetMessage::sign"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node10 [label="GetMessage::sign",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node10 -> Node11 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="GetMessage::getData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_message.html#a292869538b62fa6552470b1e7a07f05f",tooltip="Get pointer to command data structure. "];
+  Node10 -> Node12 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="GetMessage::getDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_message.html#aff40865ee8ca6d578b9d941cfc0cb768",tooltip="Get data struct size. Without signature. "];
+  Node10 -> Node13 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="GetMessage::getSignature",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_message.html#a1163b0154c4bd0283adb12f027e24f4b",tooltip="Get pointer to signature data. "];
+}

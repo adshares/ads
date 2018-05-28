@@ -1,0 +1,86 @@
+.TH "settings" 3 "Mon May 28 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+settings
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "uint16_t \fBcrc16\fP (const uint8_t *data_p, uint8_t length)"
+.br
+.ti -1c
+.RI "uint16_t \fBcrc_acnt\fP (uint16_t to_bank, uint32_t to_user)"
+.br
+.ti -1c
+.RI "bool \fBparse_acnt\fP (uint16_t &to_bank, uint32_t &to_user, std::string str_acnt)"
+.br
+.ti -1c
+.RI "bool \fBparse_txid\fP (uint16_t &to_bank, uint32_t &node_msid, uint32_t &node_mpos, std::string str_txid)"
+.br
+.ti -1c
+.RI "void \fBget\fP (int ac, char *av[])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "std::array< uint8_t, SHA256_DIGEST_LENGTH > \fBha\fP"
+.br
+.ti -1c
+.RI "int \fBport\fP"
+.br
+.ti -1c
+.RI "std::string \fBhost\fP"
+.br
+.ti -1c
+.RI "std::string \fBaddr\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBbank\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBuser\fP"
+.br
+.ti -1c
+.RI "int \fBmsid\fP"
+.br
+.ti -1c
+.RI "bool \fBnice\fP"
+.br
+.ti -1c
+.RI "bool \fBolog\fP"
+.br
+.ti -1c
+.RI "bool \fBdrun\fP"
+.br
+.ti -1c
+.RI "ed25519_secret_key \fBsk\fP"
+.br
+.ti -1c
+.RI "ed25519_public_key \fBpk\fP"
+.br
+.ti -1c
+.RI "std::string \fBskey\fP"
+.br
+.ti -1c
+.RI "std::string \fBpkey\fP"
+.br
+.ti -1c
+.RI "std::string \fBhash\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBlastlog\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 16 of file settings\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

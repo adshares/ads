@@ -1,0 +1,188 @@
+.TH "office" 3 "Mon May 28 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+office
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBoffice\fP (\fBoptions\fP &opts, \fBserver\fP &srv)"
+.br
+.ti -1c
+.RI "void \fBiorun_client\fP (int i)"
+.br
+.ti -1c
+.RI "void \fBiorun\fP ()"
+.br
+.ti -1c
+.RI "void \fBstop\fP ()"
+.br
+.ti -1c
+.RI "void \fBinit\fP (uint32_t myusers)"
+.br
+.ti -1c
+.RI "void \fBstart\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate_div\fP (uint32_t now, uint32_t newdiv)"
+.br
+.ti -1c
+.RI "void \fBprocess_div\fP (uint32_t path)"
+.br
+.ti -1c
+.RI "void \fBupdate_block\fP (uint32_t period_start, uint32_t now, message_map &commit_msgs, uint32_t newdiv)"
+.br
+.ti -1c
+.RI "void \fBprocess_log\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBclock\fP ()"
+.br
+.ti -1c
+.RI "void \fBprocess_gup\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBprocess_dep\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "bool \fBget_user_global\fP (\fBuser_t\fP &u, uint16_t cbank, uint32_t cuser)"
+.br
+.ti -1c
+.RI "bool \fBget_user\fP (\fBuser_t\fP &u, uint16_t cbank, uint32_t cuser)"
+.br
+.ti -1c
+.RI "void \fBadd_remote_user\fP (uint16_t bbank, uint32_t buser, uint8_t *pkey)"
+.br
+.ti -1c
+.RI "uint32_t \fBadd_user\fP (uint16_t abank, uint8_t *pk, uint32_t when, uint32_t auser)"
+.br
+.ti -1c
+.RI "void \fBset_user\fP (uint32_t user, const \fBuser_t\fP &nu, int64_t deduct)"
+.br
+.ti -1c
+.RI "void \fBdelete_user\fP (uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBadd_remote_deposit\fP (uint32_t buser, int64_t tmass)"
+.br
+.ti -1c
+.RI "void \fBadd_deposit\fP (uint32_t buser, int64_t tmass)"
+.br
+.ti -1c
+.RI "void \fBadd_deposit\fP (\fBusertxs\fP &utxs)"
+.br
+.ti -1c
+.RI "bool \fBtry_account\fP (\fBhash_s\fP *key)"
+.br
+.ti -1c
+.RI "void \fBadd_account\fP (\fBhash_s\fP *key, uint32_t user)"
+.br
+.ti -1c
+.RI "bool \fBget_msg\fP (uint32_t msid, std::string &line)"
+.br
+.ti -1c
+.RI "void \fBdel_msg\fP (uint32_t msid)"
+.br
+.ti -1c
+.RI "bool \fBset_account_status\fP (uint32_t buser, uint16_t status)"
+.br
+.ti -1c
+.RI "bool \fBunset_account_status\fP (uint32_t buser, uint16_t status)"
+.br
+.ti -1c
+.RI "bool \fBadd_msg\fP (\fBIBlockCommand\fP &utxs, uint32_t &msid, uint32_t &mpos)"
+.br
+.ti -1c
+.RI "bool \fBadd_msg\fP (uint8_t *msg, \fBusertxs\fP &utxs, uint32_t &msid, uint32_t &mpos)"
+.br
+.ti -1c
+.RI "bool \fBlock_user\fP (uint32_t cuser)"
+.br
+.ti -1c
+.RI "void \fBunlock_user\fP (uint32_t cuser)"
+.br
+.ti -1c
+.RI "void \fBstart_accept\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_accept\fP (client_ptr c, const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBjoin\fP (client_ptr c)"
+.br
+.ti -1c
+.RI "void \fBleave\fP (client_ptr c)"
+.br
+.ti -1c
+.RI "bool \fBcheck_user\fP (uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "bool \fBfind_key\fP (uint8_t *pkey, uint8_t *skey)"
+.br
+.ti -1c
+.RI "uint32_t \fBlast_path\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBlast_nodes\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBlast_users\fP (uint32_t bank)"
+.br
+.ti -1c
+.RI "void \fBmklogdir\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "int \fBpurge_log\fP (int fd, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBmklogfile\fP (uint16_t svid, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBput_log\fP (uint32_t user, \fBlog_t\fP &log)"
+.br
+.ti -1c
+.RI "void \fBput_log\fP (std::map< uint64_t, \fBlog_t\fP > &log, uint32_t ntime)"
+.br
+.ti -1c
+.RI "void \fBput_ulog\fP (uint32_t user, \fBlog_t\fP &log)"
+.br
+.ti -1c
+.RI "void \fBput_ulog\fP (std::map< uint64_t, \fBlog_t\fP > &log)"
+.br
+.ti -1c
+.RI "bool \fBfix_log\fP (uint16_t svid, uint32_t user)"
+.br
+.ti -1c
+.RI "bool \fBget_log\fP (uint16_t svid, uint32_t user, uint32_t from, std::string &slog)"
+.br
+.ti -1c
+.RI "uint8_t * \fBnode_pkey\fP (uint16_t \fBnode\fP)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint16_t \fBsvid\fP"
+.br
+.ti -1c
+.RI "hash_t \fBpkey\fP"
+.br
+.ti -1c
+.RI "std::stack< \fBgup_t\fP > \fBgup\fP"
+.br
+.ti -1c
+.RI "bool \fBreadonly\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 21 of file office\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

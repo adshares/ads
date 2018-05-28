@@ -1,0 +1,72 @@
+.TH "ICommandHandler" 3 "Mon May 28 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ICommandHandler \- Command handler Interface\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <interfaces\&.h>\fP
+.PP
+Inherited by \fBCommandHandler\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "virtual void \fBexecute\fP (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP &usera)=0"
+.br
+.RI "Execute command\&. "
+.ti -1c
+.RI "virtual void \fBonInit\fP (std::unique_ptr< \fBIBlockCommand\fP > command)=0"
+.br
+.RI "Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. "
+.ti -1c
+.RI "virtual void \fBonExecute\fP ()=0"
+.br
+.RI "Execution event\&. It execute actual command and commiting it to blockchain\&. "
+.ti -1c
+.RI "virtual bool \fBonValidate\fP ()=0"
+.br
+.RI "Validtaion event\&. It execute validation of data if it contain all proper value\&. "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Command handler Interface\&. 
+.PP
+Definition at line 131 of file interfaces\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual void ICommandHandler::execute (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP & usera)\fC [pure virtual]\fP"
+
+.PP
+Execute command\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcommand\fP Command which dhould be executed\&. 
+.br
+\fIusera\fP User data\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBCommandHandler\fP\&.
+.SS "virtual void ICommandHandler::onInit (std::unique_ptr< \fBIBlockCommand\fP > command)\fC [pure virtual]\fP"
+
+.PP
+Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcommand\fP Unique Pointer with command which should be executed\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBCreateNodeHandler\fP, \fBGetSignaturesHandler\fP, \fBRetrieveFundsHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

@@ -1,0 +1,55 @@
+.TH "SendManyInfo" 3 "Mon May 28 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+SendManyInfo \- Info for send_many transaction type\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBSendManyInfo\fP (uint16_t \fBnode\fP, uint32_t user, uint32_t msgid, uint32_t time, uint16_t txncounter)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBtxn_type\fP {TXSTYPE_MPT}"
+.br
+.RI "command type "
+.ti -1c
+.RI "uint16_t \fBsrc_node\fP {0}"
+.br
+.RI "source node "
+.ti -1c
+.RI "uint32_t \fBsrc_user\fP {0}"
+.br
+.RI "source user "
+.ti -1c
+.RI "uint32_t \fBmsg_id\fP {0}"
+.br
+.RI "user message id "
+.ti -1c
+.RI "uint32_t \fBtxn_time\fP {0}"
+.br
+.RI "time "
+.ti -1c
+.RI "uint16_t \fBtxn_counter\fP {0}"
+.br
+.RI "counter of transactions to perform "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Info for send_many transaction type\&. 
+.PP
+Definition at line 144 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

@@ -1,7 +1,0 @@
-<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="14,5,101,32"/>
-<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="157,31,276,57"/>
-<area shape="rect" id="node3" href="$class_get_account.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="335,5,426,32"/>
-<area shape="rect" id="node4" href="$class_set_account_key.html" title="Class responsible for handling &quot;change_account_key&quot; command. " alt="" coords="324,56,437,83"/>
-<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="5,56,109,83"/>
-</map>

@@ -1,0 +1,28 @@
+digraph "SendMany::send"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node9 [label="SendMany::send",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node9 -> Node10 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node10 [label="INetworkClient::sendData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3",tooltip="Send data using pointer to bufor and size. "];
+  Node9 -> Node11 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node11 [label="SendMany::getData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a94e0bab68925c6ab4aa6e4c86fb4daa3",tooltip="Get pointer to command data structure. "];
+  Node9 -> Node12 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node12 [label="SendMany::getDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a2bd18054e8cdefcf5eee9af2efaeb713",tooltip="Get data struct size. Without signature. "];
+  Node9 -> Node13 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="SendMany::getAdditionalData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a4df199e31b57ff041d89e1fdd03372b4",tooltip="Get additional data. "];
+  Node13 -> Node14 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node14 [label="SendMany::getAdditionalDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a9131eeafcfe2acc679575d3da2e9d6b1",tooltip="Get additional data size. "];
+  Node9 -> Node14 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node9 -> Node15 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 [label="SendMany::getSignature",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a5faf1e47be6f840a1c4117d855b12b62",tooltip="Get pointer to signature data. "];
+  Node9 -> Node16 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node16 [label="SendMany::getSignatureSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#aa73207957ec347c123bdaf092db15497",tooltip="Get signature size. "];
+  Node9 -> Node17 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node17 [label="INetworkClient::readData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c",tooltip="Read data to buffor. "];
+  Node9 -> Node18 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node18 [label="SendMany::getResponse",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a2fc295d0abd1226ae046b6a768db1450",tooltip="Get pointer to response data. "];
+  Node9 -> Node19 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node19 [label="SendMany::getResponseSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a3fc7c7dadfd1a77cd1b54fc42a8e6b33",tooltip="Get response data struct size. "];
+}

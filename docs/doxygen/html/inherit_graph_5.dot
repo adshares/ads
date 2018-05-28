@@ -1,0 +1,15 @@
+digraph "Graphical Class Hierarchy"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node138 [label="enable_shared_from_this",height=0.2,width=0.4,color="grey75", fillcolor="white", style="filled"];
+  Node138 -> Node0 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node0 [label="candidate",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classcandidate.html"];
+  Node138 -> Node140 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node140 [label="client",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classclient.html",tooltip="Main class for esc client. Brief description continued. "];
+  Node138 -> Node141 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node141 [label="message",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classmessage.html"];
+  Node138 -> Node142 [dir="back",color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node142 [label="peer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$classpeer.html"];
+}

@@ -15,3 +15,4 @@ _test_remote_network.py
 .project
 .cproject
 .settings
+.DS_Store

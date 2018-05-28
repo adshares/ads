@@ -1,5 +1,0 @@
-<map id="ICommandHandler" name="ICommandHandler">
-<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="95,80,222,107"/>
-<area shape="rect" id="node3" href="$class_get_account_handler.html" title="GetAccountHandler" alt="" coords="5,155,141,181"/>
-<area shape="rect" id="node4" href="$class_set_account_key_handler.html" title="SetAccountKeyHandler" alt="" coords="166,155,325,181"/>
-</map>

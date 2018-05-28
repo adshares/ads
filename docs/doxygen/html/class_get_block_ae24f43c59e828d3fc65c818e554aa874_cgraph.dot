@@ -1,0 +1,13 @@
+digraph "GetBlock::sign"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node12 [label="GetBlock::sign",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node12 -> Node13 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node13 [label="GetBlock::getData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_block.html#a62f93eb8fd03671577e0bcf4a788bec0",tooltip="Get pointer to command data structure. "];
+  Node12 -> Node14 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node14 [label="GetBlock::getDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_block.html#a28901d238ae7ac368a796623db833b45",tooltip="Get data struct size. Without signature. "];
+  Node12 -> Node15 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node15 [label="GetBlock::getSignature",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_get_block.html#ace657bc09e3910caa999e7d70b7b9505",tooltip="Get pointer to signature data. "];
+}

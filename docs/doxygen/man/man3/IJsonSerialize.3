@@ -1,0 +1,35 @@
+.TH "IJsonSerialize" 3 "Mon May 28 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+IJsonSerialize \- Interface which allow convert command data to JSON or string\&. Not used for now\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <interfaces\&.h>\fP
+.PP
+Inherited by \fBIBlockCommand\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "virtual void \fBtoJson\fP (boost::property_tree::ptree &ptree)=0"
+.br
+.ti -1c
+.RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree)=0"
+.br
+.ti -1c
+.RI "virtual std::string \fBtoString\fP (bool preety)=0"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Interface which allow convert command data to JSON or string\&. Not used for now\&. 
+.PP
+Definition at line 113 of file interfaces\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

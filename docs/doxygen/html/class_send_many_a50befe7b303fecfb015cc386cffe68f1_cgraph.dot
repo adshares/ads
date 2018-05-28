@@ -1,0 +1,18 @@
+digraph "SendMany::sign"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node21 [label="SendMany::sign",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node21 -> Node22 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node22 [label="SendMany::getDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a2bd18054e8cdefcf5eee9af2efaeb713",tooltip="Get data struct size. Without signature. "];
+  Node21 -> Node23 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node23 [label="SendMany::getAdditionalDataSize",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a9131eeafcfe2acc679575d3da2e9d6b1",tooltip="Get additional data size. "];
+  Node21 -> Node24 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node24 [label="SendMany::getData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a94e0bab68925c6ab4aa6e4c86fb4daa3",tooltip="Get pointer to command data structure. "];
+  Node21 -> Node25 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node25 [label="SendMany::getAdditionalData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a4df199e31b57ff041d89e1fdd03372b4",tooltip="Get additional data. "];
+  Node25 -> Node23 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node21 -> Node26 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node26 [label="SendMany::getSignature",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_send_many.html#a5faf1e47be6f840a1c4117d855b12b62",tooltip="Get pointer to signature data. "];
+}
