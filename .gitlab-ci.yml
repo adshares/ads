@@ -16,6 +16,7 @@ variables:
 pull_hpx:
   script:
   - mkdir ~/.ssh
+  - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
   - md5sum ~/.ssh/id_rsa
   - cd /builds/proxy/hpx
