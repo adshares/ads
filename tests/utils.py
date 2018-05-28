@@ -4,10 +4,11 @@ import os
 import subprocess
 import ed25519
 
-from tests.consts import (ESC_BIN_PATH, ACCOUNT_FIELDS,
+from tests.consts import (BIN_PATH, ACCOUNT_FIELDS,
                           TX_FIELDS, BROADCAST_FIELDS, BLOCK_FIELDS,
                           BLOCK_NODE_FIELDS, LOG_BASE_FIELDS,
-                          ACCOUNT_INIT_USER_FIELDS, INIT_CLIENT_ID)
+                          ACCOUNT_INIT_USER_FIELDS, INIT_CLIENT_ID,
+                          GET_BLOCK_FIELDS)
 
 
 def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None,
@@ -15,7 +16,7 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None,
     from .client.utils import get_client_dir
     client_dir = get_client_dir(client_id)
 
-    esc_cmd = [ESC_BIN_PATH]
+    esc_cmd = [BIN_PATH]
     if cmd_extra:
         esc_cmd.extend(cmd_extra)
 
@@ -29,7 +30,10 @@ def exec_esc_cmd(client_id, js_command, with_get_me=True, cmd_extra=None,
     for cmd in cmds:
         process.stdin.write(str.encode(json.dumps(cmd) + "\n"))
 
-    stdout, stderr = process.communicate(timeout=timeout)
+    try:
+        stdout, stderr = process.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired as err:
+        raise subprocess.TimeoutExpired(err, cmds, client_id)
 
     try:
         raw_response = stdout.decode("utf-8")
@@ -72,6 +76,7 @@ class ValidateObject(object):
             'log': LOG_BASE_FIELDS,
             'get_transaction': 'AUTO',
             'get_message': 'AUTO',
+            'get_block': GET_BLOCK_FIELDS,
         }
         self.fields = fields if fields else self._get_fields(kind)
 

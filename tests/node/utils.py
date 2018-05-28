@@ -4,7 +4,7 @@ import subprocess
 import threading
 import time
 
-from tests.consts import (INIT_CLIENT_ID, ESCD_BIN_PATH)
+from tests.consts import (INIT_CLIENT_ID, D_BIN_PATH)
 
 from tests.utils import exec_esc_cmd, generate_keys
 
@@ -73,7 +73,7 @@ def manual_init_node_process(node_id, client_id, key, port,
     create_init_client()
 
     node_dir = get_node_path_dir(node_id)
-    process = subprocess.Popen([ESCD_BIN_PATH, "-m", "1"],
+    process = subprocess.Popen([D_BIN_PATH, "-m", "1"],
                                cwd=node_dir, bufsize=1,
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

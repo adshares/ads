@@ -18,6 +18,7 @@ def create_client_env(client_id, port, address, secret, host="127.0.0.1"):
         "address=%s" % address,
         "secret=%s" % secret
     ]
+    print(options)
     with open(os.path.join(client_path_dir, "settings.cfg"), 'w') as fh:
         fh.write("\n".join(options))
 
@@ -43,6 +44,12 @@ def clean_client_dir(client_id):
     client_id = str(client_id)
     client_dir = get_client_dir(client_id)
     shutil.rmtree(client_dir, ignore_errors=True)
+
+
+def clean_clients_dir():
+    client_dir = get_client_dir(INIT_CLIENT_ID)
+    main_client_dir = os.path.join(*client_dir.split('/')[:-1])
+    shutil.rmtree(main_client_dir, ignore_errors=True)
 
 
 def get_user_address(client_id):

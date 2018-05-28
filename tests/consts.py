@@ -1,8 +1,13 @@
 import os
 
 HPX_ROOT = os.path.dirname(os.path.dirname(__file__))
-ESC_BIN_PATH = os.path.join(HPX_ROOT, "build", "esc", "esc")
-ESCD_BIN_PATH = os.path.join(HPX_ROOT, "build", "escd", "escd")
+HPX_PROJECT_CONFIG = os.environ.get('DCMAKE_PROJECT_CONFIG', 'hpx')
+
+DCMAKE_PROJECT_CONFIG_D = "{}d".format(HPX_PROJECT_CONFIG)
+BIN_PATH = os.path.join(HPX_ROOT, "build", 'esc',
+                        HPX_PROJECT_CONFIG)
+D_BIN_PATH = os.path.join(HPX_ROOT, "build", 'escd',
+                          DCMAKE_PROJECT_CONFIG_D)
 
 
 INIT_NODE_ID = '1'
@@ -51,4 +56,8 @@ BLOCK_NODE_FIELDS = ['pk', 'hash', 'msha', 'msid', 'mtim',
                      'balance', 'status', 'users', 'port', 'ipv4']
 
 LOG_BASE_FIELDS = ['type', 'date', 'type_no', 'confirmed']
+
+
+GET_BLOCK_FIELDS = ['block_time', 'block_time_hex', 'block_prev', 'block_next',
+                    'block']
 
