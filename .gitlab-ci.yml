@@ -1,19 +1,19 @@
 variables:
   GIT_SSL_NO_VERIFY: "true"
 
-test_esc:
-  before_script:
-  - mkdir -p /builds/EnterpriseServiceChain/esc/build
-  - cd /builds/EnterpriseServiceChain/esc/build
-  - cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_PROJECT_CONFIG=esc -DCMAKE_BUILD_TYPE=Debug /builds/EnterpriseServiceChain/esc/src
-  - make clean
-  - make -j4
-  - export PYTHONPATH=/builds/EnterpriseServiceChain/esc:$PYTHONPATH
-  script:
-  - pytest /builds/EnterpriseServiceChain/esc/tests -s
+#test_esc:
+#  before_script:
+#  - mkdir -p /builds/EnterpriseServiceChain/esc/build
+#  - cd /builds/EnterpriseServiceChain/esc/build
+#  - cmake -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_PROJECT_CONFIG=esc -DCMAKE_BUILD_TYPE=Debug /builds/EnterpriseServiceChain/esc/src
+#  - make clean
+#  - make -j4
+#  - export PYTHONPATH=/builds/EnterpriseServiceChain/esc:$PYTHONPATH
+#  script:
+#  - pytest /builds/EnterpriseServiceChain/esc/tests -s
 
 pull_esc:
-  script:
+  before_script:
   - mkdir ~/.ssh
   - ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
   - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_rsa
@@ -21,4 +21,8 @@ pull_esc:
   - cd /builds/EnterpriseServiceChain/esc
   - git checkout develop
   - git pull
-  - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
+  script
+  - git clone git@github.com:EnterpriseServiceChain/esc.git /builds/EnterpriseServiceChain/escprod
+  - cd /builds/EnterpriseServiceChain/escprod
+  - git checkout /builds/EnterpriseServiceChain/esc src
+#  - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
