@@ -23,6 +23,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatushandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeyshandler.cpp
     PARENT_SCOPE
     )
 
@@ -51,6 +52,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/unsetnodestatushandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeyshandler.h
     PARENT_SCOPE
     )
 
