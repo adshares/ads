@@ -1,7 +1,7 @@
 variables:
   GIT_SSL_NO_VERIFY: "true"
 
-test_hpx:
+test_esc:
   before_script:
   - mkdir -p /builds/proxy/hpx/build
   - cd /builds/proxy/hpx/build
@@ -11,3 +11,9 @@ test_hpx:
   - export PYTHONPATH=/builds/proxy/hpx:$PYTHONPATH
   script:
   - pytest /builds/proxy/hpx/tests -s
+
+
+pull_hpx:
+  - cd /builds/proxy/hpx
+  - git remote add github git@github.com:EnterpriseServiceChain/esc.git
+  - git push github develop:master
