@@ -16,5 +16,6 @@ variables:
 pull_hpx:
   script:
   - cd /builds/proxy/hpx
+  - more .git/config
   - git remote add github git@github.com:EnterpriseServiceChain/esc.git
   - git push github develop:master
