@@ -53,6 +53,27 @@ def test_get_block(init_node_process):
         node.validate()
 
 
+def test_get_vipkeys(init_node_process):
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_block'})
+
+    try:
+        block = tests_utils.ValidateObject(response['block'], kind='block')
+    except KeyError as err:
+        raise (err, response)
+
+    viphash = response['block']['viphash']
+
+    response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_vipkeys',
+                                                         'viphash': viphash})
+
+    fields = ['viphash', 'vipkeys']
+
+    vipkyes = tests_utils.ValidateObject(response,
+                                         kind='get_vipkyes',
+                                         fields=fields)
+    vipkyes.validate()
+
+
 def _test_get_blocks(init_node_process):
     response = tests_utils.exec_esc_cmd(INIT_CLIENT_ID,
                                         {

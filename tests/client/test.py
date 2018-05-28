@@ -166,7 +166,7 @@ def test_get_account_non_existing_user(init_node_process,
     response = exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_account',
                                              'address': address})
 
-    assert  'error' not in response, 'Response: {}'.format(response)
+    assert 'error' not in response, 'Response: {}'.format(response)
 
 
 def test_set_account_status(init_node_process, client_id="1", status='10'):

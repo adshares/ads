@@ -19,12 +19,12 @@ def test_send_many_to_unknown_address(init_node_process):
     message = generate_message()
 
     response = exec_esc_cmd(INIT_CLIENT_ID,
-                                            {
-                                                "run": "send_one",
-                                                "address": unknown_address,
-                                                "message": message,
-                                                "amount": 1
-                                            })
+                            {
+                                "run": "send_one",
+                                "address": unknown_address,
+                                "message": message,
+                                "amount": 1
+                            })
 
     assert 'error' not in response
 

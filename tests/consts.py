@@ -61,4 +61,3 @@ LOG_BASE_FIELDS = ['type', 'date', 'type_no', 'confirmed']
 
 GET_BLOCK_FIELDS = ['block_time', 'block_time_hex', 'block_prev', 'block_next',
                     'block']
-

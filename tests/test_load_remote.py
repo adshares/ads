@@ -116,7 +116,7 @@ def update_user_env(client_id, address):
 
 
 def create_user():
-    response = exec_esc_cmd(USER_1['client_id'], {'run':'create_account',
+    response = exec_esc_cmd(USER_1['client_id'], {'run': 'create_account',
                                                   'node': NODE_1})
     client_id = response['new_account']['id']
     client_address = response['new_account']['address']
@@ -146,7 +146,7 @@ def get_users(start_user=203, finish_user=302):
             USERS_NODE_1.append([account['id'], account['address'], False])
 
 
-def send_many_threads(number, start, lock, timeout=60,user_to=USER_2):
+def send_many_threads(number, start, lock, timeout=60, user_to=USER_2):
     for i in range(10000):
         global COUNT
         COUNT += 1
@@ -162,12 +162,12 @@ def send_many_threads(number, start, lock, timeout=60,user_to=USER_2):
               'Thread: {}'.format(threading.get_ident()),
               'SEND FROM {} TO {}'.format(sender[0], user_to['address']))
         response = exec_esc_cmd(sender[0],
-                     {
-                         "run": "send_one",
-                         "address": user_to['address'],
-                         "message": MESSAGE,
-                         "amount": 0.001
-                     })
+                                {
+                                    "run": "send_one",
+                                    "address": user_to['address'],
+                                    "message": MESSAGE,
+                                    "amount": 0.001
+                                })
         USERS_NODE_1[USERS_NODE_1.index(sender)][2] = False
         if time.time() - start >= timeout or 'error' in response:
             if 'error' in response:
@@ -175,7 +175,7 @@ def send_many_threads(number, start, lock, timeout=60,user_to=USER_2):
             return
 
 
-def __test_fast_send_money_one_node_threads(count_threads=50, timeout=30):
+def test_fast_send_money_one_node_threads(count_threads=50, timeout=30):
     if not USERS_NODE_1:
         get_users()
     global COUNT
@@ -197,7 +197,7 @@ def __test_fast_send_money_one_node_threads(count_threads=50, timeout=30):
             format(COUNT, time.time() - start_time)
 
 
-def __test_fast_send_money_multi_node_threads(count_threads=50, timeout=30):
+def test_fast_send_money_multi_node_threads(count_threads=50, timeout=30):
     if not USERS_NODE_1:
         get_users()
     global COUNT
@@ -208,7 +208,7 @@ def __test_fast_send_money_multi_node_threads(count_threads=50, timeout=30):
     lock = threading.Lock()
     for i in range(count_threads):
         thr = threading.Thread(target=send_many_threads, args=(i, start_time,
-                                                               lock,timeout,
+                                                               lock, timeout,
                                                                USER_3))
         thr.start()
         threads.append(thr)
@@ -216,6 +216,5 @@ def __test_fast_send_money_multi_node_threads(count_threads=50, timeout=30):
     for thr in threads:
         thr.join()
 
-        assert time.time() - start_time < 30, "Operations {} in time {}".format(
-            COUNT ,time.time()-start_time
-        )
+        assert time.time() - start_time < 30, "Operations {} in time {}".\
+            format(COUNT, time.time()-start_time)
