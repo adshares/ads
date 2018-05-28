@@ -243,8 +243,9 @@ def test_get_message(init_node_process):
     assert response['hash'] == h
 
 
-def test_retrieve_funds():
+def __test_retrieve_funds():
     from tests.node.utils import create_node_without_start
+    set_block_time()
 
     local_account = tests_utils.exec_esc_cmd(INIT_CLIENT_ID, {'run': 'get_me'})
 
