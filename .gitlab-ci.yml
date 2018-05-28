@@ -21,6 +21,7 @@ pull_hpx:
   - chmod 400 ~/.ssh/id_rsa
   - md5sum ~/.ssh/id_rsa
   - cd /builds/proxy/hpx
+  - git checkout develop
   - git pull git@github.com:EnterpriseServiceChain/esc.git --rebase
   - git branch
   - git push git@github.com:EnterpriseServiceChain/esc.git develop:master
