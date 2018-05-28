@@ -50,7 +50,7 @@ BROADCAST_FIELDS = ['block_time', 'block_date', 'node', 'account',
 
 BLOCK_FIELDS = ['id', 'time', 'message_count', 'oldhash', 'minhash', 'msghash',
                 'nodhash', 'viphash', 'nowhash', 'vote_yes', 'vote_no',
-                'vote_total', 'node_count', 'dividend_balance', 'devident_pay']
+                'vote_total', 'node_count', 'dividend_balance', 'devidend_pay']
 
 BLOCK_NODE_FIELDS = ['id', 'public_key', 'public_key', 'message_hash', 'msid',
                      'mtim', 'balance', 'status', 'account_count', 'port',
