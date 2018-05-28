@@ -1,4 +1,5 @@
 #include "getvipkeys.h"
+#include <sys/stat.h>
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "hash.hpp"
