@@ -27,12 +27,12 @@ pull_esc:
   - cd /builds/EnterpriseServiceChain/escprod
   - git remote add escdev /builds/EnterpriseServiceChain/esc
   - git fetch escdev
-  - git checkout escdev src
-  - git checkout escdev external
-  - git checkout escdev .gitignore
-  - git checkout escdev README.md
-  - git checkout escdev docs/Whitepaper.pdf
-  - git checkout escdev docs/doxygen/Doxyfile
+  - git checkout escdev -- src
+  - git checkout escdev -- external
+  - git checkout escdev -- .gitignore
+  - git checkout escdev -- README.md
+  - git checkout escdev -- docs/Whitepaper.pdf
+  - git checkout escdev -- docs/doxygen/Doxyfile
   - git commit -m "Merge"
   - git push
 
