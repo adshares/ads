@@ -26,6 +26,8 @@ pull_esc:
   - git clone git@github.com:EnterpriseServiceChain/esc.git /builds/EnterpriseServiceChain/escprod
   - cd /builds/EnterpriseServiceChain/escprod
   - git remote add escdev /builds/EnterpriseServiceChain/esc
+  - git config --global user.email "esc-robot@bioinfo.pl"
+  - git config --global user.name "ESC Boot"
   - git fetch escdev
   - git checkout escdev/develop -- src
   - git checkout escdev/develop -- external
