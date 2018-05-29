@@ -64,7 +64,7 @@ std::promise<int> prom;
 
 void signal_handler(int signal) {
     DLOG("\nSIGNAL: %d\n\n",signal);
-    if(signal==SIGSEGV || signal==SIGQUIT || signal==SIGTERM) {
+    if(signal==SIGSEGV || signal==SIGABRT) {
         if(stdout!=NULL) {
             fflush(stdout);
         }
