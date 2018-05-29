@@ -8,6 +8,12 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m64 -O3 -fPIC ")
 
+if(UNIX AND NOT APPLE)
+   add_definitions(-DLINUX)
+   MESSAGE("..............LINUX SYSTEM..............")
+endif()
+
+
 if (NOT CMAKE_PROJECT_CONFIG)
     set(CMAKE_PROJECT_CONFIG "hpx")
 endif (NOT CMAKE_PROJECT_CONFIG)
