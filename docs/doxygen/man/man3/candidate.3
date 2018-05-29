@@ -1,0 +1,73 @@
+.TH "candidate" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+candidate
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits enable_shared_from_this< candidate >\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBcandidate\fP (uint32_t blk, std::map< uint64_t, \fBhash_s\fP > &add, std::set< uint64_t > &del, std::set< uint64_t > &mis, uint16_t svid, bool myfailed)"
+.br
+.ti -1c
+.RI "bool \fBaccept\fP ()"
+.br
+.ti -1c
+.RI "bool \fBelected_accept\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "const char * \fBprint_missing\fP (\fBservers\fP *)"
+.br
+.ti -1c
+.RI "void \fBget_missing\fP (std::vector< uint64_t > &missing)"
+.br
+.ti -1c
+.RI "void \fBdel_missing\fP (uint64_t mis)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint32_t \fBnow\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBpeer\fP"
+.br
+.ti -1c
+.RI "uint64_t \fBscore\fP"
+.br
+.ti -1c
+.RI "bool \fBfailed\fP"
+.br
+.ti -1c
+.RI "std::map< uint64_t, \fBhash_s\fP > \fBmsg_add\fP"
+.br
+.ti -1c
+.RI "std::set< uint64_t > \fBmsg_del\fP"
+.br
+.ti -1c
+.RI "std::set< uint64_t > \fBmsg_mis\fP"
+.br
+.ti -1c
+.RI "std::set< message_ptr > \fBvotes\fP"
+.br
+.ti -1c
+.RI "std::set< uint16_t > \fBpeers\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 7 of file candidate\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

@@ -1,0 +1,170 @@
+.TH "Parser::MsglistParser" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Parser::MsglistParser
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <msglistparser\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBMsglistParser\fP (uint32_t path)"
+.br
+.ti -1c
+.RI "\fBMsglistParser\fP (const char *filepath)"
+.br
+.ti -1c
+.RI "bool \fBload\fP (const char *filepath=nullptr)"
+.br
+.RI "Load msglist\&.dat file\&. "
+.ti -1c
+.RI "bool \fBsave\fP (const char *filepath=nullptr)"
+.br
+.RI "save msglist\&.dat file "
+.ti -1c
+.RI "\fBMessageListHeader\fP \fBgetHeader\fP ()"
+.br
+.RI "Get header of msglist\&.dat file\&. "
+.ti -1c
+.RI "std::vector< \fBMessageRecord\fP > \fBgetMessageList\fP ()"
+.br
+.RI "Get vector of all messages\&. "
+.ti -1c
+.RI "uint8_t * \fBgetHeaderHash\fP ()"
+.br
+.RI "Get only hash from file header\&. "
+.ti -1c
+.RI "uint32_t \fBgetHashesTotalSize\fP ()"
+.br
+.RI "Total no of additional hashes at the end of msglist file\&. "
+.ti -1c
+.RI "MsgIterator \fBbegin\fP ()"
+.br
+.RI "iterator to first messages element\&. "
+.ti -1c
+.RI "MsgIterator \fBend\fP ()"
+.br
+.RI "iterator to the end of messages vector\&. "
+.ti -1c
+.RI "bool \fBisEmpty\fP ()"
+.br
+.RI "check is list of messages empty "
+.ti -1c
+.RI "MsgIterator \fBget\fP (unsigned int id)"
+.br
+.ti -1c
+.RI "HashIterator \fBh_begin\fP ()"
+.br
+.RI "iterator to first element of additional hashes "
+.ti -1c
+.RI "HashIterator \fBh_end\fP ()"
+.br
+.RI "iterator to last element of additional hashes "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Class to parse and extract data from msglist\&.dat files 
+.PP
+Definition at line 46 of file msglistparser\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "MsgIterator Parser::MsglistParser::get (unsigned int id)"
+get element, id - numbers starting from 1 
+.PP
+Definition at line 101 of file msglistparser\&.cpp\&.
+.SS "uint32_t Parser::MsglistParser::getHashesTotalSize ()"
+
+.PP
+Total no of additional hashes at the end of msglist file\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+no of hashes 
+.RE
+.PP
+
+.PP
+Definition at line 108 of file msglistparser\&.cpp\&.
+.SS "\fBMessageListHeader\fP Parser::MsglistParser::getHeader ()"
+
+.PP
+Get header of msglist\&.dat file\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+\fBMessageListHeader\fP struct 
+.RE
+.PP
+
+.PP
+Definition at line 45 of file msglistparser\&.cpp\&.
+.SS "uint8_t * Parser::MsglistParser::getHeaderHash ()"
+
+.PP
+Get only hash from file header\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+hash 
+.RE
+.PP
+
+.PP
+Definition at line 49 of file msglistparser\&.cpp\&.
+.SS "std::vector< \fBMessageRecord\fP > Parser::MsglistParser::getMessageList ()"
+
+.PP
+Get vector of all messages\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+vector of \fBMessageRecord\fP 
+.RE
+.PP
+
+.PP
+Definition at line 53 of file msglistparser\&.cpp\&.
+.SS "bool Parser::MsglistParser::load (const char * filepath = \fCnullptr\fP)"
+
+.PP
+Load msglist\&.dat file\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilepath\fP - [optional] file path 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true - if successfuly opened and loaded, otherwise false 
+.RE
+.PP
+
+.PP
+Definition at line 57 of file msglistparser\&.cpp\&.
+.SS "bool Parser::MsglistParser::save (const char * filepath = \fCnullptr\fP)"
+
+.PP
+save msglist\&.dat file 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilepath\fP - [optional] file path 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true - if successfuly saved, otherwise false 
+.RE
+.PP
+
+.PP
+Definition at line 18 of file msglistparser\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

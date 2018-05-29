@@ -1,0 +1,43 @@
+.TH "MessageRecord" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+MessageRecord \- Single message record\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <msglistparser\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBMessageRecord\fP (uint16_t nodeId, uint32_t nodeMsid, uint8_t msgHash[SHA256_DIGEST_LENGTH])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint16_t \fBnode_id\fP"
+.br
+.RI "node id "
+.ti -1c
+.RI "uint32_t \fBnode_msid\fP"
+.br
+.RI "node message id "
+.ti -1c
+.RI "uint8_t \fBhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.RI "message hash "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Single message record\&. 
+.PP
+Definition at line 23 of file msglistparser\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

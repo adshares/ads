@@ -1,0 +1,182 @@
+.TH "UnsetAccountStatus" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+UnsetAccountStatus \- Class responsible for handling 'unset_account_status' command\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <unsetaccountstatus\&.h>\fP
+.PP
+Inherits \fBIBlockCommand\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBUnsetAccountStatus\fP (uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status)"
+.br
+.ti -1c
+.RI "virtual int \fBgetType\fP () override"
+.br
+.RI "Return TXSTYPE_UUS as command type \&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetData\fP () override"
+.br
+.RI "Get pointer to command data structure\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetResponse\fP () override"
+.br
+.RI "Get pointer to response data\&. "
+.ti -1c
+.RI "virtual void \fBsetData\fP (char *data) override"
+.br
+.RI "Put data as a char list and put convert it to data structure\&. "
+.ti -1c
+.RI "virtual void \fBsetResponse\fP (char *response) override"
+.br
+.RI "Apply data as a response struct\&. "
+.ti -1c
+.RI "virtual int \fBgetDataSize\fP () override"
+.br
+.RI "Get data struct size\&. Without signature\&. "
+.ti -1c
+.RI "virtual int \fBgetResponseSize\fP () override"
+.br
+.RI "Get response data struct size\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetSignature\fP () override"
+.br
+.RI "Get pointer to signature data\&. "
+.ti -1c
+.RI "virtual int \fBgetSignatureSize\fP () override"
+.br
+.RI "Get signature size\&. "
+.ti -1c
+.RI "virtual void \fBsign\fP (const uint8_t *hash, const uint8_t *sk, const uint8_t *pk) override"
+.br
+.RI "Sign actual data plus hash using user private and public keys\&. "
+.ti -1c
+.RI "virtual bool \fBcheckSignature\fP (const uint8_t *hash, const uint8_t *pk) override"
+.br
+.RI "Check actual signature\&. "
+.ti -1c
+.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
+.br
+.RI "Get actual blockchain user info\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetTime\fP () override"
+.br
+.RI "Get time of command\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetUserId\fP () override"
+.br
+.RI "Get User ID\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetBankId\fP () override"
+.br
+.RI "Get Node ID\&. "
+.ti -1c
+.RI "virtual int64_t \fBgetFee\fP () override"
+.br
+.RI "Get command fee\&. "
+.ti -1c
+.RI "virtual int64_t \fBgetDeduct\fP () override"
+.br
+.RI "Get change in cash balance after command\&. "
+.ti -1c
+.RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
+.br
+.RI "Send data to the server\&. "
+.ti -1c
+.RI "virtual void \fBsaveResponse\fP (\fBsettings\fP &sts) override"
+.br
+.RI "Save command response to settings object\&. "
+.ti -1c
+.RI "virtual std::string \fBtoString\fP (bool pretty) override"
+.br
+.ti -1c
+.RI "virtual void \fBtoJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "uint32_t \fBgetUserMessageId\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBgetDestBankId\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBgetDestUserId\fP ()"
+.br
+.ti -1c
+.RI "uint16_t \fBgetStatus\fP ()"
+.br
+.in -1c
+.SS "Additional Inherited Members"
+.SH "Detailed Description"
+.PP 
+Class responsible for handling 'unset_account_status' command\&. 
+.PP
+Definition at line 10 of file unsetaccountstatus\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "bool UnsetAccountStatus::checkSignature (const uint8_t * hash, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Check actual signature\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 55 of file unsetaccountstatus\&.cpp\&.
+.SS "bool UnsetAccountStatus::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Send data to the server\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fInetClient\fP Netwrok client implementation of \fBINetworkClient\fP interface\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 83 of file unsetaccountstatus\&.cpp\&.
+.SS "void UnsetAccountStatus::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Sign actual data plus hash using user private and public keys\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIsk\fP Pointer to provate key\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommand\fP\&.
+.PP
+Definition at line 51 of file unsetaccountstatus\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

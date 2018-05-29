@@ -1,0 +1,55 @@
+.TH "accountkey" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+accountkey \- Full struct data for get_me and change account key command with signature\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBaccountkey\fP (uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint32_t time_, uint8_t pubkey_[32], uint8_t pubkeysign_[64])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBttype\fP {TXSTYPE_KEY}"
+.br
+.ti -1c
+.RI "uint16_t \fBabank\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBauser\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBamsid\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBttime\fP {0}"
+.br
+.ti -1c
+.RI "uint8_t \fBpubkey\fP [32]"
+.br
+.ti -1c
+.RI "unsigned char \fBsign\fP [64]"
+.br
+.ti -1c
+.RI "uint8_t \fBpubkeysign\fP [64]"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Full struct data for get_me and change account key command with signature\&. 
+.PP
+Definition at line 93 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

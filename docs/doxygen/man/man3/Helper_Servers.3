@@ -1,0 +1,52 @@
+.TH "Helper::Servers" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::Servers
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBServers\fP (const char *filePath)"
+.br
+.ti -1c
+.RI "void \fBload\fP (const char *filePath=nullptr)"
+.br
+.ti -1c
+.RI "bool \fBloadHeader\fP ()"
+.br
+.ti -1c
+.RI "bool \fBloadNowhash\fP ()"
+.br
+.ti -1c
+.RI "\fBServersHeader\fP \fBgetHeader\fP ()"
+.br
+.ti -1c
+.RI "std::vector< \fBServersNode\fP > \fBgetNodes\fP ()"
+.br
+.ti -1c
+.RI "\fBServersNode\fP \fBgetNode\fP (unsigned int nodeId)"
+.br
+.ti -1c
+.RI "unsigned int \fBgetNodesCount\fP ()"
+.br
+.ti -1c
+.RI "uint8_t * \fBgetNowHash\fP ()"
+.br
+.ti -1c
+.RI "void \fBsetNow\fP (uint32_t time)"
+.br
+.ti -1c
+.RI "bool \fBgetMsglHashTree\fP (uint16_t svid, uint32_t msid, uint32_t msg_number, std::vector< \fBhash_s\fP > &hashes)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 65 of file servers\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

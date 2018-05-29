@@ -1,0 +1,11 @@
+digraph "SetNodeStatus::send"
+{
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  rankdir="LR";
+  Node2 [label="SetNodeStatus::send",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
+  Node2 -> Node3 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node3 [label="INetworkClient::sendData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3",tooltip="Send data using pointer to bufor and size. "];
+  Node2 -> Node4 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
+  Node4 [label="INetworkClient::readData",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c",tooltip="Read data to buffor. "];
+}

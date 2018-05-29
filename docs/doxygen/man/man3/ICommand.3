@@ -1,0 +1,166 @@
+.TH "ICommand" 3 "Tue May 29 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ICommand \- Command Interface\&. Base class for all command\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <interfaces\&.h>\fP
+.PP
+Inherited by \fBIBlockCommand\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "virtual int \fBgetType\fP ()=0"
+.br
+.RI "Get command type\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetData\fP ()=0"
+.br
+.RI "Get pointer to command data structure\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetAdditionalData\fP ()"
+.br
+.RI "Get additional data\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetResponse\fP ()=0"
+.br
+.RI "Get pointer to response data\&. "
+.ti -1c
+.RI "virtual void \fBsetData\fP (char *data)=0"
+.br
+.RI "Put data as a char list and put convert it to data structure\&. "
+.ti -1c
+.RI "virtual void \fBsetResponse\fP (char *data)=0"
+.br
+.RI "Apply data as a response struct\&. "
+.ti -1c
+.RI "virtual int \fBgetDataSize\fP ()=0"
+.br
+.RI "Get data struct size\&. Without signature\&. "
+.ti -1c
+.RI "virtual int \fBgetResponseSize\fP ()=0"
+.br
+.RI "Get response data struct size\&. "
+.ti -1c
+.RI "virtual int \fBgetAdditionalDataSize\fP ()"
+.br
+.RI "Get additional data size\&. "
+.ti -1c
+.RI "virtual unsigned char * \fBgetSignature\fP ()=0"
+.br
+.RI "Get pointer to signature data\&. "
+.ti -1c
+.RI "virtual int \fBgetSignatureSize\fP ()=0"
+.br
+.RI "Get signature size\&. "
+.ti -1c
+.RI "virtual void \fBsign\fP (const uint8_t *hash, const uint8_t *sk, const uint8_t *pk)=0"
+.br
+.RI "Sign actual data plus hash using user private and public keys\&. "
+.ti -1c
+.RI "virtual bool \fBcheckSignature\fP (const uint8_t *hash, const uint8_t *pk)=0"
+.br
+.RI "Check actual signature\&. "
+.ti -1c
+.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP ()=0"
+.br
+.RI "Get actual user for which command is performed\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetTime\fP ()=0"
+.br
+.RI "Get time of command\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetUserId\fP ()=0"
+.br
+.RI "Get User ID\&. "
+.ti -1c
+.RI "virtual uint32_t \fBgetBankId\fP ()=0"
+.br
+.RI "Get Node ID\&. "
+.ti -1c
+.RI "virtual int64_t \fBgetFee\fP ()=0"
+.br
+.RI "Get command fee\&. "
+.ti -1c
+.RI "virtual int64_t \fBgetDeduct\fP ()=0"
+.br
+.RI "Get change in cash balance after command\&. "
+.ti -1c
+.RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient)=0"
+.br
+.RI "Send data to the server\&. "
+.ti -1c
+.RI "virtual void \fBsaveResponse\fP (\fBsettings\fP &sts)=0"
+.br
+.RI "Save command response to settings object\&. "
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBErrorCodes::Code\fP \fBm_responseError\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Command Interface\&. Base class for all command\&. 
+.PP
+Definition at line 41 of file interfaces\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "virtual bool ICommand::checkSignature (const uint8_t * hash, const uint8_t * pk)\fC [pure virtual]\fP"
+
+.PP
+Check actual signature\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBConnected\fP, \fBGetVipKeys\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+.SS "virtual bool ICommand::send (\fBINetworkClient\fP & netClient)\fC [pure virtual]\fP"
+
+.PP
+Send data to the server\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fInetClient\fP Netwrok client implementation of \fBINetworkClient\fP interface\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSendOne\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBConnected\fP, \fBGetVipKeys\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+.SS "virtual void ICommand::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [pure virtual]\fP"
+
+.PP
+Sign actual data plus hash using user private and public keys\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhash\fP Previous hash operation\&. 
+.br
+\fIsk\fP Pointer to provate key\&. 
+.br
+\fIpk\fP Pointer to public key\&. 
+.RE
+.PP
+
+.PP
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBConnected\fP, \fBGetVipKeys\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.
