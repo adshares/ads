@@ -28,7 +28,9 @@ void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const bo
       // Peer should leave. It will be done by peermanager.
 
       DLOG("%04X DEADLINE ERROR. PEER STATUS %02d \n", m_peer.getSvid(), m_peer.getState());
+      m_socket.close();
       m_peer.leave();
+      //throw boost::system::system_error(boost::asio::error::timed_out);
 
       // There is no longer an active deadline. The expiry is set to positive
       // infinity so that the actor takes no action until a new deadline is set.
@@ -49,7 +51,10 @@ void PeerClient::checkDeadline()
 
       // The deadline has passed. The socket is closed so that any outstanding
       // Peer should leave. It will be done by peermanager.
+
+      m_socket.close();
       m_peer.leave();
+      //throw boost::system::system_error(boost::asio::error::timed_out);
 
       // There is no longer an active deadline. The expiry is set to positive
       // infinity so that the actor takes no action until a new deadline is set.
