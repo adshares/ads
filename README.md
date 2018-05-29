@@ -1,6 +1,7 @@
 # Enterprise Service Chain
 
-Enterprise Service Chain (ESC) is a block chain based software tool facilitating high volumes of simple transactions that, in most cases, send tokens between accounts as in other crypto currencies. The name is derived from the concept of the Enterprise Service Bus in which a crypto currency is used as the protocol of communication.
+Enterprise Service Chain (ESCd) is a block chain based software tool facilitating high
+ volumes of simple transactions that, in most cases, send tokens between accounts as in other crypto currencies. The name is derived from the concept of the Enterprise Service Bus in which a crypto currency is used as the protocol of communication.
 
 The main features of the Enterprise Service Chain can be summarized as follows:
 -	Delegated Proof of Stake as block consensus mechanism to reduce network maintenance costs
