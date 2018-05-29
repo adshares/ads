@@ -10,6 +10,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/vipkeys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/block.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.cpp
     PARENT_SCOPE
     )
 
@@ -26,5 +27,6 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/vipkeys.h
     ${CMAKE_CURRENT_SOURCE_DIR}/block.h
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.h
     PARENT_SCOPE
     )
