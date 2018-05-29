@@ -20,9 +20,11 @@ PeerConnectManager::PeerConnectManager(server& server, options& opts):
     m_connectTimer.expires_at(boost::posix_time::pos_infin);
     m_ioThread.reset(new boost::thread(boost::bind(&PeerConnectManager::ioRun, this)));
 
+#ifdef LINUX
     if(m_ioThread){
         pthread_setname_np(m_ioThread->native_handle(), "PeerMgr");
     }
+#endif
 }
 
 PeerConnectManager::~PeerConnectManager()

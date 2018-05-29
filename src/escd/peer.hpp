@@ -81,10 +81,13 @@ public:
 
     void setIoThreadName()
     {
+#ifdef LINUX
         if(iothp_){
             std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
             pthread_setname_np(iothp_->native_handle(), thName.c_str());
+
         }
+#endif
     }
 
     void iorun() {
