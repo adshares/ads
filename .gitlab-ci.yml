@@ -22,6 +22,7 @@ pull_esc:
   - git checkout develop
   - git pull
   script:
+  - rm -rf /builds/EnterpriseServiceChain/escprod
   - git clone git@github.com:EnterpriseServiceChain/esc.git /builds/EnterpriseServiceChain/escprod
   - cd /builds/EnterpriseServiceChain/escprod
   - git remote add escdev /builds/EnterpriseServiceChain/esc
