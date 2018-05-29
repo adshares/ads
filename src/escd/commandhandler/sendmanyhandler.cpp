@@ -144,6 +144,12 @@ bool SendManyHandler::onValidate() {
     else if(m_usera.msid != m_command->getUserMessageId()) {
         errorCode = ErrorCodes::Code::eBadMsgId;
     }
+    else if(deduct<0){
+        errorCode = ErrorCodes::Code::eAmountBelowZero;
+    }
+    else if(fee<0){
+        errorCode = ErrorCodes::Code::eFeeBelowZero;
+    }
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);

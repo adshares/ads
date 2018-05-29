@@ -3220,6 +3220,13 @@ NEXTUSER:
                 //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
                 weight+=div;
             }
+
+            if(deduct<0 || fee<0){
+                ELOG("ERROR: txs:%016lX or fee:%016lX less than 0 \n", deduct,fee);
+                close(fd);
+                return(false);
+            }
+
             if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight &&
                 deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight+(int64_t)local_dsu[utxs.auser].deposit){
                 //network accepts total withdrawal from users and bank owners (otherwise dividend fee may invalidate message included in the next block)

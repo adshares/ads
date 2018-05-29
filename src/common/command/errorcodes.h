@@ -62,7 +62,8 @@ public:
         eNoNodeStatusChangeAuth,
         eAccountStatusOnRemoteNode,
         eCommandParseError,
-        eBroadcastMaxLength
+        eBroadcastMaxLength,
+        eFeeBelowZero
     };
 
 private:
@@ -119,7 +120,8 @@ private:
         { Code::eNoNodeStatusChangeAuth, "Not authorized to change node status" },
         { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
         { Code::eCommandParseError, "Parse error, check input data"},
-        { Code::eBroadcastMaxLength, "Broadcast message max length exceeded"}
+        { Code::eBroadcastMaxLength, "Broadcast message max length exceeded"},
+        { Code::eFeeBelowZero, "Fee less than zero"}
    };
 
 public:
