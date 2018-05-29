@@ -1,9 +1,0 @@
-digraph "PeerConnectManager::leevePeer"
-{
-  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
-  node [fontname="Helvetica",fontsize="10",shape=record];
-  rankdir="LR";
-  Node21 [label="PeerConnectManager\l::leevePeer",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black"];
-  Node21 -> Node22 [color="midnightblue",fontsize="10",style="solid",fontname="Helvetica"];
-  Node22 [label="PeerConnectManager\l::leevePeer",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$class_peer_connect_manager.html#ad749da677911d4e1488be40b7a9c969f"];
-}
