@@ -29,12 +29,12 @@ pull_esc:
   - git config --global user.email "esc-robot@bioinfo.pl"
   - git config --global user.name "ESC Boot"
   - git fetch escdev
-  - git checkout escdev/develop -- src
-  - git checkout escdev/develop -- external
-  - git checkout escdev/develop -- .gitignore
-  - git checkout escdev/develop -- README.md
-  - git checkout escdev/develop -- docs/Whitepaper.pdf
-  - git checkout escdev/develop -- docs/doxygen/Doxyfile
+  - git checkout escdev/develop --theirs -- src
+  - git checkout escdev/develop --theirs -- external
+  - git checkout escdev/develop --theirs -- .gitignore
+  - git checkout escdev/develop --theirs -- README.md
+  - git checkout escdev/develop --theirs -- docs/Whitepaper.pdf
+  - git checkout escdev/develop --theirs -- docs/doxygen/Doxyfile
   - git commit -m "Merge"
   - git push
 
