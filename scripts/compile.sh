@@ -67,9 +67,9 @@ install_apk_dependencies() {
 
 compile() {
     if [ $1 ]; then
-        mkdir /esc
-        cd /esc
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PROJECT_CONFIG=esc /esc_repo/src
+        mkdir /ads
+        cd /ads
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PROJECT_CONFIG=esc /ads_repo/src
         make -j `nproc` escd esc
     fi
 }
