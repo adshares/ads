@@ -1,0 +1,4 @@
+<map id="SetNodeStatusHandler" name="SetNodeStatusHandler">
+<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="20,80,160,107"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="18,5,162,32"/>
+</map>

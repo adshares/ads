@@ -1,0 +1,4 @@
+<map id="GetBroadcastMsg::send" name="GetBroadcastMsg::send">
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="228,5,417,32"/>
+<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="229,56,416,83"/>
+</map>

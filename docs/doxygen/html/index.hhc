@@ -4,7 +4,7 @@
 <param name="FrameName" value="right">
 </OBJECT>
 <UL>
-<LI><OBJECT type="text/sitemap"><param name="Name" value="Namespaces"><param name="Local" value="namespaces.html"><param name="ImageNumber" value="1"></OBJECT>
+<LI><OBJECT type="text/sitemap"><param name="Name" value="Namespaces"><param name="ImageNumber" value="1"></OBJECT>
   <UL>
   <LI><OBJECT type="text/sitemap"><param name="Name" value="Namespace List"><param name="Local" value="namespaces.html"><param name="ImageNumber" value="1"></OBJECT>
     <UL>
@@ -650,6 +650,7 @@
         <LI><OBJECT type="text/sitemap"><param name="Name" value="eAccountStatusOnRemoteNode"><param name="Local" value="class_error_codes.html#af8bc214dae5536a13e868a90bbe631a8a5fed01aa276daddf211b42c908a1501d"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="eCommandParseError"><param name="Local" value="class_error_codes.html#af8bc214dae5536a13e868a90bbe631a8a18fe892d09a9b20578a97d4323352644"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="eBroadcastMaxLength"><param name="Local" value="class_error_codes.html#af8bc214dae5536a13e868a90bbe631a8ade8351b73dfcfd7d1c9ab5e9deabc70e"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="eFeeBelowZero"><param name="Local" value="class_error_codes.html#af8bc214dae5536a13e868a90bbe631a8a03ac265a9398a165d4ff64fdc2be9f2b"><param name="ImageNumber" value="11"></OBJECT>
         </UL>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="getErrorMsg"><param name="Local" value="class_error_codes.html#a3a9b62c733a624cb70ff94892a04bd3f"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="getErrorMsg"><param name="Local" value="class_error_codes.html#ac88ca539be655302473c6ee8ea598c38"><param name="ImageNumber" value="11"></OBJECT>
@@ -2883,7 +2884,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Enumerations"><param name="Local" value="functions_enum.html"><param name="ImageNumber" value="11"></OBJECT>
     </UL>
   </UL>
-<LI><OBJECT type="text/sitemap"><param name="Name" value="Files"><param name="Local" value="files.html"><param name="ImageNumber" value="1"></OBJECT>
+<LI><OBJECT type="text/sitemap"><param name="Name" value="Files"><param name="ImageNumber" value="1"></OBJECT>
   <UL>
   <LI><OBJECT type="text/sitemap"><param name="Name" value="File List"><param name="Local" value="files.html"><param name="ImageNumber" value="1"></OBJECT>
     <UL>

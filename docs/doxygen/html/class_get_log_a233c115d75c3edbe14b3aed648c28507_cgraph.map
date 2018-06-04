@@ -1,0 +1,12 @@
+<map id="GetLog::send" name="GetLog::send">
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="160,5,349,32"/>
+<area shape="rect" id="node3" href="$class_get_log.html#ae05bf5625b1897d408406ab40dba4e4c" title="Get pointer to command data structure. " alt="" coords="191,56,319,83"/>
+<area shape="rect" id="node4" href="$class_get_log.html#a49832a6c7cf132a4df6afc291e92f159" title="Get data struct size. Without signature. " alt="" coords="177,107,332,133"/>
+<area shape="rect" id="node5" href="$class_get_log.html#adbe82387aa941afacf57b86635b046d1" title="Get signature size. " alt="" coords="161,157,348,184"/>
+<area shape="rect" id="node6" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="161,208,348,235"/>
+<area shape="rect" id="node7" href="$class_get_log.html#af0c8180471356c636266526de10d6b8f" title="Get pointer to response data. " alt="" coords="175,259,334,285"/>
+<area shape="rect" id="node8" href="$class_get_log.html#a4274f05114af7c5a619b35b242e30137" title="Get response data struct size. " alt="" coords="161,309,348,336"/>
+<area shape="rect" id="node9" href="$class_get_log.html#a7e5e01e5f2ac77ee1e54cc2a20f51a95" title="Get Node ID. " alt="" coords="183,360,326,387"/>
+<area shape="rect" id="node10" href="$class_get_log.html#a4487c430b77113b19bbcba8462ee2320" title="Get User ID. " alt="" coords="185,411,324,437"/>
+<area shape="rect" id="node11" href="$class_get_log.html#a1a62997485cb4640b2a83d5c9dfe5ff6" title="Get pointer to signature data. " alt="" coords="175,461,334,488"/>
+</map>

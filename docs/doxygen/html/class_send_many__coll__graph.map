@@ -1,0 +1,9 @@
+<map id="SendMany" name="SendMany">
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="106,95,235,121"/>
+<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,99,32"/>
+<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="123,5,232,32"/>
+<area shape="rect" id="node5" href="$struct_send_many_data.html" title="Struct used in send many command (TXSTYPE_MPT) " alt="" coords="260,95,380,121"/>
+<area shape="rect" id="node6" href="$struct_send_many_info.html" title="Info for send_many transaction type. " alt="" coords="263,5,377,32"/>
+<area shape="rect" id="node7" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="404,95,551,121"/>
+<area shape="rect" id="node8" href="$structuser__s.html" title="user_s" alt="" coords="445,5,509,32"/>
+</map>
