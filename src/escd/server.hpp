@@ -8,6 +8,7 @@
 #include "options.hpp"
 #include "candidate.hpp"
 #include "helper/hlog.h"
+#include "helper/blocks.h"
 #include "network/peerclientmanager.h"
 
 class office;
@@ -4369,8 +4370,8 @@ NEXTBANK:
             dbls_.unlock();
         }
         DLOG("NEW BLOCK created\n");
-        srvs_.clean_old(opts_.svid);
-        signlater(); // sign own removed messages
+        Helper::tar_old_blocks(this->LAST_block);
+//        srvs_.clean_old(opts_.svid);
     }
 
     //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)

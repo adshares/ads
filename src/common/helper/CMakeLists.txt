@@ -11,6 +11,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/block.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/blocks.cpp
     PARENT_SCOPE
     )
 
@@ -28,5 +29,6 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/block.h
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/blocks.h
     PARENT_SCOPE
     )

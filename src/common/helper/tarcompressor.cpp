@@ -32,9 +32,13 @@ void TarCompressor::setType() {
     }
 }
 
-bool TarCompressor::createTar(const char* tarName, const char* directoryPath) {
+bool TarCompressor::createTar(const char* tarName, const char* directoryPath, const char *relativePath) {
     std::stringstream ss{};
-    ss <<"tar -cf "<< tarName <<" "<<directoryPath;
+    ss <<"tar -cf "<< tarName;
+    if (relativePath) {
+        ss << " -C " << relativePath;
+    }
+    ss << " " << directoryPath;
     int rv = system(ss.str().c_str());
     if (rv < 0) {
         return false;
@@ -62,14 +66,14 @@ bool TarCompressor::unpackTar(const char* tarName, const char* newDirectoryPath)
     return true;
 }
 
-bool TarCompressor::compressDirectory(const char *directoryPath) {
+bool TarCompressor::compressDirectory(const char *directoryPath, const char* relativePath) {
     const char* tmpTarFile = "tmp.tar";
 
     if (!boost::filesystem::is_directory(directoryPath)) {
         return false;
     }
 
-    if (!this->createTar(tmpTarFile, directoryPath)) {
+    if (!this->createTar(tmpTarFile, directoryPath, relativePath)) {
         return false;
     }
 
@@ -78,6 +82,7 @@ bool TarCompressor::compressDirectory(const char *directoryPath) {
     ifile.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
     ofile.exceptions(std::ofstream::failbit | std::ofstream::badbit | std::ofstream::eofbit);
 
+    int rv = true;
     try {
         ifile.open(tmpTarFile, std::ifstream::in | std::ifstream::binary);
         ofile.open(m_archiveFilePath, std::ofstream::out | std::ofstream::binary);
@@ -89,12 +94,12 @@ bool TarCompressor::compressDirectory(const char *directoryPath) {
         out << ifile.rdbuf();
         ifile.close();
     } catch (std::exception&) {
-        return false;
+        rv = false;
     }
 
     boost::filesystem::remove(tmpTarFile);
 
-    return true;
+    return rv;
 }
 
 bool TarCompressor::decompressDirectory(const char* newDirectoryPath) {

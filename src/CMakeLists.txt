@@ -71,9 +71,9 @@ add_subdirectory(common)
 add_subdirectory(esc)
 add_subdirectory(escd)
 add_subdirectory(tools)
-IF (CMAKE_BUILD_TYPE MATCHES "Unittest")
+
+IF(${UNITTEST})
     MESSAGE("\n\n***UNITTESTS ENABLED***\n\n\n")
-    add_definitions(-DDEBUG)
     add_subdirectory(unittest)
-ENDIF(CMAKE_BUILD_TYPE MATCHES "Unittest")
+ENDIF(${UNITTEST})
 

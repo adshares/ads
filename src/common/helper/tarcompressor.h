@@ -42,9 +42,10 @@ public:
     /**
      * @brief compressDirectory - tar and compress directory.
      * @param directoryPath - input directory path
+     * @param relativePath = path where go to before compression
      * @return true if success, otherwise false. Result file is archiveFilePath.
      */
-    bool compressDirectory(const char* directoryPath);
+    bool compressDirectory(const char* directoryPath, const char* relativePath = nullptr);
 
     /**
      * @brief decompressDirectory - untar and decompress directory.
@@ -68,9 +69,10 @@ private:
      * @brief createTar - create tar file from directory.
      * @param tarName - result tar file
      * @param directoryPath - input directory path
+     * @param relativePath - path where go to before compression
      * @return true if success, otherwise false.
      */
-    bool createTar(const char* tarName, const char* directoryPath);
+    bool createTar(const char* tarName, const char* directoryPath, const char* relativePath = nullptr);
 
     /**
      * @brief unpackTar - untar file and put files to directory path.

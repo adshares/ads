@@ -34,6 +34,7 @@
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
 
+#define BLOCKS_COMPRESSED_SHIFT 5
 #define TOTALMASS 3875820600000000000L /* total balance (target) */
 #define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
 #define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
