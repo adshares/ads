@@ -71,7 +71,7 @@
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a143d4bf69c235f12179c6f7c5bd1a8ae"><param name="Name" value="add_next_header"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classservers.html#a776e6e9124d98e6ecb026d891e8f6e55"><param name="Name" value="add_node"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a1033f5e2bb07c831d48aa014cacbbaae"><param name="Name" value="add_remote_deposit"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a547e295129468cda4f4b00f08307abed"><param name="Name" value="add_remote_user"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a659fa2b20e86ad74d23ffa5f752a8dbf"><param name="Name" value="add_remote_user"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#add365959d52f24654e1b7bcf4838926f"><param name="Name" value="add_user"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="class_peer_connect_manager.html#ac5d7e02272dcc80a5837a6fc758fcbca"><param name="Name" value="addActivePeer"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classhashtree.html#a339108506be22a9de0f7a30c5a60afb1"><param name="Name" value="addhash"></OBJECT>
@@ -2716,7 +2716,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a6c95512def54e910d0029430ea433e63"><param name="Name" value="add_deposit"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a0411b63bd554cbcdf02ac25e3486afb8"><param name="Name" value="add_msg"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a1033f5e2bb07c831d48aa014cacbbaae"><param name="Name" value="add_remote_deposit"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a547e295129468cda4f4b00f08307abed"><param name="Name" value="add_remote_user"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a659fa2b20e86ad74d23ffa5f752a8dbf"><param name="Name" value="add_remote_user"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#add365959d52f24654e1b7bcf4838926f"><param name="Name" value="add_user"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a3f8cf81c2f700cb16670c1445734eb9f"><param name="Name" value="check_user"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classoffice.html#a0be7750f50e7feee5d686e6f202870f5"><param name="Name" value="clock"></OBJECT>
@@ -2766,7 +2766,7 @@
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a815d6c5a5d071a81f622ca5044588469"><param name="Name" value="ofip"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a153b1e0306af6efb037943448f34a8f3"><param name="Name" value="ofip_add_remote_deposit"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a958b2941b6232533c5e34ac83dce8f3a"><param name="Name" value="ofip_add_remote_user"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a7dc6bacc2f4826dd23ab383f311c8a3b"><param name="Name" value="ofip_add_remote_user"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#abc620dc62b40e6391c453257bfe91b45"><param name="Name" value="ofip_change_pkey"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#ae4bddbe24fd509defa54677673c1a86b"><param name="Name" value="ofip_del_msg"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#add4c2e07c56665093a139ab1c46b738a"><param name="Name" value="ofip_delete_user"></OBJECT>
@@ -3516,7 +3516,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a9a31c1a62fe5cce715276035cc576b38"><param name="Name" value="need_bank"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a815d6c5a5d071a81f622ca5044588469"><param name="Name" value="ofip"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a153b1e0306af6efb037943448f34a8f3"><param name="Name" value="ofip_add_remote_deposit"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a958b2941b6232533c5e34ac83dce8f3a"><param name="Name" value="ofip_add_remote_user"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a7dc6bacc2f4826dd23ab383f311c8a3b"><param name="Name" value="ofip_add_remote_user"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#abc620dc62b40e6391c453257bfe91b45"><param name="Name" value="ofip_change_pkey"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#ae4bddbe24fd509defa54677673c1a86b"><param name="Name" value="ofip_del_msg"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#add4c2e07c56665093a139ab1c46b738a"><param name="Name" value="ofip_delete_user"></OBJECT>
