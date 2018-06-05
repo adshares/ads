@@ -555,15 +555,15 @@ class office {
         return(true);
     }
 
-    void add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { //create account on remote request
+    uint32_t add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { //create account on remote request
         assert(svid);
         if(readonly) {
             ELOG("ERROR: failed to open account (readonly)\n");
-            return;
+            return 0;
         }
         if(!try_account((hash_s*)pkey)) {
             ELOG("ERROR: failed to open account (pkey known)\n");
-            return;
+            return 0;
         }
         uint32_t ltime=time(NULL);
         uint32_t luser=add_user(bbank,pkey,ltime,buser);
@@ -577,6 +577,7 @@ class office {
                 add_account((hash_s*)pkey,luser);
             }
         } //blacklist
+        return luser;
     }
 
     uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) { // will create new account or overwrite old one

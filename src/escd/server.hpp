@@ -3073,6 +3073,14 @@ NEXTUSER:
                 }
                 deduct=utxs.tmass;
             } else if(*p==TXSTYPE_USR) { // this is local bank
+                deduct=USER_MIN_MASS;
+                fee=TXS_USR_FEE;
+                if(utxs.abank!=utxs.bbank) {
+                    fee+=TXS_RUS_FEE;
+                    remote_fee+=TXS_RUS_FEE;
+                } else {
+
+                }
                 if(utxs.abank!=utxs.bbank) {
                     usr_t usr;
                     usr.auser=utxs.auser;
@@ -3081,15 +3089,30 @@ NEXTUSER:
                     uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                     txs_usr[ppb]=usr;
                     if(utxs.bbank==opts_.svid) { //respond to account creation request
-                        ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
+                        uint32_t newuser = ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
+
+                        uint64_t key=(uint64_t)newuser<<32;
+                        key|=lpos++;
+
+                        log_t blog;
+                        blog.time=now;
+                        blog.type=*p|0x8000; //incoming
+                        blog.node=utxs.abank;
+                        blog.user=utxs.auser;
+                        blog.umid=utxs.amsid;
+                        blog.nmid=msg->msid; //can be overwritten with info
+                        //blog.mpos=mpos; //can be overwritten with info
+                        blog.mpos=tmpos; //can be overwritten with info
+                        blog.weight=deduct;
+                        memcpy(blog.info+ 0,&usera->weight,8);
+                        memcpy(blog.info+ 8,&deduct,8);
+                        memcpy(blog.info+16,&fee,8);
+                        memcpy(blog.info+24,&usera->stat,2);
+                        memcpy(blog.info+26,&usera->pkey,6);
+                        log[key]=blog;
                     }
                 }
-                deduct=USER_MIN_MASS;
-                if(utxs.abank!=utxs.bbank) {
-                    fee=TXS_USR_FEE + TXS_RUS_FEE;
-                } else {
-                    fee=TXS_USR_FEE;
-                }
+
             } else if(*p==TXSTYPE_BNK) { // we will get a confirmation from the network
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                 txs_bnk[ppb]=utxs.auser;
@@ -3536,8 +3559,10 @@ NEXTUSER:
                 to.small[0]=tx->auser;
                 to.small[1]=abank;
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
+                bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
                 if(abank==opts_.svid) {
-                    myusr_fee+=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
+//                    myusr_fee+=BANK_PROFIT(TXS_RUS_FEE);
+//                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(TXS_RUS_FEE));
                 }
                 if(tx->bbank==opts_.svid) {
                     uint64_t key=(uint64_t)tx->buser<<32;
@@ -4879,7 +4904,7 @@ NEXTBANK:
     void ofip_del_msg(uint32_t msid);
     void ofip_update_block(uint32_t period_start,uint32_t now,message_map& commit_msgs,uint32_t newdiv);
     void ofip_process_log(uint32_t now);
-    void ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
+    uint32_t ofip_add_remote_user(uint16_t abank,uint32_t auser,uint8_t* pkey);
     void ofip_delete_user(uint32_t user);
     void ofip_change_pkey(uint8_t* user);
     void ofip_readwrite();
