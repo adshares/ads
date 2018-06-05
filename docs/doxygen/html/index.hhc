@@ -1627,7 +1627,7 @@
       <LI><OBJECT type="text/sitemap"><param name="Name" value="add_msg"><param name="Local" value="classoffice.html#a0411b63bd554cbcdf02ac25e3486afb8"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="add_msg"><param name="Local" value="classoffice.html#a33fe34dd19c4de589b5b44d2b00fe189"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="add_remote_deposit"><param name="Local" value="classoffice.html#a1033f5e2bb07c831d48aa014cacbbaae"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="add_remote_user"><param name="Local" value="classoffice.html#a547e295129468cda4f4b00f08307abed"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="add_remote_user"><param name="Local" value="classoffice.html#a659fa2b20e86ad74d23ffa5f752a8dbf"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="add_user"><param name="Local" value="classoffice.html#add365959d52f24654e1b7bcf4838926f"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="check_user"><param name="Local" value="classoffice.html#a3f8cf81c2f700cb16670c1445734eb9f"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="clock"><param name="Local" value="classoffice.html#a0be7750f50e7feee5d686e6f202870f5"><param name="ImageNumber" value="11"></OBJECT>
@@ -2042,7 +2042,7 @@
       <LI><OBJECT type="text/sitemap"><param name="Name" value="msgl_process"><param name="Local" value="classserver.html#a0f7dd772d56284ad2e38a16af4ea74f2"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="need_bank"><param name="Local" value="classserver.html#a9a31c1a62fe5cce715276035cc576b38"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_add_remote_deposit"><param name="Local" value="classserver.html#a153b1e0306af6efb037943448f34a8f3"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_add_remote_user"><param name="Local" value="classserver.html#a958b2941b6232533c5e34ac83dce8f3a"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_add_remote_user"><param name="Local" value="classserver.html#a7dc6bacc2f4826dd23ab383f311c8a3b"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_change_pkey"><param name="Local" value="classserver.html#abc620dc62b40e6391c453257bfe91b45"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_del_msg"><param name="Local" value="classserver.html#ae4bddbe24fd509defa54677673c1a86b"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ofip_delete_user"><param name="Local" value="classserver.html#add4c2e07c56665093a139ab1c46b738a"><param name="ImageNumber" value="11"></OBJECT>
