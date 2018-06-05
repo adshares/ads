@@ -92,7 +92,7 @@ bool ChangeNodeKeyHandler::onValidate() {
     int64_t fee = m_command->getFee();
 
     hash_t secretKey;
-    if (!m_command->getDestBankId() && m_offi.find_key(m_command->getKey(), secretKey)) {
+    if (!m_command->getDestBankId() && !m_offi.find_key(m_command->getKey(), secretKey)) {
         errorCode = ErrorCodes::Code::eMatchSecretKeyNotFound;
     }
     else if(m_command->getBankId()!=m_offi.svid) {
