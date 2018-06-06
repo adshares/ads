@@ -38,8 +38,6 @@ public:
         eMatchSecretKeyNotFound,
         eSetKeyRemoteBankFail,
         eConnectServerError,
-        eVipKeysFileCouldNotBeOpened,
-        eVipKeysFileEmpty,
         eGetBlockInfoUnavailable,
         eGetSignatureUnavailable,
         eIncorrectType,
@@ -63,7 +61,11 @@ public:
         eAccountStatusOnRemoteNode,
         eCommandParseError,
         eBroadcastMaxLength,
-        eFeeBelowZero
+        eFeeBelowZero,
+        eFailedToReadBlockStart,
+        eFailedToReadBlockAtStart,
+        eNoBlockInSpecifiedRange,
+        eCouldNotReadCorrectVipKeys
     };
 
 private:
@@ -96,8 +98,6 @@ private:
         { Code::eMatchSecretKeyNotFound, "Matching secret key not found" },
         { Code::eSetKeyRemoteBankFail, "Setting key for remote bank failed" },
         { Code::eConnectServerError, "Can't connect to server" },
-        { Code::eVipKeysFileCouldNotBeOpened, "File with vip keys could not be opened" },
-        { Code::eVipKeysFileEmpty, "File with vip keys empty" },
         { Code::eGetBlockInfoUnavailable, "Block info is unavailable" },
         { Code::eGetSignatureUnavailable, "Signature is unavailable" },
         { Code::eIncorrectType, "Incorrect type" },
@@ -121,7 +121,11 @@ private:
         { Code::eAccountStatusOnRemoteNode, "Changing account status on remote node not allowed"},
         { Code::eCommandParseError, "Parse error, check input data"},
         { Code::eBroadcastMaxLength, "Broadcast message max length exceeded"},
-        { Code::eFeeBelowZero, "Fee less than zero"}
+        { Code::eFeeBelowZero, "Fee less than zero"},
+        { Code::eFailedToReadBlockStart, "Failed to read block start"},
+        { Code::eFailedToReadBlockAtStart, "Failed to read block at start"},
+        { Code::eNoBlockInSpecifiedRange, "Failed to read block in specified block range"},
+        { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"}
    };
 
 public:

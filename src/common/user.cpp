@@ -56,6 +56,7 @@
 #include "command/getsignatures.h"
 #include "command/retrievefunds.h"
 #include "command/getvipkeys.h"
+#include "command/getblocks.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -263,8 +264,8 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         boost::optional<std::string> json_to=pt.get_optional<std::string>("to");
         if(json_to) {
             to_to=hexdec(json_to.get());
-        } //                                    !!!!!!!             !!!!!
-        txs=boost::make_shared<usertxs>(TXSTYPE_BLK,sts.bank,sts.user,to_from,now,to_bank,to_to,to_mass,to_info,(const char*)NULL);
+        }
+        command.reset(new GetBlocks(sts.bank, sts.user, now, to_from, to_to));
     } else if(!run.compare(txsname[TXSTYPE_TXS])) {
         uint32_t node_msid=0;
         uint32_t node_mpos=0;

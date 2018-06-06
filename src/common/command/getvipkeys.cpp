@@ -98,27 +98,35 @@ bool GetVipKeys::send(INetworkClient& netClient)
         return true;
     }
 
-    if(!netClient.readData((int32_t*)&m_bufferLength, sizeof(m_bufferLength))) {
+    uint32_t bufferLength;
+
+    if(!netClient.readData((int32_t*)&bufferLength, sizeof(bufferLength))) {
         ELOG("GetVipKeys ERROR reading response buffer length\n");
         return false;
     }
 
-    m_responseBuffer = std::make_unique<char[]>(m_bufferLength);
-    if(!netClient.readData(m_responseBuffer.get(), m_bufferLength)) {
+    auto responseBuffer = std::make_unique<char[]>(bufferLength);
+    if(!netClient.readData(responseBuffer.get(), bufferLength)) {
         ELOG("GetVipKeys ERROR reading response buffer\n");
         return false;
     }
+
+    m_vipKeys.loadFromBuffer(std::move(responseBuffer), bufferLength);
 
     char hash[65];
     hash[64]='\0';
     ed25519_key2text(hash, getVipHash(), 32);
 
-    if(!checkVipKeys((uint8_t*)m_responseBuffer.get(), m_bufferLength/(2+32))) {
+    if(!m_vipKeys.checkVipKeys(getVipHash(), bufferLength/(2+32))) {
         fprintf(stderr, "ERROR, failed to check VIP keys for hash %s\n", hash);
         return false;
     }
 
-    if(!storeVipKeys(hash)) {
+    mkdir("vip", 0755);
+    char filename[128];
+    sprintf(filename, "vip/%64s.vip", hash);
+
+    if(!m_vipKeys.storeVipKeys(filename)) {
         fprintf(stderr, "ERROR, failed to save VIP keys for hash %s\n", hash);
         return false;
     }
@@ -141,7 +149,7 @@ void GetVipKeys::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         ptree.put("viphash",hash);
         boost::property_tree::ptree viptree;
-        for(char* p=m_responseBuffer.get(); p<m_responseBuffer.get()+m_bufferLength; p+=32) {
+        for(char* p=m_vipKeys.getVipKeys(); p<m_vipKeys.getVipKeys()+m_vipKeys.getLength(); p+=32) {
             ed25519_key2text(hash, (uint8_t*)p, 32);
             boost::property_tree::ptree vipkey;
             vipkey.put("", hash);
@@ -165,33 +173,4 @@ void GetVipKeys::txnToJson(boost::property_tree::ptree& ptree) {
 
 unsigned char* GetVipKeys::getVipHash() {
     return reinterpret_cast<unsigned char*>(&m_data.info.viphash);
-}
-
-bool GetVipKeys::checkVipKeys(uint8_t* vipKeys, int num) {
-    hash_t newhash= {};
-    hashtree tree(NULL); //FIXME, waste of space
-
-    vipKeys+=2;
-    for(int n=0; n<num; n++,vipKeys+=32+2) {
-        tree.addhash(newhash, vipKeys);
-    }
-    return(!memcmp(newhash, getVipHash(), 32));
-}
-
-bool GetVipKeys::storeVipKeys(const char* hash) {
-    mkdir("vip", 0755);
-    char filename[128];
-    sprintf(filename, "vip/%64s.vip", hash);
-
-    std::ofstream file(filename, std::ofstream::binary | std::ofstream::out);
-    if (file.is_open()) {
-        file.write(m_responseBuffer.get(), m_bufferLength);
-        fprintf(stderr, "INFO, stored VIP keys in %s\n", filename);
-        file.close();
-    }
-    else {
-        fprintf(stderr, "ERROR opening %s\n", filename);
-        return false;
-    }
-    return true;
 }

@@ -14,14 +14,16 @@ struct Signature {
 
 class Signatures {
 public:
-    Signatures(uint32_t path);
-    void load();
-    std::vector<Signature> getSignaturesOk();
-    std::vector<Signature> getSignaturesNo();
+    Signatures();
+    void load(uint32_t path);
+    void loadSignaturesOk(uint32_t path);
+    const std::vector<Signature>& getSignaturesOk();
+    const std::vector<Signature>& getSignaturesNo();
 private:
     int getNumOfSignaturesInFile(const char* fileName) const;
     std::vector<Signature> readSignatures(const char* fileName);
-    uint32_t m_path;
+    void readSignaturesOk(uint32_t path);
+    void readSignaturesNo(uint32_t path);
     std::vector<Signature> m_signaturesOk;
     std::vector<Signature> m_signaturesNo;
 };

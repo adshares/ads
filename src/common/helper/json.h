@@ -30,6 +30,7 @@ const char* const NEW_PKEY = "new_public_key";
 const char* const PKEY_SIGN = "public_key_signature";
 const char* const BLOCK = "block_number";
 const char* const FROM = "from";
+const char* const TO = "to";
 const char* const TXN_COUNTER = "transactions_conuter";
 const char* const SENDER_FEE = "sender_fee";
 const char* const AMOUNT = "amount";

@@ -1,24 +1,29 @@
-#ifndef GETVIPKEYS_H
-#define GETVIPKEYS_H
+#ifndef GETBLOCKS_H
+#define GETBLOCKS_H
 
+#include <vector>
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "errorcodes.h"
 #include "helper/vipkeys.h"
+#include "helper/signatures.h"
+#include "helper/block.h"
+#include "helper/hlog.h"
 
-class GetVipKeys : public IBlockCommand {
+class GetBlocks : public IBlockCommand {
     public:
-        GetVipKeys();
-        GetVipKeys(uint16_t abank, uint32_t auser, uint32_t time, uint8_t vhash[32]);
+        GetBlocks();
+        GetBlocks(uint16_t abank, uint32_t auser, uint32_t ttime, uint32_t from, uint32_t to);
 
-        /** \brief Return TXSTYPE_VIP as command type . */
-        virtual int getType()                                       override;
+         /** \brief Return TXSTYPE_BLK as command type . */
+        virtual int getType()                                      override;
 
         /** \brief Get pointer to command data structure. */
-        virtual unsigned char* getData()                            override;
+        virtual unsigned char* getData()                           override;
 
         /** \brief Get pointer to response data. */
-        virtual unsigned char* getResponse()                        override;
+        virtual unsigned char* getResponse()                       override;
 
         /** \brief Put data as a char list and put convert it to data structure. */
         virtual void setData(char* data)                            override;
@@ -86,11 +91,28 @@ class GetVipKeys : public IBlockCommand {
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-        unsigned char* getVipHash();
-    private:
-        VipKeys                 m_vipKeys;
-        GetVipKeysData          m_data;
-        commandresponse         m_response;
+        uint32_t getBlockNumberFrom();
+        uint32_t getBlockNumberTo();
+        void writeStart(uint32_t time);
+        bool receiveHeaders(INetworkClient&);
+        bool receiveSignatures(INetworkClient&);
+        bool receiveFirstVipKeys(INetworkClient& netClient);
+        bool receiveNewVipKeys(INetworkClient& netClient);
+        bool loadLastHeader();
+        bool validateChain();
+        bool saveNowhash(const header_t& head);
+        bool validateLastBlockUsingFirstKeys();
+
+        uint32_t m_firstKeysLen{};
+        VipKeys m_firstVipKeys;
+        std::vector<header_t> m_receivedHeaders;
+        std::vector<Signature> m_signatures;
+        hash_t m_viphash{};
+        hash_t m_oldhash{};
+        Block m_block;
+        GetBlocksData m_data;
+        uint32_t m_numOfBlocks{};
+        commandresponse m_response;
 };
 
-#endif // GETVIPKEYS_H
+#endif

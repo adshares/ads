@@ -24,6 +24,7 @@ SET (SOURCED
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeyshandler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblockshandler.cpp
     PARENT_SCOPE
     )
 
@@ -53,6 +54,7 @@ SET (HEADERSD
     ${CMAKE_CURRENT_SOURCE_DIR}/getsignatureshandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefundshandler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeyshandler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/getblockshandler.h
     PARENT_SCOPE
     )
 
