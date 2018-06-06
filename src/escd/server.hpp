@@ -3116,7 +3116,7 @@ NEXTUSER:
             } else if(*p==TXSTYPE_BNK) { // we will get a confirmation from the network
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                 txs_bnk[ppb]=utxs.auser;
-                deduct=BANK_MIN_TMASS;
+                deduct=BANK_MIN_UMASS;
                 fee=TXS_BNK_FEE;
             } else if(*p==TXSTYPE_GET) {
                 if(utxs.abank==utxs.bbank) {
@@ -3762,9 +3762,9 @@ NEXTUSER:
                     } to;
                     to.small[0]=auser;
                     to.small[1]=abank;
-                    deposit[to.big]+=BANK_MIN_TMASS;
+                    deposit[to.big]+=BANK_MIN_UMASS;
                     if(auser) {
-                        bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_TMASS));
+                        bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_UMASS));
                     } //else would generate extra fee
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
@@ -3777,7 +3777,7 @@ NEXTUSER:
                         alog.umid=0;
                         alog.nmid=0;
                         alog.mpos=srvs_.now;
-                        alog.weight=BANK_MIN_TMASS;
+                        alog.weight=BANK_MIN_UMASS;
                         memcpy(alog.info,u.pkey,32);
                         log[key]=alog;
                     }

@@ -814,7 +814,7 @@ class client : public boost::enable_shared_from_this<client> {
                 m_utxs.buser=nuser;
             }
         } else if(*m_buf==TXSTYPE_BNK) { // we will get a confirmation from the network
-            deduct=BANK_MIN_TMASS;
+            deduct=BANK_MIN_UMASS;
             fee=TXS_BNK_FEE;
         } else if(*m_buf==TXSTYPE_GET) { // we will get a confirmation from the network
             if(m_utxs.abank==m_utxs.bbank) {
