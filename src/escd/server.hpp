@@ -3089,27 +3089,7 @@ NEXTUSER:
                     uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                     txs_usr[ppb]=usr;
                     if(utxs.bbank==opts_.svid) { //respond to account creation request
-                        uint32_t newuser = ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
-
-                        uint64_t key=(uint64_t)newuser<<32;
-                        key|=lpos++;
-
-                        log_t blog;
-                        blog.time=now;
-                        blog.type=*p|0x8000; //incoming
-                        blog.node=utxs.abank;
-                        blog.user=utxs.auser;
-                        blog.umid=utxs.amsid;
-                        blog.nmid=msg->msid; //can be overwritten with info
-                        //blog.mpos=mpos; //can be overwritten with info
-                        blog.mpos=tmpos; //can be overwritten with info
-                        blog.weight=deduct;
-                        memcpy(blog.info+ 0,&usera->weight,8);
-                        memcpy(blog.info+ 8,&deduct,8);
-                        memcpy(blog.info+16,&fee,8);
-                        memcpy(blog.info+24,&usera->stat,2);
-                        memcpy(blog.info+26,&usera->pkey,6);
-                        log[key]=blog;
+                        ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
                     }
                 }
 
@@ -3538,6 +3518,7 @@ NEXTUSER:
             };
             DLOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
             uin[nuin].push_back(ppi_txid(it->first));
+
         }
         blk_usr.clear();
         for(auto it=blk_uok.begin(); it!=blk_uok.end(); it++) { //send funds from matched transactions to new account
@@ -3551,6 +3532,7 @@ NEXTUSER:
                     tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]
                 }
             };
+
             if(uin.find(nuin)!=uin.end() && !uin[nuin].empty()) {
                 union {
                     uint64_t big;
@@ -3559,10 +3541,33 @@ NEXTUSER:
                 to.small[0]=tx->auser;
                 to.small[1]=abank;
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
-                bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
+                if(tx->auser) { // additional fee is not generated for bank account
+                  bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
+                }
+
+                // remote node profit only from processed get requests
+                bank_fee[abank]+=BANK_PROFIT(TXS_RUS_FEE);
                 if(abank==opts_.svid) {
-//                    myusr_fee+=BANK_PROFIT(TXS_RUS_FEE);
-//                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(TXS_RUS_FEE));
+                    myusr_fee+=BANK_PROFIT(TXS_RUS_FEE);
+                }
+
+                if(abank==opts_.svid) {
+                    uint64_t key=(uint64_t)tx->auser<<32;
+                    key|=lpos++;
+
+                    log_t blog;
+                    blog.time=time(NULL);
+                    blog.type=TXSTYPE_USR|0x8000; //incoming
+                    blog.node=tx->bbank;
+                    blog.user=tx->buser;
+                    blog.umid=0;
+                    blog.nmid=0; //can be overwritten with info
+                    //blog.mpos=mpos; //can be overwritten with info
+                    blog.mpos=srvs_.now; //can be overwritten with info
+                    blog.weight=USER_MIN_MASS;
+                    memcpy(blog.info,tx->pkey,32);
+                    log[key]=blog;
+
                 }
                 if(tx->bbank==opts_.svid) {
                     uint64_t key=(uint64_t)tx->buser<<32;

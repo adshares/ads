@@ -329,6 +329,21 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 logtree.push_back(std::make_pair("",logentry));
                 continue;
             }
+            if(txst==TXSTYPE_USR && ulog.node != bank) { //create_account log on remote account
+                logentry.put("amount",print_amount(ulog.weight));
+                logentry.put("node",ulog.node);
+                char blockhex[9];
+                blockhex[8]='\0';
+                sprintf(blockhex,"%08X",ulog.mpos);
+                logentry.put("block_id",blockhex);
+                if(ulog.user) {
+                    logentry.put("account",ulog.user);
+                    logentry.put("address",acnt);
+                }
+                logentry.put("public_key",info);
+                logtree.push_back(std::make_pair("",logentry));
+                continue;
+            }
             if(txst==TXSTYPE_BNK) {
                 char blockhex[9];
                 blockhex[8]='\0';
