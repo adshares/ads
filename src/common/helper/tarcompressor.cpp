@@ -202,3 +202,36 @@ void TarCompressor::getDecompressionType(boost::iostreams::filtering_streambuf<b
             break;
     }
 }
+
+bool TarCompressor::extractFileFromArch(const char* filename, const char* fileNewPath) {
+    if (m_archiveFilePath.empty() || !boost::filesystem::exists(m_archiveFilePath)) {
+        return false;
+    }
+
+    std::stringstream command{};
+    command << "tar -xf " << m_archiveFilePath << " --no-anchored " << filename ;
+    int rv = system(command.str().c_str());
+    if (rv < 0) {
+        return false;
+    }
+
+    if (!boost::filesystem::exists(filename)) {
+        return false;
+    }
+
+    if (fileNewPath) {
+        try {
+            boost::filesystem::create_directories(boost::filesystem::path(fileNewPath).parent_path());
+            if (boost::filesystem::exists(fileNewPath)) {
+                boost::filesystem::remove(fileNewPath);
+            }
+            boost::filesystem::copy_file(filename, fileNewPath);
+            boost::filesystem::remove(filename);
+        } catch (std::exception& e) {
+            std::cerr<<"Exception: "<<e.what()<<std::endl;
+            return false;
+        }
+    }
+
+    return true;
+}

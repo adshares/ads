@@ -55,6 +55,9 @@ public:
      */
     bool decompressDirectory(const char* newDirectoryPath);
 
+    // nweDirectory must exists
+    bool extractFileFromArch(const char* filename, const char *fileNewDirectory = nullptr);
+
 private:
     //! when use autodetection it set compression type based on file extension.
     void setType();

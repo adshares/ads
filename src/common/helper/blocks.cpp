@@ -1,7 +1,7 @@
 #include "blocks.h"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <boost/filesystem.hpp>
 
 #include "tarcompressor.h"
@@ -32,6 +32,46 @@ void tar_old_blocks(uint32_t currentTime) {
 
 void remove_block(const char* blockPath) {
     boost::filesystem::remove_all(blockPath);
+}
+
+bool get_file_from_block(const char* filePath, const char* fileNewPath) {
+    boost::filesystem::path path(filePath);
+    if (boost::filesystem::exists(path)) {
+        // file exists in uncompressed directory
+        return true;
+    }
+
+    boost::filesystem::path::iterator it = path.begin();
+    std::string blockpath(it->string());
+    ++it;
+    for (unsigned int i=1; i<3 && it!=path.end(); ++it, ++i) {
+        blockpath += "/";
+        blockpath += it->string();
+    }
+    blockpath += ".tar.gz";
+
+    std::string filepath_in_block(".");
+    for ( ; it != path.end(); ++it) {
+        filepath_in_block += "/";
+        filepath_in_block += it->string();
+    }
+
+    TarCompressor tar(blockpath, CompressionType::eGZIP);
+    return tar.extractFileFromArch(filepath_in_block.c_str(), fileNewPath);
+}
+
+int open_block_file(const char* filename, int type) {
+    if (boost::filesystem::exists(filename)) {
+        return open(filename, type);
+    }
+
+    std::string newPath(filename);
+    newPath.replace(0, 3, "tmp");
+    if (!get_file_from_block(filename, newPath.c_str())) {
+        return -1;
+    }
+
+    return open(newPath.c_str(), type);
 }
 
 }

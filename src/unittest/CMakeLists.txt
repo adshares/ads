@@ -1,7 +1,9 @@
 set (UNITTEST_APP unittest)
 
 SET (SRC_LIST
+    unittest.cpp
     compressor_test.cpp
+    blocks_helper_test.cpp
     )
 
 SET (HEADERS_LIST
