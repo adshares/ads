@@ -1,0 +1,5 @@
+<map id="GetLog::sign" name="GetLog::sign">
+<area shape="rect" id="node2" href="$class_get_log.html#ae05bf5625b1897d408406ab40dba4e4c" title="Get pointer to command data structure. " alt="" coords="171,5,299,32"/>
+<area shape="rect" id="node3" href="$class_get_log.html#a49832a6c7cf132a4df6afc291e92f159" title="Get data struct size. Without signature. " alt="" coords="158,56,313,83"/>
+<area shape="rect" id="node4" href="$class_get_log.html#a1a62997485cb4640b2a83d5c9dfe5ff6" title="Get pointer to signature data. " alt="" coords="156,107,315,133"/>
+</map>

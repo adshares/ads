@@ -1,0 +1,9 @@
+<map id="GetAccount" name="GetAccount">
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="90,109,219,136"/>
+<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,99,32"/>
+<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="123,5,232,32"/>
+<area shape="rect" id="node5" href="$structaccountresponse.html" title="Struct data for get_me and get_accout response. " alt="" coords="243,109,375,136"/>
+<area shape="rect" id="node6" href="$structuser__s.html" title="user_s" alt="" coords="277,5,341,32"/>
+<area shape="rect" id="node7" href="$structusertxs2.html" title="Full struct data for get_me and get_accout command with signature. " alt="" coords="399,109,478,136"/>
+<area shape="rect" id="node8" href="$structuserinfo.html" title="Struct data for get_me and get_accout command. " alt="" coords="401,5,476,32"/>
+</map>

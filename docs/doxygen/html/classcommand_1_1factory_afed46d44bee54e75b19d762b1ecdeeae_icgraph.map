@@ -1,0 +1,5 @@
+<map id="command::factory::makeCommand" name="command::factory::makeCommand">
+<area shape="rect" id="node2" href="$class_get_fields.html#a2823170292f994c759ffe775dee5307b" title="Send data to the server. " alt="" coords="324,5,445,32"/>
+<area shape="rect" id="node3" href="$class_get_message.html#a24d72d59b2be81bd1b74d80b23f429c4" title="Send data to the server. " alt="" coords="314,56,455,83"/>
+<area shape="rect" id="node4" href="$class_get_transaction.html#a843761cdc06aa93e789b0788ec839f59" title="Send data to the server. " alt="" coords="305,107,464,133"/>
+</map>

@@ -1,0 +1,60 @@
+.TH "NetworkClient" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+NetworkClient
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits \fBINetworkClient\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBNetworkClient\fP (const std::string &address, const std::string &port)"
+.br
+.ti -1c
+.RI "virtual bool \fBconnect\fP () override"
+.br
+.RI "Connect to server if disconnected\&. "
+.ti -1c
+.RI "virtual bool \fBreconnect\fP () override"
+.br
+.RI "Recconect to server\&. "
+.ti -1c
+.RI "virtual bool \fBdisConnect\fP () override"
+.br
+.RI "Disconnect to server\&. "
+.ti -1c
+.RI "virtual bool \fBsendData\fP (uint8_t *buff, int size) override"
+.br
+.RI "Send data using pointer to bufor and size\&. "
+.ti -1c
+.RI "virtual bool \fBsendData\fP (std::vector< uint8_t > buff) override"
+.br
+.RI "Send data using vector data\&. "
+.ti -1c
+.RI "virtual bool \fBreadData\fP (uint8_t *buff, int size) override"
+.br
+.RI "Read data to buffor\&. "
+.ti -1c
+.RI "virtual bool \fBreadData\fP (char *buff, int size) override"
+.br
+.RI "Read data to buffor\&. "
+.ti -1c
+.RI "virtual bool \fBreadData\fP (std::vector< uint8_t > &buff) override"
+.br
+.RI "Read data to vector\&. "
+.ti -1c
+.RI "virtual bool \fBreadData\fP (int32_t *buff, int size) override"
+.br
+.RI "Read data to int\&. "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 12 of file networkclient\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

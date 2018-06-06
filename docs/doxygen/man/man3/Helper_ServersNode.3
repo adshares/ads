@@ -1,0 +1,56 @@
+.TH "Helper::ServersNode" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::ServersNode
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBtoJson\fP (boost::property_tree::ptree &\fBnode\fP)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "unsigned char \fBpublicKey\fP [32]"
+.br
+.ti -1c
+.RI "uint64_t \fBhash\fP [4]"
+.br
+.ti -1c
+.RI "uint8_t \fBmessageHash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint32_t \fBmessageId\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBmessageTime\fP {0}"
+.br
+.ti -1c
+.RI "int64_t \fBweight\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBstatus\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBaccountCount\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBport\fP {0}"
+.br
+.ti -1c
+.RI "uint32_t \fBipv4\fP {0}"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 34 of file servers\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

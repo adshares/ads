@@ -1,0 +1,67 @@
+.TH "UserSendOneInfo" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+UserSendOneInfo \- User info used in send one command (TXSTYPE_PUT)  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBUserSendOneInfo\fP (uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBttype\fP {TXSTYPE_PUT}"
+.br
+.RI "command type "
+.ti -1c
+.RI "uint16_t \fBabank\fP {0}"
+.br
+.RI "source node "
+.ti -1c
+.RI "uint32_t \fBauser\fP {0}"
+.br
+.RI "source user "
+.ti -1c
+.RI "uint32_t \fBnamsid\fP {0}"
+.br
+.RI "user message id "
+.ti -1c
+.RI "uint32_t \fBttime\fP {0}"
+.br
+.RI "time "
+.ti -1c
+.RI "uint16_t \fBbbank\fP {0}"
+.br
+.RI "destination node "
+.ti -1c
+.RI "uint32_t \fBbuser\fP {0}"
+.br
+.RI "destination user "
+.ti -1c
+.RI "int64_t \fBntmass\fP {0}"
+.br
+.RI "deduct "
+.ti -1c
+.RI "uint8_t \fBntinfo\fP [32]"
+.br
+.RI "additional info "
+.in -1c
+.SH "Detailed Description"
+.PP 
+User info used in send one command (TXSTYPE_PUT) 
+.PP
+Definition at line 63 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

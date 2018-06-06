@@ -1,0 +1,43 @@
+.TH "command::factory" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+command::factory \- Class which is creating commad by using type\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <factory\&.h>\fP
+.SS "Static Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static std::unique_ptr< \fBIBlockCommand\fP > \fBmakeCommand\fP (uint8_t type)"
+.br
+.RI "Make command function\&. "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Class which is creating commad by using type\&. 
+.PP
+Definition at line 14 of file factory\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "std::unique_ptr< \fBIBlockCommand\fP > command::factory::makeCommand (uint8_t type)\fC [static]\fP"
+
+.PP
+Make command function\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fItype\fP Type of command  type should be enum type\&. 
+.RE
+.PP
+
+.PP
+Definition at line 31 of file factory\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

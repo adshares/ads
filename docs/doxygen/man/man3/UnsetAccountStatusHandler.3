@@ -1,0 +1,54 @@
+.TH "UnsetAccountStatusHandler" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+UnsetAccountStatusHandler
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits \fBCommandHandler\fP\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBUnsetAccountStatusHandler\fP (\fBoffice\fP &\fBoffice\fP, boost::asio::ip::tcp::socket &socket)"
+.br
+.ti -1c
+.RI "virtual void \fBonInit\fP (std::unique_ptr< \fBIBlockCommand\fP > command) override"
+.br
+.RI "Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. "
+.ti -1c
+.RI "virtual void \fBonExecute\fP () override"
+.br
+.RI "Execution event\&. It execute actual command and commiting it to blockchain\&. "
+.ti -1c
+.RI "virtual bool \fBonValidate\fP () override"
+.br
+.RI "Validtaion event\&. It execute validation of data if it contain all proper value\&. "
+.in -1c
+.SS "Additional Inherited Members"
+.SH "Detailed Description"
+.PP 
+Definition at line 12 of file unsetaccountstatushandler\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "void UnsetAccountStatusHandler::onInit (std::unique_ptr< \fBIBlockCommand\fP > command)\fC [override]\fP, \fC [virtual]\fP"
+
+.PP
+Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcommand\fP Unique Pointer with command which should be executed\&. 
+.RE
+.PP
+
+.PP
+Implements \fBICommandHandler\fP\&.
+.PP
+Definition at line 10 of file unsetaccountstatushandler\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

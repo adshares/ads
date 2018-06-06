@@ -1,0 +1,39 @@
+.TH "UserSendOne" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+UserSendOne \- Struct used in send one command (TXSTYPE_PUT)  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBUserSendOne\fP (uint16_t abank_, uint32_t auser_, uint32_t namsid_, uint16_t bbank_, uint32_t buser_, int64_t ntmass_, uint32_t time_, uint8_t ntinfo_[32])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "\fBUserSendOneInfo\fP \fBinfo\fP"
+.br
+.RI "user info "
+.ti -1c
+.RI "unsigned char \fBsign\fP [64]"
+.br
+.RI "signature "
+.in -1c
+.SH "Detailed Description"
+.PP 
+Struct used in send one command (TXSTYPE_PUT) 
+.PP
+Definition at line 82 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

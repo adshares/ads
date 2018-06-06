@@ -1,0 +1,5 @@
+<map id="GetLog::GetLog" name="GetLog::GetLog">
+<area shape="rect" id="node2" href="$class_get_log.html#affca04a61aefc01e5b5538512c9d9834" title="Reads last logs update time. " alt="" coords="176,31,377,57"/>
+<area shape="rect" id="node3" href="$class_get_log.html#a7e5e01e5f2ac77ee1e54cc2a20f51a95" title="Get Node ID. " alt="" coords="425,5,568,32"/>
+<area shape="rect" id="node4" href="$class_get_log.html#a4487c430b77113b19bbcba8462ee2320" title="Get User ID. " alt="" coords="427,56,566,83"/>
+</map>
