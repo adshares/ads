@@ -34,7 +34,8 @@ class GetBlocksHandler : public CommandHandler {
         header_t& header,
         Helper::Block& currentHeader,
         int vipTot);
-    void sendVipKeys(const VipKeys& vipKeys);
+    void sendFirstVipKeysIfNeeded();
+    void sendNewVipKeys();
     void sendBlockHeaders();
     void sendLastBlockSignatures();
     VipKeys m_firstVipKeys;

@@ -340,12 +340,12 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
 bool GetBlocks::send(INetworkClient& netClient)
 {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SetAccountStatus sending error\n");
+        ELOG("GetBlocks sending error\n");
         return false;
     }
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
-        ELOG("SetAccountStatus reading error\n");
+        ELOG("GetBlocks reading error\n");
         return false;
     }
 
