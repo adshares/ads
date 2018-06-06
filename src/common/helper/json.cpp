@@ -93,6 +93,7 @@ bool parse_amount(int64_t& amount,std::string str_amount) {
         str_amount.erase(dot_pos, 1).append(AMOUNT_DECIMALS - after_dot, '0');
     }
     char * endptr;
+    errno = 0;
     amount=std::strtoll(str_amount.c_str(), &endptr, 10);
     if(*endptr != '\0' || errno) {
         return(false);
