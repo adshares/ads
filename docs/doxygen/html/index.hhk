@@ -1894,7 +1894,7 @@
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classhashtree.html#a22c70560eaed36694d633c6cb02ab59c"><param name="Name" value="hash_"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html"><param name="Name" value="hash_cmp"></OBJECT>
   <UL>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a3ac2b39e1073cb680c9582bc47698fca"><param name="Name" value="operator()"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a2dd6d01c7a7de3e3e22290c7a25ee80f"><param name="Name" value="operator()"></OBJECT>
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="unionhash__s.html"><param name="Name" value="hash_s"></OBJECT>
   <UL>
@@ -2443,7 +2443,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a9fb94f6b9a0bd404ce9ca4733cc670aa"><param name="Name" value="path"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a93e7e4d9abbac874db27b7ec78042f62"><param name="Name" value="peer"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a25e9abfdcf0872bcecc17c1ac8b1d88b"><param name="Name" value="preh"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a5cdaa637e4d2447e717f2ca3dd68d4a6"><param name="Name" value="print"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a6426a2aa8d995dcf2c6fddc306af6999"><param name="Name" value="print"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#aa11e75aa2d63116634f3308e76571701"><param name="Name" value="print_header"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a3131499331327acb9b824ebf2aeb2740"><param name="Name" value="print_text"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#ac06a3a2caec6c281e1abf0305ab9d9e0"><param name="Name" value="read_head"></OBJECT>
@@ -2865,10 +2865,10 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="class_unset_node_status_handler.html#acbb1ffd78e66dd943bd8dd05a835d1d1"><param name="Name" value="UnsetNodeStatusHandler"></OBJECT>
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#aa96e7dbd495a9282dc77ea73620e0fd6"><param name="Name" value="open_bank"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a3ac2b39e1073cb680c9582bc47698fca"><param name="Name" value="operator()"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a2dd6d01c7a7de3e3e22290c7a25ee80f"><param name="Name" value="operator()"></OBJECT>
   <UL>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a3ac2b39e1073cb680c9582bc47698fca"><param name="Name" value="hash_cmp"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__cmp.html#a69a2317991bf82d5259a22715dd4b09c"><param name="Name" value="uin_cmp"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="structhash__cmp.html#a2dd6d01c7a7de3e3e22290c7a25ee80f"><param name="Name" value="hash_cmp"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__cmp.html#af1cba74784d5726ec04ec2f87b8732b4"><param name="Name" value="uin_cmp"></OBJECT>
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="class_broadcast_msg.html#a4989809bf213c9ef73a36d9366332720"><param name="Name" value="operator="></OBJECT>
   <UL>
@@ -3062,9 +3062,9 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="class_get_block.html#a5aa0dcc011099709ca6016ec6a37c07a"><param name="Name" value="GetBlock"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="class_get_message_list.html#ad40f1aae0e4ae15ba97cd52dc01258b8"><param name="Name" value="GetMessageList"></OBJECT>
   </UL>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a5cdaa637e4d2447e717f2ca3dd68d4a6"><param name="Name" value="print"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a6426a2aa8d995dcf2c6fddc306af6999"><param name="Name" value="print"></OBJECT>
   <UL>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a5cdaa637e4d2447e717f2ca3dd68d4a6"><param name="Name" value="message"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a6426a2aa8d995dcf2c6fddc306af6999"><param name="Name" value="message"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classpeer.html#a5b85ce6f93beca3d63fd04f76aeb980e"><param name="Name" value="peer"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classusertxs.html#afcc02036f9e124ec30011cb2038bacca"><param name="Name" value="usertxs"></OBJECT>
   </UL>
@@ -4032,7 +4032,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="structt_info.html#a5ceec06930f59d343be3263a819131c0"><param name="Name" value="stat"></OBJECT>
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classusertxs.html#a478620679cab6a9c7d74ec5b223e4a8d"><param name="Name" value="tinfo"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="structt_info.html#ab1e73f1c0b7b1f20f80fd1a00072e2d3"><param name="Name" value="tInfo"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="structt_info.html"><param name="Name" value="tInfo"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classusertxs.html#af011bb16f83471278a8594d50f566680"><param name="Name" value="tmass"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="struct_get_transaction_response.html#adb1569540326bd8baff5f54af71c2c07"><param name="Name" value="tnum"></OBJECT>
   <UL>
@@ -4283,7 +4283,7 @@
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__cmp.html"><param name="Name" value="uin_cmp"></OBJECT>
   <UL>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__cmp.html#a69a2317991bf82d5259a22715dd4b09c"><param name="Name" value="operator()"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__cmp.html#af1cba74784d5726ec04ec2f87b8732b4"><param name="Name" value="operator()"></OBJECT>
   </UL>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="structuin__t.html"><param name="Name" value="uin_t"></OBJECT>
   <UL>

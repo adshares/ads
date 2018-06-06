@@ -1,4 +1,4 @@
-.TH "GetMessageList" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "GetMessageList" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -20,79 +20,79 @@ Inherits \fBIBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "Return TXSTYPE_MSG as command type \&. "
+.RI "\fIReturn TXSTYPE_MSG as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
-.RI "Get pointer to command data structure\&. "
+.RI "\fIGet pointer to command data structure\&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetResponse\fP () override"
 .br
-.RI "Get pointer to response data\&. "
+.RI "\fIGet pointer to response data\&. \fP"
 .ti -1c
 .RI "virtual void \fBsetData\fP (char *data) override"
 .br
-.RI "Put data as a char list and put convert it to data structure\&. "
+.RI "\fIPut data as a char list and put convert it to data structure\&. \fP"
 .ti -1c
 .RI "virtual void \fBsetResponse\fP (char *response) override"
 .br
-.RI "Apply data as a response struct\&. "
+.RI "\fIApply data as a response struct\&. \fP"
 .ti -1c
 .RI "virtual int \fBgetDataSize\fP () override"
 .br
-.RI "Get data struct size\&. Without signature\&. "
+.RI "\fIGet data struct size\&. Without signature\&. \fP"
 .ti -1c
 .RI "virtual int \fBgetResponseSize\fP () override"
 .br
-.RI "Get response data struct size\&. "
+.RI "\fIGet response data struct size\&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetSignature\fP () override"
 .br
-.RI "Get pointer to signature data\&. "
+.RI "\fIGet pointer to signature data\&. \fP"
 .ti -1c
 .RI "virtual int \fBgetSignatureSize\fP () override"
 .br
-.RI "Get signature size\&. "
+.RI "\fIGet signature size\&. \fP"
 .ti -1c
 .RI "virtual void \fBsign\fP (const uint8_t *hash, const uint8_t *sk, const uint8_t *pk) override"
 .br
-.RI "Sign actual data plus hash using user private and public keys\&. "
+.RI "\fISign actual data plus hash using user private and public keys\&. \fP"
 .ti -1c
 .RI "virtual bool \fBcheckSignature\fP (const uint8_t *hash, const uint8_t *pk) override"
 .br
-.RI "Check actual signature\&. "
+.RI "\fICheck actual signature\&. \fP"
 .ti -1c
 .RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
 .br
-.RI "Get actual blockchain user info\&. "
+.RI "\fIGet actual blockchain user info\&. \fP"
 .ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
-.RI "Get time of command\&. "
+.RI "\fIGet time of command\&. \fP"
 .ti -1c
 .RI "virtual uint32_t \fBgetUserId\fP () override"
 .br
-.RI "Get User ID\&. "
+.RI "\fIGet User ID\&. \fP"
 .ti -1c
 .RI "virtual uint32_t \fBgetBankId\fP () override"
 .br
-.RI "Get Node ID\&. "
+.RI "\fIGet Node ID\&. \fP"
 .ti -1c
 .RI "virtual int64_t \fBgetFee\fP () override"
 .br
-.RI "Get command fee\&. "
+.RI "\fIGet command fee\&. \fP"
 .ti -1c
 .RI "virtual int64_t \fBgetDeduct\fP () override"
 .br
-.RI "Get change in cash balance after command\&. "
+.RI "\fIGet change in cash balance after command\&. \fP"
 .ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
 .br
-.RI "Send data to the server\&. "
+.RI "\fISend data to the server\&. \fP"
 .ti -1c
 .RI "virtual void \fBsaveResponse\fP (\fBsettings\fP &sts) override"
 .br
-.RI "Save command response to settings object\&. "
+.RI "\fISave command response to settings object\&. \fP"
 .ti -1c
 .RI "virtual std::string \fBtoString\fP (bool pretty) override"
 .br
@@ -108,7 +108,7 @@ Inherits \fBIBlockCommand\fP\&.
 .ti -1c
 .RI "virtual \fBErrorCodes::Code\fP \fBprepareResponse\fP ()"
 .br
-.RI "Get data from msglist file\&. "
+.RI "\fIGet data from msglist file\&. \fP"
 .in -1c
 .SS "Public Attributes"
 

@@ -1,9 +1,9 @@
 <map id="SendOne" name="SendOne">
-<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="86,95,215,121"/>
-<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,99,32"/>
-<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="123,5,232,32"/>
-<area shape="rect" id="node5" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="240,95,387,121"/>
-<area shape="rect" id="node6" href="$structuser__s.html" title="user_s" alt="" coords="281,5,345,32"/>
-<area shape="rect" id="node7" href="$struct_user_send_one.html" title="Struct used in send one command (TXSTYPE_PUT) " alt="" coords="411,95,522,121"/>
-<area shape="rect" id="node8" href="$struct_user_send_one_info.html" title="User info used in send one command (TXSTYPE_PUT) " alt="" coords="399,5,534,32"/>
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="84,95,211,121"/>
+<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
+<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node5" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="235,95,382,121"/>
+<area shape="rect" id="node6" href="$structuser__s.html" title="user_s" alt="" coords="277,5,341,32"/>
+<area shape="rect" id="node7" href="$struct_user_send_one.html" title="Struct used in send one command (TXSTYPE_PUT) " alt="" coords="407,95,517,121"/>
+<area shape="rect" id="node8" href="$struct_user_send_one_info.html" title="User info used in send one command (TXSTYPE_PUT) " alt="" coords="395,5,529,32"/>
 </map>

@@ -1,8 +1,8 @@
-.TH "Parser::MsglistParser" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "Parser::MsglistParser" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-Parser::MsglistParser
+Parser::MsglistParser \- 
 .SH SYNOPSIS
 .br
 .PP
@@ -20,50 +20,50 @@ Parser::MsglistParser
 .ti -1c
 .RI "bool \fBload\fP (const char *filepath=nullptr)"
 .br
-.RI "Load msglist\&.dat file\&. "
+.RI "\fILoad msglist\&.dat file\&. \fP"
 .ti -1c
 .RI "bool \fBsave\fP (const char *filepath=nullptr)"
 .br
-.RI "save msglist\&.dat file "
+.RI "\fIsave msglist\&.dat file \fP"
 .ti -1c
 .RI "\fBMessageListHeader\fP \fBgetHeader\fP ()"
 .br
-.RI "Get header of msglist\&.dat file\&. "
+.RI "\fIGet header of msglist\&.dat file\&. \fP"
 .ti -1c
 .RI "std::vector< \fBMessageRecord\fP > \fBgetMessageList\fP ()"
 .br
-.RI "Get vector of all messages\&. "
+.RI "\fIGet vector of all messages\&. \fP"
 .ti -1c
 .RI "uint8_t * \fBgetHeaderHash\fP ()"
 .br
-.RI "Get only hash from file header\&. "
+.RI "\fIGet only hash from file header\&. \fP"
 .ti -1c
 .RI "uint32_t \fBgetHashesTotalSize\fP ()"
 .br
-.RI "Total no of additional hashes at the end of msglist file\&. "
+.RI "\fITotal no of additional hashes at the end of msglist file\&. \fP"
 .ti -1c
 .RI "MsgIterator \fBbegin\fP ()"
 .br
-.RI "iterator to first messages element\&. "
+.RI "\fIiterator to first messages element\&. \fP"
 .ti -1c
 .RI "MsgIterator \fBend\fP ()"
 .br
-.RI "iterator to the end of messages vector\&. "
+.RI "\fIiterator to the end of messages vector\&. \fP"
 .ti -1c
 .RI "bool \fBisEmpty\fP ()"
 .br
-.RI "check is list of messages empty "
+.RI "\fIcheck is list of messages empty \fP"
 .ti -1c
 .RI "MsgIterator \fBget\fP (unsigned int id)"
 .br
 .ti -1c
 .RI "HashIterator \fBh_begin\fP ()"
 .br
-.RI "iterator to first element of additional hashes "
+.RI "\fIiterator to first element of additional hashes \fP"
 .ti -1c
 .RI "HashIterator \fBh_end\fP ()"
 .br
-.RI "iterator to last element of additional hashes "
+.RI "\fIiterator to last element of additional hashes \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 

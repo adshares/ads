@@ -1,8 +1,8 @@
-.TH "GetAccountHandler" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "GetAccountHandler" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-GetAccountHandler
+GetAccountHandler \- 
 .SH SYNOPSIS
 .br
 .PP
@@ -17,15 +17,15 @@ Inherits \fBCommandHandler\fP\&.
 .ti -1c
 .RI "virtual void \fBonInit\fP (std::unique_ptr< \fBIBlockCommand\fP > command) override"
 .br
-.RI "Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. "
+.RI "\fIInt command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. \fP"
 .ti -1c
 .RI "virtual void \fBonExecute\fP () override"
 .br
-.RI "Execution event\&. It execute actual command and commiting it to blockchain\&. "
+.RI "\fIExecution event\&. It execute actual command and commiting it to blockchain\&. \fP"
 .ti -1c
 .RI "virtual bool \fBonValidate\fP () override"
 .br
-.RI "Validtaion event\&. It execute validation of data if it contain all proper value\&. "
+.RI "\fIValidtaion event\&. It execute validation of data if it contain all proper value\&. \fP"
 .in -1c
 .SS "Additional Inherited Members"
 .SH "Detailed Description"
