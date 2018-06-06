@@ -25,11 +25,11 @@ void GetBlocksHandler::onExecute() {
     try {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            sendVipKeys(m_firstVipKeys);
+            sendFirstVipKeysIfNeeded();
             if(m_serversHeaders.size() > 0) {
                 sendBlockHeaders();
                 sendLastBlockSignatures();
-                sendVipKeys(m_newVipKeys);
+                sendNewVipKeys();
             }
         }
     } catch (std::exception& e) {
@@ -62,11 +62,19 @@ bool GetBlocksHandler::onValidate() {
     return true;
 }
 
-void GetBlocksHandler::sendVipKeys(const VipKeys& vipKeys) {
-    const uint32_t length = vipKeys.getLength();
+void GetBlocksHandler::sendFirstVipKeysIfNeeded() {
+    const uint32_t length = m_firstVipKeys.getLength();
+    if(length > 0) {
+        boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
+        boost::asio::write(m_socket, boost::asio::buffer(m_firstVipKeys.getVipKeys(), length));
+    }
+}
+
+void GetBlocksHandler::sendNewVipKeys() {
+    const uint32_t length = m_newVipKeys.getLength();
     boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
     if(length > 0) {
-        boost::asio::write(m_socket, boost::asio::buffer(vipKeys.getVipKeys(), sizeof(length)));
+        boost::asio::write(m_socket, boost::asio::buffer(m_newVipKeys.getVipKeys(), length));
     }
 }
 
