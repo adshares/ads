@@ -25,6 +25,7 @@
 #include "getsignatures.h"
 #include "retrievefunds.h"
 #include "getvipkeys.h"
+#include "getblocks.h"
 
 namespace command {
 
@@ -107,13 +108,13 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
     case TXSTYPE_VIP:
         command = std::make_unique<GetVipKeys>();
         break;
+    case TXSTYPE_BLK:
+        command = std::make_unique<GetBlocks>();
+        break;
     default:
         std::cerr<<"Unsupported transaction type "<<type<<" "<<Helper::getTxnName(type)<<std::endl;
         break;
     }
-
-    //assert(command);
-    //assert(command->getType() == type);
 
     return command;
 }

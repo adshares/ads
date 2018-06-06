@@ -9,7 +9,7 @@ extern boost::mutex siglock;
 
 namespace Helper {
 
-Signatures::Signatures(uint32_t path) : m_path(path) {
+Signatures::Signatures() {
 }
 
 int Signatures::getNumOfSignaturesInFile(const char* fileName) const {
@@ -37,26 +37,37 @@ std::vector<Signature> Signatures::readSignatures(const char* fileName) {
     return signatures;
 }
 
-void Signatures::load() {
-    boost::lock_guard<boost::mutex> lock(siglock);
-
+void Signatures::readSignaturesOk(uint32_t path) {
     char fileName[64];
-    sprintf(fileName,"blk/%03X/%05X/signatures.ok", m_path>>20, m_path&0xFFFFF);
+    sprintf(fileName,"blk/%03X/%05X/signatures.ok", path>>20, path&0xFFFFF);
     m_signaturesOk = readSignatures(fileName);
+}
 
-    if (m_signaturesOk.size() == 0) {
-        return;
-    }
-
-    sprintf(fileName,"blk/%03X/%05X/signatures.no", m_path>>20, m_path&0xFFFFF);
+void Signatures::readSignaturesNo(uint32_t path) {
+    char fileName[64];
+    sprintf(fileName,"blk/%03X/%05X/signatures.no", path>>20, path&0xFFFFF);
     m_signaturesNo = readSignatures(fileName);
 }
 
-std::vector<Signature> Signatures::getSignaturesOk() {
+void Signatures::load(uint32_t path) {
+    boost::lock_guard<boost::mutex> lock(siglock);
+    readSignaturesOk(path);
+    if (m_signaturesOk.size() == 0) {
+        return;
+    }
+    readSignaturesNo(path);
+}
+
+void Signatures::loadSignaturesOk(uint32_t path) {
+    boost::lock_guard<boost::mutex> lock(siglock);
+    readSignaturesOk(path);
+}
+
+const std::vector<Signature>& Signatures::getSignaturesOk() {
     return m_signaturesOk;
 }
 
-std::vector<Signature> Signatures::getSignaturesNo() {
+const std::vector<Signature>& Signatures::getSignaturesNo() {
     return m_signaturesNo;
 }
 
