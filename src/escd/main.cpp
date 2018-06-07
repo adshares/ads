@@ -128,6 +128,7 @@ int main(int argc, char* argv[]) {
                 opt.fast=false;
                 opt.init=false;
                 opt.comm=true;
+                opt.genesis="";
                 ELOG("\n\nRESTARTING\n\n\n");
             } else {
                 ELOG("Shutting down\n");
