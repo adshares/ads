@@ -3541,7 +3541,6 @@ NEXTUSER:
                 to.small[0]=tx->auser;
                 to.small[1]=abank;
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
-                bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
 
                 // remote node profit only from processed get requests
                 bank_fee[abank]+=BANK_PROFIT(TXS_RUS_FEE);
@@ -3617,7 +3616,6 @@ NEXTUSER:
                 to.small[0]=it->first.auser;
                 to.small[1]=it->first.abank;
                 deposit[to.big]+=USER_MIN_MASS;
-                bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS)); //else would generate extra fee for bank
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
                     key|=lpos++;
@@ -3764,7 +3762,6 @@ NEXTUSER:
                     to.small[0]=auser;
                     to.small[1]=abank;
                     deposit[to.big]+=BANK_MIN_UMASS;
-                    bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_UMASS)); //else would generate extra fee
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
                         key|=lpos++;
