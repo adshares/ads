@@ -298,10 +298,11 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     memcpy(&usr,ulog.info+ 8,8);
                     memcpy(&get,ulog.info+16,8);
                     memcpy(&fee,ulog.info+24,8);
+                    logentry.put("profit_put",print_amount(ulog.weight));
                     logentry.put("profit_div",print_amount(div));
                     logentry.put("profit_usr",print_amount(usr));
                     logentry.put("profit_get",print_amount(get));
-                    logentry.put("profit",print_amount(div+usr+get));
+                    logentry.put("profit",print_amount(div+usr+get+ulog.weight));
                     logentry.put("fee",print_amount(fee));
                 }
                 logtree.push_back(std::make_pair("",logentry));

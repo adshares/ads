@@ -4082,7 +4082,7 @@ NEXTBANK:
 
     void commit_deposit(std::set<uint16_t>& update) { //assume single thread, TODO change later !!!
         //uint32_t now=time(NULL); //for the log
-        //std::map<uint64_t,log_t> log;
+        std::map<uint64_t,log_t> log;
         //char filename[64];
         uint16_t lastsvid=0;
         int /*ud=0,*/fd=-1;
@@ -4135,6 +4135,19 @@ NEXTBANK:
                 //DLOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
             }
             bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+            if(svid==opts_.svid) {
+                log_t alog;
+                alog.time=time(NULL);
+                alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
+                alog.node=svid;
+                alog.user=0;
+                alog.umid=0;
+                alog.nmid=0;
+                alog.mpos=srvs_.now;
+                alog.weight=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                bzero(alog.info,sizeof(alog.info));
+                log[0]=alog;
+            }
             u.weight+=it->second;
             u.rpath=srvs_.now;
             if(svid==opts_.svid && !do_sync && ofip!=NULL) {
@@ -4155,6 +4168,7 @@ NEXTBANK:
             undo.clear();
         }
         deposit.clear(); //remove deposits after commiting
+        put_msglog(srvs_.now,0,0,log);
     }
 
     void commit_bankfee() {
@@ -4211,6 +4225,7 @@ NEXTBANK:
             close(fd);
             srvs_.save_undo(svid,undo,0);
             if(svid==opts_.svid) {
+                int64_t bfee =buser_fee + profit - (bank_fee[svid]-buser_fee); // really paid amount (no funds)
                 log_t alog;
                 alog.time=time(NULL);
                 alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
@@ -4219,11 +4234,11 @@ NEXTBANK:
                 alog.umid=0;
                 alog.nmid=0;
                 alog.mpos=srvs_.now;
-                alog.weight=profit;
+                alog.weight=0;
                 memcpy(alog.info,&mydiv_fee,sizeof(int64_t));
                 memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
                 memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
-                memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
+                memcpy(alog.info+3*sizeof(int64_t),&bfee,sizeof(int64_t));
                 log[0]=alog;
             }
         }
