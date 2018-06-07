@@ -3541,9 +3541,7 @@ NEXTUSER:
                 to.small[0]=tx->auser;
                 to.small[1]=abank;
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
-                if(tx->auser) { // additional fee is not generated for bank account
-                  bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
-                }
+                bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
 
                 // remote node profit only from processed get requests
                 bank_fee[abank]+=BANK_PROFIT(TXS_RUS_FEE);
@@ -3619,9 +3617,7 @@ NEXTUSER:
                 to.small[0]=it->first.auser;
                 to.small[1]=it->first.abank;
                 deposit[to.big]+=USER_MIN_MASS;
-                if(it->first.auser) {
-                    bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
-                } //else would generate extra fee for bank
+                bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS)); //else would generate extra fee for bank
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
                     key|=lpos++;
@@ -3768,9 +3764,7 @@ NEXTUSER:
                     to.small[0]=auser;
                     to.small[1]=abank;
                     deposit[to.big]+=BANK_MIN_UMASS;
-                    if(auser) {
-                        bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_UMASS));
-                    } //else would generate extra fee
+                    bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_UMASS)); //else would generate extra fee
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
                         key|=lpos++;
@@ -4140,9 +4134,7 @@ NEXTBANK:
             } else {
                 //DLOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
             }
-            if(user) { // no fees from remote deposits to bank
-                bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
-            }
+            bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
             u.weight+=it->second;
             u.rpath=srvs_.now;
             if(svid==opts_.svid && !do_sync && ofip!=NULL) {
