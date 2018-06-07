@@ -234,6 +234,7 @@ void server::ofip_change_pkey(uint8_t* pkey) {
 }
 void server::ofip_readwrite() {
     DLOG("OFFICE SET READWRITE\n");
+    std::cout << "OFFICE SET READWRITE\n";
     ofip->readonly=false;
 }
 void server::ofip_readonly() {
