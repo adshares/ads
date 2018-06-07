@@ -131,7 +131,7 @@ bool SetAccountStatusHandler::onValidate() {
         errorCode = ErrorCodes::Code::eAuthorizationError;
     }
     else if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
-            (0x0 != (m_command->getStatus()&0xF0))) {
+            (0x0 != (m_command->getStatus()&0xFFF0))) {
 
         DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",
             m_command->getStatus(), m_command->getDestUserId());
