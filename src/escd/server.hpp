@@ -214,7 +214,6 @@ class server {
         //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
         if(!opts_.svid) { // READONLY ok
-            iamvip=false;
             bzero(skey,sizeof(hash_t));
             bzero(pkey,sizeof(hash_t));
         } else {
@@ -222,7 +221,6 @@ class server {
                 ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
                 exit(-1);
             }
-            iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
             //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
             memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
             //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
@@ -743,7 +741,6 @@ NEXTUSER:
                 last_srvs_=srvs_; // consider not making copies of nodes
                 memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
                 period_start=srvs_.nextblock();
-                iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
                 //FIXME should be a separate thread
                 DLOG("UPDATE LOG\n");
                 ofip_update_block(period_start,0,LAST_block_final_msgs,srvs_.div);
@@ -872,7 +869,6 @@ NEXTUSER:
                 bank_fee.resize(last_srvs_.nodes.size());
                 if(opts_.svid && opts_.svid<(int)srvs_.nodes.size()) {
                     // pkey=srvs_.nodes[opts_.svid].pk;
-                    iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
                 } //FIXME, is this needed and safe ?
                 do_fast=1;
                 headers_.unlock();
@@ -3212,18 +3208,8 @@ NEXTUSER:
                     local_dsu[utxs.buser].uus|=bits & ~mask;
                 }
                 fee=TXS_UUS_FEE;
-            } else if(*p==TXSTYPE_SAV) {
-                if(!(msg->status & MSGSTAT_VAL) && iamvip && !do_sync && msg->path>=start_path) {
-                    user_t u;
-                    msg->get_user(utxs.auser,u);
-                    if(memcmp(&u,utxs.usr(p),sizeof(user_t))) { // can fail if we don't have data from this block :-(
-                        ELOG("ERROR: bad user data for %04X:%08X\n",utxs.abank,utxs.auser);
-                        close(fd);
-                        return(false);
-                    }
-                }
-                fee=TXS_SAV_FEE;
             }
+
             int64_t div=dividend(*usera,lodiv_fee); //do this before checking balance
             if(div!=(int64_t)0x8FFFFFFFFFFFFFFF) {
                 //DLOG("DIV: pay to %04X:%08X (%016lX)\n",msg->svid,utxs.auser,div);
@@ -4329,7 +4315,6 @@ NEXTBANK:
         last_srvs_=srvs_; // consider not making copies of nodes
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
         period_start=srvs_.nextblock();
-        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
         //vip_max=srvs_.update_vip(); // move to nextblock()
         if(!do_sync) {
             ofip_update_block(period_start,srvs_.now,LAST_block_final_msgs,srvs_.div);
@@ -5006,7 +4991,6 @@ NEXTBANK:
     uint32_t period_start; //start time of this period
     hash_t msha_;
     std::set<uint16_t> dbl_srvs_; //list of detected double servers
-    bool iamvip;
     bool block_only;
     bool panic;
 
