@@ -3539,7 +3539,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=tx->auser;
-                to.small[1]=abank;
+                to.small[1]=abank | 0x10000;
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
 
                 // remote node profit only from processed get requests
@@ -3614,7 +3614,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=it->first.auser;
-                to.small[1]=it->first.abank;
+                to.small[1]=it->first.abank  | 0x10000;
                 deposit[to.big]+=USER_MIN_MASS;
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
@@ -3760,7 +3760,7 @@ NEXTUSER:
                         uint32_t small[2];
                     } to;
                     to.small[0]=auser;
-                    to.small[1]=abank;
+                    to.small[1]=abank | 0x10000;
                     deposit[to.big]+=BANK_MIN_UMASS;
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
@@ -3830,7 +3830,7 @@ NEXTUSER:
                 uint64_t big;
                 uint32_t small[2];
             } to;
-            to.small[1]=abank; //assume big endian
+            to.small[1]=abank | 0x10000; //assume big endian
             auto tx=&it->second;
             user_t u;
             lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
@@ -4088,6 +4088,7 @@ NEXTBANK:
         assert((char*)&u.rpath<(char*)&u.weight);
         assert((char*)&u.rpath<(char*)&u.csum);
         std::map<uint32_t,user_t> undo;
+        uint64_t myput_fee = 0;
         for(auto it=deposit.begin(); it!=deposit.end(); it++) {
             if(it->second==0) { //MUST keep this to prevent rpath change, it may indicate undone transaction !
                 continue;
@@ -4098,7 +4099,7 @@ NEXTBANK:
             } to;
             to.big=it->first;
             uint32_t user=to.small[0];
-            uint16_t svid=to.small[1];
+            uint16_t svid=to.small[1]&0xFFFF;
             assert(svid);
             if(svid!=lastsvid) {
                 if(fd>=0) {
@@ -4131,19 +4132,11 @@ NEXTBANK:
             } else {
                 //DLOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
             }
-            bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
-            if(svid==opts_.svid) {
-                log_t alog;
-                alog.time=time(NULL);
-                alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
-                alog.node=svid;
-                alog.user=0;
-                alog.umid=0;
-                alog.nmid=0;
-                alog.mpos=srvs_.now;
-                alog.weight=BANK_PROFIT(TXS_LNG_FEE(it->second));
-                bzero(alog.info,sizeof(alog.info));
-                log[0]=alog;
+            if(!(to.small[1] & 0x10000)) {
+                bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                if(svid==opts_.svid) {
+                    myput_fee+=TXS_LNG_FEE(it->second);
+                }
             }
             u.weight+=it->second;
             u.rpath=srvs_.now;
@@ -4165,7 +4158,21 @@ NEXTBANK:
             undo.clear();
         }
         deposit.clear(); //remove deposits after commiting
-        put_msglog(srvs_.now,0,0,log);
+        if(myput_fee > 0) {
+            log_t alog;
+            alog.time=time(NULL);
+            alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
+            alog.node=opts_.svid;
+            alog.user=0;
+            alog.umid=0;
+            alog.nmid=0;
+            alog.mpos=srvs_.now;
+            alog.weight=BANK_PROFIT(myput_fee);
+            bzero(alog.info,sizeof(alog.info));
+            log[0]=alog;
+            put_msglog(srvs_.now,0,0,log);
+        }
+
     }
 
     void commit_bankfee() {
