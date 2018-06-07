@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <cstdio>
+#include <string>
+
+#define TMP_DIR "tmp/"
 
 namespace Helper {
 
@@ -20,13 +23,16 @@ void tar_old_blocks(uint32_t currentTime);
  */
 void remove_block(const char* blockPath);
 
+void remove_file(const char* filename);
+bool remove_file_if_temporary(const char* filename);
+
 /**
- * @brief Gets file from block or tar, depends on location
- * @param filePath - full path to file eg. staring from blk/.../0001.dat
- * @param fileNewPath - [opt] file new path, directory must exists.
+ * @brief Extracts file from arch if needed.
+ * @param filePath - [in|out] full path to file eg. staring from blk/.../0001.dat.
+ * Note that filePath will be changed if file decompressed to temporary place.
  * @return true if file successful extracted and can be open, false if file not exists.
  */
-bool get_file_from_block(const char* filePath, const char *fileNewPath = nullptr);
+bool get_file_from_block(char *filePath);
 
 /**
  * @brief Open file from block or tar, depends on location.
@@ -34,7 +40,13 @@ bool get_file_from_block(const char* filePath, const char *fileNewPath = nullptr
  * @param type - O_RDONLY, O_WRONLY etc.
  * @return file descriptor
  */
-int open_block_file(const char* filename, int type = O_RDONLY);
+int open_block_file(char *filename, int type = O_RDONLY);
+
+bool is_file_not_compressed(const char *filePath);
+
+//! chech is file exists in temporary directory
+bool is_temporary_file(const char *filePath);
+bool is_temporary_file(const std::string& filePath);
 
 namespace FileName {
 const int kCommonNameFixedLength = 14; //only const prefix, for full length add strlen(filename)
@@ -59,6 +71,10 @@ constexpr void getUndFile(char* output, uint32_t timestamp, uint32_t msgType, ui
 constexpr void getLog(char* output, uint32_t timestamp, uint16_t bank, uint32_t msgId) {
     sprintf(output, "blk/%03X/%05X/log/%04X_%08X.log", timestamp>>20, timestamp&0xFFFFF, bank, msgId);
 }
+constexpr void getLogTimeBin(char* output, uint32_t timestamp) {
+    sprintf(output, "blk/%03X/%05X/log/time.bin", timestamp>>20, timestamp&0xFFFFF);
+}
+
 } // namespace Files
 
 } // namespace Helper

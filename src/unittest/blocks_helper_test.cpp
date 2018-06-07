@@ -85,8 +85,8 @@ TEST(BlockTest, getFileFromArch) {
     EXPECT_EQ(strlen(filename), Helper::FileName::kLogNameFixedLength);
 
     std::string newpath(filename);
-    newpath.replace(0, 3, "tmp"); // replace blk with tmp
-    EXPECT_TRUE(Helper::get_file_from_block(filename, newpath.c_str()));
+    newpath.replace(0, 4, TMP_DIR); // replace blk with tmp
+    EXPECT_TRUE(Helper::get_file_from_block(filename));
     EXPECT_TRUE(boost::filesystem::exists(newpath));
 
     filename[0] = 0;
@@ -94,8 +94,8 @@ TEST(BlockTest, getFileFromArch) {
     EXPECT_EQ(strlen(filename), Helper::FileName::kUndoNameFixedLength);
 
     newpath = filename;
-    newpath.replace(0, 3, "tmp"); // replace blk with tmp
-    EXPECT_TRUE(Helper::get_file_from_block(filename, newpath.c_str()));
+    newpath.replace(0, 4, TMP_DIR); // replace blk with tmp
+    EXPECT_TRUE(Helper::get_file_from_block(filename));
     EXPECT_TRUE(boost::filesystem::exists(newpath));
 }
 
