@@ -448,6 +448,7 @@ class client : public boost::enable_shared_from_this<client> {
                     block.header(head);
                 }
             }
+
             if(!to) {
                 to=time(NULL);
                 to-=to%BLOCKSEC-BLOCKSEC;
@@ -456,6 +457,7 @@ class client : public boost::enable_shared_from_this<client> {
                 DLOG("ERROR, no block between %08X and %08X\n",from,to);
                 return;
             }
+
             std::string blocksstr;
             uint32_t n=0;
             blocksstr.append((const char*)&n,4);
@@ -466,7 +468,7 @@ class client : public boost::enable_shared_from_this<client> {
                     //DLOG("ERROR, failed to provide block %08X\n",block.now);
                     break;
                 }
-                if(memcmp(head.viphash,block.viphash,32)) {
+                if(memcmp(head.viphash, block.viphash, 32)) {
                     newviphash=true;
                     to=block.now;
                 }

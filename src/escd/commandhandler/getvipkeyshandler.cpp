@@ -2,7 +2,7 @@
 #include "command/getvipkeys.h"
 #include "../office.hpp"
 #include "helper/hash.h"
-#include <fstream>
+#include "helper/vipkeys.h"
 
 GetVipKeysHandler::GetVipKeysHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : CommandHandler(office, socket) {
@@ -27,29 +27,20 @@ void GetVipKeysHandler::onExecute() {
     char filename[128];
     sprintf(filename,"vip/%64s.vip",hash);
 
-    std::stringstream buffer;
-    std::ifstream file(filename, std::ifstream::in | std::ifstream::binary);
-    if(file.is_open()) {
-        buffer << file.rdbuf();
-        file.close();
-    }
-    else {
-        ELOG("ERROR opening %s\n",filename);
-        errorCode = ErrorCodes::Code::eVipKeysFileCouldNotBeOpened;
-    }
+    VipKeys vipKeys;
+    vipKeys.loadFromFile(filename);
+    const uint32_t fileLength = vipKeys.getLength();
 
-    const auto fileContent = buffer.str();
-    const uint32_t fileLength = fileContent.length();
-    if(!errorCode && fileLength == 0) {
-        ELOG("ERROR empty %s\n", filename);
-        errorCode = ErrorCodes::Code::eVipKeysFileEmpty;
+    if(fileLength == 0) {
+        errorCode = ErrorCodes::Code::eCouldNotReadCorrectVipKeys;
+        ELOG("ERROR file %s not found or empty\n", filename);
     }
 
     try {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
             boost::asio::write(m_socket, boost::asio::buffer(&fileLength, sizeof(fileLength)));
-            boost::asio::write(m_socket, boost::asio::buffer(fileContent.c_str(), fileLength));
+            boost::asio::write(m_socket, boost::asio::buffer(vipKeys.getVipKeys(), fileLength));
         }
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());

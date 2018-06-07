@@ -39,6 +39,7 @@ void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     case TXSTYPE_SIG:
     case TXSTYPE_GET:
     case TXSTYPE_VIP:
+    case TXSTYPE_BLK:
         commonResponse(std::move(command));
         break;
     default:
@@ -64,7 +65,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
 
     int type = txs->getType();
 
-    if(type != TXSTYPE_INF && type != TXSTYPE_BLG && type != TXSTYPE_NDS && type != TXSTYPE_MGS && type != TXSTYPE_MSG && type != TXSTYPE_SIG && type != TXSTYPE_VIP) {
+    if(type != TXSTYPE_INF && type != TXSTYPE_BLG && type != TXSTYPE_NDS && type != TXSTYPE_MGS && type != TXSTYPE_MSG && type != TXSTYPE_SIG && type != TXSTYPE_VIP && type != TXSTYPE_BLK) {
         m_pt.put("tx.account_msid", m_sts.msid);
         m_logpt.put("tx.account_msid",m_sts.msid);
 

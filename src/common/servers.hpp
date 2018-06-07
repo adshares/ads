@@ -1202,7 +1202,7 @@ class servers { // also a block
         }
         uint32_t check=now;
         if(!data_read(filename,false)) {
-            ELOG("ERROR, failed to read header %08X\n",now);
+            ELOG("ERROR, failed to read header %08X\n", now);
             return(0);
         }
         //std::ifstream ifs(filename);

@@ -657,4 +657,28 @@ struct GetVipKeysData {
     unsigned char sign[64];
 }__attribute__((packed));
 
+struct GetBlocksInfo {
+    GetBlocksInfo() = default;
+    GetBlocksInfo(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint32_t from_, uint32_t to_)
+        : abank(abank_), auser(auser_), ttime(ttime_), from(from_), to(to_) {
+    }
+
+    uint8_t ttype {TXSTYPE_BLK};///< command type
+    uint16_t abank{0};          ///< source node
+    uint32_t auser{0};          ///< source user
+    uint32_t ttime{0};          ///< time
+    uint32_t from{0};           ///< block number from
+    uint32_t to{0};             ///< block number to
+}__attribute__((packed));
+
+struct GetBlocksData {
+    GetBlocksData() = default;
+    GetBlocksData(uint16_t abank_, uint32_t auser_, uint32_t ttime_, uint32_t from_, uint32_t to_)
+        : info(abank_, auser_, ttime_, from_, to_) {
+    }
+
+    GetBlocksInfo info;
+    unsigned char sign[64];
+}__attribute__((packed));
+
 #endif // PODS_H
