@@ -3539,7 +3539,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=tx->auser;
-                to.small[1]=abank | 0x10000;
+                to.small[1]=abank | 0x10000;// don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
 
                 // remote node profit only from processed get requests
@@ -3614,7 +3614,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=it->first.auser;
-                to.small[1]=it->first.abank  | 0x10000;
+                to.small[1]=it->first.abank  | 0x10000; // don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS;
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
@@ -3760,7 +3760,7 @@ NEXTUSER:
                         uint32_t small[2];
                     } to;
                     to.small[0]=auser;
-                    to.small[1]=abank | 0x10000;
+                    to.small[1]=abank | 0x10000; // don't count deposit toward LNG_FEE
                     deposit[to.big]+=BANK_MIN_UMASS;
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
@@ -3830,7 +3830,7 @@ NEXTUSER:
                 uint64_t big;
                 uint32_t small[2];
             } to;
-            to.small[1]=abank | 0x10000; //assume big endian
+            to.small[1]=abank | 0x10000; //assume big endian, don't count deposit toward LNG_FEE
             auto tx=&it->second;
             user_t u;
             lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
