@@ -3097,7 +3097,7 @@ NEXTUSER:
             } else if(*p==TXSTYPE_BNK) { // we will get a confirmation from the network
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                 txs_bnk[ppb]=utxs.auser;
-                deduct=BANK_MIN_UMASS;
+                deduct=BANK_MIN_UMASS+BANK_MIN_TMASS;
                 fee=TXS_BNK_FEE;
             } else if(*p==TXSTYPE_GET) {
                 if(utxs.abank==utxs.bbank) {
@@ -3540,7 +3540,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=tx->auser;
-                to.small[1]=abank | 0x10000;// don't count deposit toward LNG_FEE
+                to.small[1]=(uint32_t)abank | 0x10000;// don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
 
                 // remote node profit only from processed get requests
@@ -3615,7 +3615,7 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=it->first.auser;
-                to.small[1]=it->first.abank  | 0x10000; // don't count deposit toward LNG_FEE
+                to.small[1]=(uint32_t)it->first.abank  | 0x10000; // don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS;
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
@@ -3761,8 +3761,8 @@ NEXTUSER:
                         uint32_t small[2];
                     } to;
                     to.small[0]=auser;
-                    to.small[1]=abank | 0x10000; // don't count deposit toward LNG_FEE
-                    deposit[to.big]+=BANK_MIN_UMASS;
+                    to.small[1]=(uint32_t)abank | 0x10000; // don't count deposit toward LNG_FEE
+                    deposit[to.big]+=BANK_MIN_UMASS+BANK_MIN_TMASS;
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
                         key|=lpos++;
@@ -3774,7 +3774,7 @@ NEXTUSER:
                         alog.umid=0;
                         alog.nmid=0;
                         alog.mpos=srvs_.now;
-                        alog.weight=BANK_MIN_UMASS;
+                        alog.weight=BANK_MIN_UMASS+BANK_MIN_TMASS;
                         memcpy(alog.info,u.pkey,32);
                         log[key]=alog;
                     }
@@ -3831,7 +3831,7 @@ NEXTUSER:
                 uint64_t big;
                 uint32_t small[2];
             } to;
-            to.small[1]=abank | 0x10000; //assume big endian, don't count deposit toward LNG_FEE
+            to.small[1]=(uint32_t)abank | 0x10000; //assume big endian, don't count deposit toward LNG_FEE
             auto tx=&it->second;
             user_t u;
             lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
@@ -4049,7 +4049,7 @@ NEXTUSER:
                             it->second=0;
                         }
 
-                        if(u.weight<=TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath))
+                        if(u.weight<TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath))
                         {
                             //alow deletion of account
                             u.stat|=USER_STAT_DELETED;
@@ -4218,7 +4218,7 @@ NEXTBANK:
             close(fd);
             srvs_.save_undo(svid,undo,0);
             if(svid==opts_.svid) {
-                int64_t bfee =buser_fee + profit - (bank_fee[svid]-buser_fee); // really paid amount (no funds)
+                int64_t bfee =buser_fee - profit + (bank_fee[svid]-buser_fee); // really paid amount (no funds)
                 log_t alog;
                 alog.time=time(NULL);
                 alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
@@ -4227,11 +4227,11 @@ NEXTBANK:
                 alog.umid=0;
                 alog.nmid=0;
                 alog.mpos=srvs_.now;
-                alog.weight=myput_fee;
+                alog.weight=bfee;
                 memcpy(alog.info,&mydiv_fee,sizeof(int64_t));
                 memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
                 memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
-                memcpy(alog.info+3*sizeof(int64_t),&bfee,sizeof(int64_t));
+                memcpy(alog.info+3*sizeof(int64_t),&myput_fee,sizeof(int64_t));
                 log[0]=alog;
             }
         }
