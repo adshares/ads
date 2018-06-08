@@ -838,7 +838,11 @@ class client : public boost::enable_shared_from_this<client> {
             //  return;}
             m_buf=(char*)std::realloc(m_buf,m_utxs.size);
             fee=TXS_BKY_FEE;
+        } else if(*m_buf==TXSTYPE_SAV) { // we will get a confirmation from the network
+            m_buf=(char*)std::realloc(m_buf,m_utxs.size); // server will add user data
+            fee=TXS_SAV_FEE;
         }
+
         else if(*m_buf==TXSTYPE_SUS) {
             if(!m_offi.check_user(m_utxs.bbank,m_utxs.buser)) {
                 DLOG("ERROR: bad target user %04X:%08X\n",m_utxs.bbank,m_utxs.buser);
