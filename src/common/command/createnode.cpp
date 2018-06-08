@@ -90,7 +90,7 @@ int64_t CreateNode::getFee() {
 }
 
 int64_t CreateNode::getDeduct() {
-    return BANK_MIN_UMASS;
+    return BANK_MIN_UMASS + BANK_MIN_TMASS;
 }
 
 user_t& CreateNode::getUserInfo() {

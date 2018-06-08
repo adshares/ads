@@ -348,7 +348,7 @@ class servers { // also a block
         init_node_hash(nn);
         nodes.push_back(nn);
         user_t nu;
-        init_user(nu,peer,0,BANK_MIN_UMASS,ou.pkey,now,unode,user);
+        init_user(nu,peer,0,BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now,unode,user);
         put_user(nu,peer,0);
         //update_nodehash(peer);
         nodes[peer].weight=nu.weight;
@@ -363,7 +363,7 @@ class servers { // also a block
         undo[0]=nu;
         xor4(nodes[peer].hash,nu.csum);
         save_undo(peer,undo,0);
-        init_user(nu,peer,0,nu.weight+BANK_MIN_UMASS,ou.pkey,now,node,user); // weight does not change
+        init_user(nu,peer,0,nu.weight+BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now,node,user); // weight does not change
         put_user(nu,peer,0);
         xor4(nodes[peer].hash,nu.csum);
         nodes[peer].mtim=now;
