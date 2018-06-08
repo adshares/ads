@@ -719,10 +719,11 @@ NEXTUSER:
 
                 //DLOG("TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
                 DLOG("COMMIT deposits\n");
+                uint64_t myput_fee=0;
                 commit_block(update); // process bkn and get transactions
-                commit_dividends(update);
-                commit_deposit(update);
-                commit_bankfee();
+                commit_dividends(update, myput_fee);
+                commit_deposit(update, myput_fee);
+                commit_bankfee(myput_fee);
                 DLOG("UPDATE accounts\n");
 #ifdef DEBUG
                 for(auto it=update.begin(); it!=update.end(); it++) {
@@ -3871,8 +3872,8 @@ NEXTUSER:
                     if(abank==opts_.svid) {
                         myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));
                     }
-                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //reduce bank fee
-                    deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok);
+                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //add bank fee (get_fee)
+                    deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok); // this will not generate bank_profit
                 }
                 u.time=srvs_.now;
                 srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
@@ -3971,7 +3972,7 @@ NEXTUSER:
         return(0x8FFFFFFFFFFFFFFF);
     }
 
-    void commit_dividends(std::set<uint16_t>& update) { //assume single thread, TODO change later
+    void commit_dividends(std::set<uint16_t>& update, uint64_t &myput_fee) { //assume single thread, TODO change later
         if((srvs_.now/BLOCKSEC)%BLOCKDIV<BLOCKDIV/2) {
             return;
         }
@@ -4036,6 +4037,10 @@ NEXTUSER:
                         to.small[1]=svid;
                         auto it=deposit.find(to.big);
                         if(it!=deposit.end()) {
+                            bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                            if(svid==opts_.svid) {
+                                myput_fee+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                            }
                             if(svid==opts_.svid && !do_sync && ofip!=NULL) {
                                 ofip_add_remote_deposit(user,it->second);
                             } //DEPOSIT
@@ -4077,7 +4082,7 @@ NEXTBANK:
         }
     }
 
-    void commit_deposit(std::set<uint16_t>& update) { //assume single thread, TODO change later !!!
+    void commit_deposit(std::set<uint16_t>& update, uint64_t &myput_fee) { //assume single thread, TODO change later !!!
         //uint32_t now=time(NULL); //for the log
         std::map<uint64_t,log_t> log;
         //char filename[64];
@@ -4088,7 +4093,6 @@ NEXTBANK:
         assert((char*)&u.rpath<(char*)&u.weight);
         assert((char*)&u.rpath<(char*)&u.csum);
         std::map<uint32_t,user_t> undo;
-        uint64_t myput_fee = 0;
         for(auto it=deposit.begin(); it!=deposit.end(); it++) {
             if(it->second==0) { //MUST keep this to prevent rpath change, it may indicate undone transaction !
                 continue;
@@ -4158,24 +4162,9 @@ NEXTBANK:
             undo.clear();
         }
         deposit.clear(); //remove deposits after commiting
-        if(myput_fee > 0) {
-            log_t alog;
-            alog.time=time(NULL);
-            alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
-            alog.node=opts_.svid;
-            alog.user=0;
-            alog.umid=0;
-            alog.nmid=0;
-            alog.mpos=srvs_.now;
-            alog.weight=myput_fee;
-            bzero(alog.info,sizeof(alog.info));
-            log[0]=alog;
-            put_msglog(srvs_.now,0,0,log);
-        }
-
     }
 
-    void commit_bankfee() {
+    void commit_bankfee(uint64_t myput_fee) {
         uint16_t max_svid=srvs_.nodes.size();
         user_t u;
         const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
@@ -4238,7 +4227,7 @@ NEXTBANK:
                 alog.umid=0;
                 alog.nmid=0;
                 alog.mpos=srvs_.now;
-                alog.weight=0;
+                alog.weight=myput_fee;
                 memcpy(alog.info,&mydiv_fee,sizeof(int64_t));
                 memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
                 memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
@@ -4315,10 +4304,11 @@ NEXTBANK:
 
     void finish_block() {
         std::set<uint16_t> update; //useless because now all nodes are updated because of maintenance fee for admin
+        uint64_t myput_fee=0;
         commit_block(update); // process bkn and get transactions
-        commit_dividends(update);
-        commit_deposit(update);
-        commit_bankfee();
+        commit_dividends(update, myput_fee);
+        commit_deposit(update, myput_fee);
+        commit_bankfee(myput_fee);
 //#ifdef DEBUG
         DLOG("CHECK accounts\n");
         for(auto it=update.begin(); it!=update.end(); it++) {
