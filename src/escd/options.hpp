@@ -158,7 +158,7 @@ class options {
         if(p==NULL) {
             return(0);
         }
-        return((uint16_t)atoi(p+1));
+        return((uint16_t)std::strtoul(p+1, NULL, 16));
     }
 
     void get_address(const std::string& address, std::string& ip, std::string& port, std::string& svid)
