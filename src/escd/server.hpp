@@ -2766,6 +2766,14 @@ NEXTUSER:
         std::vector<const unsigned char*> sign_rs(tpos_max);
         char* p=(char*)msg->data+4+64+10;
         int fd=open_bank(msg->svid);
+        //check if node has sufficient funds
+        user_t u0;
+        read(fd,&u0,sizeof(user_t));
+        if(MESSAGE_FEE(msg->len)>u0.weight){//not enough funds on admin account
+            ELOG("ERROR: too low balance txs:%lX+%lX>%lX\n",0L,MESSAGE_FEE(msg->len),u0.weight);
+            close(fd);
+            return(false);
+        }
         std::map<uint64_t,log_t> log;
         std::map<uint32_t,user_t> changes;
         std::map<uint32_t,user_t> undo;
@@ -4433,11 +4441,19 @@ NEXTBANK:
             DLOG("ERROR, wrong network msid, postponing message write\n");
             return(0);
         }
-        memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
-        // add location info. FIXME, set location to 0 before exit
         usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+        user_t u0;
+        int fd=open_bank(opts_.svid);
+        read(fd,&u0,sizeof(user_t));
+        close(fd);
+        if(MESSAGE_FEE((int32_t)txs.size+(int32_t)line.length())>u0.weight){//not enough funds on admin account
+            DLOG("ERROR: too low balance txs:%lX+%lX>%lX\n",0L,MESSAGE_FEE((int32_t)txs.size+(int32_t)line.length()),u0.weight);
+            return(0);
+        }
+        // add location info. FIXME, set location to 0 before exit
         line.append((char*)txs.data,txs.size);
         int msid=++msid_; // can be atomic
+        memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
         message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
         memcpy(msha_,msg->sigh,sizeof(hash_t));
         if(!txs_insert(msg)) {
