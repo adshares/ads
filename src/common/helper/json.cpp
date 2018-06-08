@@ -294,16 +294,17 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     int64_t div;
                     int64_t usr;
                     int64_t get;
-                    int64_t fee;
+                    int64_t put;
                     memcpy(&div,ulog.info+ 0,8);
                     memcpy(&usr,ulog.info+ 8,8);
                     memcpy(&get,ulog.info+16,8);
-                    memcpy(&fee,ulog.info+24,8);
+                    memcpy(&put,ulog.info+24,8);
+                    logentry.put("profit_put",print_amount(put));
                     logentry.put("profit_div",print_amount(div));
                     logentry.put("profit_usr",print_amount(usr));
                     logentry.put("profit_get",print_amount(get));
-                    logentry.put("profit",print_amount(div+usr+get));
-                    logentry.put("fee",print_amount(fee));
+                    logentry.put("profit",print_amount(div+usr+get+put));
+                    logentry.put("fee",print_amount(ulog.weight));
                 }
                 logtree.push_back(std::make_pair("",logentry));
                 continue;
@@ -325,6 +326,21 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 } else {
                     logentry.put("request","failed");
                     logentry.put("amount",print_amount(ulog.weight));
+                }
+                logentry.put("public_key",info);
+                logtree.push_back(std::make_pair("",logentry));
+                continue;
+            }
+            if(txst==TXSTYPE_USR && ulog.node != bank) { //create_account log on remote account
+                logentry.put("amount",print_amount(ulog.weight));
+                logentry.put("node",ulog.node);
+                char blockhex[9];
+                blockhex[8]='\0';
+                sprintf(blockhex,"%08X",ulog.mpos);
+                logentry.put("block_id",blockhex);
+                if(ulog.user) {
+                    logentry.put("account",ulog.user);
+                    logentry.put("address",acnt);
                 }
                 logentry.put("public_key",info);
                 logtree.push_back(std::make_pair("",logentry));

@@ -719,10 +719,11 @@ NEXTUSER:
 
                 //DLOG("TXSHASH: %08X\n",*((uint32_t*)srvs_.msghash));
                 DLOG("COMMIT deposits\n");
+                uint64_t myput_fee=0;
                 commit_block(update); // process bkn and get transactions
-                commit_dividends(update);
-                commit_deposit(update);
-                commit_bankfee();
+                commit_dividends(update, myput_fee);
+                commit_deposit(update, myput_fee);
+                commit_bankfee(myput_fee);
                 DLOG("UPDATE accounts\n");
 #ifdef DEBUG
                 for(auto it=update.begin(); it!=update.end(); it++) {
@@ -3089,34 +3090,14 @@ NEXTUSER:
                     uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                     txs_usr[ppb]=usr;
                     if(utxs.bbank==opts_.svid) { //respond to account creation request
-                        uint32_t newuser = ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
-
-                        uint64_t key=(uint64_t)newuser<<32;
-                        key|=lpos++;
-
-                        log_t blog;
-                        blog.time=now;
-                        blog.type=*p|0x8000; //incoming
-                        blog.node=utxs.abank;
-                        blog.user=utxs.auser;
-                        blog.umid=utxs.amsid;
-                        blog.nmid=msg->msid; //can be overwritten with info
-                        //blog.mpos=mpos; //can be overwritten with info
-                        blog.mpos=tmpos; //can be overwritten with info
-                        blog.weight=deduct;
-                        memcpy(blog.info+ 0,&usera->weight,8);
-                        memcpy(blog.info+ 8,&deduct,8);
-                        memcpy(blog.info+16,&fee,8);
-                        memcpy(blog.info+24,&usera->stat,2);
-                        memcpy(blog.info+26,&usera->pkey,6);
-                        log[key]=blog;
+                        ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
                     }
                 }
 
             } else if(*p==TXSTYPE_BNK) { // we will get a confirmation from the network
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                 txs_bnk[ppb]=utxs.auser;
-                deduct=BANK_MIN_TMASS;
+                deduct=BANK_MIN_UMASS+BANK_MIN_TMASS;
                 fee=TXS_BNK_FEE;
             } else if(*p==TXSTYPE_GET) {
                 if(utxs.abank==utxs.bbank) {
@@ -3538,6 +3519,7 @@ NEXTUSER:
             };
             DLOG("REMOTE user request %04X %04X %08X\n",tx->bbank,abank,tx->auser);
             uin[nuin].push_back(ppi_txid(it->first));
+
         }
         blk_usr.clear();
         for(auto it=blk_uok.begin(); it!=blk_uok.end(); it++) { //send funds from matched transactions to new account
@@ -3551,18 +3533,39 @@ NEXTUSER:
                     tx->pkey[24],tx->pkey[25],tx->pkey[26],tx->pkey[27],tx->pkey[28],tx->pkey[29],tx->pkey[30],tx->pkey[31]
                 }
             };
+
             if(uin.find(nuin)!=uin.end() && !uin[nuin].empty()) {
                 union {
                     uint64_t big;
                     uint32_t small[2];
                 } to;
                 to.small[0]=tx->auser;
-                to.small[1]=abank;
+                to.small[1]=(uint32_t)abank | 0x10000;// don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS; //will generate additional fee for the new bank
-                bank_fee[abank]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
+
+                // remote node profit only from processed get requests
+                bank_fee[abank]+=BANK_PROFIT(TXS_RUS_FEE);
                 if(abank==opts_.svid) {
-//                    myusr_fee+=BANK_PROFIT(TXS_RUS_FEE);
-//                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(TXS_RUS_FEE));
+                    myusr_fee+=BANK_PROFIT(TXS_RUS_FEE);
+                }
+
+                if(abank==opts_.svid) {
+                    uint64_t key=(uint64_t)tx->auser<<32;
+                    key|=lpos++;
+
+                    log_t blog;
+                    blog.time=time(NULL);
+                    blog.type=TXSTYPE_USR|0x8000; //incoming
+                    blog.node=tx->bbank;
+                    blog.user=tx->buser;
+                    blog.umid=0;
+                    blog.nmid=0; //can be overwritten with info
+                    //blog.mpos=mpos; //can be overwritten with info
+                    blog.mpos=srvs_.now; //can be overwritten with info
+                    blog.weight=USER_MIN_MASS;
+                    memcpy(blog.info,tx->pkey,32);
+                    log[key]=blog;
+
                 }
                 if(tx->bbank==opts_.svid) {
                     uint64_t key=(uint64_t)tx->buser<<32;
@@ -3612,11 +3615,8 @@ NEXTUSER:
                     uint32_t small[2];
                 } to;
                 to.small[0]=it->first.auser;
-                to.small[1]=it->first.abank;
+                to.small[1]=(uint32_t)it->first.abank  | 0x10000; // don't count deposit toward LNG_FEE
                 deposit[to.big]+=USER_MIN_MASS;
-                if(it->first.auser) {
-                    bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(USER_MIN_MASS));
-                } //else would generate extra fee for bank
                 if(it->first.abank==opts_.svid) {
                     uint64_t key=(uint64_t)it->first.auser<<32;
                     key|=lpos++;
@@ -3761,11 +3761,8 @@ NEXTUSER:
                         uint32_t small[2];
                     } to;
                     to.small[0]=auser;
-                    to.small[1]=abank;
-                    deposit[to.big]+=BANK_MIN_TMASS;
-                    if(auser) {
-                        bank_fee[to.small[1]]-=BANK_PROFIT(TXS_LNG_FEE(BANK_MIN_TMASS));
-                    } //else would generate extra fee
+                    to.small[1]=(uint32_t)abank | 0x10000; // don't count deposit toward LNG_FEE
+                    deposit[to.big]+=BANK_MIN_UMASS+BANK_MIN_TMASS;
                     if(abank==opts_.svid) {
                         uint64_t key=(uint64_t)auser<<32;
                         key|=lpos++;
@@ -3777,7 +3774,7 @@ NEXTUSER:
                         alog.umid=0;
                         alog.nmid=0;
                         alog.mpos=srvs_.now;
-                        alog.weight=BANK_MIN_TMASS;
+                        alog.weight=BANK_MIN_UMASS+BANK_MIN_TMASS;
                         memcpy(alog.info,u.pkey,32);
                         log[key]=alog;
                     }
@@ -3834,7 +3831,7 @@ NEXTUSER:
                 uint64_t big;
                 uint32_t small[2];
             } to;
-            to.small[1]=abank; //assume big endian
+            to.small[1]=(uint32_t)abank | 0x10000; //assume big endian, don't count deposit toward LNG_FEE
             auto tx=&it->second;
             user_t u;
             lseek(fd,tx->buser*sizeof(user_t),SEEK_SET);
@@ -3875,8 +3872,8 @@ NEXTUSER:
                     if(abank==opts_.svid) {
                         myget_fee+=BANK_PROFIT(TXS_LNG_FEE(delta_gok));
                     }
-                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //reduce bank fee
-                    deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok);
+                    bank_fee[abank]+=BANK_PROFIT(TXS_LNG_FEE(delta_gok)); //add bank fee (get_fee)
+                    deposit[to.big]+=delta_gok-TXS_LNG_FEE(delta_gok); // this will not generate bank_profit
                 }
                 u.time=srvs_.now;
                 srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
@@ -3975,7 +3972,7 @@ NEXTUSER:
         return(0x8FFFFFFFFFFFFFFF);
     }
 
-    void commit_dividends(std::set<uint16_t>& update) { //assume single thread, TODO change later
+    void commit_dividends(std::set<uint16_t>& update, uint64_t &myput_fee) { //assume single thread, TODO change later
         if((srvs_.now/BLOCKSEC)%BLOCKDIV<BLOCKDIV/2) {
             return;
         }
@@ -4040,6 +4037,10 @@ NEXTUSER:
                         to.small[1]=svid;
                         auto it=deposit.find(to.big);
                         if(it!=deposit.end()) {
+                            bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                            if(svid==opts_.svid) {
+                                myput_fee+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                            }
                             if(svid==opts_.svid && !do_sync && ofip!=NULL) {
                                 ofip_add_remote_deposit(user,it->second);
                             } //DEPOSIT
@@ -4048,7 +4049,7 @@ NEXTUSER:
                             it->second=0;
                         }
 
-                        if(u.weight<=TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath))
+                        if(u.weight<TXS_DIV_FEE && (srvs_.now-USER_MIN_AGE>u.lpath))
                         {
                             //alow deletion of account
                             u.stat|=USER_STAT_DELETED;
@@ -4081,9 +4082,9 @@ NEXTBANK:
         }
     }
 
-    void commit_deposit(std::set<uint16_t>& update) { //assume single thread, TODO change later !!!
+    void commit_deposit(std::set<uint16_t>& update, uint64_t &myput_fee) { //assume single thread, TODO change later !!!
         //uint32_t now=time(NULL); //for the log
-        //std::map<uint64_t,log_t> log;
+        std::map<uint64_t,log_t> log;
         //char filename[64];
         uint16_t lastsvid=0;
         int /*ud=0,*/fd=-1;
@@ -4102,7 +4103,7 @@ NEXTBANK:
             } to;
             to.big=it->first;
             uint32_t user=to.small[0];
-            uint16_t svid=to.small[1];
+            uint16_t svid=to.small[1]&0xFFFF;
             assert(svid);
             if(svid!=lastsvid) {
                 if(fd>=0) {
@@ -4135,8 +4136,11 @@ NEXTBANK:
             } else {
                 //DLOG("DIV: during deposit to %04X:%08X (%016lX) (%016lX)\n",svid,user,div,it->second);
             }
-            if(user) { // no fees from remote deposits to bank
+            if(!(to.small[1] & 0x10000)) {
                 bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                if(svid==opts_.svid) {
+                    myput_fee+=BANK_PROFIT(TXS_LNG_FEE(it->second));
+                }
             }
             u.weight+=it->second;
             u.rpath=srvs_.now;
@@ -4160,7 +4164,7 @@ NEXTBANK:
         deposit.clear(); //remove deposits after commiting
     }
 
-    void commit_bankfee() {
+    void commit_bankfee(uint64_t myput_fee) {
         uint16_t max_svid=srvs_.nodes.size();
         user_t u;
         const int offset=(char*)&u+sizeof(user_t)-(char*)&u.rpath;
@@ -4214,6 +4218,7 @@ NEXTBANK:
             close(fd);
             srvs_.save_undo(svid,undo,0);
             if(svid==opts_.svid) {
+                int64_t bfee =buser_fee - profit + (bank_fee[svid]-buser_fee); // really paid amount (no funds)
                 log_t alog;
                 alog.time=time(NULL);
                 alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
@@ -4222,11 +4227,11 @@ NEXTBANK:
                 alog.umid=0;
                 alog.nmid=0;
                 alog.mpos=srvs_.now;
-                alog.weight=profit;
+                alog.weight=bfee;
                 memcpy(alog.info,&mydiv_fee,sizeof(int64_t));
                 memcpy(alog.info+sizeof(int64_t),&myusr_fee,sizeof(int64_t));
                 memcpy(alog.info+2*sizeof(int64_t),&myget_fee,sizeof(int64_t));
-                memcpy(alog.info+3*sizeof(int64_t),&buser_fee,sizeof(int64_t));
+                memcpy(alog.info+3*sizeof(int64_t),&myput_fee,sizeof(int64_t));
                 log[0]=alog;
             }
         }
@@ -4299,10 +4304,11 @@ NEXTBANK:
 
     void finish_block() {
         std::set<uint16_t> update; //useless because now all nodes are updated because of maintenance fee for admin
+        uint64_t myput_fee=0;
         commit_block(update); // process bkn and get transactions
-        commit_dividends(update);
-        commit_deposit(update);
-        commit_bankfee();
+        commit_dividends(update, myput_fee);
+        commit_deposit(update, myput_fee);
+        commit_bankfee(myput_fee);
 //#ifdef DEBUG
         DLOG("CHECK accounts\n");
         for(auto it=update.begin(); it!=update.end(); it++) {
