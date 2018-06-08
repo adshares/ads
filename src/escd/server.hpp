@@ -4135,7 +4135,7 @@ NEXTBANK:
             if(!(to.small[1] & 0x10000)) {
                 bank_fee[svid]+=BANK_PROFIT(TXS_LNG_FEE(it->second));
                 if(svid==opts_.svid) {
-                    myput_fee+=TXS_LNG_FEE(it->second);
+                    myput_fee+=BANK_PROFIT(TXS_LNG_FEE(it->second));
                 }
             }
             u.weight+=it->second;
@@ -4167,7 +4167,7 @@ NEXTBANK:
             alog.umid=0;
             alog.nmid=0;
             alog.mpos=srvs_.now;
-            alog.weight=BANK_PROFIT(myput_fee);
+            alog.weight=myput_fee;
             bzero(alog.info,sizeof(alog.info));
             log[0]=alog;
             put_msglog(srvs_.now,0,0,log);
