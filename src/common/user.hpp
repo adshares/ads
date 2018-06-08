@@ -298,6 +298,16 @@ class usertxs {
             memcpy(data+1+16,&tmass,4); //only 4 bytes
             return;
         }
+        if(ttype==TXSTYPE_SAV) { // for SAV server adds 128 bytes of user data
+            size=len+64;
+            data=(uint8_t*)std::malloc(size);
+            data[0]=ttype;
+            memcpy(data+1   ,&abank,2);
+            memcpy(data+1+2 ,&auser,4);
+            memcpy(data+1+6 ,&amsid,4);
+            memcpy(data+1+10,&ttime,4);
+            return;
+        }
 
         //TODO, process other transactions as above
 
@@ -388,6 +398,9 @@ class usertxs {
             memcpy(&len,txs+1,3);
             return(len<4?4:len);
         }
+        if(*txs==TXSTYPE_SAV) {
+            return(txslen[TXSTYPE_SAV]+64+sizeof(user_t));
+        } // additional 128 bytes on network !!!
         return(txslen[(int)*txs]+64);
     }
 
@@ -405,7 +418,14 @@ class usertxs {
             }
             return(true);
         }
-
+        if(ttype==TXSTYPE_SAV) {
+            memcpy(&abank,txs+1+0 ,2);
+            memcpy(&auser,txs+1+2 ,4); // "+3" is use to retrieve auser in message::insert_user()
+            memcpy(&amsid,txs+1+6 ,4);
+            memcpy(&ttime,txs+1+10,4);
+            size=txslen[ttype]+64+sizeof(user_t);
+            return(true);
+        }
         size=txslen[ttype]+64;
         if(ttype==TXSTYPE_BLK) {
             memcpy(&abank,txs+1+0 ,2);
@@ -670,6 +690,11 @@ class usertxs {
         ttime=nttime;
         memcpy(data+1+6,&ttime,4);
         return;
+    }
+
+    char* usr(char* buf) { //return user_t data in SAV message
+        assert(*buf==TXSTYPE_SAV);
+        return(buf+1+2+4+4+4+64);
     }
 
     char* vip(char* buf) { //return vip hash in message
