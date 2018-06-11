@@ -99,6 +99,13 @@ bool SetNodeStatusHandler::onValidate() {
     }
     else if(m_command->getUserId()) {
         errorCode = ErrorCodes::Code::eNoNodeStatusChangeAuth;
+        DLOG("ERROR: user %08X not authorized to change node status bits\n",
+            m_command->getUserId());
+    }
+    else if(0x0 != (m_command->getStatus()&0x7)) {
+        errorCode = ErrorCodes::Code::eAuthorizationError;
+        DLOG("ERROR: not authorized to change first three bits of node status for node %04X\n",
+             m_command->getDestBankId());
     }
     else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
