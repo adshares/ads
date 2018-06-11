@@ -1,0 +1,11 @@
+<map id="GetBlocks" name="GetBlocks">
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,95,176,121"/>
+<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
+<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node5" href="$class_helper_1_1_vip_keys.html" title="Helper::VipKeys" alt="" coords="200,95,321,121"/>
+<area shape="rect" id="node6" href="$class_helper_1_1_block.html" title="Helper::Block" alt="" coords="346,95,453,121"/>
+<area shape="rect" id="node7" href="$struct_get_blocks_data.html" title="GetBlocksData" alt="" coords="477,95,594,121"/>
+<area shape="rect" id="node8" href="$struct_get_blocks_info.html" title="GetBlocksInfo" alt="" coords="481,5,590,32"/>
+<area shape="rect" id="node9" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="618,95,765,121"/>
+<area shape="rect" id="node10" href="$structuser__s.html" title="user_s" alt="" coords="659,5,723,32"/>
+</map>

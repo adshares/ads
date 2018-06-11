@@ -1,0 +1,40 @@
+.TH "Helper::VipKeys" 3 "Mon Jun 11 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::VipKeys \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBloadFromFile\fP (const std::string &fileName)"
+.br
+.ti -1c
+.RI "void \fBloadFromBuffer\fP (std::unique_ptr< char[]> buffer, u_int32_t length)"
+.br
+.ti -1c
+.RI "bool \fBcheckVipKeys\fP (uint8_t *compareHash, int num) const "
+.br
+.ti -1c
+.RI "bool \fBstoreVipKeys\fP (const std::string &fileName) const "
+.br
+.ti -1c
+.RI "char * \fBgetVipKeys\fP () const "
+.br
+.ti -1c
+.RI "uint32_t \fBgetLength\fP () const "
+.br
+.ti -1c
+.RI "void \fBreset\fP ()"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 10 of file vipkeys\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.
