@@ -58,23 +58,22 @@ void UnsetAccountStatusHandler::onExecute() {
         tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
+        tlog.weight = 0;
 
         tInfo info;
-        info.weight = m_usera.weight;
+        info.weight = m_command->getStatus();
         info.deduct = m_command->getDeduct();
         info.fee = m_command->getFee();
         info.stat = m_usera.stat;
         memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
         memcpy(tlog.info, &info, sizeof(tInfo));
 
-        tlog.weight = m_command->getStatus();
         m_offi.put_ulog(m_command->getUserId(), tlog);
 
         if(m_command->getBankId() == m_command->getDestBankId()) {
             tlog.type|=0x8000; //incoming
             tlog.node=m_command->getBankId();
             tlog.user=m_command->getUserId();
-            tlog.weight=m_command->getStatus();
 
             m_offi.put_ulog(m_command->getDestUserId(),tlog);
         }
