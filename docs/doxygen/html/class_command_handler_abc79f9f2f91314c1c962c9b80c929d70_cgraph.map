@@ -1,0 +1,5 @@
+<map id="CommandHandler::execute" name="CommandHandler::execute">
+<area shape="rect" id="node2" href="$class_i_command_handler.html#afad80318a6c269d0436649eef58edbdd" title="Int command event. It prepare data&#39;s needed to execute command. If &quot;command&quot; casting is needed it sho..." alt="" coords="268,5,453,32"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html#adfb05dece29a4effa9f2ce5b4fe026ed" title="Validtaion event. It execute validation of data if it contain all proper value. " alt="" coords="252,56,469,83"/>
+<area shape="rect" id="node4" href="$class_i_command_handler.html#a7ed968bd6052ac418f50280a0ec5dd8b" title="Execution event. It execute actual command and commiting it to blockchain. " alt="" coords="252,107,469,133"/>
+</map>

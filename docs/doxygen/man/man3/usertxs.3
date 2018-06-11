@@ -1,0 +1,140 @@
+.TH "usertxs" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+usertxs \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBusertxs\fP (uint32_t len)"
+.br
+.ti -1c
+.RI "\fBusertxs\fP (uint8_t *din, int len)"
+.br
+.ti -1c
+.RI "\fBusertxs\fP (uint8_t nttype, uint16_t nabank, uint32_t nauser, uint16_t nbbank, uint32_t nbuser, uint32_t nttime)"
+.br
+.ti -1c
+.RI "\fBusertxs\fP (uint8_t nttype, uint16_t nabank, uint32_t nauser, uint32_t nttime)"
+.br
+.ti -1c
+.RI "\fBusertxs\fP (uint8_t nttype, uint16_t nabank, uint32_t nauser, uint32_t namsid, uint32_t nttime, uint16_t nbbank, uint32_t nbuser, int64_t ntmass, uint8_t *ntinfo, const char *text)"
+.br
+.ti -1c
+.RI "uint32_t \fBget_size\fP (char *txs)"
+.br
+.ti -1c
+.RI "bool \fBparse\fP (char *txs)"
+.br
+.ti -1c
+.RI "uint8_t * \fBget_sig\fP (char *buf)"
+.br
+.ti -1c
+.RI "void \fBsign\fP (uint8_t *hash, uint8_t *sk, uint8_t *pk)"
+.br
+.ti -1c
+.RI "int \fBwrong_sig\fP (uint8_t *buf, uint8_t *hash, uint8_t *pk)"
+.br
+.ti -1c
+.RI "int \fBsign2\fP (uint8_t *sig)"
+.br
+.ti -1c
+.RI "int \fBwrong_sig2\fP (uint8_t *buf)"
+.br
+.ti -1c
+.RI "int \fBsign_mlen2\fP ()"
+.br
+.ti -1c
+.RI "void \fBprint_head\fP ()"
+.br
+.ti -1c
+.RI "void \fBprint\fP ()"
+.br
+.ti -1c
+.RI "void \fBchange_time\fP (uint32_t nttime)"
+.br
+.ti -1c
+.RI "char * \fBusr\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBvip\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBkey\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBopkey\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBupkey\fP (char *buf)"
+.br
+.ti -1c
+.RI "void \fBprint_broadcast\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBbroadcast\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBbroadcast_sigh\fP (char *buf, uint16_t bbank)"
+.br
+.ti -1c
+.RI "void \fBprint_toaddresses\fP (char *buf, uint16_t bbank)"
+.br
+.ti -1c
+.RI "char * \fBtoaddresses\fP (char *buf)"
+.br
+.ti -1c
+.RI "uint32_t \fBnuser\fP (char *buf)"
+.br
+.ti -1c
+.RI "char * \fBnpkey\fP (char *buf)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBttype\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBabank\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBauser\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBamsid\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBttime\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBbbank\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBbuser\fP"
+.br
+.ti -1c
+.RI "int64_t \fBtmass\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBtinfo\fP [32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}"
+.br
+.ti -1c
+.RI "uint8_t * \fBdata\fP"
+.br
+.ti -1c
+.RI "int \fBsize\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 57 of file user\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

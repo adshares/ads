@@ -1,0 +1,180 @@
+.TH "Helper" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper \- TODO: uncomment logs when new log mechanism done\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.SS "Classes"
+
+.in +1c
+.ti -1c
+.RI "struct \fBblg_bky_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_bnk_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_get_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_sbs_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_ubs_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_uok_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_uso_t\fP"
+.br
+.ti -1c
+.RI "struct \fBblg_usr_t\fP"
+.br
+.ti -1c
+.RI "struct \fBHashDoubleVariant\fP"
+.br
+.ti -1c
+.RI "struct \fBHashSingleVariant\fP"
+.br
+.ti -1c
+.RI "class \fBHlog\fP"
+.br
+.ti -1c
+.RI "class \fBServers\fP"
+.br
+.ti -1c
+.RI "struct \fBServersHeader\fP"
+.br
+.ti -1c
+.RI "struct \fBServersNode\fP"
+.br
+.ti -1c
+.RI "struct \fBSignature\fP"
+.br
+.ti -1c
+.RI "class \fBSignatures\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBed25519_printkey\fP (uint8_t *key, int len)"
+.br
+.ti -1c
+.RI "void \fBed25519_text2key\fP (uint8_t *key, const char *text, int len)"
+.br
+.ti -1c
+.RI "void \fBed25519_key2text\fP (char *text, const uint8_t *key, int len)"
+.br
+.ti -1c
+.RI "void \fBed25519_key2text\fP (std::stringstream &text, const uint8_t *key, int len)"
+.br
+.ti -1c
+.RI "std::string \fBed25519_key2text\fP (const uint8_t *key, int len)"
+.br
+.ti -1c
+.RI "void \fBtext2key\fP (const std::string &key, std::string &text)"
+.br
+.ti -1c
+.RI "uint16_t \fBcrc16\fP (const uint8_t *data_p, uint8_t length)"
+.br
+.ti -1c
+.RI "uint16_t \fBcrc_acnt\fP (uint16_t \fBnode\fP, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBcreate256signhash\fP (const unsigned char *signature, int signSize, std::array< uint8_t, SHA256_DIGEST_LENGTH > ha, std::array< uint8_t, SHA256_DIGEST_LENGTH > &hashout)"
+.br
+.ti -1c
+.RI "void \fBcreate256signhash\fP (const unsigned char *signature, int signatureSize, const unsigned char *previosHash, std::array< uint8_t, SHA256_DIGEST_LENGTH > &hashout)"
+.br
+.ti -1c
+.RI "void \fBcreate256signhash\fP (const unsigned char *signature, int signSize, const unsigned char *previosHash, unsigned char hashout[SHA256_DIGEST_LENGTH])"
+.br
+.ti -1c
+.RI "void \fBcreate256signhash\fP (const std::array< uint8_t, SHA256_DIGEST_LENGTH > signature, const std::array< uint8_t, SHA256_DIGEST_LENGTH > ha, std::array< uint8_t, SHA256_DIGEST_LENGTH > &hashout)"
+.br
+.ti -1c
+.RI "void \fBprint_user\fP (\fBuser_t\fP &u, boost::property_tree::ptree &pt, bool local, uint32_t bank, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBprint_msgid_info\fP (boost::property_tree::ptree &pt, uint16_t \fBnode\fP, uint32_t msid, uint32_t mpos)"
+.br
+.ti -1c
+.RI "bool \fBparse_amount\fP (int64_t &amount, std::string str_amount)"
+.br
+.ti -1c
+.RI "char * \fBprint_amount\fP (int64_t amount)"
+.br
+.ti -1c
+.RI "char * \fBmydate\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "int \fBcheck_csum\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "void \fBprintErrorJson\fP (const char *errorMsg)"
+.br
+.ti -1c
+.RI "const std::string \fBprint_address\fP (uint16_t \fBnode\fP, uint32_t user, int32_t _suffix)"
+.br
+.ti -1c
+.RI "const std::string \fBprint_msg_id\fP (uint16_t \fBnode\fP, uint32_t user, int32_t _suffix)"
+.br
+.ti -1c
+.RI "void \fBprint_log\fP (boost::property_tree::ptree &pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType=\-1)"
+.br
+.ti -1c
+.RI "void \fBsave_log\fP (\fBlog_t\fP *log, int len, uint32_t from, uint16_t bank, uint32_t user)"
+.br
+.ti -1c
+.RI "int \fBgetLogTxnTypeId\fP (const char *txnName)"
+.br
+.ti -1c
+.RI "struct \fBHelper::ServersHeader\fP \fB__attribute__\fP ((packed))"
+.br
+.ti -1c
+.RI "void \fBsetSocketTimeout\fP (boost::asio::ip::tcp::socket &socket, unsigned int timeout)"
+.br
+.ti -1c
+.RI "void \fBsetSocketTimeout\fP (std::unique_ptr< boost::asio::ip::tcp::socket > &socket, unsigned int timeout)"
+.br
+.ti -1c
+.RI "void \fBsetSocketNoDelay\fP (boost::asio::ip::tcp::socket &socket, bool noDelay)"
+.br
+.ti -1c
+.RI "void \fBsetSocketNoDelay\fP (std::unique_ptr< boost::asio::ip::tcp::socket > &socket, bool noDelay)"
+.br
+.ti -1c
+.RI "void \fBsetSocketNoDelay\fP (std::unique_ptr< boost::asio::ip::tcp::socket >, bool noDelay)"
+.br
+.ti -1c
+.RI "int \fBgetTxnTypeId\fP (const char *txnName)"
+.br
+.ti -1c
+.RI "int \fBgetTxnLogTypeId\fP (const char *txnName)"
+.br
+.ti -1c
+.RI "const char * \fBgetTxnName\fP (int id)"
+.br
+.ti -1c
+.RI "const char * \fBgetTxnLogName\fP (int id)"
+.br
+.in -1c
+.SS "Variables"
+
+.in +1c
+.ti -1c
+.RI "class \fBHelper::Servers\fP \fB__attribute__\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+TODO: uncomment logs when new log mechanism done\&. 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

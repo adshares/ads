@@ -1,0 +1,12 @@
+<map id="CreateAccount::send" name="CreateAccount::send">
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="239,5,422,32"/>
+<area shape="rect" id="node3" href="$class_connected.html#aa278b79f29e316efa8dc52637394649d" title="Get pointer to command data structure. " alt="" coords="255,56,406,83"/>
+<area shape="rect" id="node4" href="$class_connected.html#a322f17c00956def656efb9a2e0e39e6e" title="Get data struct size. Without signature. " alt="" coords="241,107,420,133"/>
+<area shape="rect" id="node5" href="$class_i_command.html#a4f33e3acf5c43facce6b9c1090d9394f" title="Get additional data. " alt="" coords="223,157,438,184"/>
+<area shape="rect" id="node6" href="$class_i_command.html#a55a77282a246af2812ca4676e21e4bc6" title="Get additional data size. " alt="" coords="209,208,452,235"/>
+<area shape="rect" id="node7" href="$class_connected.html#afd2bdb89e554ee01ebccf36622054b8e" title="Get pointer to signature data. " alt="" coords="239,259,422,285"/>
+<area shape="rect" id="node8" href="$class_connected.html#ae3ee0bde31ede0b4f704c643357cd1fe" title="Get signature size. " alt="" coords="226,309,435,336"/>
+<area shape="rect" id="node9" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="240,360,421,387"/>
+<area shape="rect" id="node10" href="$class_connected.html#a488cd9cd5a4144fe20e7da95ae9e64ff" title="Get pointer to response data. " alt="" coords="240,411,421,437"/>
+<area shape="rect" id="node11" href="$class_connected.html#a15bb859a91d7ee39b4646edee3d92e6b" title="Get response data struct size. " alt="" coords="227,461,435,488"/>
+</map>

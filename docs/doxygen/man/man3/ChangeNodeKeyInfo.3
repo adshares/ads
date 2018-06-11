@@ -1,0 +1,65 @@
+.TH "ChangeNodeKeyInfo" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ChangeNodeKeyInfo \- Change Node key command info\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBChangeNodeKeyInfo\fP (uint16_t \fBnode\fP, uint32_t srcUser, uint32_t msgId, uint32_t txnTime, uint16_t dstNode, uint8_t pubKey[32])"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBttype\fP {TXSTYPE_BKY}"
+.br
+.RI "\fIcommand type \fP"
+.ti -1c
+.RI "uint16_t \fBsrc_node\fP {0}"
+.br
+.RI "\fIsource node \fP"
+.ti -1c
+.RI "uint32_t \fBsrc_user\fP {0}"
+.br
+.RI "\fIsource user \fP"
+.ti -1c
+.RI "uint32_t \fBmsg_id\fP {0}"
+.br
+.RI "\fIuser message id \fP"
+.ti -1c
+.RI "uint32_t \fBttime\fP {0}"
+.br
+.RI "\fItime \fP"
+.ti -1c
+.RI "uint16_t \fBdst_node\fP {0}"
+.br
+.RI "\fIdestination node \fP"
+.ti -1c
+.RI "uint8_t \fBnode_new_key\fP [32]"
+.br
+.RI "\fInew node key \fP"
+.ti -1c
+.RI "uint8_t \fBold_public_key\fP [32]"
+.br
+.RI "\fIold public key \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Change Node key command info\&. 
+
+Broadcast file format for each block: \fBSendBroadcastInfo\fP Message (floating size = \fBSendBroadcastInfo\&.msg_length\fP) \fBGetBroadcastAdditionalData\fP 
+.PP
+Definition at line 329 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

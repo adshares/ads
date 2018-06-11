@@ -1,0 +1,140 @@
+.TH "PeerConnectManager" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+PeerConnectManager \- Peer network manager class\&. It is is responnsible managing connectiona nd operation on peers\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <peerclientmanager\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBPeerConnectManager\fP (\fBserver\fP &\fBserver\fP, \fBoptions\fP &opts)"
+.br
+.ti -1c
+.RI "void \fBstartConnect\fP ()"
+.br
+.ti -1c
+.RI "void \fBstartAccept\fP ()"
+.br
+.ti -1c
+.RI "void \fBstop\fP ()"
+.br
+.ti -1c
+.RI "void \fBaddActivePeer\fP (uint16_t svid, boost::shared_ptr< \fBpeer\fP > \fBpeer\fP)"
+.br
+.ti -1c
+.RI "void \fBleevePeer\fP (uint16_t svid, in_addr addr, unsigned short port)"
+.br
+.ti -1c
+.RI "void \fBleevePeer\fP (uint16_t svid, std::string address, unsigned short port)"
+.br
+.ti -1c
+.RI "void \fBdeliver\fP (message_ptr msg, uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBdeliverToAll\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBupdate\fP (message_ptr msg, uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBupdateAll\fP (message_ptr msg)"
+.br
+.ti -1c
+.RI "void \fBgetReadyPeers\fP (std::set< uint16_t > &ready)"
+.br
+.ti -1c
+.RI "std::string \fBgetActualPeerList\fP ()"
+.br
+.ti -1c
+.RI "int \fBgetPeersCount\fP (bool activeOnly)"
+.br
+.ti -1c
+.RI "bool \fBcheckDuplicate\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "void \fBgetMoreHeaders\fP (uint32_t now)"
+.br
+.ti -1c
+.RI "void \fBfillknown\fP (message_ptr msg)"
+.br
+.in -1c
+.SS "Friends"
+
+.in +1c
+.ti -1c
+.RI "class \fBpeer\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Peer network manager class\&. It is is responnsible managing connectiona nd operation on peers\&. 
+.PP
+Definition at line 25 of file peerclientmanager\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "void PeerConnectManager::addActivePeer (uint16_t svid, boost::shared_ptr< \fBpeer\fP > peer)"
+Add new peer to list of already connected peers Add peer to list of active(connected and synced) peers 
+.PP
+Definition at line 110 of file peerclientmanager\&.cpp\&.
+.SS "bool PeerConnectManager::checkDuplicate (uint16_t svid)"
+Check if we already connected with perr with svid 
+.PP
+Definition at line 545 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::deliver (message_ptr msg, uint16_t svid)"
+Deliver message to particular peer 
+.PP
+Definition at line 435 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::deliverToAll (message_ptr msg)"
+Deliver message to all peers 
+.PP
+Definition at line 454 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::fillknown (message_ptr msg)"
+Put information to message with all peers that are already active 
+.PP
+Definition at line 580 of file peerclientmanager\&.cpp\&.
+.SS "std::string PeerConnectManager::getActualPeerList ()"
+Get list with informations about current peers 
+.PP
+Definition at line 514 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::getMoreHeaders (uint32_t now)"
+Request header from random active peer 
+.PP
+Definition at line 551 of file peerclientmanager\&.cpp\&.
+.SS "int PeerConnectManager::getPeersCount (bool activeOnly)"
+Get how many peers we have connections with 
+.PP
+Definition at line 536 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::getReadyPeers (std::set< uint16_t > & ready)"
+Get acitive and not busy peers 
+.PP
+Definition at line 502 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::leevePeer (uint16_t svid, in_addr addr, unsigned short port)"
+Remove peer from connected peers 
+.PP
+Definition at line 168 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::leevePeer (uint16_t svid, std::string address, unsigned short port)"
+Remove peer from connected peers 
+.PP
+Definition at line 161 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::startAccept ()"
+Start accept connectong with peers\&. 
+.PP
+Definition at line 67 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::startConnect ()"
+Start connectong with peers\&. 
+.PP
+Definition at line 47 of file peerclientmanager\&.cpp\&.
+.SS "void PeerConnectManager::stop ()"
+Stop connection thread and all peers 
+.PP
+Definition at line 52 of file peerclientmanager\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

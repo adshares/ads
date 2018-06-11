@@ -1,0 +1,43 @@
+.TH "GetBroadcastAdditionalData" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GetBroadcastAdditionalData \- Rest of broadcast response, after header and message\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "unsigned char \fBsign\fP [64]"
+.br
+.RI "\fIsignature \fP"
+.ti -1c
+.RI "uint8_t \fBhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.RI "\fIusers block hash \fP"
+.ti -1c
+.RI "uint8_t \fBpkey\fP [SHA256_DIGEST_LENGTH]"
+.br
+.RI "\fIpublic key \fP"
+.ti -1c
+.RI "uint32_t \fBmsid\fP"
+.br
+.RI "\fIid of last transaction \fP"
+.ti -1c
+.RI "uint32_t \fBmpos\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Rest of broadcast response, after header and message\&. 
+.PP
+Definition at line 307 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

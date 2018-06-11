@@ -1,0 +1,128 @@
+.TH "Helper::Hlog" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::Hlog \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBHlog\fP (char *buffer, uint32_t size)"
+.br
+.ti -1c
+.RI "\fBHlog\fP (uint32_t path)"
+.br
+.ti -1c
+.RI "\fBHlog\fP (boost::property_tree::ptree &pt, char *filename)"
+.br
+.ti -1c
+.RI "\fBHlog\fP (const \fBHlog\fP &hlog)"
+.br
+.ti -1c
+.RI "\fBHlog\fP & \fBoperator=\fP (\fBHlog\fP hlog)"
+.br
+.ti -1c
+.RI "void \fBprintJson\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "void \fBload\fP ()"
+.br
+.ti -1c
+.RI "void \fBfinish\fP (hash_t &hash, int &l)"
+.br
+.ti -1c
+.RI "bool \fBsave\fP (char *buf, int len)"
+.br
+.ti -1c
+.RI "void \fBread_uso\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_uso\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_uso\fP (uint32_t auser, uint32_t buser, uint64_t atxid, uint64_t btxid)"
+.br
+.ti -1c
+.RI "void \fBread_uok\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_uok\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_uok\fP (uint16_t abank, uint32_t auser, uint32_t buser, uint64_t btxid)"
+.br
+.ti -1c
+.RI "void \fBread_usr\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_usr\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_usr\fP (uint32_t auser, uint16_t bbank, uint64_t atxid)"
+.br
+.ti -1c
+.RI "void \fBread_bky\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_bky\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_bky\fP (uint16_t bbank, uint64_t atxid)"
+.br
+.ti -1c
+.RI "void \fBread_sbs\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_sbs\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_sbs\fP (uint16_t bbank, uint32_t status, uint64_t atxid)"
+.br
+.ti -1c
+.RI "void \fBread_ubs\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_ubs\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_ubs\fP (uint16_t bbank, uint32_t status, uint64_t atxid)"
+.br
+.ti -1c
+.RI "void \fBread_bnk\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_bnk\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_bnk\fP (uint32_t auser, uint16_t bbank, uint64_t atxid)"
+.br
+.ti -1c
+.RI "void \fBread_get\fP (boost::property_tree::ptree &pt, char *buffer)"
+.br
+.ti -1c
+.RI "void \fBread_get\fP (boost::property_tree::ptree &pt)"
+.br
+.ti -1c
+.RI "bool \fBsave_get\fP (uint32_t auser, uint16_t bbank, uint32_t buser, uint64_t atxid)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "int \fBtotal\fP"
+.br
+.ti -1c
+.RI "char * \fBdata\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 74 of file hlog\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

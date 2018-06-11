@@ -1,0 +1,56 @@
+.TH "client" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+client \- Main class for esc client\&. Brief description continued\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <client\&.hpp>\fP
+.PP
+Inherits enable_shared_from_this< client >\&.
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBclient\fP (boost::asio::io_service &io_service, \fBoffice\fP &offi)"
+.br
+.ti -1c
+.RI "boost::asio::ip::tcp::socket & \fBsocket\fP ()"
+.br
+.ti -1c
+.RI "void \fBstart\fP ()"
+.br
+.ti -1c
+.RI "void \fBhandle_read_txstype\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_extended_txs\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_signature_txs\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_txs_complete\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_txs\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBhandle_read_more\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
+.RI "void \fBparse\fP ()"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Main class for esc client\&. Brief description continued\&. 
+.PP
+Definition at line 20 of file client\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

@@ -1,0 +1,268 @@
+.TH "servers" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+servers \- 
+.SH SYNOPSIS
+.br
+.PP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBcreate_genesis_block\fP (const std::string genesis_file)"
+.br
+.ti -1c
+.RI "void \fBinit_fast\fP (uint16_t node_count, hash_t pk)"
+.br
+.ti -1c
+.RI "void \fBinit\fP (uint32_t newnow)"
+.br
+.ti -1c
+.RI "void \fBwrite_start\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBread_start\fP ()"
+.br
+.ti -1c
+.RI "void \fBxor4\fP (uint64_t *to, uint64_t *from)"
+.br
+.ti -1c
+.RI "void \fBuser_csum\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "void \fBinit_node_hash\fP (\fBnode\fP &nn)"
+.br
+.ti -1c
+.RI "uint16_t \fBadd_node\fP (\fBuser_t\fP &ou, uint16_t unode, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBput_node\fP (\fBuser_t\fP &ou, uint16_t \fBpeer\fP, uint16_t \fBnode\fP, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBinit_user_hash\fP (\fBuser_t\fP &u)"
+.br
+.ti -1c
+.RI "void \fBinit_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid, int64_t weight, uint8_t *pk, uint32_t when, uint16_t \fBnode\fP, uint16_t user)"
+.br
+.ti -1c
+.RI "void \fBput_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "void \fBget_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "bool \fBcheck_user\fP (uint16_t \fBpeer\fP, uint32_t uid)"
+.br
+.ti -1c
+.RI "bool \fBfind_key\fP (uint8_t *pkey, uint8_t *skey)"
+.br
+.ti -1c
+.RI "bool \fBfind_pkey\fP (uint8_t *pk)"
+.br
+.ti -1c
+.RI "void \fBfind_more_keys\fP (uint8_t *pkey, std::map< uint16_t, \fBnodekey_t\fP > &nkeys)"
+.br
+.ti -1c
+.RI "bool \fBcheck_nodehash\fP (uint16_t \fBpeer\fP)"
+.br
+.ti -1c
+.RI "void \fBsave_undo\fP (uint16_t svid, std::map< uint32_t, \fBuser_t\fP > &undo, uint32_t users)"
+.br
+.ti -1c
+.RI "void \fBclear_undo\fP ()"
+.br
+.ti -1c
+.RI "void \fBget\fP ()"
+.br
+.ti -1c
+.RI "void \fBget\fP (uint32_t path)"
+.br
+.ti -1c
+.RI "void \fBread_servers\fP (uint32_t path, uint8_t *&data, uint32_t &len, uint8_t *&hash)"
+.br
+.ti -1c
+.RI "void \fBput\fP ()"
+.br
+.ti -1c
+.RI "bool \fBmsgl_put\fP (std::map< uint64_t, message_ptr > &map, char *cmphash)"
+.br
+.RI "\fIreplaced by \fBParser::MsglistParser\fP \fP"
+.ti -1c
+.RI "int \fBmsgl_get\fP (char *data)"
+.br
+.ti -1c
+.RI "void \fBmsgl_map\fP (char *data, std::map< uint64_t, message_ptr > &map, uint16_t mysvid)"
+.br
+.ti -1c
+.RI "int \fBmsgl_load\fP (std::map< uint64_t, message_ptr > &map, uint16_t mysvid)"
+.br
+.ti -1c
+.RI "uint16_t \fBget_vipuno\fP ()"
+.br
+.RI "\fIreplaced by \fBParser::MsglistParser\fP \fP"
+.ti -1c
+.RI "void \fBupdate_vipstatus\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate_viphash\fP ()"
+.br
+.ti -1c
+.RI "bool \fBvip_check\fP (uint8_t *viphash, uint8_t *vipkeys, int num)"
+.br
+.ti -1c
+.RI "int \fBvip_size\fP (uint8_t *viphash)"
+.br
+.ti -1c
+.RI "bool \fBload_vip\fP (int &len, char *&buf, uint8_t *vhash)"
+.br
+.ti -1c
+.RI "void \fBfinish\fP ()"
+.br
+.ti -1c
+.RI "void \fBhashnow\fP ()"
+.br
+.ti -1c
+.RI "void \fBloadlink\fP (\fBheadlink_t\fP &link, uint32_t path, char *oldh)"
+.br
+.ti -1c
+.RI "void \fBfilllink\fP (\fBheadlink_t\fP &link)"
+.br
+.ti -1c
+.RI "void \fBloadhead\fP (\fBheader_t\fP &head)"
+.br
+.ti -1c
+.RI "void \fBheader\fP (\fBheader_t\fP &head)"
+.br
+.ti -1c
+.RI "int \fBdata_read\fP (const char *filename, bool read_nodes)"
+.br
+.ti -1c
+.RI "int \fBdata_write\fP (const char *filename, bool write_nodes)"
+.br
+.ti -1c
+.RI "int \fBheader_get\fP ()"
+.br
+.ti -1c
+.RI "bool \fBsave_nowhash\fP (\fBheader_t\fP &head)"
+.br
+.ti -1c
+.RI "bool \fBload_nowhash\fP ()"
+.br
+.ti -1c
+.RI "void \fBheader_put\fP ()"
+.br
+.ti -1c
+.RI "void \fBheader_last\fP ()"
+.br
+.ti -1c
+.RI "void \fBheader_print\fP ()"
+.br
+.ti -1c
+.RI "void \fBheader_print\fP (\fBheader_t\fP &head)"
+.br
+.ti -1c
+.RI "void \fBsave_signature\fP (uint32_t path, uint16_t svid, uint8_t *sig, bool ok)"
+.br
+.ti -1c
+.RI "bool \fBget_signatures\fP (uint32_t path, uint8_t *&data, uint32_t &nok)"
+.br
+.ti -1c
+.RI "void \fBread_signatures\fP (uint32_t path, uint8_t *&data, uint32_t &nok, uint32_t &nno)"
+.br
+.ti -1c
+.RI "bool \fBget_signatures\fP (uint32_t path, uint8_t *data, int nok, int nno)"
+.br
+.ti -1c
+.RI "void \fBput_signatures\fP (\fBheader_t\fP &head, svsi_t *svsi)"
+.br
+.ti -1c
+.RI "void \fBdel_signatures\fP ()"
+.br
+.ti -1c
+.RI "void \fBcheck_signatures\fP (\fBheader_t\fP &head, svsi_t *svsi, bool save)"
+.br
+.ti -1c
+.RI "bool \fBcopy_nodes\fP (\fBnode_t\fP *peer_node, uint16_t peer_srvn)"
+.br
+.ti -1c
+.RI "int \fBcheck_nodes\fP (\fBnode_t\fP *peer_node, uint16_t peer_srvn, uint8_t *peer_nodehash)"
+.br
+.ti -1c
+.RI "void \fBoverwrite\fP (\fBheader_t\fP &head, \fBnode_t\fP *peer_node)"
+.br
+.ti -1c
+.RI "uint32_t \fBnextblock\fP ()"
+.br
+.ti -1c
+.RI "void \fBblockdir\fP ()"
+.br
+.ti -1c
+.RI "void \fBblockdir\fP (uint32_t blockTime)"
+.br
+.ti -1c
+.RI "void \fBclean_old\fP (uint16_t svid)"
+.br
+.ti -1c
+.RI "uint32_t \fBnowh32\fP (void)"
+.br
+.ti -1c
+.RI "uint32_t \fBnowh64\fP (void)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint32_t \fBnow\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBmsg\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBnod\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBdiv\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBoldhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBminhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBmsghash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBnodhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBviphash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBnowhash\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint16_t \fBvok\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBvno\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBvtot\fP"
+.br
+.ti -1c
+.RI "uint64_t \fBtxs\fP"
+.br
+.ti -1c
+.RI "std::vector< \fBnode\fP > \fBnodes\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 80 of file servers\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

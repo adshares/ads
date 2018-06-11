@@ -1,0 +1,59 @@
+.TH "GetMessageInfo" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GetMessageInfo \- Get message info\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <pods\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBGetMessageInfo\fP (uint16_t srcNode, uint32_t srcUser, uint32_t txnTime, uint32_t block_, uint16_t dstNode, uint32_t msgId)"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBttype\fP {TXSTYPE_MSG}"
+.br
+.RI "\fIcommand type \fP"
+.ti -1c
+.RI "uint16_t \fBsrc_node\fP {0}"
+.br
+.RI "\fIsource node \fP"
+.ti -1c
+.RI "uint32_t \fBsrc_user\fP {0}"
+.br
+.RI "\fIsource user \fP"
+.ti -1c
+.RI "uint32_t \fBttime\fP {0}"
+.br
+.RI "\fItime \fP"
+.ti -1c
+.RI "uint32_t \fBblock\fP {0}"
+.br
+.RI "\fIblock no\&. \fP"
+.ti -1c
+.RI "uint16_t \fBdst_node\fP {0}"
+.br
+.RI "\fIdestination node \fP"
+.ti -1c
+.RI "uint32_t \fBnode_msgid\fP {0}"
+.br
+.RI "\fInode message id \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Get message info\&. 
+.PP
+Definition at line 408 of file pods\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

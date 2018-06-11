@@ -1,0 +1,275 @@
+.TH "message" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+message \- 
+.SH SYNOPSIS
+.br
+.PP
+.PP
+Inherits enable_shared_from_this< message >\&.
+.SS "Public Types"
+
+.in +1c
+.ti -1c
+.RI "enum { \fBheader_length\fP = 8 }"
+.br
+.ti -1c
+.RI "enum { \fBmax_msid\fP = 0xffffffff }"
+.br
+.ti -1c
+.RI "enum { \fBmax_length\fP = 0xffffff }"
+.br
+.ti -1c
+.RI "enum { \fBdata_offset\fP = 4+64+10 }"
+.br
+.in -1c
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBmessage\fP (uint16_t *svidp, uint32_t *msidp, char *sighp, uint16_t mysvid, uint32_t mypath)"
+.br
+.ti -1c
+.RI "\fBmessage\fP (uint32_t l)"
+.br
+.ti -1c
+.RI "\fBmessage\fP (uint32_t l, uint8_t *d)"
+.br
+.ti -1c
+.RI "\fBmessage\fP (uint8_t text_type, const uint8_t *text, int text_len, uint16_t mysvid, uint32_t mymsid, ed25519_secret_key mysk, uint8_t *mypk, hash_t msha)"
+.br
+.ti -1c
+.RI "\fBmessage\fP (uint8_t type, uint32_t mpath, uint16_t msvid, uint32_t mmsid, hash_t svpk, hash_t msha)"
+.br
+.ti -1c
+.RI "\fBmessage\fP (uint8_t type, uint32_t mpath, uint16_t msvid, uint32_t mmsid)"
+.br
+.ti -1c
+.RI "bool \fBhash_tree_fast\fP (uint8_t *outsigh, uint8_t *indata, uint32_t inlen, uint16_t insvid, uint32_t inmsid)"
+.br
+.ti -1c
+.RI "bool \fBget_user\fP (uint32_t user, \fBuser_t\fP &u)"
+.br
+.ti -1c
+.RI "bool \fBinsert_user\fP ()"
+.br
+.ti -1c
+.RI "bool \fBhash_tree\fP ()"
+.br
+.ti -1c
+.RI "bool \fBhash_tree_get\fP (uint32_t tnum, std::vector< \fBhash_s\fP > &hashes, uint32_t &mnum)"
+.br
+.ti -1c
+.RI "void \fBsignnewtime\fP (uint32_t ntime, ed25519_secret_key mysk, ed25519_public_key mypk, hash_t msha)"
+.br
+.ti -1c
+.RI "void \fBhashtype\fP (uint8_t type)"
+.br
+.ti -1c
+.RI "uint8_t \fBhashtype\fP ()"
+.br
+.ti -1c
+.RI "uint8_t \fBhashval\fP (uint16_t mysvid)"
+.br
+.ti -1c
+.RI "uint64_t \fBdohash\fP (void)"
+.br
+.ti -1c
+.RI "uint64_t \fBdohash\fP (uint16_t mysvid)"
+.br
+.ti -1c
+.RI "uint64_t \fBdohash\fP (uint8_t *d)"
+.br
+.ti -1c
+.RI "void \fBdblhash\fP (uint16_t mysvid)"
+.br
+.ti -1c
+.RI "int \fBheader\fP (uint32_t peer_svid)"
+.br
+.ti -1c
+.RI "int \fBsigh_check\fP ()"
+.br
+.ti -1c
+.RI "void \fBnull_signature\fP ()"
+.br
+.ti -1c
+.RI "void \fBhash_signature\fP ()"
+.br
+.ti -1c
+.RI "void \fBread_head\fP (void)"
+.br
+.ti -1c
+.RI "int \fBcheck_signature\fP (const uint8_t *svpk, uint16_t mysvid, const uint8_t *msha)"
+.br
+.ti -1c
+.RI "void \fBprint_text\fP (const char *suffix)"
+.br
+.ti -1c
+.RI "void \fBprint\fP (const char *suffix) const "
+.br
+.ti -1c
+.RI "void \fBprint_header\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBload\fP (int16_t who)"
+.br
+.ti -1c
+.RI "void \fBunload\fP (int16_t who)"
+.br
+.ti -1c
+.RI "void \fBsave_mnum\fP (uint32_t mnum)"
+.br
+.ti -1c
+.RI "void \fBmakefilename\fP (char *filename, uint32_t where, const char *suffix)"
+.br
+.ti -1c
+.RI "int \fBsave\fP ()"
+.br
+.ti -1c
+.RI "int \fBsave_path\fP ()"
+.br
+.ti -1c
+.RI "int \fBerase_path\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBload_path\fP ()"
+.br
+.ti -1c
+.RI "void \fBsave_undo\fP (std::map< uint32_t, \fBuser_t\fP > &undo, uint32_t users, uint64_t *csum, int64_t &weight, int64_t &fee, uint8_t *msha, uint32_t &mtim)"
+.br
+.ti -1c
+.RI "uint32_t \fBload_undo\fP (std::map< uint32_t, \fBuser_t\fP > &undo, uint64_t *csum, int64_t &weight, int64_t &fee, uint8_t *msha, uint32_t &mtim)"
+.br
+.ti -1c
+.RI "int \fBmove\fP (uint32_t nextpath)"
+.br
+.ti -1c
+.RI "bool \fBbad_recover\fP ()"
+.br
+.ti -1c
+.RI "bool \fBbad_insert\fP ()"
+.br
+.ti -1c
+.RI "void \fBremove_undo\fP ()"
+.br
+.ti -1c
+.RI "void \fBremove\fP ()"
+.br
+.ti -1c
+.RI "void \fBupdate\fP (boost::shared_ptr< \fBmessage\fP > &msg)"
+.br
+.ti -1c
+.RI "void \fBbusy_insert\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBbusy_erase\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "bool \fBnot_busy\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "bool \fBknow_find_\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBknow_erase_\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBknow_insert_\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBknow_insert\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "bool \fBknow_emplace\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "bool \fBsent_emplace\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBsent_insert\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBsent_erase\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "void \fBknow_sent_erase\fP (uint16_t p)"
+.br
+.ti -1c
+.RI "bool \fBcansend\fP (uint16_t p, uint32_t mynow, uint32_t maxwait)"
+.br
+.ti -1c
+.RI "uint16_t \fBrequest\fP ()"
+.br
+.ti -1c
+.RI "uint32_t \fBdata_len\fP ()"
+.br
+.in -1c
+.SS "Public Attributes"
+
+.in +1c
+.ti -1c
+.RI "uint8_t \fBsigh\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint8_t \fBpreh\fP [SHA256_DIGEST_LENGTH]"
+.br
+.ti -1c
+.RI "uint32_t \fBlen\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBmsid\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBnow\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBgot\fP"
+.br
+.ti -1c
+.RI "uint32_t \fBpath\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBsvid\fP"
+.br
+.ti -1c
+.RI "uint16_t \fBpeer\fP"
+.br
+.ti -1c
+.RI "uint8_t * \fBdata\fP"
+.br
+.ti -1c
+.RI "union {"
+.br
+.ti -1c
+.RI "   uint64_t \fBnum\fP"
+.br
+.ti -1c
+.RI "   uint8_t \fBdat\fP [8]"
+.br
+.ti -1c
+.RI "} \fBhash\fP"
+.br
+.ti -1c
+.RI "uint8_t \fBstatus\fP"
+.br
+.ti -1c
+.RI "std::vector< uint16_t > \fBknow\fP"
+.br
+.ti -1c
+.RI "std::set< uint16_t > \fBbusy\fP"
+.br
+.ti -1c
+.RI "std::set< uint16_t > \fBsent\fP"
+.br
+.ti -1c
+.RI "boost::mutex \fBmtx_\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Definition at line 11 of file message\&.hpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

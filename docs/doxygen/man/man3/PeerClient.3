@@ -1,0 +1,159 @@
+.TH "PeerClient" 3 "Wed Jun 6 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+PeerClient \- Peer network client\&. It is is responnsible for asynchronous operation with timeouts\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <peerclient\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBPeerClient\fP (boost::asio::ip::tcp::socket &socket, \fBpeer\fP &\fBpeer\fP)"
+.br
+.ti -1c
+.RI "void \fBasyncConnect\fP (boost::asio::ip::tcp::resolver::iterator &tcpIterator, peerConnectCallback handler, int timeout=DEFAULT_NET_TIMEOUT)"
+.br
+.RI "\fIAsynchronous connection to remote peer\&. \fP"
+.ti -1c
+.RI "void \fBasyncRead\fP (void *data, uint32_t len, peerCallback handler, int timeout=DEFAULT_NET_TIMEOUT)"
+.br
+.RI "\fIAsynchronous data read from remote peer\&. \fP"
+.ti -1c
+.RI "void \fBasyncWrite\fP (void *data, uint32_t len, peerCallback handler, int timeout=DEFAULT_NET_TIMEOUT)"
+.br
+.RI "\fIAsynchronous data write to remote peer\&. \fP"
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "std::size_t \fBwriteSync\fP (void *data, uint32_t len, int timeout=DEFAULT_NET_TIMEOUT)"
+.br
+.RI "\fISynchronous data write operation to remote peer\&. \fP"
+.ti -1c
+.RI "std::size_t \fBreadSync\fP (void *data, uint32_t len, int timeout=DEFAULT_NET_TIMEOUT)"
+.br
+.RI "\fISynchronous data read from remote peer\&. \fP"
+.in -1c
+.SS "Friends"
+
+.in +1c
+.ti -1c
+.RI "class \fBpeer\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+Peer network client\&. It is is responnsible for asynchronous operation with timeouts\&. 
+.PP
+Definition at line 24 of file peerclient\&.h\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "void PeerClient::asyncConnect (boost::asio::ip::tcp::resolver::iterator & tcpIterator, peerConnectCallback handler, int timeout = \fCDEFAULT_NET_TIMEOUT\fP)"
+
+.PP
+Asynchronous connection to remote peer\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fItcpIterator\fP 
+.br
+\fIhandler\fP The handler to be called when the connect operation completes\&. 
+.br
+\fItimeout\fP Operation tiemout in seconds\&. If zero no timeout\&. 
+.RE
+.PP
+
+.PP
+Definition at line 135 of file peerclient\&.cpp\&.
+.SS "void PeerClient::asyncRead (void * data, uint32_t len, peerCallback handler, int timeout = \fCDEFAULT_NET_TIMEOUT\fP)"
+
+.PP
+Asynchronous data read from remote peer\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdata\fP Poinetr to data buffor 
+.br
+\fIhandler\fP Lenght of data buffor\&. 
+.br
+\fIhandler\fP The handler to be called when the connect operation completes\&. 
+.br
+\fItimeout\fP Operation tiemout in seconds\&. If zero no timeout\&. 
+.RE
+.PP
+
+.PP
+Definition at line 121 of file peerclient\&.cpp\&.
+.SS "void PeerClient::asyncWrite (void * data, uint32_t len, peerCallback handler, int timeout = \fCDEFAULT_NET_TIMEOUT\fP)"
+
+.PP
+Asynchronous data write to remote peer\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdata\fP Poinetr to data buffor 
+.br
+\fIlen\fP Lenght of data buffor\&. 
+.br
+\fIhandler\fP The handler to be called when the connect operation completes\&. 
+.br
+\fItimeout\fP Operation tiemout in seconds\&. If zero no timeout\&. 
+.RE
+.PP
+
+.PP
+Definition at line 148 of file peerclient\&.cpp\&.
+.SS "std::size_t PeerClient::readSync (void * data, uint32_t len, int timeout = \fCDEFAULT_NET_TIMEOUT\fP)\fC [protected]\fP"
+
+.PP
+Synchronous data read from remote peer\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdata\fP Poinetr to data buffor 
+.br
+\fIlen\fP Lenght of data buffor\&. 
+.br
+\fItimeout\fP Operation tiemout in seconds\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+size of data readed\&. 
+.RE
+.PP
+
+.PP
+Definition at line 94 of file peerclient\&.cpp\&.
+.SS "std::size_t PeerClient::writeSync (void * data, uint32_t len, int timeout = \fCDEFAULT_NET_TIMEOUT\fP)\fC [protected]\fP"
+
+.PP
+Synchronous data write operation to remote peer\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdata\fP Poinetr to data buffor 
+.br
+\fIlen\fP Lenght of data buffor\&. 
+.br
+\fItimeout\fP Operation tiemout in seconds\&. 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+size of data written\&. 
+.RE
+.PP
+
+.PP
+Definition at line 67 of file peerclient\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.
