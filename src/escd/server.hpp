@@ -2346,9 +2346,6 @@ NEXTUSER:
                     //if(!(busy_msg->status & MSGSTAT_BAD)){
                     //  busy_msg->remove();} //save under new name (as failed)
                     bad_insert(busy_msg);
-#ifdef DEBUG
-                    exit(-1); //only for debugging
-#endif
                     continue;
                 }
                 if(busy_msg->path<srvs_.now) {
