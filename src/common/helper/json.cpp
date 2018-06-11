@@ -404,7 +404,11 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             char key_hex[13];
             key_hex[12]='\0';
             ed25519_key2text(key_hex,key,6);
-            logentry.put("sender_balance",print_amount(weight));
+            if(txst==TXSTYPE_SBS || txst==TXSTYPE_UBS || txst==TXSTYPE_SUS || txst==TXSTYPE_UUS) {
+                logentry.put("status",(weight));
+            } else {
+                logentry.put("sender_balance",print_amount(weight));
+            }
             logentry.put("sender_amount",print_amount(deduct));
             if(txst==TXSTYPE_MPT) {
                 if(ulog.node==bank){
