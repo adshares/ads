@@ -67,16 +67,17 @@ install_apk_dependencies() {
 
 compile() {
     if [ $1 ]; then
+        shift 1
         mkdir /ads
         cd /ads
-        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PROJECT_CONFIG=esc /ads_repo/src
+        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PROJECT_CONFIG=esc $* /ads_repo/src
         make -j `nproc` escd esc
     fi
 }
 
 # Main function
 
-# Say 'please' to compile, otherwise it will only install depdencdencies
+# Say 'please' to compile, otherwise it will only install dependencies
 
 install_dependencies $1
 if [ $? -eq 0 ]; then
