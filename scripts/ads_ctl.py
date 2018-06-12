@@ -104,7 +104,7 @@ if __name__ == '__main__':
     block_time = 32
 
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
-    parser.add_argument('action', choices=['start', 'clean', 'stop', 'state'])
+    parser.add_argument('action', choices=['start', 'clean', 'stop', 'nodes', 'network'])
     parser.add_argument('--init', action='store_true')
     args = parser.parse_args()
 
@@ -122,10 +122,10 @@ if __name__ == '__main__':
             stop_node(nconf)
         elif args.action == 'clean':
             clean(nconf)
-        elif args.action == 'state':
-           state(nconf)
+        elif args.action == 'nodes':
+            state(nconf)
 
-    if args.action == 'state':
+    if args.action == 'network':
         for uconf in sorted(glob('/ads_data/user*.00000000')):
             print(uconf)
             investigate(uconf)
