@@ -1,4 +1,4 @@
-.TH "CommandHandler" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "CommandHandler" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -12,18 +12,18 @@ CommandHandler \- Base class for all command handlers\&.
 .PP
 Inherits \fBICommandHandler\fP\&.
 .PP
-Inherited by \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBCreateNodeHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetSignaturesHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBRetrieveFundsHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
+Inherited by \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBCreateNodeHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBlocksHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetSignaturesHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBRetrieveFundsHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
 .SS "Public Member Functions"
 
 .in +1c
 .ti -1c
 .RI "\fBCommandHandler\fP (\fBoffice\fP &\fBoffice\fP, boost::asio::ip::tcp::socket &socket)"
 .br
-.RI "Constructor\&. "
+.RI "\fIConstructor\&. \fP"
 .ti -1c
 .RI "virtual void \fBexecute\fP (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP &usera) override"
 .br
-.RI "Execute command\&. "
+.RI "\fIExecute command\&. \fP"
 .in -1c
 .SS "Protected Attributes"
 
@@ -31,15 +31,15 @@ Inherited by \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAcc
 .ti -1c
 .RI "\fBoffice\fP & \fBm_offi\fP"
 .br
-.RI "Reference to office object\&. "
+.RI "\fIReference to office object\&. \fP"
 .ti -1c
 .RI "boost::asio::ip::tcp::socket & \fBm_socket\fP"
 .br
-.RI "Socket for connection with client\&. "
+.RI "\fISocket for connection with client\&. \fP"
 .ti -1c
 .RI "\fBuser_t\fP \fBm_usera\fP"
 .br
-.RI "Current user blockchain data\&. "
+.RI "\fICurrent user blockchain data\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 

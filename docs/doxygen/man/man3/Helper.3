@@ -1,4 +1,4 @@
-.TH "Helper" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "Helper" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -35,6 +35,9 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "struct \fBblg_usr_t\fP"
 .br
 .ti -1c
+.RI "class \fBBlock\fP"
+.br
+.ti -1c
 .RI "struct \fBHashDoubleVariant\fP"
 .br
 .ti -1c
@@ -57,6 +60,9 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .br
 .ti -1c
 .RI "class \fBSignatures\fP"
+.br
+.ti -1c
+.RI "class \fBVipKeys\fP"
 .br
 .in -1c
 .SS "Functions"
@@ -135,7 +141,7 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "int \fBgetLogTxnTypeId\fP (const char *txnName)"
 .br
 .ti -1c
-.RI "struct \fBHelper::ServersHeader\fP \fB__attribute__\fP ((packed))"
+.RI "struct \fBHelper::ServersNode\fP \fB__attribute__\fP ((packed))"
 .br
 .ti -1c
 .RI "void \fBsetSocketTimeout\fP (boost::asio::ip::tcp::socket &socket, unsigned int timeout)"

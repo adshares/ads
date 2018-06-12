@@ -1,4 +1,4 @@
-.TH "GetBroadcastAdditionalData" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "GetBroadcastAdditionalData" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -15,19 +15,19 @@ GetBroadcastAdditionalData \- Rest of broadcast response, after header and messa
 .ti -1c
 .RI "unsigned char \fBsign\fP [64]"
 .br
-.RI "signature "
+.RI "\fIsignature \fP"
 .ti -1c
 .RI "uint8_t \fBhash\fP [SHA256_DIGEST_LENGTH]"
 .br
-.RI "users block hash "
+.RI "\fIusers block hash \fP"
 .ti -1c
 .RI "uint8_t \fBpkey\fP [SHA256_DIGEST_LENGTH]"
 .br
-.RI "public key "
+.RI "\fIpublic key \fP"
 .ti -1c
 .RI "uint32_t \fBmsid\fP"
 .br
-.RI "id of last transaction "
+.RI "\fIid of last transaction \fP"
 .ti -1c
 .RI "uint32_t \fBmpos\fP"
 .br

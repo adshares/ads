@@ -1,30 +1,31 @@
 <map id="IBlockCommand" name="IBlockCommand">
-<area shape="rect" id="node4" href="$class_broadcast_msg.html" title="Broadcast command class. " alt="" coords="361,5,475,32"/>
-<area shape="rect" id="node5" href="$class_change_node_key.html" title="Class responsible for handling &quot;change_node_key&quot; command. " alt="" coords="353,56,483,83"/>
-<area shape="rect" id="node6" href="$class_connected.html" title="Connected message class. " alt="" coords="373,107,463,133"/>
-<area shape="rect" id="node7" href="$class_create_account.html" title="CreateAccount" alt="" coords="359,157,477,184"/>
-<area shape="rect" id="node8" href="$class_create_node.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="369,208,467,235"/>
-<area shape="rect" id="node9" href="$class_get_account.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="369,259,467,285"/>
-<area shape="rect" id="node10" href="$class_get_accounts.html" title="GetAccounts" alt="" coords="366,309,470,336"/>
-<area shape="rect" id="node11" href="$class_get_block.html" title="GetBlock" alt="" coords="377,360,459,387"/>
-<area shape="rect" id="node12" href="$class_get_broadcast_msg.html" title="Get broadcast command class. " alt="" coords="350,411,486,437"/>
-<area shape="rect" id="node13" href="$class_get_fields.html" title="Readonly class (without connection to daemon, to obtain data fields of certain command typed as argum..." alt="" coords="377,461,459,488"/>
-<area shape="rect" id="node14" href="$class_get_log.html" title="Class responsible for handling &quot;get_log&quot; command. " alt="" coords="384,512,452,539"/>
-<area shape="rect" id="node15" href="$class_get_message.html" title="Get message command class. " alt="" coords="367,563,469,589"/>
-<area shape="rect" id="node16" href="$class_get_message_list.html" title="Get message list command class. " alt="" coords="355,613,481,640"/>
-<area shape="rect" id="node17" href="$class_get_signatures.html" title="Class responsible for handling &quot;get_signatures&quot; command. " alt="" coords="361,664,475,691"/>
-<area shape="rect" id="node18" href="$class_get_transaction.html" title="Get transaction command class. " alt="" coords="359,715,477,741"/>
-<area shape="rect" id="node19" href="$class_get_vip_keys.html" title="GetVipKeys" alt="" coords="369,765,467,792"/>
-<area shape="rect" id="node20" href="$class_retrieve_funds.html" title="Class responsible for handling &quot;retrieve_funds&quot; command. " alt="" coords="361,816,475,843"/>
-<area shape="rect" id="node21" href="$class_send_many.html" title="SendMany" alt="" coords="373,867,463,893"/>
-<area shape="rect" id="node22" href="$class_send_one.html" title="SendOne" alt="" coords="378,917,458,944"/>
-<area shape="rect" id="node23" href="$class_set_account_key.html" title="Class responsible for handling &quot;change_account_key&quot; command. " alt="" coords="359,968,477,995"/>
-<area shape="rect" id="node24" href="$class_set_account_status.html" title="Class responsible for handling &quot;set_account_status&quot; command. " alt="" coords="350,1019,486,1045"/>
-<area shape="rect" id="node25" href="$class_set_node_status.html" title="Class responsible for handling &quot;set_node_status&quot; command. " alt="" coords="359,1069,477,1096"/>
-<area shape="rect" id="node26" href="$class_transaction_accepted.html" title="Transaction accepted TXSTYPE_UOK type. " alt="" coords="340,1120,496,1147"/>
-<area shape="rect" id="node27" href="$class_transaction_failed.html" title="Transaction failed TXSTYPE_NON type. " alt="" coords="351,1171,485,1197"/>
-<area shape="rect" id="node28" href="$class_unset_account_status.html" title="Class responsible for handling &quot;unset_account_status&quot; command. " alt="" coords="341,1221,495,1248"/>
-<area shape="rect" id="node29" href="$class_unset_node_status.html" title="Class responsible for handling &quot;unset_node_status&quot; command. " alt="" coords="351,1272,485,1299"/>
-<area shape="rect" id="node2" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="13,613,107,640"/>
-<area shape="rect" id="node3" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="5,664,115,691"/>
+<area shape="rect" id="node4" href="$class_broadcast_msg.html" title="Broadcast command class. " alt="" coords="354,5,467,32"/>
+<area shape="rect" id="node5" href="$class_change_node_key.html" title="Class responsible for handling &quot;change_node_key&quot; command. " alt="" coords="347,56,474,83"/>
+<area shape="rect" id="node6" href="$class_connected.html" title="Connected message class. " alt="" coords="365,107,456,133"/>
+<area shape="rect" id="node7" href="$class_create_account.html" title="CreateAccount" alt="" coords="352,157,469,184"/>
+<area shape="rect" id="node8" href="$class_create_node.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="361,208,460,235"/>
+<area shape="rect" id="node9" href="$class_get_account.html" title="Class responsible for handling &quot;get_me&quot; or &quot;get_acocunt&quot; command. " alt="" coords="362,259,459,285"/>
+<area shape="rect" id="node10" href="$class_get_accounts.html" title="GetAccounts" alt="" coords="359,309,463,336"/>
+<area shape="rect" id="node11" href="$class_get_block.html" title="GetBlock" alt="" coords="371,360,450,387"/>
+<area shape="rect" id="node12" href="$class_get_blocks.html" title="GetBlocks" alt="" coords="367,411,454,437"/>
+<area shape="rect" id="node13" href="$class_get_broadcast_msg.html" title="Get broadcast command class. " alt="" coords="343,461,479,488"/>
+<area shape="rect" id="node14" href="$class_get_fields.html" title="Readonly class (without connection to daemon, to obtain data fields of certain command typed as argum..." alt="" coords="371,512,451,539"/>
+<area shape="rect" id="node15" href="$class_get_log.html" title="Class responsible for handling &quot;get_log&quot; command. " alt="" coords="377,563,445,589"/>
+<area shape="rect" id="node16" href="$class_get_message.html" title="Get message command class. " alt="" coords="359,613,462,640"/>
+<area shape="rect" id="node17" href="$class_get_message_list.html" title="Get message list command class. " alt="" coords="349,664,473,691"/>
+<area shape="rect" id="node18" href="$class_get_signatures.html" title="Class responsible for handling &quot;get_signatures&quot; command. " alt="" coords="353,715,468,741"/>
+<area shape="rect" id="node19" href="$class_get_transaction.html" title="Get transaction command class. " alt="" coords="352,765,469,792"/>
+<area shape="rect" id="node20" href="$class_get_vip_keys.html" title="GetVipKeys" alt="" coords="363,816,458,843"/>
+<area shape="rect" id="node21" href="$class_retrieve_funds.html" title="Class responsible for handling &quot;retrieve_funds&quot; command. " alt="" coords="355,867,466,893"/>
+<area shape="rect" id="node22" href="$class_send_many.html" title="SendMany" alt="" coords="366,917,455,944"/>
+<area shape="rect" id="node23" href="$class_send_one.html" title="SendOne" alt="" coords="370,968,451,995"/>
+<area shape="rect" id="node24" href="$class_set_account_key.html" title="Class responsible for handling &quot;change_account_key&quot; command. " alt="" coords="351,1019,470,1045"/>
+<area shape="rect" id="node25" href="$class_set_account_status.html" title="Class responsible for handling &quot;set_account_status&quot; command. " alt="" coords="341,1069,480,1096"/>
+<area shape="rect" id="node26" href="$class_set_node_status.html" title="Class responsible for handling &quot;set_node_status&quot; command. " alt="" coords="351,1120,471,1147"/>
+<area shape="rect" id="node27" href="$class_transaction_accepted.html" title="Transaction accepted TXSTYPE_UOK type. " alt="" coords="333,1171,488,1197"/>
+<area shape="rect" id="node28" href="$class_transaction_failed.html" title="Transaction failed TXSTYPE_NON type. " alt="" coords="345,1221,476,1248"/>
+<area shape="rect" id="node29" href="$class_unset_account_status.html" title="Class responsible for handling &quot;unset_account_status&quot; command. " alt="" coords="333,1272,488,1299"/>
+<area shape="rect" id="node30" href="$class_unset_node_status.html" title="Class responsible for handling &quot;unset_node_status&quot; command. " alt="" coords="343,1323,479,1349"/>
+<area shape="rect" id="node2" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="12,639,104,665"/>
+<area shape="rect" id="node3" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="5,689,111,716"/>
 </map>

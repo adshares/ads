@@ -1,4 +1,4 @@
-.TH "ICommandHandler" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "ICommandHandler" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -17,19 +17,19 @@ Inherited by \fBCommandHandler\fP\&.
 .ti -1c
 .RI "virtual void \fBexecute\fP (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP &usera)=0"
 .br
-.RI "Execute command\&. "
+.RI "\fIExecute command\&. \fP"
 .ti -1c
 .RI "virtual void \fBonInit\fP (std::unique_ptr< \fBIBlockCommand\fP > command)=0"
 .br
-.RI "Int command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. "
+.RI "\fIInt command event\&. It prepare data's needed to execute command\&. If 'command' casting is needed it should be performed in it\&. \fP"
 .ti -1c
 .RI "virtual void \fBonExecute\fP ()=0"
 .br
-.RI "Execution event\&. It execute actual command and commiting it to blockchain\&. "
+.RI "\fIExecution event\&. It execute actual command and commiting it to blockchain\&. \fP"
 .ti -1c
 .RI "virtual bool \fBonValidate\fP ()=0"
 .br
-.RI "Validtaion event\&. It execute validation of data if it contain all proper value\&. "
+.RI "\fIValidtaion event\&. It execute validation of data if it contain all proper value\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
@@ -65,7 +65,7 @@ Int command event\&. It prepare data's needed to execute command\&. If 'command'
 .PP
 
 .PP
-Implemented in \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBCreateNodeHandler\fP, \fBGetSignaturesHandler\fP, \fBRetrieveFundsHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
+Implemented in \fBGetBlocksHandler\fP, \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBCreateNodeHandler\fP, \fBGetSignaturesHandler\fP, \fBRetrieveFundsHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
 
 .SH "Author"
 .PP 

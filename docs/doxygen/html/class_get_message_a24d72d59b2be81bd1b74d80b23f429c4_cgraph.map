@@ -1,5 +1,5 @@
 <map id="GetMessage::send" name="GetMessage::send">
-<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="226,5,415,32"/>
-<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="227,56,414,83"/>
-<area shape="rect" id="node4" href="$classcommand_1_1factory.html#afed46d44bee54e75b19d762b1ecdeeae" title="Make command function. " alt="" coords="195,107,447,133"/>
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="228,5,411,32"/>
+<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="229,56,410,83"/>
+<area shape="rect" id="node4" href="$classcommand_1_1factory.html#afed46d44bee54e75b19d762b1ecdeeae" title="Make command function. " alt="" coords="195,107,444,133"/>
 </map>

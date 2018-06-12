@@ -1,4 +1,4 @@
 <map id="GetAccountsHandler" name="GetAccountsHandler">
-<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="13,80,153,107"/>
-<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="11,5,155,32"/>
+<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="13,80,152,107"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="11,5,154,32"/>
 </map>

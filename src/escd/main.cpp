@@ -128,6 +128,7 @@ int main(int argc, char* argv[]) {
                 opt.fast=false;
                 opt.init=false;
                 opt.comm=true;
+                opt.genesis="";
                 ELOG("\n\nRESTARTING\n\n\n");
             } else {
                 ELOG("Shutting down\n");
@@ -234,6 +235,7 @@ void server::ofip_change_pkey(uint8_t* pkey) {
 }
 void server::ofip_readwrite() {
     DLOG("OFFICE SET READWRITE\n");
+    std::cout << "OFFICE SET READWRITE\n";
     ofip->readonly=false;
 }
 void server::ofip_readonly() {

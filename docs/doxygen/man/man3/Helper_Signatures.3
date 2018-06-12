@@ -1,8 +1,8 @@
-.TH "Helper::Signatures" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "Helper::Signatures" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-Helper::Signatures
+Helper::Signatures \- 
 .SH SYNOPSIS
 .br
 .PP
@@ -10,16 +10,16 @@ Helper::Signatures
 
 .in +1c
 .ti -1c
-.RI "\fBSignatures\fP (uint32_t path)"
+.RI "void \fBload\fP (uint32_t path)"
 .br
 .ti -1c
-.RI "void \fBload\fP ()"
+.RI "void \fBloadSignaturesOk\fP (uint32_t path)"
 .br
 .ti -1c
-.RI "std::vector< \fBSignature\fP > \fBgetSignaturesOk\fP ()"
+.RI "const std::vector< \fBSignature\fP > & \fBgetSignaturesOk\fP ()"
 .br
 .ti -1c
-.RI "std::vector< \fBSignature\fP > \fBgetSignaturesNo\fP ()"
+.RI "const std::vector< \fBSignature\fP > & \fBgetSignaturesNo\fP ()"
 .br
 .in -1c
 .SH "Detailed Description"

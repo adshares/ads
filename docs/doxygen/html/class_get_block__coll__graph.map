@@ -1,9 +1,9 @@
 <map id="GetBlock" name="GetBlock">
-<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="50,95,179,121"/>
-<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,99,32"/>
-<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="123,5,232,32"/>
-<area shape="rect" id="node5" href="$class_helper_1_1_hlog.html" title="Helper::Hlog" alt="" coords="203,95,306,121"/>
-<area shape="rect" id="node6" href="$struct_get_block_data.html" title="GetBlockData" alt="" coords="331,95,443,121"/>
-<area shape="rect" id="node7" href="$struct_get_block_info.html" title="Get block info. " alt="" coords="333,5,440,32"/>
-<area shape="rect" id="node8" href="$struct_helper_1_1_servers_header.html" title="Helper::ServersHeader" alt="" coords="467,95,637,121"/>
+<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,95,176,121"/>
+<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
+<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node5" href="$class_helper_1_1_hlog.html" title="Helper::Hlog" alt="" coords="201,95,302,121"/>
+<area shape="rect" id="node6" href="$struct_get_block_data.html" title="GetBlockData" alt="" coords="327,95,437,121"/>
+<area shape="rect" id="node7" href="$struct_get_block_info.html" title="Get block info. " alt="" coords="331,5,433,32"/>
+<area shape="rect" id="node8" href="$struct_helper_1_1_servers_header.html" title="Helper::ServersHeader" alt="" coords="462,95,630,121"/>
 </map>

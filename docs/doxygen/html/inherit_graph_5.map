@@ -1,6 +1,6 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node2" href="$classcandidate.html" title="candidate" alt="" coords="240,5,327,32"/>
-<area shape="rect" id="node3" href="$classclient.html" title="Main class for esc client. Brief description continued. " alt="" coords="254,56,313,83"/>
-<area shape="rect" id="node4" href="$classmessage.html" title="message" alt="" coords="243,107,324,133"/>
-<area shape="rect" id="node5" href="$classpeer.html" title="peer" alt="" coords="258,157,309,184"/>
+<area shape="rect" id="node2" href="$classcandidate.html" title="candidate" alt="" coords="236,5,321,32"/>
+<area shape="rect" id="node3" href="$classclient.html" title="Main class for esc client. Brief description continued. " alt="" coords="251,56,307,83"/>
+<area shape="rect" id="node4" href="$classmessage.html" title="message" alt="" coords="238,107,319,133"/>
+<area shape="rect" id="node5" href="$classpeer.html" title="peer" alt="" coords="253,157,304,184"/>
 </map>

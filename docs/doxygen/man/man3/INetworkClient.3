@@ -1,4 +1,4 @@
-.TH "INetworkClient" 3 "Tue Jun 5 2018" "esc" \" -*- nroff -*-
+.TH "INetworkClient" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -17,39 +17,39 @@ Inherited by \fBNetworkClient\fP\&.
 .ti -1c
 .RI "virtual bool \fBconnect\fP ()=0"
 .br
-.RI "Connect to server if disconnected\&. "
+.RI "\fIConnect to server if disconnected\&. \fP"
 .ti -1c
 .RI "virtual bool \fBreconnect\fP ()=0"
 .br
-.RI "Recconect to server\&. "
+.RI "\fIRecconect to server\&. \fP"
 .ti -1c
 .RI "virtual bool \fBdisConnect\fP ()=0"
 .br
-.RI "Disconnect to server\&. "
+.RI "\fIDisconnect to server\&. \fP"
 .ti -1c
 .RI "virtual bool \fBsendData\fP (uint8_t *buff, int size)=0"
 .br
-.RI "Send data using pointer to bufor and size\&. "
+.RI "\fISend data using pointer to bufor and size\&. \fP"
 .ti -1c
 .RI "virtual bool \fBsendData\fP (std::vector< uint8_t > buff)=0"
 .br
-.RI "Send data using vector data\&. "
+.RI "\fISend data using vector data\&. \fP"
 .ti -1c
 .RI "virtual bool \fBreadData\fP (uint8_t *buff, int size)=0"
 .br
-.RI "Read data to buffor\&. "
+.RI "\fIRead data to buffor\&. \fP"
 .ti -1c
 .RI "virtual bool \fBreadData\fP (char *buff, int size)=0"
 .br
-.RI "Read data to buffor\&. "
+.RI "\fIRead data to buffor\&. \fP"
 .ti -1c
 .RI "virtual bool \fBreadData\fP (std::vector< uint8_t > &buff)=0"
 .br
-.RI "Read data to vector\&. "
+.RI "\fIRead data to vector\&. \fP"
 .ti -1c
 .RI "virtual bool \fBreadData\fP (int32_t *buff, int size)=0"
 .br
-.RI "Read data to int\&. "
+.RI "\fIRead data to int\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
