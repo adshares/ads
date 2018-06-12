@@ -11,6 +11,7 @@
 int m_timestamp = 1528201216;
 uint16_t m_bank = 1;
 uint32_t m_msid = 3;
+const char* m_userid = "0001/";
 
 TEST(BlockTest, prepareData) {
     boost::filesystem::path p("blk/5B1/68000/");
@@ -69,12 +70,13 @@ TEST(BlockTest, tarOldBlock) {
     sprintf(dirpath, "blk/%03X/%05X", timestamp>>20, timestamp&0xFFFFF);
     Helper::tar_old_blocks(timestamp);
     EXPECT_FALSE(boost::filesystem::exists(dirpath));
-    sprintf(dirpath, "blk/%03X/%05X.tar.gz", m_timestamp>>20, m_timestamp&0xFFFFF);
+    sprintf(dirpath, "blk/%03X/%05X.tar", m_timestamp>>20, m_timestamp&0xFFFFF);
     EXPECT_TRUE(boost::filesystem::exists(dirpath));
 }
 
 TEST(BlockTest, getFileFromArch) {
     char filename[64] = {0};
+    Helper::set_user(1);
 
     // directory shouldnt exists here, removed in tarOldBlocks test
     sprintf(filename, "blk/%03X/%05X", m_timestamp>>20, m_timestamp&0xFFFFF);
@@ -85,28 +87,22 @@ TEST(BlockTest, getFileFromArch) {
     EXPECT_EQ(strlen(filename), Helper::FileName::kLogNameFixedLength);
 
     std::string newpath(filename);
-    newpath.replace(0, 4, TMP_DIR); // replace blk with tmp
-    EXPECT_TRUE(Helper::get_file_from_block(filename));
-    EXPECT_TRUE(boost::filesystem::exists(newpath));
-
-    filename[0] = 0;
-    Helper::FileName::getUndo(filename, m_timestamp, m_bank);
-    EXPECT_EQ(strlen(filename), Helper::FileName::kUndoNameFixedLength);
-
-    newpath = filename;
-    newpath.replace(0, 4, TMP_DIR); // replace blk with tmp
+    newpath.replace(0, strlen(TMP_DIR), TMP_DIR); // replace blk with tmp
+    newpath.insert(strlen(TMP_DIR), m_userid);
     EXPECT_TRUE(Helper::get_file_from_block(filename));
     EXPECT_TRUE(boost::filesystem::exists(newpath));
 }
 
 TEST(BlockTest, openFileFromArch) {
+    Helper::set_user(1);
+
     char filename[64] = {0};
     // directory shouldnt exists here, removed in tarOldBlocks test
     sprintf(filename, "blk/%03X/%05X", m_timestamp>>20, m_timestamp&0xFFFFF);
     ASSERT_FALSE(boost::filesystem::exists(filename));
 
     filename[0] = 0;
-    Helper::FileName::getUndo(filename, m_timestamp, m_bank);
+    Helper::FileName::getLog(filename, m_timestamp, m_bank, m_msid);
     int fd = Helper::open_block_file(filename);
     EXPECT_GE(fd, 0);
     if (fd >=0 ) {
@@ -114,9 +110,18 @@ TEST(BlockTest, openFileFromArch) {
     }
 }
 
+TEST(BlockTest, filePathNotInBlock) {
+    char filename[64] = {0};
+    sprintf(filename, "servers.srv");
+    EXPECT_FALSE(Helper::get_file_from_block(filename));
+}
+
 TEST(BlockTest, clearData) {
     boost::filesystem::remove_all("blk");
     boost::filesystem::remove_all("tmp");
     boost::filesystem::remove_all("und");
     boost::filesystem::remove_all("log");
+    boost::filesystem::path p(TMP_DIR);
+    p += m_userid;
+    boost::filesystem::remove_all(p);
 }

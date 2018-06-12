@@ -4,15 +4,21 @@
 #include <sstream>
 #include <vector>
 
+#include "../helper/blocks.h"
+
 namespace Parser {
 
 MsglistParser::MsglistParser(uint32_t path) : m_filePath(""){
     char filepath[64];
-    sprintf(filepath,"blk/%03X/%05X/msglist.dat", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(filepath, path, "msglist.dat");
+    Helper::get_file_from_block(filepath);
     m_filePath = filepath;
 }
 
 MsglistParser::MsglistParser(const char* filepath) : m_filePath(filepath) {
+}
+
+MsglistParser::~MsglistParser() {
 }
 
 bool MsglistParser::save(const char* filepath) {

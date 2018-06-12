@@ -7,6 +7,7 @@
 
 #include "command/errorcodes.h"
 #include "default.hpp"
+#include "blocks.h"
 
 namespace Helper {
 
@@ -43,7 +44,8 @@ Hlog::Hlog(uint32_t path) :
     total(0),
     data(NULL),
     fd(-1) {
-    sprintf(filename,"blk/%03X/%05X/hlog.hlg",path>>20,path&0xFFFFF);
+    Helper::FileName::getName(filename, path, "hlog.hlg");
+    Helper::get_file_from_block(filename);
     SHA256_Init(&sha256);
 }
 

@@ -8,6 +8,7 @@
 #include <boost/enable_shared_from_this.hpp>
 #include "hash.hpp"
 #include "user.hpp"
+#include "helper/blocks.h"
 
 
 class message :
@@ -270,8 +271,8 @@ class message :
         close(fd);
         uint32_t block=now-now%BLOCKSEC;
         for(; block<=path; block+=BLOCKSEC) {
-            sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,svid);
-            int fd=open(filename,O_RDONLY);
+            Helper::FileName::getUndo(filename, block, svid);
+            int fd = Helper::open_block_file(filename, O_RDONLY);
             if(fd<0) {
                 continue;
             }
@@ -382,7 +383,7 @@ class message :
         makefilename(filename,path,"msg");
 
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
-        int fd=open(filename,O_RDONLY);
+        int fd = Helper::open_block_file(filename,O_RDONLY);
         if(fd<0) {
             DLOG("ERROR %s not found\n",filename);
             return(false);
@@ -946,7 +947,7 @@ class message :
         char filename[128];
         makefilename(filename,path,"msg");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDONLY);
+        int fd = Helper::open_block_file(filename,O_RDONLY);
         if(fd<0) {
             busy.erase(who); //FIXME, check if this is not a problem :-(
             mtx_.unlock();
@@ -1017,7 +1018,7 @@ class message :
             ELOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
             assert(0);
         }
-        int fd=open(filename,O_WRONLY);
+        int fd = Helper::open_block_file(filename,O_WRONLY);
         if(fd<0) {
             ELOG("ERROR, saving mnum %d in %s\n",mnum,filename);
             return;
@@ -1058,7 +1059,7 @@ class message :
             ELOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
             assert(0);
         }
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        int fd = open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
             ELOG("ERROR, saving %s\n",filename);
             return(0);
@@ -1132,7 +1133,7 @@ class message :
         char filename[128];
         makefilename(filename,path,"und");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+        int fd = open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
         if(fd<0) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
             exit(-1);
@@ -1154,7 +1155,7 @@ class message :
         char filename[128];
         makefilename(filename,path,"und");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDONLY);
+        int fd = Helper::open_block_file(filename,O_RDONLY);
         if(fd<0) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
             exit(-1);

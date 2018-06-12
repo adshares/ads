@@ -5,6 +5,8 @@
 #include <boost/thread/lock_guard.hpp>
 #include "signatures.h"
 
+#include "helper/blocks.h"
+
 extern boost::mutex siglock;
 
 namespace Helper {
@@ -39,13 +41,15 @@ std::vector<Signature> Signatures::readSignatures(const char* fileName) {
 
 void Signatures::readSignaturesOk(uint32_t path) {
     char fileName[64];
-    sprintf(fileName,"blk/%03X/%05X/signatures.ok", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(fileName, path, "signatures.ok");
+    Helper::get_file_from_block(fileName);
     m_signaturesOk = readSignatures(fileName);
 }
 
 void Signatures::readSignaturesNo(uint32_t path) {
     char fileName[64];
-    sprintf(fileName,"blk/%03X/%05X/signatures.no", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(fileName, path, "signatures.no");
+    Helper::get_file_from_block(fileName);
     m_signaturesNo = readSignatures(fileName);
 }
 

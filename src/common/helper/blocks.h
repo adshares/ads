@@ -6,9 +6,15 @@
 #include <cstdio>
 #include <string>
 
-#define TMP_DIR "tmp/"
+#define TMP_DIR "/run/shm/esc/"
 
 namespace Helper {
+
+/**
+ * @brief Set user id to create personal temp directory for files extracted files from arch.
+ * @param user_id - user id.
+ */
+void set_user(uint32_t user_id);
 
 /**
  * @brief Compress old blocks, @see BLOCKS_COMPRESSED_SHIFT .
@@ -16,15 +22,24 @@ namespace Helper {
  */
 void tar_old_blocks(uint32_t currentTime);
 
-
 /**
  * @brief Removes block from filesystem.
  * @param blockPath - path to block directory in filesystem
  */
 void remove_block(const char* blockPath);
 
+//! removes file
 void remove_file(const char* filename);
+
+/**
+ * @brief removes file if it has a temporary path
+ * @param filename
+ * @return true if file is temporary and was removed, otherwise (incl. not temp file) return false.
+ */
 bool remove_file_if_temporary(const char* filename);
+
+//! cleanup temp directory for current user
+void cleanup_temp_directory();
 
 /**
  * @brief Extracts file from arch if needed.
@@ -40,8 +55,13 @@ bool get_file_from_block(char *filePath);
  * @param type - O_RDONLY, O_WRONLY etc.
  * @return file descriptor
  */
-int open_block_file(char *filename, int type = O_RDONLY);
+int open_block_file(char *filename, int type = O_RDONLY, int mode = -1);
 
+/**
+ * @brief Check is file exists in not compressed block
+ * @param filePath
+ * @return true if exists (not compressed yet), otherwise false.
+ */
 bool is_file_not_compressed(const char *filePath);
 
 //! chech is file exists in temporary directory
@@ -56,22 +76,22 @@ const int kUndNameFixedLength = 34;
 const int kLogNameFixedLength = 35;
 
 //! common function for rest of files.
-constexpr void getName(char* output, uint32_t timestamp, const char* filename) {
+inline void getName(char* output, uint32_t timestamp, const char* filename) {
     sprintf(output, "blk/%03X/%05X/%s", timestamp>>20, timestamp&0xFFFFF, filename);
 }
-constexpr void getUndo(char* output, uint32_t timestamp, uint16_t bank) {
+inline void getUndo(char* output, uint32_t timestamp, uint16_t bank) {
     sprintf(output, "blk/%03X/%05X/und/%04X.dat", timestamp>>20, timestamp&0xFFFFF, bank);
 }
-constexpr void getMsg(char* output, uint32_t timestamp, uint32_t msgType, uint16_t bank, uint32_t msgId) {
+inline void getMsg(char* output, uint32_t timestamp, uint32_t msgType, uint16_t bank, uint32_t msgId) {
     sprintf(output, "blk/%03X/%05X/%02x_%04x_%08x.msg", timestamp>>20, timestamp&0xFFFFF, msgType, bank, msgId);
 }
-constexpr void getUndFile(char* output, uint32_t timestamp, uint32_t msgType, uint16_t bank, uint32_t msgId) {
+inline void getUndFile(char* output, uint32_t timestamp, uint32_t msgType, uint16_t bank, uint32_t msgId) {
     sprintf(output, "blk/%03X/%05X/%02x_%04x_%08x.und", timestamp>>20, timestamp&0xFFFFF, msgType, bank, msgId);
 }
-constexpr void getLog(char* output, uint32_t timestamp, uint16_t bank, uint32_t msgId) {
+inline void getLog(char* output, uint32_t timestamp, uint16_t bank, uint32_t msgId) {
     sprintf(output, "blk/%03X/%05X/log/%04X_%08X.log", timestamp>>20, timestamp&0xFFFFF, bank, msgId);
 }
-constexpr void getLogTimeBin(char* output, uint32_t timestamp) {
+inline void getLogTimeBin(char* output, uint32_t timestamp) {
     sprintf(output, "blk/%03X/%05X/log/time.bin", timestamp>>20, timestamp&0xFFFFF);
 }
 

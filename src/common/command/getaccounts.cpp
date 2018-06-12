@@ -4,6 +4,7 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
+#include "helper/blocks.h"
 
 GetAccounts::GetAccounts()
     : m_data{} {
@@ -159,8 +160,8 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
     if (fd < 0) {
         errorCode = ErrorCodes::Code::eBankNotFound;
     } else {
-        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",lastPath>>20,lastPath&0xFFFFF, destBank);
-        ud = open(filename,O_RDONLY);
+        Helper::FileName::getUndo(filename, lastPath, destBank);
+        ud = Helper::open_block_file(filename, O_RDONLY);
         if(ud < 0) {
             errorCode = ErrorCodes::Code::eUndoNotFound;
             close(fd);

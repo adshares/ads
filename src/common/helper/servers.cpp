@@ -10,6 +10,7 @@
 #include "parser/msglistparser.h"
 #include "helper/ascii.h"
 #include "helper/json.h"
+#include "helper/blocks.h"
 
 
 namespace Helper {
@@ -20,6 +21,9 @@ Servers::Servers() {
 
 Servers::Servers(const char* filePath)
     : m_filePath(filePath) {
+}
+
+Servers::~Servers(){
 }
 
 void Servers::load(const char* filePath) {
@@ -49,7 +53,8 @@ bool Servers::loadHeader() {
         if (!m_header.ttime) {
             sprintf(filePath, "blk/header.hdr");
         } else {
-            sprintf(filePath, "blk/%03X/%05X/header.hdr",m_header.ttime>>20, m_header.ttime&0xFFFFF);
+            Helper::FileName::getName(filePath, m_header.ttime, "header.hdr");
+            Helper::get_file_from_block(filePath);
         }
         m_filePath = filePath;
     }

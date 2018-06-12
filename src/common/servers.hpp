@@ -16,6 +16,7 @@
 #include "ed25519/ed25519.h"
 #include "message.hpp"
 #include "helper/json.h"
+#include "helper/blocks.h"
 
 class node {
   public:
@@ -569,8 +570,8 @@ class servers { // also a block
 
     void save_undo(uint16_t svid,std::map<uint32_t,user_t>& undo,uint32_t users) {
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",now>>20,now&0xFFFFF,svid);
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        Helper::FileName::getUndo(filename, now, svid);
+        int fd = open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
             ELOG("ERROR, failed to open bank undo %04X, fatal\n",svid);
             exit(-1);
@@ -606,16 +607,16 @@ class servers { // also a block
     void get(uint32_t path) {
         char filename[64]="servers.srv";
         if(path>0) {
-            sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);
+            Helper::FileName::getName(filename, path, "servers.srv");
         }
         data_read(filename,true);
     }
     void read_servers(uint32_t path,uint8_t* &data,uint32_t &len,uint8_t* &hash) { // read file for user
         char filename[64]="servers.srv";
         if(path>0) {
-            sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);
+            Helper::FileName::getName(filename, path, "servers.srv");
         }
-        int fd=open(filename,O_RDONLY);
+        int fd=Helper::open_block_file(filename, O_RDONLY);
         if(fd>=0) {
             struct stat sb;
             fstat(fd,&sb);
@@ -649,7 +650,7 @@ class servers { // also a block
     void put() {
         char filename[64]="servers.srv";
         if(now>0) {
-            sprintf(filename,"blk/%03X/%05X/servers.srv",now>>20,now&0xFFFFF);
+            Helper::FileName::getName(filename, now, "servers.srv");
         }
         if(!data_write(filename,true)) {
             ELOG("ERROR, failed to write servers to dir: %08X\n",now);
@@ -711,8 +712,8 @@ class servers { // also a block
             return(false);
         }
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        Helper::FileName::getName(filename, now, "msglist.dat");
+        int fd = open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) { //trow or something :-)
             return(false);
         }
@@ -742,8 +743,8 @@ class servers { // also a block
     }
     int msgl_get(char* data) { // load only message list without hashtree
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
-        int fd=open(filename,O_RDONLY);
+        Helper::FileName::getName(filename, now, "msglist.dat");
+        int fd = Helper::open_block_file(filename, O_RDONLY);
         if(fd<0) {
             return(0);
         }
@@ -1115,7 +1116,7 @@ class servers { // also a block
     }
     int data_read(const char* filename,bool read_nodes) { //on change check read_servers()!!!
         uint32_t version;
-        int fd=open(filename,O_RDONLY);
+        int fd = Helper::open_block_file(const_cast<char*>(filename), O_RDONLY);
         if(fd<0) {
             DLOG("ERROR, failed to read servers from %s\n",filename);
             return(0);
@@ -1157,7 +1158,7 @@ class servers { // also a block
     }
     int data_write(const char* filename,bool write_nodes) {
         uint32_t version=1;
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        int fd = open(const_cast<char*>(filename), O_WRONLY|O_CREAT, 0644);
         if(fd<0) {
             ELOG("ERROR, failed to write file %s\n",filename);
             return(0);
@@ -1199,7 +1200,7 @@ class servers { // also a block
         if(!now) {
             sprintf(filename,"blk/header.hdr");
         } else {
-            sprintf(filename,"blk/%03X/%05X/header.hdr",now>>20,now&0xFFFFF);
+            Helper::FileName::getName(filename, now, "header.hdr");
         }
         uint32_t check=now;
         if(!data_read(filename,false)) {
@@ -1265,7 +1266,7 @@ class servers { // also a block
     }
     void header_put() {
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/header.hdr",now>>20,now&0xFFFFF);
+        Helper::FileName::getName(filename, now, "header.hdr");
         if(!data_write(filename,false)) {
             ELOG("ERROR, failed to write header\n");
         }
@@ -1361,14 +1362,15 @@ class servers { // also a block
 
         if(ok) {
             //vok++;
-            sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
+            Helper::FileName::getName(filename, path, "signatures.ok");
             DLOG("BLOCK ok (%s)\n",filename);
         } else {
 //FIXME, no point to save "no-" signatures without corresponding block
             //vno++;
-            sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
+            Helper::FileName::getName(filename, path, "signatures.no");
             DLOG("BLOCK differs (%s)\n",filename);
         }
+        Helper::get_file_from_block(filename);
 
         DLOG("SIGNATURE,  signatures in %s\n",filename);
 
@@ -1419,11 +1421,11 @@ class servers { // also a block
 
         int fd;
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
+        Helper::FileName::getName(filename, path, "signatures.ok");
 
         DLOG("SIGNATURE, get signatures in %s\n",filename);
 
-        fd=open(filename,O_RDONLY);
+        fd = Helper::open_block_file(filename, O_RDONLY);
         if(fd>=0) {
             struct stat sb;
             fstat(fd,&sb);
@@ -1457,8 +1459,8 @@ class servers { // also a block
 
         int fd;
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
-        fd=open(filename,O_RDONLY);
+        Helper::FileName::getName(filename, path, "signatures.no");
+        fd = Helper::open_block_file(filename, O_RDONLY);
 
         DLOG("SIGNATURE,  read signatures2 in %s\n",filename);
 
@@ -1484,8 +1486,8 @@ class servers { // also a block
 
         int fd;
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/signatures.ok",path>>20,path&0xFFFFF);
-        fd=open(filename,O_RDONLY);
+        Helper::FileName::getName(filename, path, "signatures.ok");
+        fd = Helper::open_block_file(filename, O_RDONLY);
 
         DLOG("SIGNATURE, Get signatures from %s\n",filename);
 
@@ -1500,8 +1502,8 @@ class servers { // also a block
         if(!nno) {
             return true;
         }
-        sprintf(filename,"blk/%03X/%05X/signatures.no",path>>20,path&0xFFFFF);
-        fd=open(filename,O_RDONLY);
+        Helper::FileName::getName(filename, path, "signatures.no");
+        fd = Helper::open_block_file(filename, O_RDONLY);
         if(fd>=0) {
             read(fd,data+sizeof(svsi_t)*nok,sizeof(svsi_t)*nno);
             //vno=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
@@ -1518,14 +1520,14 @@ class servers { // also a block
 
         int fd;
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/signatures.ok",head.now>>20,head.now&0xFFFFF);
-        fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        Helper::FileName::getName(filename, head.now, "signatures.ok");
+        fd = open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
         if(fd>=0) {
             write(fd,&svsi[0],sizeof(svsi_t)*head.vok);
             close(fd);
         }
-        sprintf(filename,"blk/%03X/%05X/signatures.no",head.now>>20,head.now&0xFFFFF);
-        fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+        Helper::FileName::getName(filename, head.now, "signatures.no");
+        fd =open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
         if(fd>=0) {
             write(fd,&svsi[head.vok],sizeof(svsi_t)*head.vno);
             close(fd);
@@ -1536,7 +1538,7 @@ class servers { // also a block
         boost::lock_guard<boost::mutex> lock(siglock);
 
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/signatures.ok",now>>20,now&0xFFFFF);
+        Helper::FileName::getName(filename, now, "signatures.ok");
         int fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
         if(fd>=0) {
             close(fd);
@@ -1714,7 +1716,7 @@ class servers { // also a block
             extern boost::recursive_mutex flog;
             extern FILE* stdlog;
             char filename[32];
-            sprintf(filename,"blk/%03X/%05X/log.txt",now>>20,now&0xFFFFF);
+            Helper::FileName::getName(filename, now, "log.txt");
             flog.lock();
             fclose(stdlog);
             stdlog=fopen(filename,"a");
@@ -1773,59 +1775,61 @@ class servers { // also a block
     }
 
     void clean_old(uint16_t svid) {
-        char pat[8];
-        ELOG("CLEANING by %04X\n",svid);
-        sprintf(pat,"%04X",svid);
-        for(int i=MAX_UNDO; i<MAX_UNDO+100; i+=10) {
+        if (MAX_UNDO > 0) {
+            char pat[8];
+            ELOG("CLEANING by %04X\n",svid);
+            sprintf(pat,"%04X",svid);
+            for(int i=MAX_UNDO; i<MAX_UNDO+100; i+=10) {
 #ifdef DEBUG
-            uint32_t path=now-i*BLOCKSEC*(0x400/BLOCKSEC);
+                uint32_t path=now-i*BLOCKSEC*(0x400/BLOCKSEC);
 #else
-            uint32_t path=now-i*BLOCKSEC;
+                uint32_t path=now-i*BLOCKSEC;
 #endif
-            int fd,dd;
-            struct dirent* dat;
-            char pathname[64];
-            DIR* dir;
-            sprintf(pathname,"blk/%03X/%05X",path>>20,path&0xFFFFF);
-            dir=opendir(pathname);
-            if(dir==NULL) {
-                DLOG("UNLINK: no such dir %s\n",pathname);
-                continue;
-            }
-            dd=dirfd(dir);
-            if((fd=openat(dd,"clean.txt",O_RDONLY))>=0) {
-                DLOG("UNLINK: dir %s clean\n",pathname);
-                close(fd);
-                closedir(dir);
-                continue;
-            }
-            while((dat=readdir(dir))!=NULL) { // remove messages from other nodes
-                if(dat->d_type==DT_REG &&
-                        strlen(dat->d_name)==20 &&
-                        dat->d_name[16]=='.' &&
-                        (dat->d_name[17]=='m' || dat->d_name[17]=='u') &&
-                        (dat->d_name[18]=='s' || dat->d_name[18]=='n') &&
-                        (dat->d_name[19]=='g' || dat->d_name[19]=='d') &&
-                        (dat->d_name[3]!=pat[0] ||
-                         dat->d_name[4]!=pat[1] ||
-                         dat->d_name[5]!=pat[2] ||
-                         dat->d_name[6]!=pat[3])) {
-                    DLOG("UNLINK: %s/%s\n",pathname,dat->d_name);
-                    unlinkat(dd,dat->d_name,0);
+                int fd,dd;
+                struct dirent* dat;
+                char pathname[64];
+                DIR* dir;
+                sprintf(pathname,"blk/%03X/%05X",path>>20,path&0xFFFFF);
+                dir=opendir(pathname);
+                if(dir==NULL) {
+                    DLOG("UNLINK: no such dir %s\n",pathname);
+                    continue;
                 }
+                dd=dirfd(dir);
+                if((fd=openat(dd,"clean.txt",O_RDONLY))>=0) {
+                    DLOG("UNLINK: dir %s clean\n",pathname);
+                    close(fd);
+                    closedir(dir);
+                    continue;
+                }
+                while((dat=readdir(dir))!=NULL) { // remove messages from other nodes
+                    if(dat->d_type==DT_REG &&
+                            strlen(dat->d_name)==20 &&
+                            dat->d_name[16]=='.' &&
+                            (dat->d_name[17]=='m' || dat->d_name[17]=='u') &&
+                            (dat->d_name[18]=='s' || dat->d_name[18]=='n') &&
+                            (dat->d_name[19]=='g' || dat->d_name[19]=='d') &&
+                            (dat->d_name[3]!=pat[0] ||
+                             dat->d_name[4]!=pat[1] ||
+                             dat->d_name[5]!=pat[2] ||
+                             dat->d_name[6]!=pat[3])) {
+                        DLOG("UNLINK: %s/%s\n",pathname,dat->d_name);
+                        unlinkat(dd,dat->d_name,0);
+                    }
+                }
+                unlinkat(dd,"delta.txt",0);
+                unlinkat(dd,"log.txt",0);
+                sprintf(pathname,"blk/%03X/%05X/log",path>>20,path&0xFFFFF);
+                boost::filesystem::path logd(pathname);
+                boost::filesystem::remove_all(logd);
+                sprintf(pathname,"blk/%03X/%05X/und",path>>20,path&0xFFFFF);
+                boost::filesystem::path undd(pathname);
+                boost::filesystem::remove_all(undd);
+                if((fd=openat(dd,"clean.txt",O_WRONLY|O_CREAT,0644))>=0) {
+                    close(fd);
+                }
+                closedir(dir);
             }
-            unlinkat(dd,"delta.txt",0);
-            unlinkat(dd,"log.txt",0);
-            sprintf(pathname,"blk/%03X/%05X/log",path>>20,path&0xFFFFF);
-            boost::filesystem::path logd(pathname);
-            boost::filesystem::remove_all(logd);
-            sprintf(pathname,"blk/%03X/%05X/und",path>>20,path&0xFFFFF);
-            boost::filesystem::path undd(pathname);
-            boost::filesystem::remove_all(undd);
-            if((fd=openat(dd,"clean.txt",O_WRONLY|O_CREAT,0644))>=0) {
-                close(fd);
-            }
-            closedir(dir);
         }
     }
 

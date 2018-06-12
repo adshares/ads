@@ -4,6 +4,7 @@
 #include "command/getbroadcastmsg.h"
 #include "../office.hpp"
 #include "helper/hash.h"
+#include "helper/blocks.h"
 
 
 GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
@@ -34,7 +35,8 @@ void GetBroadcastMsgHandler::onExecute() {
     std::vector<std::string> fileBuffer;
     if (!errorCode) {
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/bro.log",path>>20,path&0xFFFFF);
+        Helper::FileName::getName(filename, path, "bro.log");
+        Helper::get_file_from_block(filename);
 
         std::ifstream broadcastFile(filename, std::ifstream::binary | std::ifstream::in);
         if (!broadcastFile.is_open()) {

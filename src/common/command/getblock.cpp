@@ -8,6 +8,7 @@
 #include "helper/json.h"
 #include "helper/ascii.h"
 #include "helper/hlog.h"
+#include "helper/blocks.h"
 
 GetBlock::GetBlock()
     : m_data{}, m_hlog{} {
@@ -154,7 +155,8 @@ uint32_t GetBlock::getUserMessageId() {
 ErrorCodes::Code GetBlock::prepareResponse() {
     uint32_t path = m_data.info.block;
     char filename[64];
-    sprintf(filename,"blk/%03X/%05X/servers.srv",path>>20,path&0xFFFFF);
+    Helper::FileName::getName(filename, path, "servers.srv");
+    Helper::get_file_from_block(filename);
 
     Helper::Servers servers(filename);
     servers.load();

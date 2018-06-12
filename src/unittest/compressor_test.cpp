@@ -2,19 +2,22 @@
 
 #include <iostream>
 #include <fstream>
+#include <unistd.h>
+#include <fcntl.h>
 #include <boost/filesystem/operations.hpp>
 
 #include "../common/helper/tarcompressor.h"
 
 const char* EXAMPLE_TEXT = "\nExample text string\n";
-const char* ARCH_FILE_NAME = "arch.gz";
-const char* ARCH_DIR_FILE_NAME = "arch.tar.gz";
+const char* ARCH_DIR_FILE_NAME = "arch.tar";
 const char* DIRECTORY_PATH = "arch_dir";
 const char* FILE1_DATA = "Example test string\n";
 const char* FILE2_DATA = "Example\nTest\nString\n";
 const char* FILE1_NAME = "/file1.txt";
 const char* FILE2_NAME = "/file2.txt";
 const char* DEEP_TREE = "blk/5B0/EA280";
+
+using namespace Helper;
 
 class CompressionTest : public ::testing::Test {
 public:
@@ -31,34 +34,6 @@ public:
     }
 };
 
-
-TEST_F (CompressionTest, CompressStringToFile) {
-    TarCompressor tar(ARCH_FILE_NAME);
-    EXPECT_TRUE (tar.compress(EXAMPLE_TEXT));
-}
-
-TEST_F (CompressionTest, DecompressStringFromArch) {
-    std::string tmpResultFile = "string_from_arch.txt";
-    TarCompressor tar(ARCH_FILE_NAME);
-    EXPECT_TRUE (tar.decompress(tmpResultFile.c_str()));
-
-    std::ifstream file(tmpResultFile, std::ifstream::in);
-    std::stringstream ss{};
-    ss << file.rdbuf();
-    EXPECT_STREQ(ss.str().c_str(), EXAMPLE_TEXT);
-    boost::filesystem::remove(tmpResultFile);
-}
-
-TEST_F (CompressionTest, TryDecompressNotExistingFile) {
-    const char* fake_path = "fake_path_to_file";
-    if (!boost::filesystem::exists(fake_path)) {
-        TarCompressor tar(fake_path);
-        EXPECT_FALSE (tar.decompress("fake"));
-    } else {
-        std::cerr << "Can't perform test, "<<fake_path<<" exists, remove it first."<<std::endl;
-        EXPECT_FALSE(true);
-    }
-}
 
 TEST_F (CompressionTest, prepareData) {
     boost::filesystem::create_directories(DEEP_TREE);
@@ -116,14 +91,14 @@ TEST_F (CompressionTest, DecompressDirectory) {
 }
 
 TEST_F (CompressionTest, DirectoriesTree) {
-    const std::string tarName("5B0EA280.tar.gz");
+    const std::string tarName("5B0EA280.tar");
     {
-        TarCompressor tar(tarName, CompressionType::eGZIP);
+        TarCompressor tar(tarName);
         EXPECT_TRUE(tar.compressDirectory(".", DEEP_TREE));
     }
 
     {
-        TarCompressor tar(tarName, CompressionType::eGZIP);
+        TarCompressor tar(tarName);
         EXPECT_TRUE(tar.decompressDirectory("result"));
     }
     boost::filesystem::path path("result");
@@ -161,6 +136,50 @@ TEST_F (CompressionTest, ExtractNotExistingFile) {
 TEST_F (CompressionTest, clearData) {
     boost::filesystem::remove_all(DIRECTORY_PATH);
     boost::filesystem::remove_all("blk/");
-    boost::filesystem::remove(ARCH_FILE_NAME);
     boost::filesystem::remove(ARCH_DIR_FILE_NAME);
+}
+
+TEST(SparseFileCompression, prepare) {
+    boost::filesystem::create_directory("sparse_dir");
+    boost::filesystem::create_directories("sparse_result");
+
+    int fd;
+    int one_mb = 1000000;
+    int one_gb = one_mb * 1000;
+    struct stat st;
+
+
+    for (int i=1; i<5; ++i) {
+        std::string filename("sparse_dir/sparsefile_");
+        filename += std::to_string(i);
+        fd = open(filename.c_str(), O_WRONLY|O_CREAT, 0666);
+        if (fd > 0) {
+            write(fd, "begin", 5);
+            lseek(fd, one_gb, SEEK_SET);
+            write(fd, "end", 3);
+            fstat(fd, &st);
+            close(fd);
+        }
+    }
+}
+
+TEST(SparseFileCompression, compressBigData) {
+    TarCompressor tar("sparse.tar");
+    EXPECT_TRUE(tar.compressDirectory("sparse_dir"));
+}
+
+TEST(SparseFileCompression, decompressBigArch) {
+    TarCompressor tar("sparse.tar");
+    EXPECT_TRUE(tar.decompressDirectory("sparse_result"));
+}
+
+TEST(SparseFileCompression, extractFileFromBigArch) {
+    TarCompressor tar("sparse.tar");
+    EXPECT_TRUE(tar.extractFileFromArch("sparse_dir/sparsefile_4", "sparse_result/sparsefile_x"));
+    EXPECT_TRUE(boost::filesystem::exists("sparse_result/sparsefile_x"));
+}
+
+TEST(SparseFileCompression, clean) {
+    boost::filesystem::remove_all("sparse_dir");
+    boost::filesystem::remove_all("sparse_result");
 }
