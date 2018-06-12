@@ -20,7 +20,7 @@ def start_node(nconf_path, init=False, block_time=32):
         genesis = json.load(f)
 
     genesis['config'] = dict()
-    genesis['config']['start_time'] = int(time.time() / block_time) * block_time
+    genesis['config']['start_time'] = (int(time.time() / block_time) + 2) * block_time
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
