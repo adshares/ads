@@ -35,7 +35,8 @@ class office {
         message_tnum(0),
         next_io_service_(0),
         ioth_(NULL),
-        clock_thread(NULL) {
+        clock_thread(NULL)
+    {
         svid=opts_.svid;
         try {
             DLOG("OFFICE %04X open\n",svid);
@@ -50,7 +51,8 @@ class office {
                 }
                 mklogdir(opts_.svid);
                 mklogfile(opts_.svid,0);
-            }
+                message.reserve(MESSAGE_TNUM_OK); //spedd up optimization
+            }                        
         } catch (std::exception& e) {
             ELOG("Office.Open error: %s\n",e.what());
         }
@@ -415,7 +417,8 @@ class office {
                 continue;
             }
             assert(svid);
-            if(message.length()<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now) {
+            auto message_lenght = message.length();
+            if(message_lenght<MESSAGE_LEN_OK && message_tnum<MESSAGE_TNUM_OK && message_sent+MESSAGE_WAIT>now) {
                 DLOG("WARNING, waiting for more messages\n");
                 continue;
             }
@@ -432,6 +435,7 @@ class office {
                 srv_.write_dblspend(message);
             } else
 #endif
+
                 if(!srv_.write_message(std::move(message))) {
                     file_.unlock();
                     DLOG("ERROR sending message %08X\n",newmsid);
@@ -439,6 +443,13 @@ class office {
                 }
             //message.clear();
             message_tnum=0;
+            if(message_lenght < MESSAGE_TNUM_OK){
+                message.reserve(message_lenght);
+            }
+            else{
+                message.reserve(MESSAGE_TNUM_OK);
+            }
+
             file_.unlock();
             del_msg(newmsid);
             message_sent=now;
