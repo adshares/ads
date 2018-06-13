@@ -61,6 +61,8 @@ def stop_node(nconf_path):
     os.kill(pid, signal.SIGKILL)
     print("ADS node {0} stopped.".format(nconf_path))
 
+
+def stop_all():
     # https://stackoverflow.com/a/2241047
 
     name = DAEMON_BIN_NAME
@@ -164,6 +166,7 @@ if __name__ == '__main__':
         elif args.action == 'stop':
             print(nconf)
             stop_node(nconf)
+            stop_all()
 
         elif args.action == 'nodes':
             print(nconf)
