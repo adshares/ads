@@ -167,8 +167,10 @@ if __name__ == '__main__':
         elif args.action == 'stop':
             print(nconf)
             stop_node(nconf)
-            stop_all()
 
         elif args.action == 'nodes':
             print(nconf)
             state(nconf)
+
+    if args.action == 'stop':
+        stop_all()
