@@ -73,7 +73,6 @@ def stop_all():
             name_ = p.name()
             cmdline = p.cmdline()
             exe = p.exe()
-            print(name_, cmdline, exe)
         except (psutil.AccessDenied, psutil.ZombieProcess):
             pass
         except psutil.NoSuchProcess:
