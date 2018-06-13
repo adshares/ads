@@ -10,7 +10,7 @@
 /*!
  * \brief Transaction accepted TXSTYPE_UOK type
  */
-class TransactionAccepted : public IBlockCommand {
+class TransactionAccepted : public BlockCommand {
   public:
     TransactionAccepted();
     TransactionAccepted(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint8_t public_key[32]);

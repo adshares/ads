@@ -10,7 +10,7 @@
 /*!
  * \brief Transaction failed TXSTYPE_NON type
  */
-class TransactionFailed : public IBlockCommand {
+class TransactionFailed : public BlockCommand {
   public:
     TransactionFailed();
     TransactionFailed(uint8_t messageSize[3]);

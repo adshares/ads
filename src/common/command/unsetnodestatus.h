@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "unset_node_status" command.
  */
-class UnsetNodeStatus : public IBlockCommand {
+class UnsetNodeStatus : public BlockCommand {
   public:
     UnsetNodeStatus();
     UnsetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status);

@@ -299,10 +299,10 @@ class message :
         usertxs utxs;
         uint8_t* p=data+data_offset; // data_offset = 4+64+10
         uint8_t* end=data+len;
-        uint32_t l;
+        uint32_t l{0};
         assert(p<end);
         for(; p<end; p+=l) {
-            l=utxs.get_size((char*)p);
+            l=utxs.get_size((char*)p);            
             if(*p==TXSTYPE_SAV) {
                 uint32_t auser=*(uint32_t*)(p+3); // could be a user.hpp function
                 //if(!get_user(auser,*(user_t*)(p+txslen[TXSTYPE_SAV]+64)))
