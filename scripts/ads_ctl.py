@@ -73,7 +73,7 @@ def stop_all():
             name_ = p.name()
             cmdline = p.cmdline()
             exe = p.exe()
-
+            print(name_, cmdline, exe)
         except (psutil.AccessDenied, psutil.ZombieProcess):
             pass
         except psutil.NoSuchProcess:
@@ -105,18 +105,18 @@ def state(nconf_path):
 
     m = hashlib.md5()
     with open('genesis.json', 'r') as f:
-       m.update(f.read())
+        m.update(f.read())
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
     with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
-       pid = int(f.read())
+        pid = int(f.read())
 
     try:
-       os.kill(pid, 0)
-       print("# Node is UP with pid: {0}".format(pid))
+        os.kill(pid, 0)
+        print("# Node is UP with pid: {0}".format(pid))
     except OSError:
-       print("# Node is DOWN! (supposed pid: {0}".format(pid))
+        print("# Node is DOWN! (supposed pid: {0}".format(pid))
 
 
 def investigate(uconf_path):
