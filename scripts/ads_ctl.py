@@ -78,7 +78,7 @@ def stop_all():
             pass
         except psutil.NoSuchProcess:
             continue
-        if name == name_ or (cmdline and cmdline[0] == './{0}'.format(name)) or os.path.basename(exe) == name:
+        if name == name_ or (cmdline and './{0}'.format(name) in cmdline) or os.path.basename(exe) == name:
             print("Found process {0}: ".format(p.pid))
             print(name_, cmdline, exe)
 
