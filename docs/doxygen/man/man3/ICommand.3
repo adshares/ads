@@ -1,4 +1,4 @@
-.TH "ICommand" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
+.TH "ICommand" 3 "Wed Jun 13 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -23,7 +23,7 @@ Inherited by \fBIBlockCommand\fP\&.
 .br
 .RI "\fIGet pointer to command data structure\&. \fP"
 .ti -1c
-.RI "virtual unsigned char * \fBgetAdditionalData\fP ()"
+.RI "virtual unsigned char * \fBgetAdditionalData\fP ()=0"
 .br
 .RI "\fIGet additional data\&. \fP"
 .ti -1c
@@ -47,7 +47,7 @@ Inherited by \fBIBlockCommand\fP\&.
 .br
 .RI "\fIGet response data struct size\&. \fP"
 .ti -1c
-.RI "virtual int \fBgetAdditionalDataSize\fP ()"
+.RI "virtual int \fBgetAdditionalDataSize\fP ()=0"
 .br
 .RI "\fIGet additional data size\&. \fP"
 .ti -1c
@@ -90,6 +90,14 @@ Inherited by \fBIBlockCommand\fP\&.
 .RI "virtual int64_t \fBgetDeduct\fP ()=0"
 .br
 .RI "\fIGet change in cash balance after command\&. \fP"
+.ti -1c
+.RI "virtual unsigned char * \fBgetBlockMessage\fP ()=0"
+.br
+.RI "\fIGet data as it is stored in blockchain\&. \fP"
+.ti -1c
+.RI "virtual size_t \fBgetBlockMessageSize\fP ()=0"
+.br
+.RI "\fIGet blockchain data size\&. \fP"
 .ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient)=0"
 .br

@@ -1,10 +1,11 @@
 <map id="GetBroadcastMsg" name="GetBroadcastMsg">
-<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,95,176,121"/>
-<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
-<area shape="rect" id="node5" href="$struct_broadcast_file_header.html" title="Header data user in get broadcast command. " alt="" coords="201,95,355,121"/>
-<area shape="rect" id="node6" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="379,95,526,121"/>
-<area shape="rect" id="node7" href="$structuser__s.html" title="user_s" alt="" coords="421,5,485,32"/>
-<area shape="rect" id="node8" href="$struct_get_broadcast_data.html" title="Get broadcast data. " alt="" coords="550,95,691,121"/>
-<area shape="rect" id="node9" href="$struct_get_broadcast_info.html" title="Get broadcast info. " alt="" coords="554,5,687,32"/>
+<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,174,197"/>
+<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,176,108"/>
+<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
+<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node6" href="$struct_broadcast_file_header.html" title="Header data user in get broadcast command. " alt="" coords="198,171,353,197"/>
+<area shape="rect" id="node7" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="377,171,523,197"/>
+<area shape="rect" id="node8" href="$structuser__s.html" title="user_s" alt="" coords="418,81,482,108"/>
+<area shape="rect" id="node9" href="$struct_get_broadcast_data.html" title="Get broadcast data. " alt="" coords="547,171,689,197"/>
+<area shape="rect" id="node10" href="$struct_get_broadcast_info.html" title="Get broadcast info. " alt="" coords="551,81,685,108"/>
 </map>
