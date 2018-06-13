@@ -25,8 +25,12 @@ def start_node(nconf_path, init=False, block_time=32):
     with open('genesis.json', 'r') as f:
         genesis = json.load(f)
 
+    genesis_time = (int(time.time() / block_time) + 2) * block_time
+
     genesis['config'] = dict()
-    genesis['config']['start_time'] = (int(time.time() / block_time) + 2) * block_time
+    genesis['config']['start_time'] = genesis_time
+
+    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
@@ -45,6 +49,7 @@ def start_node(nconf_path, init=False, block_time=32):
         os.kill(proc.pid, 0)
         with open('{0}.pid'.format(DAEMON_BIN_NAME), 'w') as f:
             f.write(str(proc.pid))
+        print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
         sys.exit(1)
@@ -55,11 +60,19 @@ def start_node(nconf_path, init=False, block_time=32):
 def stop_node(nconf_path):
     os.chdir(nconf_path)
 
-    with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
-        pid = int(f.read())
+    try:
+        with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
+            pid = int(f.read())
 
-    os.kill(pid, signal.SIGKILL)
-    print("ADS node {0} stopped.".format(nconf_path))
+        try:
+            os.kill(pid, signal.SIGKILL)
+            print("ADS node {0} stopped.".format(nconf_path))
+
+        except OSError:
+            print("ADS node not {0} killed (maybe not found).".format(nconf_path))
+
+    except IOError:
+        print("Pid file nto found")
 
 
 def stop_all():
@@ -73,17 +86,17 @@ def stop_all():
             name_ = p.name()
             cmdline = p.cmdline()
             exe = p.exe()
-
         except (psutil.AccessDenied, psutil.ZombieProcess):
             pass
         except psutil.NoSuchProcess:
             continue
-        if name == name_ or (cmdline and cmdline[0] == './{0}'.format(name)) or os.path.basename(exe) == name:
+        if name == name_ or (cmdline and './{0}'.format(name) in cmdline) or os.path.basename(exe) == name:
             print("Found process {0}: ".format(p.pid))
             print(name_, cmdline, exe)
 
             try:
                 os.kill(p.pid, signal.SIGKILL)
+                print("Killed process {0}".format(p.pid))
             except OSError:
                 print("Process {0} not killed".format(p.pid))
                 sys.exit(1)
@@ -104,18 +117,18 @@ def state(nconf_path):
 
     m = hashlib.md5()
     with open('genesis.json', 'r') as f:
-       m.update(f.read())
+        m.update(f.read())
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
     with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
-       pid = int(f.read())
+        pid = int(f.read())
 
     try:
-       os.kill(pid, 0)
-       print("# Node is UP with pid: {0}".format(pid))
+        os.kill(pid, 0)
+        print("# Node is UP with pid: {0}".format(pid))
     except OSError:
-       print("# Node is DOWN! (supposed pid: {0}".format(pid))
+        print("# Node is DOWN! (supposed pid: {0}".format(pid))
 
 
 def investigate(uconf_path):
@@ -166,8 +179,10 @@ if __name__ == '__main__':
         elif args.action == 'stop':
             print(nconf)
             stop_node(nconf)
-            stop_all()
 
         elif args.action == 'nodes':
             print(nconf)
             state(nconf)
+
+    if args.action == 'stop':
+        stop_all()
