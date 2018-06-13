@@ -62,9 +62,12 @@ def stop_node(nconf_path):
 
     with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
         pid = int(f.read())
+    try:
+        os.kill(pid, signal.SIGKILL)
+        print("ADS node {0} stopped.".format(nconf_path))
 
-    os.kill(pid, signal.SIGKILL)
-    print("ADS node {0} stopped.".format(nconf_path))
+    except OSError:
+        print("ADS node not {0} killed (maybe not found).".format(nconf_path))
 
 
 def stop_all():
