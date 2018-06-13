@@ -31,7 +31,7 @@ IF(CMAKE_BUILD_TYPE MATCHES "Debug")
 add_definitions(-DDEBUG)
 ENDIF(CMAKE_BUILD_TYPE MATCHES "Debug")
 
-SET(CMAKE_CXX_FLAGS -pthread)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
 add_subdirectory(common)
 add_subdirectory(esc)
