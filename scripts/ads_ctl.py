@@ -61,13 +61,6 @@ def stop_node(nconf_path):
     os.kill(pid, signal.SIGKILL)
     print("ADS node {0} stopped.".format(nconf_path))
 
-
-def clean():
-
-    shutil.rmtree(DATA_DIR)
-    os.mkdir(DATA_DIR)
-    print("ADS node configuration removed.")
-
     # https://stackoverflow.com/a/2241047
 
     name = DAEMON_BIN_NAME
@@ -78,14 +71,30 @@ def clean():
             name_ = p.name()
             cmdline = p.cmdline()
             exe = p.exe()
+
         except (psutil.AccessDenied, psutil.ZombieProcess):
             pass
         except psutil.NoSuchProcess:
             continue
-        if name == name_ or cmdline[0] == name or os.path.basename(exe) == name:
-            os.kill(p.pid, signal.SIGKILL)
+        if name == name_ or (cmdline and cmdline[0] == './{0}'.format(name)) or os.path.basename(exe) == name:
+            print("Found process {0}: ".format(p.pid))
+            print(name_, cmdline, exe)
+
+            try:
+                os.kill(p.pid, signal.SIGKILL)
+            except OSError:
+                print("Process {0} not killed".format(p.pid))
+                sys.exit(1)
 
 
+def clean():
+
+    if os.path.exists(DATA_DIR):
+        shutil.rmtree(DATA_DIR)
+        os.mkdir(DATA_DIR)
+        print("ADS node configuration removed.")
+    else:
+        print("{0} doesn't exist".format(DATA_DIR))
 
 
 def state(nconf_path):
