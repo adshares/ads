@@ -11,6 +11,7 @@ import signal
 import sys
 import hashlib
 import psutil
+from datetime import datetime
 
 
 DATA_DIR = '/ads_data'
@@ -25,8 +26,12 @@ def start_node(nconf_path, init=False, block_time=32):
     with open('genesis.json', 'r') as f:
         genesis = json.load(f)
 
+    genesis_time = (int(time.time() / block_time) + 2) * block_time
+
     genesis['config'] = dict()
-    genesis['config']['start_time'] = (int(time.time() / block_time) + 2) * block_time
+    genesis['config']['start_time'] = genesis_time
+
+    print("Genesis start time: ", datetime.strptime(str(genesis_time), '%s'))
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
@@ -45,6 +50,7 @@ def start_node(nconf_path, init=False, block_time=32):
         os.kill(proc.pid, 0)
         with open('{0}.pid'.format(DAEMON_BIN_NAME), 'w') as f:
             f.write(str(proc.pid))
+        print("Process started: ", datetime.now())
     except OSError:
         print("Server not started.")
         sys.exit(1)
