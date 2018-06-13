@@ -97,7 +97,7 @@ def state(nconf_path):
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
-    with open('{0}.pid'.format(DAEMON_BIN_NAME) as f:
+    with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
        pid = int(f.read())
 
     try:
