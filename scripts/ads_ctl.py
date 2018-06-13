@@ -84,6 +84,7 @@ def stop_all():
 
             try:
                 os.kill(p.pid, signal.SIGKILL)
+                print("Killed process {0}".format(p.pid))
             except OSError:
                 print("Process {0} not killed".format(p.pid))
                 sys.exit(1)
