@@ -8,7 +8,7 @@
 /*!
  * \brief Class responsible for handling "get_signatures" command.
  */
-class GetSignatures : public IBlockCommand
+class GetSignatures : public BlockCommand
 {
 public:
     GetSignatures();

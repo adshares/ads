@@ -108,6 +108,7 @@ class office {
 
     void init(uint32_t myusers) {
         memcpy(pkey,srv_.pkey,32);
+
         users=myusers; //FIXME !!! this maybe incorrect !!!
         if(!myusers) {
             assert(!svid);
@@ -857,36 +858,53 @@ class office {
         } else {
             message.append((char*)utxs.getAdditionalData(), utxs.getAdditionalDataSize());
             message.append((char*)utxs.getSignature(), utxs.getSignatureSize());
+        }                
+
+        return true;
+    }
+
+    bool add_msg(uint8_t* msg, uint32_t len, uint32_t& msid, uint32_t& mpos) {
+        assert(svid);
+
+        if(!run) {
+            return(false);
         }
 
-        /*if(utxs.getType()==TXSTYPE_SUS || utxs.getType()==TXSTYPE_UUS)
-        {
-          user_t u;
-          lseek(offifd_, utxs._buser*sizeof(user_t),SEEK_SET);
-          read(offifd_, &u, sizeof(user_t));
+        if(readonly) {
+            DLOG("OFFICE: adding message in readonly state!\n");
+        }
 
-          if(!u.msid)
-          {
-            file_.unlock();
-            return(false);
-          }
+        std::unique_lock<boost::mutex> lock(file_);
+        if(message_tnum>=MESSAGE_TNUM_MAX) {
+            ELOG("MESSAGE busy, delaying message addition\n");
+        }
 
-          uint16_t oldstatus = u.stat;
-          if(utxs.getType()==TXSTYPE_SUS)
-          {
-            u.stat|= (uint16_t)utxs.tmass & 0xFFFE ;
-          } // can not change USER_STAT_DELETED
-          else if(utxs.getType()==TXSTYPE_UUS)
-          {
-            u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);
-          } // can not change USER_STAT_DELETED
-          if(oldstatus!=u.stat)
-          {
-            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
-            write(offifd_,&u,sizeof(user_t));
-          }
-        } // write only stat !!!
-        */
+        while(message_tnum>=MESSAGE_TNUM_MAX) {
+            lock.unlock();
+            DLOG("MSID: MAX ID reached wait 100ms \n");
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+            lock.lock();
+        }
+
+        msid=srv_.msid_+1; // check if no conflict !!!
+
+        char filename[64];
+        sprintf(filename,"ofi/msg_%08X.msd",msid);
+        int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+
+        if(md<0) {
+            msid=0;
+            mpos=0;
+            ELOG("ERROR, failed to log message %s\n",filename);
+            return false;
+        } // :-( maybe we should throw here something
+
+        write(md, msg, len);
+        close(md);
+        //mpos=message.length()+message::data_offset;
+        mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!
+
+        message.append((char*)msg, len);
 
         return true;
     }

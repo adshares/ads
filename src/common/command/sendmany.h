@@ -7,7 +7,7 @@
 #include "command/pods.h"
 #include "default.hpp"
 
-class SendMany : public IBlockCommand {
+class SendMany : public BlockCommand {
     public:
         SendMany();
         SendMany(uint16_t bank, uint32_t user, uint32_t msid,

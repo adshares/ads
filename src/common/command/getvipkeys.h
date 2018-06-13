@@ -6,7 +6,7 @@
 #include "default.hpp"
 #include "helper/vipkeys.h"
 
-class GetVipKeys : public IBlockCommand {
+class GetVipKeys : public BlockCommand {
     public:
         GetVipKeys();
         GetVipKeys(uint16_t abank, uint32_t auser, uint32_t time, uint8_t vhash[32]);
