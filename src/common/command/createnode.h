@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "get_me" or "get_acocunt" command.
  */
-class CreateNode : public IBlockCommand {
+class CreateNode : public BlockCommand {
   public:
     CreateNode();
     CreateNode(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime);

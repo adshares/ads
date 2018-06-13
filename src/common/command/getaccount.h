@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "get_me" or "get_acocunt" command.
  */
-class GetAccount : public IBlockCommand {
+class GetAccount : public BlockCommand {
   public:
     GetAccount();
     GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);

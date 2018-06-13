@@ -45,7 +45,7 @@ class ICommand {
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*          getData()           = 0;
     /** \brief Get additional data. */
-    virtual unsigned char*          getAdditionalData() { return nullptr; }
+    virtual unsigned char*          getAdditionalData() = 0;
     /** \brief Get pointer to response data. */
     virtual unsigned char*          getResponse()       = 0;
     /** \brief Put data as a char list and put convert it to data structure. */
@@ -57,7 +57,7 @@ class ICommand {
     /** \brief Get response data struct size. */
     virtual int                     getResponseSize()   = 0;
     /** \brief Get additional data size. */
-    virtual int                     getAdditionalDataSize() { return 0; }
+    virtual int                     getAdditionalDataSize() = 0;
     /** \brief Get pointer to signature data. */
     virtual unsigned char*          getSignature()      = 0;
     /** \brief Get signature size. */
@@ -87,17 +87,18 @@ class ICommand {
     virtual int64_t                 getFee()            = 0;
     /** \brief Get change in cash balance after command. */
     virtual int64_t                 getDeduct()         = 0;
-
-
+    /** \brief Get data as it is stored in blockchain. */
+    virtual unsigned char*          getBlockMessage()   = 0;
+    /** \brief Get blockchain data size. */
+    virtual size_t getBlockMessageSize()                = 0;
     /** \brief Send data to the server.
      *
      * \param netClient  Netwrok client implementation of INetworkClient interface.
      * \param pk    Pointer to public key.
     */
     virtual bool                    send(INetworkClient& netClient) = 0;
-
     /** \brief Save command response to settings object. */
-    virtual void                    saveResponse(settings& sts)  = 0;
+    virtual void                    saveResponse(settings& sts)     = 0;
 
     virtual ~ICommand() = default;
 
@@ -120,9 +121,26 @@ class IJsonSerialize {
 };
 
 /*!
- * \brief Base interface for command. It combain ICommand and IJsonSerialize Interface.
+ * \brief Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface.
  */
 class IBlockCommand : public ICommand, public IJsonSerialize {
+};
+
+class BlockCommand : public IBlockCommand
+{
+    unsigned char* getAdditionalData() override { return nullptr; }
+
+    int getAdditionalDataSize() override { return 0; }
+
+    unsigned char* getBlockMessage() override
+    {
+        return getData();
+    }
+    /** \brief Get blockchain data size. */
+    size_t getBlockMessageSize() override
+    {
+        return getDataSize() + getSignatureSize() + getAdditionalDataSize();
+    }
 };
 
 /*!

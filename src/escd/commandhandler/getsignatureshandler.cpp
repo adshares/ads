@@ -20,8 +20,8 @@ void GetSignaturesHandler::onExecute() {
     assert(m_command);
 
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    Helper::Signatures signatures(m_command->getBlockNumber());
-    signatures.load();
+    Helper::Signatures signatures;
+    signatures.load(m_command->getBlockNumber());
 
     auto signaturesOk = signatures.getSignaturesOk();
     int32_t signaturesOkSize = signaturesOk.size();

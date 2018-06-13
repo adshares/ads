@@ -1,35 +1,29 @@
-#ifndef GETBLOCK_H
-#define GETBLOCK_H
+#ifndef GETBLOCKS_H
+#define GETBLOCKS_H
 
+#include <vector>
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
 #include "errorcodes.h"
-#include "helper/servers.h"
+#include "helper/vipkeys.h"
+#include "helper/signatures.h"
+#include "helper/block.h"
 #include "helper/hlog.h"
 
-class GetBlock : public BlockCommand {
+class GetBlocks : public BlockCommand {
     public:
-        GetBlock();
-        GetBlock(uint16_t src_bank, uint32_t src_user, uint32_t block, uint32_t time);
+        GetBlocks();
+        GetBlocks(uint16_t abank, uint32_t auser, uint32_t ttime, uint32_t from, uint32_t to);
 
-        /** \brief Disabled copy contructor. */
-        GetBlock(const GetBlock& obj) = delete;
-
-        /** \brief Disabled copy assignment operator. */
-        GetBlock &operator=(const GetBlock&) = delete;
-
-        /** \brief Free responseBuffer. */
-        virtual ~GetBlock();
-
-        /** \brief Return TXSTYPE_NDS as command type . */
-        virtual int  getType()                                      override;
+         /** \brief Return TXSTYPE_BLK as command type . */
+        virtual int getType()                                      override;
 
         /** \brief Get pointer to command data structure. */
-        virtual unsigned char*  getData()                           override;
+        virtual unsigned char* getData()                           override;
 
         /** \brief Get pointer to response data. */
-        virtual unsigned char*  getResponse()                       override;
+        virtual unsigned char* getResponse()                       override;
 
         /** \brief Put data as a char list and put convert it to data structure. */
         virtual void setData(char* data)                            override;
@@ -97,23 +91,28 @@ class GetBlock : public BlockCommand {
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
+        uint32_t getBlockNumberFrom();
+        uint32_t getBlockNumberTo();
+        void writeStart(uint32_t time);
+        bool receiveHeaders(INetworkClient&);
+        bool receiveSignatures(INetworkClient&);
+        bool receiveFirstVipKeys(INetworkClient& netClient);
+        bool receiveNewVipKeys(INetworkClient& netClient);
+        bool loadLastHeader();
+        bool validateChain();
+        bool saveNowhash(const header_t& head);
+        bool validateLastBlockUsingFirstKeys();
 
-      public:
-        /** \brief Get block id. */
-        virtual uint32_t       getBlockId();
-
-        /** \brief Get data from files and pack to data ready to send */
-        virtual ErrorCodes::Code prepareResponse();
-
-        /** \brief Prints info for single node */
-        void printSingleNode(boost::property_tree::ptree& tree, int nodeId, ServersNode& serverNode);
-
-    public:
-        GetBlockData    m_data;
-        Helper::ServersHeader m_responseHeader;
-        std::vector<Helper::ServersNode> m_responseNodes;
-        Helper::Hlog m_hlog;
-
+        uint32_t m_firstKeysLen{};
+        VipKeys m_firstVipKeys;
+        std::vector<header_t> m_receivedHeaders;
+        std::vector<Signature> m_signatures;
+        hash_t m_viphash{};
+        hash_t m_oldhash{};
+        Block m_block;
+        GetBlocksData m_data;
+        uint32_t m_numOfBlocks{};
+        commandresponse m_response;
 };
 
-#endif // GETBLOCK_H
+#endif

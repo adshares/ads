@@ -8,7 +8,7 @@
 /*!
  * \brief Class responsible for handling "change_node_key" command.
  */
-class ChangeNodeKey : public IBlockCommand {
+class ChangeNodeKey : public BlockCommand {
   public:
     ChangeNodeKey();
     ChangeNodeKey(uint16_t srcBank, uint32_t srcUser, uint32_t msid, uint16_t dstNode, uint32_t time, uint8_t pubkey[32]);
@@ -98,6 +98,14 @@ class ChangeNodeKey : public IBlockCommand {
 
     /** \brief Get user message id */
     virtual uint32_t getUserMessageId();
+
+    virtual unsigned char* getBlockMessage() override;
+    virtual size_t getBlockMessageSize() override;
+    //virtual unsigned char*  getAdditionalData()                 override;
+
+    /** \brief Get additional data size. */
+    //virtual int getAdditionalDataSize()                         override;
+
 
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;

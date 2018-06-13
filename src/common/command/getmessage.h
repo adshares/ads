@@ -8,7 +8,7 @@
 
 /** \brief Get message command class. */
 ///TODO: not finished class
-class GetMessage : public IBlockCommand {
+class GetMessage : public BlockCommand {
     public:
         GetMessage();
         GetMessage(uint16_t abank, uint32_t auser, uint32_t block, uint16_t dstNode, uint32_t msgId, uint32_t time);

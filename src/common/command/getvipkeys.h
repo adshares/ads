@@ -4,8 +4,9 @@
 #include "abstraction/interfaces.h"
 #include "command/pods.h"
 #include "default.hpp"
+#include "helper/vipkeys.h"
 
-class GetVipKeys : public IBlockCommand {
+class GetVipKeys : public BlockCommand {
     public:
         GetVipKeys();
         GetVipKeys(uint16_t abank, uint32_t auser, uint32_t time, uint8_t vhash[32]);
@@ -87,11 +88,8 @@ class GetVipKeys : public IBlockCommand {
 
         unsigned char* getVipHash();
     private:
-        bool                    checkVipKeys(uint8_t* vipKeys, int num);
-        bool                    storeVipKeys(const char* hash);
+        VipKeys                 m_vipKeys;
         GetVipKeysData          m_data;
-        uint32_t                m_bufferLength;
-        std::unique_ptr<char[]> m_responseBuffer;
         commandresponse         m_response;
 };
 
