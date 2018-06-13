@@ -4,11 +4,15 @@
 #include <cstdio>
 #include <boost/filesystem.hpp>
 #include <iomanip>
-
+#include <boost/chrono.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include "tarcompressor.h"
 #include "default.h"
 
 namespace Helper {
+
+boost::mutex blocklock;
 
 const int TMP_DIR_NAME_LENGTH = strlen(TMP_DIR);
 static uint32_t current_user = 0;
@@ -29,7 +33,7 @@ void tar_old_blocks(uint32_t currentTime) {
     currentTime -= ((BLOCKS_COMPRESSED_SHIFT-1) * BLOCKSEC);
     char dirpath[16];
     char filepath[32];
-    for (int i=0; i<100; ++i) {
+    for (int i=0; i<50; ++i) {
         currentTime -= BLOCKSEC;
         sprintf(dirpath, "blk/%03X/%05X", currentTime>>20, currentTime&0xFFFFF);
         if (boost::filesystem::exists(dirpath)) {
@@ -50,6 +54,7 @@ void tar_old_blocks(uint32_t currentTime) {
 }
 
 void remove_block(const char* blockPath) {
+    boost::lock_guard<boost::mutex> lock(blocklock);
     boost::filesystem::remove_all(blockPath);
 }
 
@@ -72,11 +77,12 @@ bool remove_file_if_temporary(const char* filename) {
 }
 
 bool get_file_from_block(char *filePath) {
+    boost::lock_guard<boost::mutex> lock(blocklock);
+
     if (is_file_not_compressed(filePath)) {
         // file exists in uncompressed directory
         return true;
     }
-
     boost::filesystem::path path(filePath);
     boost::filesystem::path::iterator it = path.begin();
     std::string blockpath(it->string());
@@ -96,6 +102,7 @@ bool get_file_from_block(char *filePath) {
     std::string newpath(filePath);
     newpath.replace(0, TMP_DIR_NAME_LENGTH, TMP_DIR); // replace blk with tmp
     newpath.insert(TMP_DIR_NAME_LENGTH, get_user_dir());
+
     TarCompressor tar(blockpath);
     bool res = tar.extractFileFromArch(filepath_in_block.c_str(), newpath.c_str());
     if (res) {

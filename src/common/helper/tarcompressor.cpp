@@ -86,7 +86,7 @@ bool TarCompressor::extractFileFromArch(const char* filename, const char* fileNe
 
     if ((fileNewPath && !boost::filesystem::exists(fileNewPath)) ||
        (!fileNewPath && !boost::filesystem::exists(filename))) {
-        // no result fileZ
+        // no result file
         return false;
     }
 

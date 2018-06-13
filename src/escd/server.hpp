@@ -4371,7 +4371,7 @@ NEXTBANK:
             dbls_.unlock();
         }
         DLOG("NEW BLOCK created\n");
-        Helper::tar_old_blocks(this->LAST_block);
+        threadpool.create_thread(boost::bind(Helper::tar_old_blocks, this->LAST_block));
 //        srvs_.clean_old(opts_.svid);
     }
 
