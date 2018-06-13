@@ -60,14 +60,19 @@ def start_node(nconf_path, init=False, block_time=32):
 def stop_node(nconf_path):
     os.chdir(nconf_path)
 
-    with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
-        pid = int(f.read())
     try:
-        os.kill(pid, signal.SIGKILL)
-        print("ADS node {0} stopped.".format(nconf_path))
+        with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
+            pid = int(f.read())
 
-    except OSError:
-        print("ADS node not {0} killed (maybe not found).".format(nconf_path))
+        try:
+            os.kill(pid, signal.SIGKILL)
+            print("ADS node {0} stopped.".format(nconf_path))
+
+        except OSError:
+            print("ADS node not {0} killed (maybe not found).".format(nconf_path))
+
+    except IOError:
+        print("Pid file nto found")
 
 
 def stop_all():
