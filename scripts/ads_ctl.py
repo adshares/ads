@@ -30,7 +30,7 @@ def start_node(nconf_path, init=False, block_time=32):
     genesis['config'] = dict()
     genesis['config']['start_time'] = genesis_time
 
-    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", float(genesis_time)))
+    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
@@ -49,7 +49,7 @@ def start_node(nconf_path, init=False, block_time=32):
         os.kill(proc.pid, 0)
         with open('{0}.pid'.format(DAEMON_BIN_NAME), 'w') as f:
             f.write(str(proc.pid))
-        print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.time()))
+        print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
         sys.exit(1)
