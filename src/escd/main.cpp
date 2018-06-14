@@ -55,7 +55,7 @@
 #include "client.hpp"
 
 bool finish=false;
-boost::mutex flog;
+boost::recursive_mutex flog;
 boost::mutex siglock;
 FILE* stdlog=NULL;
 candidate_ptr nullcnd;

@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include <openssl/rand.h>
 #include <dirent.h>
@@ -1707,7 +1708,7 @@ class servers { // also a block
         blockdir();
         //change log directory
         {
-            extern boost::mutex flog;
+            extern boost::recursive_mutex flog;
             extern FILE* stdlog;
             char filename[32];
             sprintf(filename,"blk/%03X/%05X/log.txt",now>>20,now&0xFFFFF);
