@@ -29,12 +29,12 @@ install_dependencies() {
 
 install_apt_dependencies() {
 
-    apt-get update -y
-    apt-get install -y openssl libboost-all-dev
+    apt-get update -qq
+    apt-get install -qq openssl libboost-all-dev
 
     if [ $1 ]; then
-        apt-get -y install libssl-dev
-        apt-get -y install build-essential make cmake
+        apt-get -qq install libssl-dev
+        # apt-get -qq install build-essential make cmake
     fi
 }
 
@@ -87,10 +87,11 @@ usage() {
     echo "Options"
     echo "  -o <dir>       Build output directory (default ./build)"
     echo "  -r             Install all dependencies (may require sudo)"
+    echo "  -R             Only install dependencies (may require sudo)"
     echo "  -d             Enable debug build"
     echo "  -m <options>   Make additional options"
     echo "  -c <options>   Cmake additional options"
-    echo "  -b             Copy binaries into /usr/bin"
+    echo "  -i             Install binaries (may require sudo)"
     exit 1
 }
 
@@ -98,12 +99,16 @@ usage() {
 
 output=./build
 build_type=Release
+build=1
 
-while getopts ":o:r?d?m:c:b?" opt; do
+while getopts ":o:r?R?d?m:c:i?" opt; do
     case "$opt" in
         o)  output=$OPTARG
             ;;
         r)  dependencies=1
+            ;;
+        R)  dependencies=1
+            build=
             ;;
         d)  build_type=Debug
             ;;
@@ -111,7 +116,7 @@ while getopts ":o:r?d?m:c:b?" opt; do
             ;;
         c)  coptions=$OPTARG
             ;;
-        b)  copy=1
+        i)  install=1
             ;;
         *)
             usage
@@ -127,9 +132,17 @@ fi
 
 if [ -n "$dependencies" ]
 then
-    install_dependencies
+    echo "=== Installing dependencies ==="
+    install_dependencies $1
 fi
 
+if [ -z "$build" ]
+then
+    echo "=== Build disabled ==="
+    exit 0
+fi
+
+echo "=== Building ==="
 source="$(realpath $1)"
 output="$(realpath $output)"
 
@@ -150,12 +163,28 @@ echo "=== Build: $build ==="
 mkdir -p $output
 #rm -rf $output/*
 cd $output
-make clean
-cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_PROJECT_CONFIG=esc $coptions $source
-make -j `nproc` $options escd esc
 
-if [ -n "$copy" ]
+echo "=== Cleaning ==="
+make clean
+
+echo "=== Configuring ==="
+if ! cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_PROJECT_CONFIG=esc $coptions $source
 then
-    cp $output/esc/esc /usr/bin
-    cp $output/escd/escd /usr/bin
+    exit 1
 fi
+
+echo "=== Compiling ==="
+if ! make -j `nproc` $options escd esc
+then
+    exit 1
+fi
+
+if [ -n "$install" ]
+then
+    echo "=== Installing binaries ==="
+    if ! make -j `nproc` $options install
+    then
+        exit 1
+    fi
+fi
+echo "=== END ==="
