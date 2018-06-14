@@ -2,6 +2,7 @@
 #define HASH_HPP
 
 #include <openssl/sha.h>
+#include <vector>
 #include "default.hpp"
 
 #define MAXTREE 32
