@@ -87,6 +87,7 @@ usage() {
     echo "Options"
     echo "  -o <dir>       Build output directory (default ./build)"
     echo "  -r             Install all dependencies (may require sudo)"
+    echo "  -R             Only install dependencies (may require sudo)"
     echo "  -d             Enable debug build"
     echo "  -m <options>   Make additional options"
     echo "  -c <options>   Cmake additional options"
@@ -98,12 +99,16 @@ usage() {
 
 output=./build
 build_type=Release
+build=1
 
-while getopts ":o:r?d?m:c:b?" opt; do
+while getopts ":o:r?R?d?m:c:b?" opt; do
     case "$opt" in
         o)  output=$OPTARG
             ;;
         r)  dependencies=1
+            ;;
+        R)  dependencies=1
+            build=
             ;;
         d)  build_type=Debug
             ;;
@@ -127,9 +132,17 @@ fi
 
 if [ -n "$dependencies" ]
 then
+    echo "=== Installing dependencies ==="
     install_dependencies
 fi
 
+if [ -z "$build" ]
+then
+    echo "=== Build disabled ==="
+    exit 0
+fi
+
+echo "=== Building ==="
 source="$(realpath $1)"
 output="$(realpath $output)"
 
@@ -150,12 +163,17 @@ echo "=== Build: $build ==="
 mkdir -p $output
 #rm -rf $output/*
 cd $output
+echo "=== Cleaning ==="
 make clean
+echo "=== Configuring ==="
 cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_PROJECT_CONFIG=esc $coptions $source
+echo "=== Compiling ==="
 make -j `nproc` $options escd esc
 
 if [ -n "$copy" ]
 then
+    echo "=== Coping binaries ==="
     cp $output/esc/esc /usr/bin
     cp $output/escd/escd /usr/bin
 fi
+echo "=== END ==="
