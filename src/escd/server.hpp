@@ -1369,9 +1369,11 @@ NEXTUSER:
         }
         if(do_block==2) {
             if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)||now>srvs_.now+BLOCKSEC+(VIP_MAX*VOTE_DELAY)) {
-                ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());
+                std::string verbose = print_missing_verbose();
+                ELOG("MISSING MESSAGES, PANIC:\n%s", verbose.c_str());
             } else {
-                DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));
+                std::string missing = winner->print_missing(&srvs_);
+                DLOG("ELECTION: %s\n",missing.c_str());
             }
         }
         if(do_vote && cnd1->accept() && cnd1->peers.size()>1) {
@@ -1509,9 +1511,9 @@ NEXTUSER:
         return(me);
     }
 
-    const char* print_missing_verbose() {
+    std::string print_missing_verbose() {
         extern message_ptr nullmsg;
-        static std::string line;
+        std::string line;
         std::vector<uint64_t> missing;
         winner->get_missing(missing);
         line="";
@@ -1543,7 +1545,7 @@ NEXTUSER:
                 line+="\n";
             }
         }
-        return(line.c_str());
+        return line;
     }
 
     message_ptr message_find(message_ptr msg,uint16_t svid) { //cnd_/blk_/dbl_/txs_.lock()
