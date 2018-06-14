@@ -839,7 +839,7 @@ class office {
         } // :-( maybe we should throw here something
 
         write(md, utxs.getData(), utxs.getDataSize());
-        if (utxs.getType() == TXSTYPE_USR) {
+        if (utxs.getType() == TXSTYPE_USR || utxs.getType() == TXSTYPE_SAV) {
             write(md, utxs.getSignature(), utxs.getSignatureSize());
             write(md, utxs.getAdditionalData(), utxs.getAdditionalDataSize());
         } else {
@@ -851,7 +851,7 @@ class office {
         mpos= ++message_tnum; //mpos is now the number of the transaction in the message, starts with 1 !!!        
 
         message.append((char*)utxs.getData(), utxs.getDataSize());
-        if (utxs.getType() == TXSTYPE_USR) {
+        if (utxs.getType() == TXSTYPE_USR || utxs.getType() == TXSTYPE_USR) {
             message.append((char*)utxs.getSignature(), utxs.getSignatureSize());
             message.append((char*)utxs.getAdditionalData(), utxs.getAdditionalDataSize());
         } else {

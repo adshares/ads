@@ -57,6 +57,7 @@
 #include "command/retrievefunds.h"
 #include "command/getvipkeys.h"
 #include "command/getblocks.h"
+#include "command/logaccount.h"
 #include "helper/hash.h"
 #include "helper/json.h"
 #include "helper/hlog.h"
@@ -369,7 +370,7 @@ usertxs_ptr run_json(settings& sts, const std::string& line ,int64_t& deduct,int
         deduct = command->getDeduct();
         fee = command->getFee();
     } else if(!run.compare(txsname[TXSTYPE_SAV])) {
-        txs=boost::make_shared<usertxs>(TXSTYPE_SAV,sts.bank,sts.user,sts.msid,now,to_bank,to_user,to_mass,to_info,(const char*)NULL);
+        command.reset(new LogAccount(sts.bank, sts.user, sts.msid, now));
         fee=TXS_SAV_FEE;
     } else if(!run.compare(txsname[TXSTYPE_GET])) {
         command.reset(new RetrieveFunds(sts.bank, sts.user, sts.msid, now, to_bank, to_user));
