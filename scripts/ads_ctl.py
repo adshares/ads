@@ -11,26 +11,22 @@ import signal
 import sys
 import hashlib
 import psutil
+import socket
 
 
-DATA_DIR = '/ads_data'
 DAEMON_BIN_NAME = 'escd'
 CLIENT_BIN_NAME = 'esc'
 
 
-def start_node(nconf_path, init=False, block_time=32):
+def start_node(nconf_path, genesis_time, init=False):
 
     os.chdir(nconf_path)
 
     with open('genesis.json', 'r') as f:
         genesis = json.load(f)
 
-    genesis_time = (int(time.time() / block_time) + 2) * block_time
-
     genesis['config'] = dict()
     genesis['config']['start_time'] = genesis_time
-
-    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
@@ -72,7 +68,7 @@ def stop_node(nconf_path):
             print("ADS node not {0} killed (maybe not found).".format(nconf_path))
 
     except IOError:
-        print("Pid file nto found")
+        print("Pid file not found")
 
 
 def stop_all():
@@ -102,16 +98,6 @@ def stop_all():
                 sys.exit(1)
 
 
-def clean():
-
-    if os.path.exists(DATA_DIR):
-        shutil.rmtree(DATA_DIR)
-        os.mkdir(DATA_DIR)
-        print("ADS node configuration removed.")
-    else:
-        print("{0} doesn't exist".format(DATA_DIR))
-
-
 def state(nconf_path):
     os.chdir(nconf_path)
 
@@ -121,8 +107,12 @@ def state(nconf_path):
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
-    with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
-        pid = int(f.read())
+    try:
+        with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
+            pid = int(f.read())
+    except IOError:
+        print("Pid file not found")
+        sys.exit(1)
 
     try:
         os.kill(pid, 0)
@@ -131,58 +121,121 @@ def state(nconf_path):
         print("# Node is DOWN! (supposed pid: {0}".format(pid))
 
 
-def investigate(uconf_path):
+def investigate(uconf_path, silent = False):
     os.chdir(uconf_path)
 
     with open(os.devnull, 'w') as devnull:
-        output = subprocess.check_output('echo \'{"run":"get_block"}\' | ./{0}'.format(CLIENT_BIN_NAME), stderr=devnull, shell=True)
+        output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
 
     json_out = json.loads(output)
     try:
         last_block_id, last_block_hash = json_out['block']['id'], json_out['block']['nowhash']
         mtimes = sorted([int(n['mtim']) for n in json_out['block']['nodes']])
-
-        print(" Last block ID: {0}".format(last_block_id))
-        print(" Last block hash: {0}".format(last_block_hash))
-        print(" Last message: {0:.3f} seconds ago.".format(time.time() - mtimes[-1]))
+        if not silent:
+            print(" Last block ID: {0}".format(last_block_id))
+            print(" Last block hash: {0}".format(last_block_hash))
+            print(" Last message: {0:.3f} seconds ago.".format(time.time() - mtimes[-1]))
+        return True
     except KeyError:
-        print(" No block data.")
+        if not silent:
+            print(" No block data.")
+        return False
 
+def check_data(data_dir):
+      if len(glob(data_dir + '/node*')) == 0:
+            print("Cannot find nodes data in {0}".format(data_dir))
+            sys.exit(1)
+
+def clean_action(data_dir):
+
+    if os.path.exists(data_dir):
+        shutil.rmtree(data_dir)
+        os.mkdir(data_dir)
+        print("ADS node configuration removed.")
+    else:
+        print("{0} doesn't exist".format(data_dir))
+
+
+def start_action(data_dir, init = False):
+
+    block_time = 32
+    genesis_time = (int(time.time() + 8) / block_time) * block_time
+    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
+
+    for nconf in sorted(glob(data_dir + '/node*')):
+        print(nconf)
+        start_node(nconf, genesis_time, init)
+
+
+def stop_action(data_dir):
+    for nconf in sorted(glob(data_dir + '/node*')):
+        print(nconf)
+        stop_node(nconf)
+    stop_all()
+
+
+def nodes_action(data_dir):
+    for nconf in sorted(glob(data_dir + '/node*')):
+        print(nconf)
+        state(nconf)
+
+
+def network_action(data_dir):
+    for uconf in sorted(glob(data_dir + '/user*.00000000')):
+        print(uconf)
+        if not investigate(uconf):
+            sys.exit(1)
+
+
+def wait_action(data_dir):
+
+    print("Waiting for ADS")
+
+    t = time.time()
+    started = False
+    while not started:
+
+        if time.time() - t > 300:
+            print("ADS start timeout")
+            sys.exit(1)
+
+        for uconf in sorted(glob(data_dir + '/user*.00000000')):
+            if investigate(uconf, True):
+                started = True
+                break
+            else:
+                print("Waiting for escd")
+                time.sleep(1)
+
+    print("ADS started")
 
 if __name__ == '__main__':
 
-    block_time = 32
-
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
-    parser.add_argument('action', choices=['start', 'clean', 'stop', 'nodes', 'network'])
+    parser.add_argument('action', choices=['start', 'stop', 'clean', 'nodes', 'network', 'wait'])
     parser.add_argument('--init', action='store_true')
+    parser.add_argument('--data', default='/ads_data', help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--wait', action='store_true')
+
     args = parser.parse_args()
 
     if args.action == 'network':
-        for uconf in sorted(glob('/ads_data/user*.00000000')):
-            print(uconf)
-            investigate(uconf)
-
+        check_data(args.data)
+        network_action(args.data)
+    elif args.action == 'wait':
+        check_data(args.data)
+        wait_action(args.data)
     elif args.action == 'clean':
-        clean()
+        check_data(args.data)
+        clean_action(args.data)
+    elif args.action == 'start':
+        check_data(args.data)
+        start_action(args.data, args.init)
+    elif args.action == 'stop':
+        stop_action(args.data)
+    elif args.action == 'nodes':
+        check_data(args.data)
+        nodes_action(args.data)
 
-    for nconf in sorted(glob('/ads_data/node*')):
-
-        if args.action == 'start':
-            print(nconf)
-            if args.init:
-                start_node(nconf, True, block_time)
-                args.init = False
-            else:
-                start_node(nconf)
-
-        elif args.action == 'stop':
-            print(nconf)
-            stop_node(nconf)
-
-        elif args.action == 'nodes':
-            print(nconf)
-            state(nconf)
-
-    if args.action == 'stop':
-        stop_all()
+    if args.wait:
+        wait_action(args.data)

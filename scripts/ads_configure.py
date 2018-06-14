@@ -191,7 +191,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Configure HPX.')
 
     parser.add_argument('genesis', default=None, help='Genesis file')
-    parser.add_argument('--ask', default=False, action='store_true', help='Ask for values, don\'t use defaults.')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
 
     parser.add_argument('--data', default=node_env['data_dir'], help=description['data_dir'])
