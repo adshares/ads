@@ -5,9 +5,9 @@
 #include <boost/asio.hpp>
 #include "abstraction/interfaces.h"
 #include "commandhandler.h"
+#include "command/getaccount.h"
 
 class office;
-class GetAccount;
 
 class GetAccountHandler : public CommandHandler {
   public:

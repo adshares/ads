@@ -48,11 +48,8 @@ class settings;
 class usertxs;
 
 typedef boost::shared_ptr<usertxs> usertxs_ptr;
-
-//functions used in  main.cpp
-usertxs_ptr run_json(settings& sts, const std::string& line,int64_t& deduct,int64_t& fee, std::unique_ptr<IBlockCommand> &command);
-void talk(boost::asio::ip::tcp::resolver::iterator& endpoint_iterator,boost::asio::ip::tcp::socket& socket,settings& sts,usertxs_ptr txs,int64_t deduct,int64_t fee); //len can be deduced from txstype
-
+//used in  main.cpp
+std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line);
 
 class usertxs {
   public:

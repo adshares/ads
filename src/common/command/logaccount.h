@@ -7,7 +7,7 @@
 /*!
  * \brief Class responsible for handling "log_account" command.
  */
-class LogAccount : public IBlockCommand
+class LogAccount : public BlockCommand
 {
 public:
     LogAccount();
