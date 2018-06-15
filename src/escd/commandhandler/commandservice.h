@@ -27,6 +27,7 @@
 #include "retrievefundshandler.h"
 #include "getvipkeyshandler.h"
 #include "getblockshandler.h"
+#include "logaccounthandler.h"
 
 class office;
 
@@ -70,6 +71,7 @@ class CommandService {
     RetrieveFundsHandler      m_retrieveFundsHandler; ///< retrieve funds handler
     GetVipKeysHandler         m_getVipKeysHandler; ///< get vip keys handler
     GetBlocksHandler          m_getBlocksHandler; ///< get blocks handler
+    LogAccountHandler         m_logAccountHandler; ///< log account handler
 };
 
 
