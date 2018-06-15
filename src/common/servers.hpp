@@ -578,11 +578,10 @@ class servers { // also a block
         }
         for(auto it=undo.begin(); it!=undo.end(); it++) {
             uint32_t i=(it->first)/64;
-            uint32_t j=1<<((it->first)%64);
+            uint64_t j=1L<<((it->first)%64);
             assert(i<nodes[svid].changed.size());
             if(nodes[svid].changed[i]&j) {
-                close(fd);
-                return;
+                continue;
             }
             nodes[svid].changed[i]|=j;
             lseek(fd,(it->first)*sizeof(user_t),SEEK_SET);
@@ -920,14 +919,12 @@ class servers { // also a block
         uint32_t i;
         vok=0;
         vno=0;
+
         std::vector<uint16_t> svid_rank;
-        for(i=1; i<nodes.size(); i++) { //FIXME, start this with 1, not with 0
+        for(i=1; i<nodes.size(); i++) {
             if(nodes[i].status & SERVER_DBL ) {
                 continue;
             }
-            //if(i>1 && !nodes[i].msid) { // do not include nodes silent nodes
-            //    continue;
-            //}
             svid_rank.push_back(i);
         }
         std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {

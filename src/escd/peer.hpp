@@ -1126,12 +1126,11 @@ NEXTUSER:
                               boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), (BLOCKSEC));
     }
 
+    uint16_t last_bank=0;
+    uint16_t last_msid=0;
+    int64_t weight=0;
+    uint64_t csum[4]= {0,0,0,0};
     void handle_read_bank(const boost::system::error_code& error) {
-        static uint16_t last_bank=0;
-        static uint16_t last_msid=0;
-        static  int64_t weight=0;
-        //static SHA256_CTX sha256;
-        static uint64_t csum[4]= {0,0,0,0};
         int fd;
         if(error) {
             ELOG("%04X ERROR reading message\n",svid);
