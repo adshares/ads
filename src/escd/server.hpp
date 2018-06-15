@@ -3716,8 +3716,8 @@ NEXTUSER:
                 lbbank=bbank;
             }
             if(lbbank) {
-                srvs_.nodes[lbbank].status |=
-                    (uint32_t)(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2)))<<24;
+                srvs_.nodes[lbbank].status &=
+                   (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))))<<24;
                 lbbank=0;
                 bitvotes.clear();
             }
