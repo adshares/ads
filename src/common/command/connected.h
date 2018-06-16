@@ -5,7 +5,7 @@
 #include "command/pods.h"
 
 /** \brief Connected message class. */
-class Connected : public IBlockCommand {
+class Connected : public BlockCommand {
     public:
         Connected();
         Connected(uint16_t port, uint32_t ip_address);

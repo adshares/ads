@@ -7,7 +7,7 @@
 /*!
  * \brief Class responsible for handling "retrieve_funds" command.
  */
-class RetrieveFunds : public IBlockCommand
+class RetrieveFunds : public BlockCommand
 {
 public:
     RetrieveFunds();

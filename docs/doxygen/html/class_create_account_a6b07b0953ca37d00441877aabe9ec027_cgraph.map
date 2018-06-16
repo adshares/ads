@@ -1,6 +1,6 @@
 <map id="CreateAccount::setNewUser" name="CreateAccount::setNewUser">
-<area shape="rect" id="node2" href="$class_connected.html#aa2cf7683558ae8cb1e67ee9155ebf71b" title="Get User ID. " alt="" coords="280,5,441,32"/>
-<area shape="rect" id="node3" href="$class_connected.html#a22747b8cb3ad1d2b4b294e784041df1e" title="Get Node ID. " alt="" coords="279,56,442,83"/>
-<area shape="rect" id="node4" href="$class_connected.html#afd2bdb89e554ee01ebccf36622054b8e" title="Get pointer to signature data. " alt="" coords="269,107,452,133"/>
-<area shape="rect" id="node5" href="$class_connected.html#ae3ee0bde31ede0b4f704c643357cd1fe" title="Get signature size. " alt="" coords="256,157,465,184"/>
+<area shape="rect" id="node2" href="$class_connected.html#aa2cf7683558ae8cb1e67ee9155ebf71b" title="Get User ID. " alt="" coords="265,5,415,32"/>
+<area shape="rect" id="node3" href="$class_connected.html#a22747b8cb3ad1d2b4b294e784041df1e" title="Get Node ID. " alt="" coords="264,56,416,83"/>
+<area shape="rect" id="node4" href="$class_connected.html#afd2bdb89e554ee01ebccf36622054b8e" title="Get pointer to signature data. " alt="" coords="257,107,423,133"/>
+<area shape="rect" id="node5" href="$class_connected.html#ae3ee0bde31ede0b4f704c643357cd1fe" title="Get signature size. " alt="" coords="244,157,436,184"/>
 </map>

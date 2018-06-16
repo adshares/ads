@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "change_account_key" command.
  */
-class SetAccountKey : public IBlockCommand {
+class SetAccountKey : public BlockCommand {
   public:
     SetAccountKey();
     SetAccountKey(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t time, uint8_t pubkey[32], uint8_t pubkeysign[64]);

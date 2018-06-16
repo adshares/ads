@@ -1,6 +1,6 @@
 <map id="GetAccountHandler" name="GetAccountHandler">
-<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="130,95,269,121"/>
-<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="5,5,148,32"/>
-<area shape="rect" id="node4" href="$classoffice.html" title="office" alt="" coords="171,5,227,32"/>
-<area shape="rect" id="node5" href="$structuser__s.html" title="user_s" alt="" coords="251,5,315,32"/>
+<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="125,95,251,121"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="5,5,136,32"/>
+<area shape="rect" id="node4" href="$classoffice.html" title="office" alt="" coords="161,5,215,32"/>
+<area shape="rect" id="node5" href="$structuser__s.html" title="user_s" alt="" coords="240,5,301,32"/>
 </map>

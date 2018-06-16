@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "get_log" command.
  */
-class GetLog : public IBlockCommand {
+class GetLog : public BlockCommand {
   public:
     GetLog();
     /** \brief

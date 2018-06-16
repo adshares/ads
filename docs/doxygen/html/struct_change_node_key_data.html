@@ -57,14 +57,6 @@
  <a href="struct_change_node_key_data.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="pods_8h_source.html">pods.h</a>&gt;</code></p>
-<div class="dynheader">
-Collaboration diagram for ChangeNodeKeyData:</div>
-<div class="dyncontent">
-<div class="center"><img src="struct_change_node_key_data__coll__graph.png" border="0" usemap="#_change_node_key_data_coll__map" alt="Collaboration graph"/></div>
-<map name="_change_node_key_data_coll__map" id="_change_node_key_data_coll__map">
-<area shape="rect" id="node2" href="struct_change_node_key_info.html" title="Change Node key command info. " alt="" coords="9,5,160,32"/>
-</map>
-<center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -74,17 +66,47 @@ Public Member Functions</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
-<tr class="memitem:a42f0fb3190d475404cf531538e992229"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a42f0fb3190d475404cf531538e992229"></a>
-<a class="el" href="struct_change_node_key_info.html">ChangeNodeKeyInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><b>info</b></td></tr>
-<tr class="separator:a42f0fb3190d475404cf531538e992229"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02ee1352a222388ead7a0b941c73d18c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a02ee1352a222388ead7a0b941c73d18c"></a>
+uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#a02ee1352a222388ead7a0b941c73d18c">ttype</a> {TXSTYPE_BKY}</td></tr>
+<tr class="memdesc:a02ee1352a222388ead7a0b941c73d18c"><td class="mdescLeft">&#160;</td><td class="mdescRight">command type <br /></td></tr>
+<tr class="separator:a02ee1352a222388ead7a0b941c73d18c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af968f9f48317611f2aa8012ea1030fd4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af968f9f48317611f2aa8012ea1030fd4"></a>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#af968f9f48317611f2aa8012ea1030fd4">src_node</a> {0}</td></tr>
+<tr class="memdesc:af968f9f48317611f2aa8012ea1030fd4"><td class="mdescLeft">&#160;</td><td class="mdescRight">source node <br /></td></tr>
+<tr class="separator:af968f9f48317611f2aa8012ea1030fd4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af08a3c04e5b30ff1cb4df575db656a1f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af08a3c04e5b30ff1cb4df575db656a1f"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#af08a3c04e5b30ff1cb4df575db656a1f">src_user</a> {0}</td></tr>
+<tr class="memdesc:af08a3c04e5b30ff1cb4df575db656a1f"><td class="mdescLeft">&#160;</td><td class="mdescRight">source user <br /></td></tr>
+<tr class="separator:af08a3c04e5b30ff1cb4df575db656a1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a552bc804cabc82167ddaf43e8aa606d6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a552bc804cabc82167ddaf43e8aa606d6"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#a552bc804cabc82167ddaf43e8aa606d6">msg_id</a> {0}</td></tr>
+<tr class="memdesc:a552bc804cabc82167ddaf43e8aa606d6"><td class="mdescLeft">&#160;</td><td class="mdescRight">user message id <br /></td></tr>
+<tr class="separator:a552bc804cabc82167ddaf43e8aa606d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba4828de44ba2d936c6cbd3d679baffd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aba4828de44ba2d936c6cbd3d679baffd"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#aba4828de44ba2d936c6cbd3d679baffd">ttime</a> {0}</td></tr>
+<tr class="memdesc:aba4828de44ba2d936c6cbd3d679baffd"><td class="mdescLeft">&#160;</td><td class="mdescRight">time <br /></td></tr>
+<tr class="separator:aba4828de44ba2d936c6cbd3d679baffd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9621674a743778416e1276bef6ff8ead"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9621674a743778416e1276bef6ff8ead"></a>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#a9621674a743778416e1276bef6ff8ead">dst_node</a> {0}</td></tr>
+<tr class="memdesc:a9621674a743778416e1276bef6ff8ead"><td class="mdescLeft">&#160;</td><td class="mdescRight">destination node <br /></td></tr>
+<tr class="separator:a9621674a743778416e1276bef6ff8ead"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae6a20aa6012602b6171f568cf04ce9bf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae6a20aa6012602b6171f568cf04ce9bf"></a>
+uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#ae6a20aa6012602b6171f568cf04ce9bf">node_new_key</a> [32]</td></tr>
+<tr class="memdesc:ae6a20aa6012602b6171f568cf04ce9bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">new node key <br /></td></tr>
+<tr class="separator:ae6a20aa6012602b6171f568cf04ce9bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af885b398435fecac92bd39169a645656"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af885b398435fecac92bd39169a645656"></a>
 unsigned char&#160;</td><td class="memItemRight" valign="bottom"><b>sign</b> [64]</td></tr>
 <tr class="separator:af885b398435fecac92bd39169a645656"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a601ff0e1f2ec82b309f7de4329f84a87"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a601ff0e1f2ec82b309f7de4329f84a87"></a>
+uint8_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_change_node_key_data.html#a601ff0e1f2ec82b309f7de4329f84a87">old_public_key</a> [32]</td></tr>
+<tr class="memdesc:a601ff0e1f2ec82b309f7de4329f84a87"><td class="mdescLeft">&#160;</td><td class="mdescRight">old public key <br /></td></tr>
+<tr class="separator:a601ff0e1f2ec82b309f7de4329f84a87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Change Node Key command data. </p>
+<p>Broadcast file format for each block: <a class="el" href="struct_send_broadcast_info.html" title="Send Broadcast info. ">SendBroadcastInfo</a> Message (floating size = <a class="el" href="struct_send_broadcast_info.html#aa3c470730fc4a9a7db2299d4d74f4f73" title="msg_length ">SendBroadcastInfo.msg_length</a>) <a class="el" href="struct_get_broadcast_additional_data.html" title="Rest of broadcast response, after header and message. ">GetBroadcastAdditionalData</a> </p>
 
-<p>Definition at line <a class="el" href="pods_8h_source.html#l00347">347</a> of file <a class="el" href="pods_8h_source.html">pods.h</a>.</p>
+<p>Definition at line <a class="el" href="pods_8h_source.html#l00328">328</a> of file <a class="el" href="pods_8h_source.html">pods.h</a>.</p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li><a class="el" href="pods_8h_source.html">pods.h</a></li>
 </ul>

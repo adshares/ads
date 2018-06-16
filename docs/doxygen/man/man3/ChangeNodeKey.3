@@ -1,4 +1,4 @@
-.TH "ChangeNodeKey" 3 "Tue Jun 12 2018" "esc" \" -*- nroff -*-
+.TH "ChangeNodeKey" 3 "Sat Jun 16 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -10,7 +10,7 @@ ChangeNodeKey \- Class responsible for handling 'change_node_key' command\&.
 .PP
 \fC#include <changenodekey\&.h>\fP
 .PP
-Inherits \fBIBlockCommand\fP\&.
+Inherits \fBBlockCommand\fP\&.
 .SS "Public Member Functions"
 
 .in +1c
@@ -114,8 +114,17 @@ Inherits \fBIBlockCommand\fP\&.
 .br
 .RI "\fIGet user message id\&. \fP"
 .ti -1c
+.RI "virtual unsigned char * \fBgetBlockMessage\fP () override"
+.br
+.RI "\fIGet data as it is stored in blockchain\&. \fP"
+.ti -1c
+.RI "virtual size_t \fBgetBlockMessageSize\fP () override"
+.br
+.RI "\fIGet blockchain data size\&. \fP"
+.ti -1c
 .RI "virtual std::string \fBtoString\fP (bool pretty) override"
 .br
+.RI "\fIGet additional data size\&. \fP"
 .ti -1c
 .RI "virtual void \fBtoJson\fP (boost::property_tree::ptree &ptree) override"
 .br
@@ -164,7 +173,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 87 of file changenodekey\&.cpp\&.
+Definition at line 108 of file changenodekey\&.cpp\&.
 .SS "void ChangeNodeKey::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
