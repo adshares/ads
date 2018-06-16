@@ -1,12 +1,12 @@
 <map id="GetBlocks" name="GetBlocks">
-<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,174,197"/>
-<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,176,108"/>
-<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
-<area shape="rect" id="node6" href="$class_helper_1_1_vip_keys.html" title="Helper::VipKeys" alt="" coords="199,171,320,197"/>
-<area shape="rect" id="node7" href="$class_helper_1_1_block.html" title="Helper::Block" alt="" coords="345,171,451,197"/>
-<area shape="rect" id="node8" href="$struct_get_blocks_data.html" title="GetBlocksData" alt="" coords="475,171,593,197"/>
-<area shape="rect" id="node9" href="$struct_get_blocks_info.html" title="GetBlocksInfo" alt="" coords="479,81,589,108"/>
-<area shape="rect" id="node10" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="617,171,763,197"/>
-<area shape="rect" id="node11" href="$structuser__s.html" title="user_s" alt="" coords="658,81,722,108"/>
+<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,166,197"/>
+<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,168,108"/>
+<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
+<area shape="rect" id="node6" href="$class_helper_1_1_vip_keys.html" title="Helper::VipKeys" alt="" coords="190,171,307,197"/>
+<area shape="rect" id="node7" href="$class_helper_1_1_block.html" title="Helper::Block" alt="" coords="331,171,433,197"/>
+<area shape="rect" id="node8" href="$struct_get_blocks_data.html" title="GetBlocksData" alt="" coords="457,171,568,197"/>
+<area shape="rect" id="node9" href="$struct_get_blocks_info.html" title="GetBlocksInfo" alt="" coords="460,81,565,108"/>
+<area shape="rect" id="node10" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="592,171,724,197"/>
+<area shape="rect" id="node11" href="$structuser__s.html" title="user_s" alt="" coords="627,81,689,108"/>
 </map>

@@ -1,4 +1,4 @@
 <map id="ICommandHandler::onInit" name="ICommandHandler::onInit">
-<area shape="rect" id="node2" href="$class_command_handler.html#abc79f9f2f91314c1c962c9b80c929d70" title="Execute command. " alt="" coords="239,5,437,32"/>
-<area shape="rect" id="node3" href="$class_command_service.html#a1196f2e173266c5c022a4b97f0ba5cba" title="execute method which invokes command handler. " alt="" coords="485,5,696,32"/>
+<area shape="rect" id="node2" href="$class_command_handler.html#abc79f9f2f91314c1c962c9b80c929d70" title="Execute command. " alt="" coords="224,5,405,32"/>
+<area shape="rect" id="node3" href="$class_command_service.html#a1196f2e173266c5c022a4b97f0ba5cba" title="execute method which invokes command handler. " alt="" coords="453,5,649,32"/>
 </map>

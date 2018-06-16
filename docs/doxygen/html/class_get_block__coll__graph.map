@@ -1,10 +1,10 @@
 <map id="GetBlock" name="GetBlock">
-<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,174,197"/>
-<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,176,108"/>
-<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
-<area shape="rect" id="node6" href="$class_helper_1_1_hlog.html" title="Helper::Hlog" alt="" coords="198,171,299,197"/>
-<area shape="rect" id="node7" href="$struct_get_block_data.html" title="GetBlockData" alt="" coords="324,171,435,197"/>
-<area shape="rect" id="node8" href="$struct_get_block_info.html" title="Get block info. " alt="" coords="328,81,431,108"/>
-<area shape="rect" id="node9" href="$struct_helper_1_1_servers_header.html" title="Helper::ServersHeader" alt="" coords="459,171,627,197"/>
+<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,166,197"/>
+<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,168,108"/>
+<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
+<area shape="rect" id="node6" href="$class_helper_1_1_hlog.html" title="Helper::Hlog" alt="" coords="191,171,285,197"/>
+<area shape="rect" id="node7" href="$struct_get_block_data.html" title="GetBlockData" alt="" coords="310,171,414,197"/>
+<area shape="rect" id="node8" href="$struct_get_block_info.html" title="Get block info. " alt="" coords="313,81,411,108"/>
+<area shape="rect" id="node9" href="$struct_helper_1_1_servers_header.html" title="Helper::ServersHeader" alt="" coords="438,171,593,197"/>
 </map>

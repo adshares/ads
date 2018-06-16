@@ -266,7 +266,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#abb3b7fd4d4407e47a14b040b0a64134e"><param name="Name" value="now"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#acce9f4a08be46e528e989c554764c47a"><param name="Name" value="peer"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#ae3441c290e6fd93ffa9ab96d36b1d6bb"><param name="Name" value="peers"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#ac9e4f3931089899aa5389f2b0fa4b31e"><param name="Name" value="print_missing"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#a579d094b5bbd81cff0962efa89ea1691"><param name="Name" value="print_missing"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#ac70ad3e30f5f6fef46eb917a57088fab"><param name="Name" value="score"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#a4ae9a6198b84d0fdaa7e772c11fa387c"><param name="Name" value="update"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#addcb02f7c9ad63983fa72938fd58a712"><param name="Name" value="votes"></OBJECT>
@@ -3220,8 +3220,8 @@
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classusertxs.html#ac2683f04177d62751869a42de3f29cdc"><param name="Name" value="print_head"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#aa11e75aa2d63116634f3308e76571701"><param name="Name" value="print_header"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="namespace_helper.html#acba885d288c2c3e6e2312d52cb2b4797"><param name="Name" value="print_log"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#ac9e4f3931089899aa5389f2b0fa4b31e"><param name="Name" value="print_missing"></OBJECT>
-  <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a18df50bb62d4f2b8f249e5ff4d64bad3"><param name="Name" value="print_missing_verbose"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="classcandidate.html#a579d094b5bbd81cff0962efa89ea1691"><param name="Name" value="print_missing"></OBJECT>
+  <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a4d999b05cf39033fae7a993e1fbb4e8d"><param name="Name" value="print_missing_verbose"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="namespace_helper.html#a6d4b71e2c7b3fff9c70085fe8a429211"><param name="Name" value="print_msg_id"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="namespace_helper.html#a1b4604187c757e0c788c8f6a4094bc96"><param name="Name" value="print_msgid_info"></OBJECT>
   <LI><OBJECT type="text/sitemap"><param name="Local" value="classmessage.html#a3131499331327acb9b824ebf2aeb2740"><param name="Name" value="print_text"></OBJECT>
@@ -3690,7 +3690,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#ac7732e8282ad84fbefc73d35257680d3"><param name="Name" value="ppi_bbank"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a7f99862c1b12f135cfaf05ccfce5dc44"><param name="Name" value="ppi_txid"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a24af021ae709580db276807467a4865f"><param name="Name" value="prepare_poll"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a18df50bb62d4f2b8f249e5ff4d64bad3"><param name="Name" value="print_missing_verbose"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a4d999b05cf39033fae7a993e1fbb4e8d"><param name="Name" value="print_missing_verbose"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#ae348ebb27d5b7ab1f050d0de17833745"><param name="Name" value="process_message"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#af460ab2443d0530ef00d15f32938966e"><param name="Name" value="put_msglog"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Local" value="classserver.html#a3afff56b4f2bb95fec2a9db69eb28756"><param name="Name" value="readmsid"></OBJECT>

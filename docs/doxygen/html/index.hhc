@@ -336,7 +336,7 @@
       <LI><OBJECT type="text/sitemap"><param name="Name" value="del_missing"><param name="Local" value="classcandidate.html#ac297980242e08dad363b938e4bc358b3"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="elected_accept"><param name="Local" value="classcandidate.html#a9f18f7da067f4253ad1ece832cea0596"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="get_missing"><param name="Local" value="classcandidate.html#a1e28bff141d8b69a24f1d4f485056d6a"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="print_missing"><param name="Local" value="classcandidate.html#ac9e4f3931089899aa5389f2b0fa4b31e"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="print_missing"><param name="Local" value="classcandidate.html#a579d094b5bbd81cff0962efa89ea1691"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="update"><param name="Local" value="classcandidate.html#a4ae9a6198b84d0fdaa7e772c11fa387c"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="failed"><param name="Local" value="classcandidate.html#a021fc0d71bf37f4039f41a34ecb19385"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="msg_add"><param name="Local" value="classcandidate.html#a128f43b8d932f7e3054567aa6beeb652"><param name="ImageNumber" value="11"></OBJECT>
@@ -2158,7 +2158,7 @@
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ppi_bbank"><param name="Local" value="classserver.html#ac7732e8282ad84fbefc73d35257680d3"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ppi_txid"><param name="Local" value="classserver.html#a7f99862c1b12f135cfaf05ccfce5dc44"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="prepare_poll"><param name="Local" value="classserver.html#a24af021ae709580db276807467a4865f"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="print_missing_verbose"><param name="Local" value="classserver.html#a18df50bb62d4f2b8f249e5ff4d64bad3"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="print_missing_verbose"><param name="Local" value="classserver.html#a4d999b05cf39033fae7a993e1fbb4e8d"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="process_message"><param name="Local" value="classserver.html#ae348ebb27d5b7ab1f050d0de17833745"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="put_msglog"><param name="Local" value="classserver.html#af460ab2443d0530ef00d15f32938966e"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="readmsid"><param name="Local" value="classserver.html#a3afff56b4f2bb95fec2a9db69eb28756"><param name="ImageNumber" value="11"></OBJECT>
