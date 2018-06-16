@@ -1369,9 +1369,11 @@ NEXTUSER:
         }
         if(do_block==2) {
             if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)||now>srvs_.now+BLOCKSEC+(VIP_MAX*VOTE_DELAY)) {
-                ELOG("MISSING MESSAGES, PANIC:\n%s",print_missing_verbose());
+                std::string verbose = print_missing_verbose();
+                ELOG("MISSING MESSAGES, PANIC:\n%s", verbose.c_str());
             } else {
-                DLOG("ELECTION: %s\n",winner->print_missing(&srvs_));
+                std::string missing = winner->print_missing(&srvs_);
+                DLOG("ELECTION: %s\n",missing.c_str());
             }
         }
         if(do_vote && cnd1->accept() && cnd1->peers.size()>1) {
@@ -1452,7 +1454,7 @@ NEXTUSER:
             for(auto sv : svid_rset) {
                 svid_rank.push_back(sv);
             }
-            std::sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
+            std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
                 return(this->last_srvs_.nodes[i].weight>this->last_srvs_.nodes[j].weight);   //fuck, lambda :-/
             });
         }
@@ -1509,9 +1511,9 @@ NEXTUSER:
         return(me);
     }
 
-    const char* print_missing_verbose() {
+    std::string print_missing_verbose() {
         extern message_ptr nullmsg;
-        static std::string line;
+        std::string line;
         std::vector<uint64_t> missing;
         winner->get_missing(missing);
         line="";
@@ -1543,7 +1545,7 @@ NEXTUSER:
                 line+="\n";
             }
         }
-        return(line.c_str());
+        return line;
     }
 
     message_ptr message_find(message_ptr msg,uint16_t svid) { //cnd_/blk_/dbl_/txs_.lock()
@@ -2868,6 +2870,7 @@ NEXTUSER:
                     auto lu=changes.find(luser); // get user
                     if(lu==changes.end()) {
                         user_t u;
+                        bzero(&u, sizeof(user_t));
                         lseek(fd,luser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
                         read(fd,&u,sizeof(user_t));
                         changes[luser]=u;
@@ -2922,6 +2925,7 @@ NEXTUSER:
             auto au=changes.find(utxs.auser); // get user
             if(au==changes.end()) {
                 user_t u;
+                bzero(&u, sizeof(user_t));
                 lseek(fd,utxs.auser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
                 read(fd,&u,sizeof(user_t));
                 changes[utxs.auser]=u;
