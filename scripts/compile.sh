@@ -34,7 +34,7 @@ install_apt_dependencies() {
 
     if [ $1 ]; then
         apt-get -qq install libssl-dev
-        # apt-get -qq install build-essential make cmake
+        apt-get -qq install build-essential make cmake
     fi
 }
 

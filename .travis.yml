@@ -2,7 +2,7 @@
 language: cpp
 
 # Allows use container-based infrastructure
-sudo: true
+sudo: false
 
 cache:
   directories:
@@ -13,11 +13,8 @@ cache:
   
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
       - realpath
-      - gcc-5 g++-5 cmake
   sonarcloud:
     organization: "adshares-github"
     token:
@@ -26,9 +23,6 @@ addons:
       secure: "occVw21D0BqL4kNwcvirh3Dtdm3P8McXtqsJSrxDWkfmlrxVEJ/BeTglYAEjWq2UOsOxxa8Tbu6MSwdyEUJ6cljakyq2QPlljhHVmxNX0undlXbvQmYJVEhOgLqYkrHj74tSsYoRibFzQ+LRJENtG+Yn6/g/FAejZu7k6kqqF3wsNJZ3uMEkQTIUUxEd7yJ1llIFTr5VgSpOifxBdBQGKdJ8TivFnGpzapwdOsyGWDdjMmf0UKLcZtjz4A17Mj3lcHAOZZ9IHcX2IrRhY0Ahk2nIaRSV9Mdtl2U4lSKi0PICg4tM3sc5mpZFqxHwVpA2Qpo/StrXoYqjy/myxEaFBSao8p1Ujjgh3SOmX2wrt6FHmzx1oMenZm786PJdOnTwLCM6dzWkh7EnTYEeST545i0aek3ptXaiB0005e0SyEKQH8xiW+cu6b3sPrH0Wv+8G6nwMUTNam+dT7Y/ZOPNN87Gs57maQas5so30fjeQuQyMELde+/OlndyHcCrf1ICASqznvMTzp6gyL2aa7XBZwog7Zn3+8kG7+rIfjTM8xx/GCw6bDpRj1h8UjeDRa08Kky9dWhEBcBSAkWXuhd+/HRNyz8XU/5lCkGTxVZ4siI5Khstd60TpJ2TYFPXP1bzAviBmAlPzVwmeOGwObAFpngW3nrpJ2mynuOAPw2wPwc="
       
 before_install:
-  # C++17
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-  - sudo apt-get update -qq
   # CONST
   - export TEST_DIR=$HOME/adshares/ads-tests
   - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-retrieve-funds.json
@@ -36,10 +30,8 @@ before_install:
   - export DATA_DIR=$HOME/ads/data
 
 install:
-  # C++17
-  - sudo apt-get install -qq g++-5
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  # PIP
+  - sudo pip install psutil
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   - cd $TEST_DIR
@@ -52,8 +44,13 @@ jobs:
   include:
     - stage: compile
       script:
-        - gcc -v && g++ -v && cmake --version
-        - echo $CXX && echo $CC
+        # C++14
+        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+        - sudo apt-get update -qq
+        - sudo apt-get --allow-unauthenticated install -qq gcc-5 g++-5 cmake
+        - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
+        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+        # ---
         - mkdir build
         - sudo ./scripts/compile.sh -R src
         - ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
@@ -68,7 +65,7 @@ jobs:
     - stage: test
       script:
         - ./scripts/ads_configure.py --data=$DATA_DIR --esc=$BIN_DIR/esc --escd=$BIN_DIR/escd $GENESIS_FILE
-        - ./scripts/ads_ctl.py --data=$DATA_DIR --init --wait
+        - ./scripts/ads_ctl.py --data=$DATA_DIR --init --wait start
         - cd $TEST_DIR
         - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @broadcast"
     #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @non_existent"
