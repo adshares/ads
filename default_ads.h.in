@@ -1,0 +1,110 @@
+#ifndef DEFAULT_H
+#define DEFAULT_H
+
+#define PROJECT_NAME "@PROJECT_NAME@"
+#define PROJECT_VERSION "@PROJECT_VERSION@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
+#ifdef DEBUG
+#define BLOCKSEC 32 /* block period in seconds */
+#define BLOCKDIV 4 /* number of blocks for dividend update */
+#define MAX_UNDO 8 /* maximum history of block undo files in blocks */
+#define MAX_MSGWAIT 0x2 /* start with 2 and change to 8: wait no more than 8s for a message */
+#define VOTE_DELAY 2 /*increase later (maybe monitor network delay)!!!*/
+#define VIP_MAX 7 /* maximum number of VIP servers */
+#define MIN_PEERS 8 /* keep at least 3 peers connected */
+#define MAX_PEERS 16 /* keep not more than 8 peers connected */
+#define VALIDATORS 8 /* number of validator threads */
+#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+#define USER_MIN_AGE     (BLOCKSEC*2)
+#define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
+#else
+#define BLOCKSEC 512 /* block period in seconds (17min) */
+#define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
+#define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
+#define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
+#define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
+#define VIP_MAX 31 /* maximum number of VIP servers */
+#define MIN_PEERS 8 /* keep at least 8 peers connected */
+#define MAX_PEERS 16 /* keep not more than 16 peers connected */
+#define VALIDATORS 8 /* number of validator threads */
+#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+#define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
+#define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
+#endif
+
+#define TOTALMASS 3875820600000000000L /* total balance (target) */
+#define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
+#define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
+
+//local parameters (office<->client), not part of network protocol
+#define SYNC_WAIT 8 /* wait before another attempt to download servers */
+#define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
+#define MAX_USER_QUEUE 0x10000 /* maximum number of accounts in create_account queue ("blacklist") */
+#define MIN_LOG_SIZE (4096+2048) /* when this log size is reached try purging */
+#define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
+#define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
+
+#define AMOUNT_DECIMALS 11
+
+//#define MIN_MSGNUM 2 /*minimum number of messages to prevent hallo world, change to higher number later*/
+//#define MAX_USRWAIT 64 /*wait no more than 64s for a usr file*/
+//#define MAXLOSS (BLOCKSEC*128) /*do not expect longer history from peers*/
+//#define VOTES_MAX 63
+//#define MAX_ELEWAIT (BLOCKSEC/2) /*wait no more than this for candidate votes, FIXME, + time after last vote*/
+//#define PATHSHIFT 8
+//#define PATHSHIFT 5
+
+#define SERVER_TYPE 1
+#define OFFICE_PORT "9091"
+#define SERVER_PORT "8081"
+#ifdef DEBUG
+#define SERVER_DNSA "devseed.adshares.net"
+#else
+#define SERVER_DNSA "seed.adshares.net"
+#endif
+#define MAXCLIENTS 128
+
+#define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
+
+#define ONE_YEAR (3600*24*365)
+
+#define TXS_MIN_FEE       10000L      //(0x1000) /* minimum fee per transaction */
+#define TXS_DIV_FEE       (20000000L)  //(0x100000)  /* dividend fee collected every BLOCKDIV blocks ( $0.1 / year ) */
+#define TXS_KEY_FEE       10000000L     //(0x1000) /* */
+#define TXS_BRO_FEE(x)    ((x)<32 ? TXS_MIN_FEE : (TXS_MIN_FEE + 1000L*(x-32))) /* x = length */
+#define TXS_PUT_FEE(x)    ((x) / 2000) /* local wires fee (weight)*/ // 0.05%
+#define TXS_LNG_FEE(x)    ((x) / 2000) /* additional remote wires fee (weight)   0.05% */
+#define TXS_MPT_FEE(x)    ((x) / 2000) /* local multiple wires fee (weight) 0.05% */
+#define TXS_MINMPT_FEE(n) ((n)<10 ? 10000L : (1000L * (n))) /* minimum fee for send_many; n is the number of recipients */
+#define TXS_GET_FEE       (1000000L) /* get initiation fee */
+#define TXS_GOK_FEE(x)    ((x) / 1000) /* get wire fee (allways remote) 0.1% */
+#define TXS_USR_FEE       (100000000L) /* create user fee */
+#define TXS_RUS_FEE       (100000000L) /* additional create user fee for remote applications */
+#define TXS_SUS_FEE       (10000000L) /*  */
+#define TXS_SBS_FEE       (10000000L) /*  */
+#define TXS_UUS_FEE       (10000000L) /*  */
+#define TXS_UBS_FEE       (10000000L) /*  */
+#define TXS_SAV_FEE       (10000000L) /*  */
+#define TXS_BNK_FEE       (100000000000000L) /* 1000 ADS */
+#define TXS_BKY_FEE       (10000000000L) /*  */
+#define USER_MIN_MASS     (20000000L) /* minimum user account mass to send transaction (must be at least TXS_DIV_FEE to prevent message invalidation because of dividend fee)  */
+#define BANK_MIN_UMASS    (100000000000L) /* minimum admin account mass to send transaction (1 ADST) */
+#define BANK_MIN_TMASS    (0L) /* if bank total mass <= this value, bank can be taken over AND */
+#define BANK_PROFIT(x)    ((x)/5) /* 1/5 of fees */
+#define BANK_USER_FEE(x)  (1000L * (x)) /* every block */
+#define MESSAGE_FEE(x)    (4096L + (x)) /* fee for each bank message */
+
+#define BANK_MAX          (0xffff)  // Max number of banks. svid must be lower
+
+#define MESSAGE_TOO_LONG 0x800000 /* 8MB */
+#define MESSAGE_LEN_OK   0x10000
+#define MESSAGE_TNUM_OK  0x1000
+#define MESSAGE_TNUM_MAX 0xFFF0
+#define MESSAGE_WAIT 5
+#define MESSAGE_TOO_OLD (60*60*24*7)
+#define MESSAGE_CHUNK    0x100000
+#define MESSAGE_MAXAGE 100 /* prefer blocks with all messages older than MAXAGE */
+
+#endif // DEFAULT_H
