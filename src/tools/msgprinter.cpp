@@ -9,6 +9,7 @@
 #include "abstraction/interfaces.h"
 #include "command/factory.h"
 #include "helper/ascii.h"
+#include <openssl/sha.h>
 
 MsgPrinter::MsgPrinter(const std::string& filepath) : DataPrinter(filepath) {
 }
@@ -20,6 +21,7 @@ void MsgPrinter::printJson() {
     EndHeader   endHeader;
 
     try {
+        int readed = 0;
         file.open(m_filepath, std::ifstream::in | std::ifstream::binary);
         file.read((char*)&header, sizeof(header));
 
@@ -30,6 +32,9 @@ void MsgPrinter::printJson() {
         file.read((char*)&buffer, sizeof(buffer));
         file.read((char*)&endHeader, sizeof(EndHeader));
 
+        readed += sizeof(header);
+        readed += sizeof(buffer);
+        readed += sizeof(EndHeader);
 
         boost::property_tree::ptree pt;
         // print header
@@ -64,16 +69,36 @@ void MsgPrinter::printJson() {
         pt.put("tmax", endHeader.tmax);
         pt.put("ttot", endHeader.ttot);
 
+        std::vector<hash_s> hashes;
+
         boost::property_tree::ptree hashvector;
 
         for(int i=0;i<endHeader.tmax;i++)
         {
-            hash_s hash;
+            hash_s      hash;
+            uint32_t    pos[1];
+
+            file.read((char*)&pos, sizeof(pos));
             file.read((char*)&hash, sizeof(hash_s));
+            readed += sizeof(pos) + sizeof(hash_s);
+            hashes.push_back((hash));
+
             boost::property_tree::ptree hashTree;
             hashTree.put("", Helper::ed25519_key2text((uint8_t*)&hash, sizeof(hash)));
             hashvector.push_back(std::make_pair("", hashTree)); // use key 2 text
         }
+
+        while(endHeader.ttot > readed)
+        {
+            hash_s      hash;
+            file.read((char*)&hash, sizeof(hash_s));
+            readed += sizeof(hash_s);
+            boost::property_tree::ptree hashTree;
+            hashTree.put("-", Helper::ed25519_key2text((uint8_t*)&hash, sizeof(hash)));
+            hashvector.push_back(std::make_pair("-", hashTree)); // use key 2 text
+            hashes.push_back((hash));
+        }
+
         pt.add_child("hashes", hashvector);
 
         file.close();
@@ -86,6 +111,7 @@ void MsgPrinter::printJson() {
         throw std::runtime_error(e.what());
     }
 }
+
 
 void MsgPrinter::printString() {
 

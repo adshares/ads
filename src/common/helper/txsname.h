@@ -45,7 +45,7 @@ namespace Helper {
 
 static const char* txsname[TXSTYPE_MAX]= {
     "empty",		//0
-    "dividend",		//1
+    "connection",		//1
     "account_created",	//2
     "broadcast",		//3
     "send_one",		//4
