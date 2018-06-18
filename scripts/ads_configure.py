@@ -35,6 +35,7 @@ class AccountConfig(object):
         self.id = identifier
 
     def validate_address(self):
+        # TODO: checksum verification
         return re.match('[0-9a-fA-F]{4}-[0-9a-fA-F]{8}-[0-9a-fA-FX]{4}', self.address)
 
     def save(self):
