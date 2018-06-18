@@ -36,6 +36,16 @@ class options {
     int back;
     std::vector<std::string> peer;
 
+    void print_version() {
+        std::string version = PROJECT_VERSION;
+        std::cerr << "Version ";
+        if(version.empty()) {
+          std::cerr << GIT_BRANCH << "@" << GIT_COMMIT_HASH << "\n";
+        } else {
+          std::cerr << PROJECT_VERSION << "\n";
+        }
+    }
+
     void get(int ac, char *av[]) {
         try {
             boost::program_options::options_description generic("Generic options");
@@ -69,13 +79,14 @@ class options {
             store(parse_config_file(ifs, config_file_options), vm);
             notify(vm);
             if(vm.count("help")) {
-                std::cout << "Usage: " << av[0] << " [options]\n";
+                std::cout << "Usage: " << PROJECT_NAME << "d [options]\n";
                 std::cout << generic << "\n";
                 std::cout << config << "\n";
+                print_version();
                 exit(0);
             }
             if(vm.count("version")) {
-                std::cout << "Version 1.0\n";
+                print_version();
                 exit(0);
             }
             if(vm.count("init")) {

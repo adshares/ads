@@ -1,6 +1,11 @@
 #ifndef DEFAULT_H
 #define DEFAULT_H
 
+#define PROJECT_NAME "@PROJECT_NAME@"
+#define PROJECT_VERSION "@PROJECT_VERSION@"
+#define GIT_BRANCH "@GIT_BRANCH@"
+#define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
+
 #ifdef DEBUG
 #define BLOCKSEC 32 /* block period in seconds */
 #define BLOCKDIV 4 /* number of blocks for dividend update */
