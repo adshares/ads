@@ -61,9 +61,10 @@ Inheritance diagram for ChangeNodeKey:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_change_node_key__inherit__graph.png" border="0" usemap="#_change_node_key_inherit__map" alt="Inheritance graph"/></div>
 <map name="_change_node_key_inherit__map" id="_change_node_key_inherit__map">
-<area shape="rect" id="node2" href="class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,80,176,107"/>
-<area shape="rect" id="node3" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,155,166,181"/>
+<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,80,168,107"/>
+<area shape="rect" id="node4" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <div class="dynheader">
@@ -71,9 +72,10 @@ Collaboration diagram for ChangeNodeKey:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_change_node_key__coll__graph.png" border="0" usemap="#_change_node_key_coll__map" alt="Collaboration graph"/></div>
 <map name="_change_node_key_coll__map" id="_change_node_key_coll__map">
-<area shape="rect" id="node2" href="class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,80,176,107"/>
-<area shape="rect" id="node3" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,155,166,181"/>
+<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,80,168,107"/>
+<area shape="rect" id="node4" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -175,8 +177,17 @@ virtual uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="e
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a773fb0e46084c2681a7b860d724e2ce7">getUserMessageId</a> ()</td></tr>
 <tr class="memdesc:a773fb0e46084c2681a7b860d724e2ce7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
 <tr class="separator:a773fb0e46084c2681a7b860d724e2ce7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe14d073f2ffc04ee281894773ef906c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abe14d073f2ffc04ee281894773ef906c"></a>
+virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#abe14d073f2ffc04ee281894773ef906c">getBlockMessage</a> () override</td></tr>
+<tr class="memdesc:abe14d073f2ffc04ee281894773ef906c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get data as it is stored in blockchain. <br /></td></tr>
+<tr class="separator:abe14d073f2ffc04ee281894773ef906c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a179e99280f648fc4d81510caa1ce3e8f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a179e99280f648fc4d81510caa1ce3e8f"></a>
+virtual size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a179e99280f648fc4d81510caa1ce3e8f">getBlockMessageSize</a> () override</td></tr>
+<tr class="memdesc:a179e99280f648fc4d81510caa1ce3e8f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get blockchain data size. <br /></td></tr>
+<tr class="separator:a179e99280f648fc4d81510caa1ce3e8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b406944d5cc1df16fa5a731d3a6c028"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6b406944d5cc1df16fa5a731d3a6c028"></a>
-virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>toString</b> (bool pretty) override</td></tr>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a6b406944d5cc1df16fa5a731d3a6c028">toString</a> (bool pretty) override</td></tr>
+<tr class="memdesc:a6b406944d5cc1df16fa5a731d3a6c028"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data size. <br /></td></tr>
 <tr class="separator:a6b406944d5cc1df16fa5a731d3a6c028"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adce8034b2f7666a9a456a5d129499144"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adce8034b2f7666a9a456a5d129499144"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
@@ -184,15 +195,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:ab3823685b95aa113ed52c30ff06aeef3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab3823685b95aa113ed52c30ff06aeef3"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:ab3823685b95aa113ed52c30ff06aeef3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="inherit_header pub_methods_class_i_command"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_i_command')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_i_command.html">ICommand</a></td></tr>
-<tr class="memitem:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4f33e3acf5c43facce6b9c1090d9394f"></a>
-virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a4f33e3acf5c43facce6b9c1090d9394f">getAdditionalData</a> ()</td></tr>
-<tr class="memdesc:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data. <br /></td></tr>
-<tr class="separator:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a55a77282a246af2812ca4676e21e4bc6"></a>
-virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a55a77282a246af2812ca4676e21e4bc6">getAdditionalDataSize</a> ()</td></tr>
-<tr class="memdesc:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data size. <br /></td></tr>
-<tr class="separator:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -286,15 +288,15 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00087">87</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00108">108</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_change_node_key_a558f6b0e21d18dd2c20a13e39a5a73a6_cgraph.png" border="0" usemap="#class_change_node_key_a558f6b0e21d18dd2c20a13e39a5a73a6_cgraph" alt=""/></div>
 <map name="class_change_node_key_a558f6b0e21d18dd2c20a13e39a5a73a6_cgraph" id="class_change_node_key_a558f6b0e21d18dd2c20a13e39a5a73a6_cgraph">
-<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="219,5,401,32"/>
-<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="219,56,401,83"/>
+<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="211,5,384,32"/>
+<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="212,56,383,83"/>
 </map>
 </div>
 </p>

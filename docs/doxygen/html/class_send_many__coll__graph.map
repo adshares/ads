@@ -1,9 +1,10 @@
 <map id="SendMany" name="SendMany">
-<area shape="rect" id="node2" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="103,95,229,121"/>
-<area shape="rect" id="node3" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
-<area shape="rect" id="node5" href="$struct_send_many_data.html" title="Struct used in send many command (TXSTYPE_MPT) " alt="" coords="254,95,374,121"/>
-<area shape="rect" id="node6" href="$struct_send_many_info.html" title="Info for send_many transaction type. " alt="" coords="258,5,370,32"/>
-<area shape="rect" id="node7" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="398,95,545,121"/>
-<area shape="rect" id="node8" href="$structuser__s.html" title="user_s" alt="" coords="439,5,503,32"/>
+<area shape="rect" id="node2" href="$class_block_command.html" title="BlockCommand" alt="" coords="51,171,166,197"/>
+<area shape="rect" id="node3" href="$class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,168,108"/>
+<area shape="rect" id="node4" href="$class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="$class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
+<area shape="rect" id="node6" href="$struct_send_many_data.html" title="Struct used in send many command (TXSTYPE_MPT) " alt="" coords="190,171,302,197"/>
+<area shape="rect" id="node7" href="$struct_send_many_info.html" title="Info for send_many transaction type. " alt="" coords="193,81,299,108"/>
+<area shape="rect" id="node8" href="$structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="327,171,459,197"/>
+<area shape="rect" id="node9" href="$structuser__s.html" title="user_s" alt="" coords="362,81,423,108"/>
 </map>

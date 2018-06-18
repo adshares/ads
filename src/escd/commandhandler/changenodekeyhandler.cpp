@@ -6,7 +6,6 @@ ChangeNodeKeyHandler::ChangeNodeKeyHandler(office& office, boost::asio::ip::tcp:
     : CommandHandler(office, socket) {
 }
 
-
 void ChangeNodeKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
         m_command = std::unique_ptr<ChangeNodeKey>(dynamic_cast<ChangeNodeKey*>(command.release()));
@@ -14,20 +13,17 @@ void ChangeNodeKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
         DLOG("ChangeNodeKey bad_cast caught: %s", bc.what());
         return;
     }
-
 }
 
 void ChangeNodeKeyHandler::onExecute() {
     assert(m_command);
 
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee{0};
-    int64_t     deduct{0};
+    auto        startedTime    = time(NULL);
+    uint32_t    lpath          = startedTime-startedTime%BLOCKSEC;
 
-    deduct = m_command->getDeduct();
-    fee = m_command->getFee();
+    auto deduct = m_command->getDeduct();
+    auto fee    = m_command->getFee();
 
     if (m_command->getDestBankId()) {
         uint8_t* key = m_offi.node_pkey(m_command->getDestBankId());
@@ -35,11 +31,12 @@ void ChangeNodeKeyHandler::onExecute() {
             errorCode = ErrorCodes::Code::eSetKeyRemoteBankFail;
         } else {
             m_command->setOldPublicKey(key);
-        }
+        }        
+
     } else {
         m_command->setOldPublicKey(m_offi.pkey);
         char *key = (char*)m_command->getKey();
-        std::copy(key, key + 32, m_offi.pkey);
+        std::copy(key, key + 32, m_offi.pkey);        
     }
 
     uint32_t msid, mpos;
@@ -54,7 +51,7 @@ void ChangeNodeKeyHandler::onExecute() {
 
         Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
-        if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
+        if(!m_offi.add_msg(m_command->getBlockMessage(), m_command->getBlockMessageSize(), msid, mpos)) {
             DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
             errorCode = ErrorCodes::Code::eMessageSubmitFail;
         } else {
@@ -95,10 +92,11 @@ void ChangeNodeKeyHandler::onExecute() {
 
 
 
-bool ChangeNodeKeyHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    int64_t deduct = m_command->getDeduct();
-    int64_t fee = m_command->getFee();
+bool ChangeNodeKeyHandler::onValidate()
+{
+    ErrorCodes::Code errorCode  = ErrorCodes::Code::eNone;
+    int64_t         deduct      = m_command->getDeduct();
+    int64_t         fee         = m_command->getFee();
 
     hash_t secretKey;
     if (!m_command->getDestBankId() && !m_offi.find_key(m_command->getKey(), secretKey)) {

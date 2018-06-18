@@ -6,7 +6,7 @@
 #include "default.hpp"
 
 /** \brief Broadcast command class */
-class BroadcastMsg : public IBlockCommand {
+class BroadcastMsg : public BlockCommand {
     public:
         BroadcastMsg();
         BroadcastMsg(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t msg_length, const char* msg, uint32_t time);

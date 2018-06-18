@@ -7,7 +7,7 @@
 /*!
  * \brief Class responsible for handling "set_account_status" command.
  */
-class SetAccountStatus : public IBlockCommand
+class SetAccountStatus : public BlockCommand
 {
 public:
     SetAccountStatus();

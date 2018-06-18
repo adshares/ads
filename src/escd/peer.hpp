@@ -1127,11 +1127,6 @@ NEXTUSER:
     }
 
     void handle_read_bank(const boost::system::error_code& error) {
-        static uint16_t last_bank=0;
-        static uint16_t last_msid=0;
-        static  int64_t weight=0;
-        //static SHA256_CTX sha256;
-        static uint64_t csum[4]= {0,0,0,0};
         int fd;
         if(error) {
             ELOG("%04X ERROR reading message\n",svid);
@@ -2102,6 +2097,12 @@ NEXTUSER:
     friend class PeerConnectManager;
 
   private:
+    // used in handle_read_bank to handle chunks
+    uint16_t last_bank=0;
+    uint16_t last_msid=0;
+    int64_t weight=0;
+    uint64_t csum[4]= {0,0,0,0};
+
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
     //bool        killme; // kill process initiated

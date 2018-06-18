@@ -7,7 +7,7 @@
 /*!
  * \brief Class responsible for handling "unset_account_status" command.
  */
-class UnsetAccountStatus : public IBlockCommand
+class UnsetAccountStatus : public BlockCommand
 {
 public:
     UnsetAccountStatus();

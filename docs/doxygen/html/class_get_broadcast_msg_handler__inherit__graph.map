@@ -1,4 +1,4 @@
 <map id="GetBroadcastMsgHandler" name="GetBroadcastMsgHandler">
-<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="29,80,168,107"/>
-<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="27,5,170,32"/>
+<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="28,80,155,107"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="26,5,157,32"/>
 </map>

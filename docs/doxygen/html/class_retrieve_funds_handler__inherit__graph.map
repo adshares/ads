@@ -1,4 +1,4 @@
 <map id="RetrieveFundsHandler" name="RetrieveFundsHandler">
-<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="16,80,155,107"/>
-<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="14,5,157,32"/>
+<area shape="rect" id="node2" href="$class_command_handler.html" title="Base class for all command handlers. " alt="" coords="18,80,145,107"/>
+<area shape="rect" id="node3" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="16,5,147,32"/>
 </map>

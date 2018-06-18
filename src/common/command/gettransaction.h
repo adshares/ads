@@ -6,7 +6,7 @@
 #include "default.hpp"
 
 /** \brief Get transaction command class. */
-class GetTransaction : public IBlockCommand {
+class GetTransaction : public BlockCommand {
     public:
         GetTransaction();
         GetTransaction(uint16_t src_node, uint32_t src_user, uint16_t dst_node, uint32_t node_msgid, uint32_t position, uint32_t time);

@@ -62,9 +62,10 @@ Inheritance diagram for GetBroadcastMsg:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_get_broadcast_msg__inherit__graph.png" border="0" usemap="#_get_broadcast_msg_inherit__map" alt="Inheritance graph"/></div>
 <map name="_get_broadcast_msg_inherit__map" id="_get_broadcast_msg_inherit__map">
-<area shape="rect" id="node2" href="class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,80,176,107"/>
-<area shape="rect" id="node3" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
+<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,155,166,181"/>
+<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,80,168,107"/>
+<area shape="rect" id="node4" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <div class="dynheader">
@@ -72,14 +73,15 @@ Collaboration diagram for GetBroadcastMsg:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_get_broadcast_msg__coll__graph.png" border="0" usemap="#_get_broadcast_msg_coll__map" alt="Collaboration graph"/></div>
 <map name="_get_broadcast_msg_coll__map" id="_get_broadcast_msg_coll__map">
-<area shape="rect" id="node2" href="class_i_block_command.html" title="Base interface for command. It combain ICommand and IJsonSerialize Interface. " alt="" coords="49,95,176,121"/>
-<area shape="rect" id="node3" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,97,32"/>
-<area shape="rect" id="node4" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="121,5,227,32"/>
-<area shape="rect" id="node5" href="struct_broadcast_file_header.html" title="Header data user in get broadcast command. " alt="" coords="201,95,355,121"/>
-<area shape="rect" id="node6" href="structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="379,95,526,121"/>
-<area shape="rect" id="node7" href="structuser__s.html" title="user_s" alt="" coords="421,5,485,32"/>
-<area shape="rect" id="node8" href="struct_get_broadcast_data.html" title="Get broadcast data. " alt="" coords="550,95,691,121"/>
-<area shape="rect" id="node9" href="struct_get_broadcast_info.html" title="Get broadcast info. " alt="" coords="554,5,687,32"/>
+<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,171,166,197"/>
+<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,168,108"/>
+<area shape="rect" id="node4" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
+<area shape="rect" id="node5" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
+<area shape="rect" id="node6" href="struct_broadcast_file_header.html" title="Header data user in get broadcast command. " alt="" coords="190,171,334,197"/>
+<area shape="rect" id="node7" href="structcommandresponse.html" title="Struct data for all command which are changed blockchain data. " alt="" coords="359,171,491,197"/>
+<area shape="rect" id="node8" href="structuser__s.html" title="user_s" alt="" coords="394,81,455,108"/>
+<area shape="rect" id="node9" href="struct_get_broadcast_data.html" title="Get broadcast data. " alt="" coords="515,171,646,197"/>
+<area shape="rect" id="node10" href="struct_get_broadcast_info.html" title="Get broadcast info. " alt="" coords="519,81,643,108"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -197,15 +199,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>saveCopy</b> 
 <tr class="memitem:ae9e10eb77db6e50e48fa6f21baa50d49"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae9e10eb77db6e50e48fa6f21baa50d49"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getBlockTime</b> ()</td></tr>
 <tr class="separator:ae9e10eb77db6e50e48fa6f21baa50d49"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="inherit_header pub_methods_class_i_command"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_i_command')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_i_command.html">ICommand</a></td></tr>
-<tr class="memitem:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4f33e3acf5c43facce6b9c1090d9394f"></a>
-virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a4f33e3acf5c43facce6b9c1090d9394f">getAdditionalData</a> ()</td></tr>
-<tr class="memdesc:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data. <br /></td></tr>
-<tr class="separator:a4f33e3acf5c43facce6b9c1090d9394f inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a55a77282a246af2812ca4676e21e4bc6"></a>
-virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a55a77282a246af2812ca4676e21e4bc6">getAdditionalDataSize</a> ()</td></tr>
-<tr class="memdesc:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data size. <br /></td></tr>
-<tr class="separator:a55a77282a246af2812ca4676e21e4bc6 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -321,8 +314,8 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_get_broadcast_msg_a2477d47496ee65c6632bb1cbe1853869_cgraph.png" border="0" usemap="#class_get_broadcast_msg_a2477d47496ee65c6632bb1cbe1853869_cgraph" alt=""/></div>
 <map name="class_get_broadcast_msg_a2477d47496ee65c6632bb1cbe1853869_cgraph" id="class_get_broadcast_msg_a2477d47496ee65c6632bb1cbe1853869_cgraph">
-<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="228,5,411,32"/>
-<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="229,56,410,83"/>
+<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="216,5,389,32"/>
+<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="217,56,388,83"/>
 </map>
 </div>
 </p>

@@ -11,7 +11,7 @@
 #include "helper/block.h"
 #include "helper/hlog.h"
 
-class GetBlocks : public IBlockCommand {
+class GetBlocks : public BlockCommand {
     public:
         GetBlocks();
         GetBlocks(uint16_t abank, uint32_t auser, uint32_t ttime, uint32_t from, uint32_t to);

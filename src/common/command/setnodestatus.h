@@ -10,7 +10,7 @@
 /*!
  * \brief Class responsible for handling "set_node_status" command.
  */
-class SetNodeStatus : public IBlockCommand {
+class SetNodeStatus : public BlockCommand {
   public:
     SetNodeStatus();
     SetNodeStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t status);

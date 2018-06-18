@@ -64,7 +64,7 @@
 
 using namespace Helper;
 
-boost::mutex flog; //to compile LOG()
+boost::recursive_mutex flog; //to compile LOG()
 FILE* stdlog=stderr; //to compile LOG()
 
 // expected format:  :to_bank,to_user,to_mass:to_bank,to_user,to_mass:to_bank,to_user,to_mass ... ;

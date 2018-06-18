@@ -1,4 +1,4 @@
 <map id="GetAccounts::send" name="GetAccounts::send">
-<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="196,5,379,32"/>
-<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="197,56,378,83"/>
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="188,5,361,32"/>
+<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="189,56,360,83"/>
 </map>

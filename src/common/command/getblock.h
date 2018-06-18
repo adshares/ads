@@ -8,7 +8,7 @@
 #include "helper/servers.h"
 #include "helper/hlog.h"
 
-class GetBlock : public IBlockCommand {
+class GetBlock : public BlockCommand {
     public:
         GetBlock();
         GetBlock(uint16_t src_bank, uint32_t src_user, uint32_t block, uint32_t time);
