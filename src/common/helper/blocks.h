@@ -6,6 +6,8 @@
 #include <cstdio>
 #include <string>
 
+#include "default.hpp"
+
 #define TMP_DIR "/run/shm/esc/"
 
 namespace Helper {
@@ -68,6 +70,10 @@ bool is_file_not_compressed(const char *filePath);
 bool is_temporary_file(const char *filePath);
 bool is_temporary_file(const std::string& filePath);
 
+uint32_t get_users_count(uint16_t bank);
+
+void db_backup(uint32_t block_path, uint16_t nodes);
+
 namespace FileName {
 const int kCommonNameFixedLength = 14; //only const prefix, for full length add strlen(filename)
 const int kUndoNameFixedLength = 26;
@@ -93,6 +99,16 @@ inline void getLog(char* output, uint32_t timestamp, uint16_t bank, uint32_t msg
 }
 inline void getLogTimeBin(char* output, uint32_t timestamp) {
     sprintf(output, "blk/%03X/%05X/log/time.bin", timestamp>>20, timestamp&0xFFFFF);
+}
+inline void getUsr(char* output, uint16_t bank) {
+    sprintf(output, "usr/%04X.dat", bank);
+}
+inline void getBlk(char *output, uint32_t timestamp, const char* dir = nullptr) {
+    if (!dir) {
+        sprintf(output, "blk/%03X/%05X/", timestamp>>20, timestamp&0xFFFFF);
+    } else {
+        sprintf(output, "blk/%03X/%05X/%s/", timestamp>>20, timestamp&0xFFFFF, dir);
+    }
 }
 
 } // namespace Files
