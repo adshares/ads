@@ -139,42 +139,6 @@ class GenesisFile(object):
         return ids
 
 
-def get_user_input(ask=True):
-
-    node_env = {'data_dir': '/ads_data',
-                'esc_bin': '/ads/esc/esc',
-                'escd_bin': '/ads/escd/escd',
-                'node_ip': get_my_ip()}
-
-    description = {'data_dir': 'Writeable directory with node and accounts configurations.',
-                   'esc_bin': 'Filepath to executable for esc client',
-                   'escd_bin': 'Filepath to executable for esc daemon',
-                   'node_ip': 'Ip of this node'}
-
-    if not ask:
-        return node_env
-
-    print("Please provide the manual configuration.")
-    print("Default values are provided in brackets, you can accept them, by pressing Enter.")
-
-    user_node_env = {}
-    for k, v in sorted(node_env.items()):
-
-        print('#', description[k])
-
-        val = raw_input("[{0}]:".format(v))
-        if not val:
-            val = v
-
-        user_node_env[k] = val
-
-    for k, v in sorted(user_node_env.items()):
-        print('##', description[k])
-        print('#', v)
-
-    return user_node_env
-
-
 def validate_platform():
 
     # Platform check, linux or windows, or something else
@@ -214,17 +178,34 @@ if __name__ == '__main__':
 
     validate_platform()
 
+    node_env = {'data_dir': '/ads_data',
+                'esc_bin': '/ads/esc/esc',
+                'escd_bin': '/ads/escd/escd',
+                'node_ip': get_my_ip()}
+
+    description = {'data_dir': 'Writeable directory with node and accounts configurations.',
+                   'esc_bin': 'Filepath to executable for esc client',
+                   'escd_bin': 'Filepath to executable for esc daemon',
+                   'node_ip': 'Ip of this node'}
+
     parser = argparse.ArgumentParser(description='Configure HPX.')
 
     parser.add_argument('genesis', default=None, help='Genesis file')
-    parser.add_argument('--ask', default=False, action='store_true', help='Ask for values, don\'t use defaults.')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
+
+    parser.add_argument('--data', default=node_env['data_dir'], help=description['data_dir'])
+    parser.add_argument('--esc', default=node_env['esc_bin'], help=description['esc_bin'])
+    parser.add_argument('--escd', default=node_env['escd_bin'], help=description['escd_bin'])
+    parser.add_argument('--ip', default=node_env['node_ip'], help=description['node_ip'])
 
     args = parser.parse_args()
 
     genesis_data = GenesisFile(args.genesis)
 
-    local_env = get_user_input(args.ask)
+    local_env = {'data_dir': args.data,
+                'esc_bin': args.esc,
+                'escd_bin': args.escd,
+                'node_ip': args.ip}
 
     node_numerical_identifier = 0
     node_identifiers = genesis_data.node_identifiers()
