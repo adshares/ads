@@ -122,10 +122,13 @@ def state(nconf_path):
         print("# Node is DOWN! (supposed pid: {0}".format(pid))
 
 
-def investigate(uconf_path, silent = False):
+def investigate(uconf_path, silent=False):
     os.chdir(uconf_path)
 
-    with open(os.devnull, 'w') as devnull:
+    if silent:
+        with open(os.devnull, 'w') as devnull:
+            output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
+    else:
         output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
 
     json_out = json.loads(output)
@@ -157,7 +160,7 @@ def clean_action(data_dir):
         print("{0} doesn't exist".format(data_dir))
 
 
-def start_action(data_dir, init = False):
+def start_action(data_dir, init=False):
 
     block_time = 32
     genesis_time = (int(time.time() + 8) / block_time) * block_time
