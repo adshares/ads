@@ -161,14 +161,15 @@ def validate_platform():
     print("Detected: {0} {1}".format(sys.platform, os.uname()[4]))
 
 
-def get_my_ip():
+def get_my_ip(remote_ip="8.8.8.8", remote_port=80):
 
     # https://stackoverflow.com/a/166589
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     # Try to connect to Google DNS, to get the local address
-    s.connect(("8.8.8.8", 80))
+
+    s.connect((remote_ip, remote_port))
     my_ip = s.getsockname()[0]
     s.close()
 
