@@ -62,7 +62,7 @@ class AccountConfig(object):
         filepath = os.path.join(directory, 'settings.cfg')
 
         save_config(filepath, options)
-        print("Saved account settings file to: {0}".format(filepath))
+        print("Saved account settings to: {0}".format(filepath))
 
 
 class NodeConfig(object):
@@ -115,7 +115,7 @@ class NodeConfig(object):
         filepath = os.path.join(directory, 'options.cfg')
 
         save_config(filepath, options)
-        print("Saved node file to: {0}".format(filepath))
+        print("Saved node options to: {0}".format(filepath))
 
 
 class GenesisFile(object):
