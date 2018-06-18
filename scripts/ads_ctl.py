@@ -125,11 +125,15 @@ def state(nconf_path):
 def investigate(uconf_path, silent=False):
     os.chdir(uconf_path)
 
-    if silent:
-        with open(os.devnull, 'w') as devnull:
-            output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
-    else:
-        output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
+    try:
+        if silent:
+            with open(os.devnull, 'w') as devnull:
+                output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
+        else:
+            output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return False
 
     json_out = json.loads(output)
     try:
@@ -204,7 +208,7 @@ def wait_action(data_dir):
             sys.exit(1)
 
         for uconf in sorted(glob(data_dir + '/user*.00000000')):
-            if investigate(uconf, True):
+            if investigate(uconf, False):
                 started = True
                 break
             else:
