@@ -13,7 +13,6 @@ import hashlib
 import psutil
 
 
-DATA_DIR = '/ads_data'
 DAEMON_BIN_NAME = 'escd'
 CLIENT_BIN_NAME = 'esc'
 
