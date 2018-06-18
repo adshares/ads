@@ -36,7 +36,7 @@ execute_process(
 )
 
 if(NOT CMAKE_PROJECT_CONFIG)
-    set(CMAKE_PROJECT_CONFIG "esc")
+    set(CMAKE_PROJECT_CONFIG "ads")
 endif(NOT CMAKE_PROJECT_CONFIG)
 
 set(CONFIG_FILE "default_${CMAKE_PROJECT_CONFIG}.h.in")
