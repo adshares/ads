@@ -102,9 +102,16 @@ int main(int argc, char* argv[]) {
     //std::signal(SIGFPE,signal_handler);
     std::signal(SIGUSR1,signal_handler);
     //std::signal(SIGUSR2,signal_handler);
-    stdlog=fopen("log.txt","w");    
+
+    auto workdir = settings::get_workdir(argc, argv);
+    if(workdir != ".") {
+        settings::change_working_dir(workdir);
+    }
+
     options opt;
     opt.get(argc,argv);
+
+    stdlog=fopen("log.txt","w");
     FILE *lock=fopen(".lock","a");
     assert(lock!=NULL);
     fprintf(lock,"%s:%d/%d\n",opt.addr.c_str(),opt.port,opt.svid);

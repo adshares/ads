@@ -35,6 +35,7 @@ class options {
     uint32_t ipv4;
     int back;
     std::vector<std::string> peer;
+    std::string workdir;
 
     void print_version() {
         std::string version = PROJECT_VERSION;
@@ -50,6 +51,7 @@ class options {
         try {
             boost::program_options::options_description generic("Generic options");
             generic.add_options()
+            ("work-dir,w", boost::program_options::value<std::string>(&workdir)->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME) + std::string("d")),    "working directory")
             ("version,v", "print version string")
             ("help,h", "produce help message")
             ;
@@ -68,6 +70,7 @@ class options {
             ("comm,c", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
             ("viphash,V", boost::program_options::value<std::string>(&viphash)->default_value(""),      "current viphash of desired network (required with --fast switch)")
             ("genesis,g", boost::program_options::value<std::string>(&genesis)->default_value(""),      "json file with network state at genesis block (works with --init)")
+
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -82,11 +85,11 @@ class options {
                 std::cout << "Usage: " << PROJECT_NAME << "d [options]\n";
                 std::cout << generic << "\n";
                 std::cout << config << "\n";
-                print_version();
+                settings::print_version();
                 exit(0);
             }
             if(vm.count("version")) {
-                print_version();
+                settings::print_version();
                 exit(0);
             }
             if(vm.count("init")) {
