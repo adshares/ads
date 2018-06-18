@@ -53,6 +53,9 @@ configure_file(${CONFIG_FILE} ${CMAKE_SOURCE_DIR}/common/default.h)
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_definitions(-DDEBUG)
 endif()
+if(CMAKE_BUILD_TYPE MATCHES "Release")
+    add_definitions(-DNDEBUG)
+endif()
 
 
 if(CODE_COVERAGE)
