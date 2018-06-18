@@ -3,14 +3,9 @@
 
 #include <cstring>
 #include <cassert>
-#include <array>
-#include <openssl/sha.h>
-#include <boost/thread/thread.hpp>
 #include "default.hpp"
-#include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
-#include "command/pods.h"
-#include <boost/asio.hpp>
+#include "helper/txsname.h"
 
 const int txslen[TXSTYPE_MAX+1]= { //length does not include variable part and input hash
     1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
@@ -170,7 +165,6 @@ class usertxs {
         DLOG("BAD MSG: %X\n",ttype);
     }
 
-    //usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint64_t ntinfo,const char* text,const char* okey) :
     usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,uint32_t namsid,uint32_t nttime,uint16_t nbbank,uint32_t nbuser,int64_t ntmass,uint8_t* ntinfo,const char* text) :
         ttype(nttype),
         abank(nabank),
@@ -549,111 +543,6 @@ class usertxs {
         return((uint8_t*)buf+txslen[(int)*buf]);
     }
 
-    void sign(uint8_t* hash,uint8_t* sk,uint8_t* pk) {
-        switch(ttype) {
-        case TXSTYPE_CON:
-        case TXSTYPE_UOK:
-            return;
-        case TXSTYPE_INF:
-        case TXSTYPE_LOG:
-        case TXSTYPE_BLG:
-        case TXSTYPE_BLK:
-        case TXSTYPE_TXS:
-        case TXSTYPE_VIP:
-        case TXSTYPE_SIG:
-        case TXSTYPE_NDS:
-        case TXSTYPE_NOD:
-        case TXSTYPE_MGS:
-        case TXSTYPE_MSG:
-            ed25519_sign(data,txslen[ttype],sk,pk,data+txslen[ttype]);
-            break;
-        case TXSTYPE_BRO:
-            ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
-            break;
-        case TXSTYPE_MPT:
-            ed25519_sign2(hash,32,data,txslen[TXSTYPE_MPT]+bbank*(6+8),sk,pk,data+txslen[TXSTYPE_MPT]+bbank*(6+8));
-            break;
-        default:
-            ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
-        }
-    }
-    /*{	if(ttype==TXSTYPE_CON){
-    		return;}
-     	if(ttype==TXSTYPE_UOK){
-    		return;}
-    	if(ttype==TXSTYPE_INF){
-    		ed25519_sign(data,txslen[TXSTYPE_INF],sk,pk,data+txslen[TXSTYPE_INF]);
-    		return;}
-    	if(ttype==TXSTYPE_LOG){
-    		ed25519_sign(data,txslen[TXSTYPE_LOG],sk,pk,data+txslen[TXSTYPE_LOG]);
-    		return;}
-    	if(ttype==TXSTYPE_BLG){
-    		ed25519_sign(data,txslen[TXSTYPE_BLG],sk,pk,data+txslen[TXSTYPE_BLG]);
-    		return;}
-    	if(ttype==TXSTYPE_BRO){
-    		ed25519_sign2(hash,32,data,txslen[TXSTYPE_BRO]+bbank,sk,pk,data+txslen[TXSTYPE_BRO]+bbank);
-    		return;}
-    	if(ttype==TXSTYPE_MPT){
-    		ed25519_sign2(hash,32,data,txslen[TXSTYPE_MPT]+bbank*(6+8),sk,pk,data+txslen[TXSTYPE_MPT]+bbank*(6+8));
-    		return;}
-    	ed25519_sign2(hash,32,data,txslen[ttype],sk,pk,data+txslen[ttype]);
-    }*/
-
-    int wrong_sig(uint8_t* buf,uint8_t* hash,uint8_t* pk) {
-        switch(ttype) {
-        case TXSTYPE_CON:
-        case TXSTYPE_UOK:
-            return(0);
-        case TXSTYPE_INF:
-        case TXSTYPE_LOG:
-        case TXSTYPE_BLG:
-        case TXSTYPE_BLK:
-        case TXSTYPE_TXS:
-        case TXSTYPE_VIP:
-        case TXSTYPE_SIG:
-        case TXSTYPE_NDS:
-        case TXSTYPE_NOD:
-        case TXSTYPE_MGS:
-        case TXSTYPE_MSG:
-            return(ed25519_sign_open(buf,txslen[ttype],pk,buf+txslen[ttype]));
-        case TXSTYPE_BRO:
-            return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));
-        case TXSTYPE_MPT:
-            return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_MPT]+bbank*(6+8),pk,buf+txslen[TXSTYPE_MPT]+bbank*(6+8)));
-        default:
-            return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
-        }
-    }
-    /*{	if(ttype==TXSTYPE_CON){
-    		return(0);}
-     	if(ttype==TXSTYPE_UOK){
-    		return(0);}
-
-    	if(ttype==TXSTYPE_INF){
-    		return(ed25519_sign_open(buf,txslen[TXSTYPE_INF],pk,buf+txslen[TXSTYPE_INF]));}
-    	if(ttype==TXSTYPE_LOG){
-    		return(ed25519_sign_open(buf,txslen[TXSTYPE_LOG],pk,buf+txslen[TXSTYPE_LOG]));}
-    	if(ttype==TXSTYPE_BLG){
-    		return(ed25519_sign_open(buf,txslen[TXSTYPE_BLG],pk,buf+txslen[TXSTYPE_BLG]));}
-
-    	if(ttype==TXSTYPE_BRO){
-    		return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_BRO]+bbank,pk,buf+txslen[TXSTYPE_BRO]+bbank));}
-    	if(ttype==TXSTYPE_MPT){
-    		return(ed25519_sign_open2(hash,32,buf,txslen[TXSTYPE_MPT]+bbank*(6+8),pk,buf+txslen[TXSTYPE_MPT]+bbank*(6+8)));}
-    	return(ed25519_sign_open2(hash,32,buf,txslen[ttype],pk,buf+txslen[ttype]));
-    }*/
-
-    int sign2(uint8_t* sig) { // additional signature to validate public key
-        assert(ttype==TXSTYPE_KEY);
-        memcpy(data+txslen[ttype]+64,sig,64);
-        return(wrong_sig2(data));
-    }
-
-    int wrong_sig2(uint8_t* buf) { // additional signature to validate public key
-        assert(ttype==TXSTYPE_KEY);
-        return(ed25519_sign_open((uint8_t*)NULL,0,buf+1+2+4+4+4,buf+txslen[ttype]+64));
-    }
-
     int sign_mlen2() {
         if(ttype==TXSTYPE_BRO) {
             return(txslen[TXSTYPE_BRO]+bbank);
@@ -667,26 +556,6 @@ class usertxs {
     void print_head() {
         DLOG("MSG: %1X %04X:%08X m:%08X t:%08X b:%04X u:%08X v:%016lX (l:%d)\n",
              ttype,abank,auser,amsid,ttime,bbank,buser,tmass,size);
-    }
-
-    void print() {
-        char msgtxt[0x200];
-        if(ttype==TXSTYPE_KEY) {
-            assert((txslen[ttype]+64+64)*2<0x200);
-            ed25519_key2text(msgtxt,data,txslen[ttype]+64+64); // do not send last hash
-            DLOG("%.*s\n",(txslen[ttype]+64)*2,msgtxt);
-        } else {
-            assert((txslen[ttype]+64)*2<0x200);
-            ed25519_key2text(msgtxt,data,txslen[ttype]+64); // do not send last hash
-            DLOG("%.*s\n",(txslen[ttype]+64)*2,msgtxt);
-        }
-    }
-
-    void change_time(uint32_t nttime) {
-        assert(ttype==TXSTYPE_BLG);
-        ttime=nttime;
-        memcpy(data+1+6,&ttime,4);
-        return;
     }
 
     char* usr(char* buf) { //return user_t data in SAV message
@@ -715,29 +584,8 @@ class usertxs {
         return(buf+1+2+4+4+4+2+4);
     }
 
-    void print_broadcast(char* buf) {
-        DLOG("BRO:%.*s\n",bbank,broadcast(buf));
-    }
-
     char* broadcast(char* buf) { //return broadcast buffer in message
         return(buf+1+2+4+4+4+2);
-    }
-
-    char* broadcast_sigh(char* buf,uint16_t bbank) { //not used
-        return(buf+1+2+4+4+4+2+bbank);
-    }
-
-    void print_toaddresses(char* buf,uint16_t bbank) {
-        char* tbuf=toaddresses(buf);
-        for(int i=0; i<bbank; i++,tbuf+=6+8) {
-            uint16_t tbank;
-            uint32_t tuser;
-            int64_t tmass;
-            memcpy(&tbank,tbuf+0,2);
-            memcpy(&tuser,tbuf+2,4);
-            memcpy(&tmass,tbuf+6,8);
-            DLOG("MPT to %04X %08X %016lX\n",tbank,tuser,tmass);
-        }
     }
 
     char* toaddresses(char* buf) { //return to-addresses buffer in message
@@ -751,9 +599,6 @@ class usertxs {
     char* npkey(char* buf) { //return second user key in message
         return(buf+1+2+4+4+4+2+64+4);
     }
-
-  private:
 };
-
 
 #endif // USER_HPP
