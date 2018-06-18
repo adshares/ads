@@ -7,6 +7,9 @@
 #include "helper/signatures.h"
 #include "helper/block.h"
 #include <memory>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 GetBlocks::GetBlocks()
     : m_data{} {

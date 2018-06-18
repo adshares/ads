@@ -8,7 +8,7 @@
 #include "default.hpp"
 
 /** \brief Get broadcast command class. */
-class GetBroadcastMsg : public IBlockCommand {
+class GetBroadcastMsg : public BlockCommand {
     public:
         GetBroadcastMsg();
         GetBroadcastMsg(uint16_t abank, uint32_t auser, uint32_t block, uint32_t time);

@@ -6,7 +6,7 @@
 #include "default.hpp"
 #include "errorcodes.h"
 
-class CreateAccount : public IBlockCommand {
+class CreateAccount : public BlockCommand {
 public:
     CreateAccount();
     CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time);

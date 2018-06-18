@@ -10,7 +10,7 @@
 /*!
  * \brief Readonly class (without connection to daemon, to obtain data fields of certain command typed as argument
  */
-class GetFields : public IBlockCommand {
+class GetFields : public BlockCommand {
   public:
     GetFields();
     GetFields(const char* txnType);

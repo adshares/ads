@@ -6,7 +6,7 @@
 #include "default.hpp"
 #include "errorcodes.h"
 
-class GetAccounts : public IBlockCommand {
+class GetAccounts : public BlockCommand {
     public:
         GetAccounts();
         GetAccounts(uint16_t src_bank, uint32_t src_user, uint32_t block, uint16_t dst_bank, uint32_t time);

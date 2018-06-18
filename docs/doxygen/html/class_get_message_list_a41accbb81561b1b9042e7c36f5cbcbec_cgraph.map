@@ -1,4 +1,4 @@
 <map id="GetMessageList::send" name="GetMessageList::send">
-<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="216,5,399,32"/>
-<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="217,56,398,83"/>
+<area shape="rect" id="node2" href="$class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="207,5,380,32"/>
+<area shape="rect" id="node3" href="$class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="208,56,379,83"/>
 </map>

@@ -1,5 +1,5 @@
 <map id="CreateAccount::checkSignature" name="CreateAccount::checkSignature">
-<area shape="rect" id="node2" href="$class_connected.html#aa278b79f29e316efa8dc52637394649d" title="Get pointer to command data structure. " alt="" coords="293,5,444,32"/>
-<area shape="rect" id="node3" href="$class_connected.html#a322f17c00956def656efb9a2e0e39e6e" title="Get data struct size. Without signature. " alt="" coords="279,56,458,83"/>
-<area shape="rect" id="node4" href="$class_connected.html#afd2bdb89e554ee01ebccf36622054b8e" title="Get pointer to signature data. " alt="" coords="277,107,460,133"/>
+<area shape="rect" id="node2" href="$class_connected.html#aa278b79f29e316efa8dc52637394649d" title="Get pointer to command data structure. " alt="" coords="274,5,413,32"/>
+<area shape="rect" id="node3" href="$class_connected.html#a322f17c00956def656efb9a2e0e39e6e" title="Get data struct size. Without signature. " alt="" coords="261,56,426,83"/>
+<area shape="rect" id="node4" href="$class_connected.html#afd2bdb89e554ee01ebccf36622054b8e" title="Get pointer to signature data. " alt="" coords="260,107,427,133"/>
 </map>

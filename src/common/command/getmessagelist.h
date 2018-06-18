@@ -7,7 +7,7 @@
 #include "parser/msglistparser.h"
 
 /** \brief Get message list command class. */
-class GetMessageList : public IBlockCommand {
+class GetMessageList : public BlockCommand {
     public:
         GetMessageList();
         GetMessageList(uint16_t abank, uint32_t auser, uint32_t block, uint32_t time);

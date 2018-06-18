@@ -295,7 +295,6 @@ void PeerConnectManager::connectPeersFromConfig(int& connNeeded)
 
         m_opts.get_address(addr, peer_address, port, svid);
 
-        DLOG("TRY CONNECT to config peer (%s:%s:%s)\n", peer_address.c_str(), port.c_str(), svid.c_str());
         connect(peer_address, atoi(port.c_str()), atoi(svid.c_str()));
         --connNeeded;
     }
@@ -323,10 +322,8 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
                 break;
             }
 
-            DLOG("TRY CONNECT to dns peer (%s:%d)\n",ep->second->endpoint().address().to_string().c_str(),
-                 ep->second->endpoint().port());
-                 connect(ep->second->endpoint(), BANK_MAX);
-                 --connNeeded;
+            connect(ep->second->endpoint(), BANK_MAX);
+            --connNeeded;
         }
     }
     catch (std::exception& e) {
@@ -365,8 +362,7 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
             nodeIndx = (nodeIndx+1)%(maxNodeIndx+1);
         }
 
-        if(foundNew){
-           DLOG("TRY CONNECT to file peer (%08X:%08X) svid %04X \n", nodeInfo.ipv4, nodeInfo.port, nodeIndx);
+        if(foundNew){           
            connect(nodeInfo, nodeIndx);
         }
         --connNeeded;
@@ -375,9 +371,7 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
 
 
 void PeerConnectManager::timerNextTick(int timeout)
-{
-    DLOG("PEER MANAGER NEXT TICK timeout %d\n", timeout);
-
+{    
     m_connectTimer.expires_from_now(boost::posix_time::seconds(timeout));
     m_connectTimer.async_wait(boost::bind(&PeerConnectManager::connectPeers, this, boost::asio::placeholders::error));
 }
@@ -475,12 +469,9 @@ void PeerConnectManager::updateImpl(message_ptr msg, uint16_t svid)
 {
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
-    for(auto& peer: m_peers)
-    {
-        if(peer.second->svid == svid){
-            peer.second->update(msg);
-            return;
-        }
+    auto svidPeer = m_activePeers.find(svid);
+    if(svidPeer != m_activePeers.end()){
+        svidPeer->second->update(msg);
     }
 }
 
@@ -493,7 +484,7 @@ void PeerConnectManager::updateAllImpl(message_ptr msg)
 {
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
-    for(auto& peer: m_peers)
+    for(auto& peer: m_activePeers)
     {
         peer.second->update(msg);
     }
