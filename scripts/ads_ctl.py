@@ -126,7 +126,7 @@ def investigate(uconf_path, silent = False):
     os.chdir(uconf_path)
 
     with open(os.devnull, 'w') as devnull:
-        output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
+        output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
 
     json_out = json.loads(output)
     try:
