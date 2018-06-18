@@ -11,7 +11,6 @@ import signal
 import sys
 import hashlib
 import psutil
-import socket
 
 
 DATA_DIR = '/ads_data'
@@ -142,6 +141,13 @@ def investigate(uconf_path, silent = False):
     except KeyError:
         print(" No block data.")
 
+
+def check_data(data_dir):
+    if not glob(data_dir + '/node*'):
+        print("Cannot find nodes data in {0}".format(data_dir))
+        sys.exit(1)
+
+
 def clean_action(data_dir):
 
     if os.path.exists(data_dir):
@@ -204,6 +210,7 @@ def wait_action(data_dir):
                 time.sleep(1)
 
     print("ADS started")
+
 
 if __name__ == '__main__':
 
