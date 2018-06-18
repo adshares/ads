@@ -26,13 +26,16 @@ def save_config(filepath, settings):
 
 class AccountConfig(object):
 
-    def __init__(self, address, node_env, identifier):
-        self.port = 9001
-        self.node_addr = get_my_ip()
-        self.address = address
-        self.private_key = None
-        self.node_env = node_env
+    def __init__(self, identifier, loc_env):
+
         self.id = identifier
+
+        self.port = 9001
+        self.node_addr = loc_env['node_interface']
+        self.address = None
+        self.private_key = None
+
+        self.node_env = loc_env
 
     def validate_address(self):
         # TODO: checksum verification
@@ -54,7 +57,7 @@ class AccountConfig(object):
             os.makedirs(directory)
 
         if not os.path.exists(os.path.join(directory, "esc")):
-            os.symlink(self.node_env['esc_bin'], os.path.join(directory, "esc"))
+            os.symlink(self.node_env['client_bin_path'], os.path.join(directory, "esc"))
 
         filepath = os.path.join(directory, 'settings.cfg')
 
@@ -64,18 +67,18 @@ class AccountConfig(object):
 
 class NodeConfig(object):
 
-    def __init__(self, node_env):
+    def __init__(self, loc_env):
 
         self.svid = 0
         self.port = 8001
         self.offi = 9001
-        self.addr = get_my_ip()
+        self.addr = loc_env['node_interface']
 
         self.accounts = []
 
         self.peers = []
 
-        self.node_env = node_env
+        self.node_env = loc_env
 
         self.public_key_file = None
         self.private_key_file = None
@@ -105,7 +108,7 @@ class NodeConfig(object):
             f.write(self.private_key_file)
 
         if not os.path.exists(os.path.join(directory, "escd")):
-            os.symlink(self.node_env['escd_bin'], os.path.join(directory, "escd"))
+            os.symlink(self.node_env['daemon_bin_path'], os.path.join(directory, "escd"))
 
         copyfile(genesis_filepath, os.path.join(directory, 'genesis.json'))
 
@@ -122,16 +125,18 @@ class GenesisFile(object):
         with open(genesis_file, 'r') as f:
             self.genesis = json.load(f)
 
+        self.nodes = self.genesis['nodes']
+
     def node_count(self):
-        return len(self.genesis['nodes'])
+        return len(self.nodes)
 
     def node_data(self, node_number):
-        node_config = self.genesis['nodes'][node_number]
+        node_config = self.nodes[node_number]
         return node_config['_secret'], node_config['public_key'], node_config['_sign']
 
     def node_identifiers(self):
         ids = []
-        for node in self.genesis['nodes']:
+        for node in self.nodes:
             for account in node['accounts']:
                 addr = account["_address"]
                 if re.search('-0{8}-', addr):
@@ -185,41 +190,43 @@ if __name__ == '__main__':
     validate_platform()
 
     node_env = {'data_dir': '/ads_data',
-                'esc_bin': '/ads/esc/esc',
-                'escd_bin': '/ads/escd/escd',
-                'node_ip': get_my_ip()}
+                'client_bin_path': '/ads/esc/esc',
+                'daemon_bin_path': '/ads/escd/escd',
+                'node_interface': get_my_ip()}
 
     description = {'data_dir': 'Writeable directory with node and accounts configurations.',
-                   'esc_bin': 'Filepath to executable for esc client',
-                   'escd_bin': 'Filepath to executable for esc daemon',
-                   'node_ip': 'Ip of this node'}
+                   'client_bin_path': 'Filepath to executable for esc client',
+                   'daemon_bin_path': 'Filepath to executable for esc daemon',
+                   'node_interface': 'Ip of this node'}
 
-    parser = argparse.ArgumentParser(description='Configure HPX.')
+    parser = argparse.ArgumentParser(description='Configure ADS nodes.')
 
     parser.add_argument('genesis', default=None, help='Genesis file')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
 
-    parser.add_argument('--data', default=node_env['data_dir'], help=description['data_dir'])
-    parser.add_argument('--esc', default=node_env['esc_bin'], help=description['esc_bin'])
-    parser.add_argument('--escd', default=node_env['escd_bin'], help=description['escd_bin'])
-    parser.add_argument('--ip', default=node_env['node_ip'], help=description['node_ip'])
+    parser.add_argument('--data_dir', default=node_env['data_dir'], help=description['data_dir'])
+    parser.add_argument('--client', default=node_env['client_bin_path'], help=description['client_bin_path'])
+    parser.add_argument('--daemon', default=node_env['daemon_bin_path'], help=description['daemon_bin_path'])
+    parser.add_argument('--interface', default=node_env['node_interface'], help=description['node_interface'])
 
     args = parser.parse_args()
 
+    local_env = {'data_dir': args.data_dir,
+                 'client_bin_path': args.client,
+                 'daemon_bin_path': args.daemon,
+                 'node_interface': args.interface}
+
     genesis_data = GenesisFile(args.genesis)
-
-    local_env = {'data_dir': args.data,
-                'esc_bin': args.esc,
-                'escd_bin': args.escd,
-                'node_ip': args.ip}
-
-    node_numerical_identifier = 0
     node_identifiers = genesis_data.node_identifiers()
-    local_peers = []
 
     if args.identifiers:
         chosen_identifiers = set(args.identifiers.split(',')).intersection(set(genesis_data.node_identifiers()))
         print("Configuring nodes: {0}".format(args.identifiers))
+    else:
+        print("Configuring all nodes found in the genesis file.")
+
+    node_numerical_identifier = 0
+    local_peers = []
 
     for index, node_identifier in enumerate(genesis_data.node_identifiers()):
 
@@ -233,13 +240,12 @@ if __name__ == '__main__':
         nconf.svid = node_identifier
         nconf.port = 8000 + node_numerical_identifier
         nconf.offi = 9000 + node_numerical_identifier
-        nconf.addr = get_my_ip()
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
         local_peers.append('{0}:{1}'.format(nconf.addr, nconf.port))
 
-        node = genesis_data.genesis['nodes'][index]
+        node = genesis_data.nodes[index]
 
         nconf.public_key_file = node['public_key']
         nconf.private_key_file = node['_secret']
@@ -252,12 +258,9 @@ if __name__ == '__main__':
 
             a_id = '{0}.{1}'.format(node_identifier, account['_address'][5:13])
 
-            aconf = AccountConfig(nconf.addr, local_env, a_id)
+            aconf = AccountConfig(a_id, local_env)
 
-            aconf.port = nconf.offi
-            aconf.node_addr = nconf.addr
             aconf.address = account['_address']
-
             aconf.public_key = account['public_key']
             aconf.private_key = account['_secret']
             aconf.signature = account['_sign']
