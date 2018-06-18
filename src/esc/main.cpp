@@ -1,6 +1,5 @@
 #include <iostream>
 #include <boost/property_tree/json_parser.hpp>
-
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
@@ -30,8 +29,14 @@ int main(int argc, char* argv[]) {
     std::setbuf(stdout,NULL);
 #endif
 
+    auto workdir = settings::get_workdir(argc, argv);
+    if(workdir != ".") {
+        settings::change_working_dir(workdir);
+    }
+
     settings sts;
     sts.get(argc,argv);
+
     boost::asio::io_service io_service;
     boost::asio::ip::tcp::resolver resolver(io_service);
     boost::asio::ip::tcp::resolver::query query(sts.host,std::to_string(sts.port).c_str());
