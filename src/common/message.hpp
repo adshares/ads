@@ -3,7 +3,9 @@
 
 #include <fcntl.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include "hash.hpp"
 #include "user.hpp"
 
@@ -917,21 +919,6 @@ class message :
 
     void print(const char* suffix) const {
         DLOG("%04X [%04X-%08X] [l:%d] (%08X) %s\n",peer,svid,msid,len,now,suffix);
-    }
-
-    void print_header() {
-        assert(data!=NULL);
-        char hash[2*SHA256_DIGEST_LENGTH];
-        header_t* h=(header_t*)(data+4+64+10);
-        ELOG("HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
-        ed25519_key2text(hash,h->oldhash,32);
-        ELOG("OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->msghash,32);
-        ELOG("TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->nodhash,32);
-        ELOG("NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->nowhash,32);
-        ELOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     }
 
     uint32_t load(int16_t who) { //FIXME, this is not processing the data correctly, check scenarios
