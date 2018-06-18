@@ -155,7 +155,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
     parser.add_argument('action', choices=['start', 'clean', 'stop', 'nodes', 'network'])
-    parser.add_argument('--init', action='store_true')
+    parser.add_argument('--init', default=False, action='store_true')
     args = parser.parse_args()
 
     if args.action == 'network':
@@ -170,11 +170,9 @@ if __name__ == '__main__':
 
         if args.action == 'start':
             print(nconf)
+            start_node(nconf, args.init, block_time)
             if args.init:
-                start_node(nconf, True, block_time)
                 args.init = False
-            else:
-                start_node(nconf)
 
         elif args.action == 'stop':
             print(nconf)
