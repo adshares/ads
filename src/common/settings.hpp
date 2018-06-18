@@ -164,7 +164,15 @@ class settings {
         return(true);
     }
 
-
+    void print_version() {
+        std::string version = PROJECT_VERSION;
+        std::cerr << "Version ";
+        if(version.empty()) {
+          std::cerr << GIT_BRANCH << "@" << GIT_COMMIT_HASH << "\n";
+        } else {
+          std::cerr << PROJECT_VERSION << "\n";
+        }
+    }
 
     void get(int ac, char *av[]) {
         try {
@@ -199,13 +207,15 @@ class settings {
             store(parse_config_file(ifs, config_file_options), vm);
             notify(vm);
             if(vm.count("help")) {
-                std::cerr << "Usage: " << av[0] << " [settings]\n";
+                std::cerr << "Usage: " << PROJECT_NAME << " [settings]\n";
                 std::cerr << generic << "\n";
                 std::cerr << config << "\n";
+
+                print_version();
                 exit(0);
             }
             if(vm.count("version")) {
-                std::cerr << "Version 1.0\n";
+                print_version();
                 exit(0);
             }
 
