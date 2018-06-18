@@ -15,6 +15,9 @@ addons:
   apt:
     packages:
       - realpath
+      - libboost-all-dev
+  hosts:
+      - esc.dock
   sonarcloud:
     organization: "adshares-github"
     token:
