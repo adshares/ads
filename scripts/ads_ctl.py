@@ -11,7 +11,6 @@ import signal
 import sys
 import hashlib
 import psutil
-import socket
 
 
 DAEMON_BIN_NAME = 'escd'
@@ -27,6 +26,8 @@ def start_node(nconf_path, genesis_time, init=False):
 
     genesis['config'] = dict()
     genesis['config']['start_time'] = genesis_time
+
+    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
@@ -137,14 +138,14 @@ def investigate(uconf_path, silent = False):
             print(" Last message: {0:.3f} seconds ago.".format(time.time() - mtimes[-1]))
         return True
     except KeyError:
-        if not silent:
-            print(" No block data.")
-        return False
+        print(" No block data.")
+
 
 def check_data(data_dir):
-      if len(glob(data_dir + '/node*')) == 0:
-            print("Cannot find nodes data in {0}".format(data_dir))
-            sys.exit(1)
+    if not glob(data_dir + '/node*'):
+        print("Cannot find nodes data in {0}".format(data_dir))
+        sys.exit(1)
+
 
 def clean_action(data_dir):
 
@@ -208,6 +209,7 @@ def wait_action(data_dir):
                 time.sleep(1)
 
     print("ADS started")
+
 
 if __name__ == '__main__':
 
