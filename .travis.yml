@@ -8,17 +8,19 @@ cache:
   directories:
   - .autoconf
   - $HOME/.m2
-
-services:
-  - docker
+  - $HOME/.cache/pip
+  - $HOME/ads/bin
   
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
-      - docker-ce
       - realpath
+      - gcc-5 g++-5 build-essential make cmake
+      - openssl libboost-all-dev libssl-dev
   hosts:
-    - esc.dock
+      - esc.dock
   sonarcloud:
     organization: "adshares-github"
     token:
@@ -27,57 +29,85 @@ addons:
       secure: "occVw21D0BqL4kNwcvirh3Dtdm3P8McXtqsJSrxDWkfmlrxVEJ/BeTglYAEjWq2UOsOxxa8Tbu6MSwdyEUJ6cljakyq2QPlljhHVmxNX0undlXbvQmYJVEhOgLqYkrHj74tSsYoRibFzQ+LRJENtG+Yn6/g/FAejZu7k6kqqF3wsNJZ3uMEkQTIUUxEd7yJ1llIFTr5VgSpOifxBdBQGKdJ8TivFnGpzapwdOsyGWDdjMmf0UKLcZtjz4A17Mj3lcHAOZZ9IHcX2IrRhY0Ahk2nIaRSV9Mdtl2U4lSKi0PICg4tM3sc5mpZFqxHwVpA2Qpo/StrXoYqjy/myxEaFBSao8p1Ujjgh3SOmX2wrt6FHmzx1oMenZm786PJdOnTwLCM6dzWkh7EnTYEeST545i0aek3ptXaiB0005e0SyEKQH8xiW+cu6b3sPrH0Wv+8G6nwMUTNam+dT7Y/ZOPNN87Gs57maQas5so30fjeQuQyMELde+/OlndyHcCrf1ICASqznvMTzp6gyL2aa7XBZwog7Zn3+8kG7+rIfjTM8xx/GCw6bDpRj1h8UjeDRa08Kky9dWhEBcBSAkWXuhd+/HRNyz8XU/5lCkGTxVZ4siI5Khstd60TpJ2TYFPXP1bzAviBmAlPzVwmeOGwObAFpngW3nrpJ2mynuOAPw2wPwc="
       
 before_install:
-  - export TEST_DIR=$HOME/adshares/ads-tests 
-  - export DOCKER_DIR=$HOME/adshares/docerization 
-  - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-retrieve-funds.json
+  # CONST
+  - export TEST_DIR=$HOME/adshares/ads-tests
+  - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-20x20-rf.json
+  - export BIN_DIR=$HOME/ads/bin
+  - export DATA_DIR=$HOME/ads/data
+  - export ADS_CONF="./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$BIN_DIR/esc --daemon=$BIN_DIR/escd --interface=127.0.0.1 $GENESIS_FILE"
+  - export ADS_START="./scripts/ads_ctl.py --data=$DATA_DIR --init --wait start"
+  - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
+  # C++14
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  # PIP
+  - sudo pip install psutil
+  # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
-  - cd $TEST_DIR
-  - git checkout -qf qa-additional-functions
-  - git clone https://github.com/adshares/dockerization.git $DOCKER_DIR
-  - cd $DOCKER_DIR
-  - git checkout -qf travis-ads
-  - cp $GENESIS_FILE $DOCKER_DIR/dockers/dev/ads/docker/genesis.json
-  - ./console.sh link dev/ads $TRAVIS_BUILD_DIR
-  - ./console.sh build dev/ads
-  - ./console.sh up dev/ads
-  - sleep 180
-  - docker exec -it adshares_ads_1 /docker/wait-up.php
+  # COMMON
+  - export PATH="$HOME/ads/bin:$PATH"
 
-before_script:
-  - cd $TEST_DIR
-  
 stages:
-#  - configure
-#  - build
-#  - quality
+  - compile
   - test
+  - name: quality
+    if: branch = master
 
 jobs:
   include:
-    # Sonar Qube
-    #- stage: quality
-    #  script: sonar-scanner
-      
+    - stage: compile
+      script:
+        - mkdir build
+        - ./scripts/compile.sh -d -o build src
+        - mkdir -p $BIN_DIR
+        - cp build/esc/esc $BIN_DIR
+        - cp build/escd/escd $BIN_DIR
+        - export PATH="$BIN_DIR:$PATH"
+
     - stage: test
-      script: 
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @transfer"
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @transfer"
     - stage: test
-      script: 
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @broadcast"
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @non_existent"
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @retrieve_funds"
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
     - stage: test
-      script: 
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @account"
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent"
     - stage: test
-      script: 
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @node"
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @retrieve_funds"
     - stage: test
-      script: 
-        - mvn clean test -q -f pom-qa.xml -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @status"
-      
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @account"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
+
+    - stage: quality
+      script:
+        # compile
+        - mkdir build
+        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
+        - export PATH="build/esc:build/escd:$PATH"
+        # tests
+        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
+        - $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS
+        #Sonar Qube
+        - cd $TRAVIS_BUILD_DIR && sonar-scanner
+
 notifications:
   email: false
   slack:

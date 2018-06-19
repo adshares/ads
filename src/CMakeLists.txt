@@ -57,7 +57,6 @@ if(CMAKE_BUILD_TYPE MATCHES "Release")
     add_definitions(-DNDEBUG)
 endif()
 
-
 if(CODE_COVERAGE)
     message("** SOURCE CODE COVERAGE ENABLED **")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -O0 --coverage -fprofile-arcs -ftest-coverage ")
