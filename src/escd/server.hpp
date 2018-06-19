@@ -3699,7 +3699,7 @@ NEXTUSER:
                 hlg.save_ubs(bbank,status,ppi_txid(it->first));
                 if(lbbank!=bbank) {
                     srvs_.nodes[lbbank].status &=
-                        (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))))<<24;
+                        (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))<<24));
                     labank=0;
                     bitvotes.clear();
                 }
@@ -3719,7 +3719,7 @@ NEXTUSER:
             }
             if(lbbank) {
                 srvs_.nodes[lbbank].status &=
-                   (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))))<<24;
+                    (uint32_t)(~(bitcount(bitvotes,(uint8_t)(srvs_.vtot/2))<<24));
                 lbbank=0;
                 bitvotes.clear();
             }
