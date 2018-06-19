@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/adshares/ads.svg?branch=master)](https://travis-ci.org/adshares/ads)
+[![Quality Status](https://sonarcloud.io/api/project_badges/measure?project=adshares-ads&metric=alert_status)](https://sonarcloud.io/dashboard?id=adshares-ads)
+
+
 # Enterprise Service Chain
 
 Enterprise Service Chain (ESCd) is a block chain based software tool facilitating high

@@ -49,12 +49,18 @@ install:
   # COMMON
   - export PATH="$HOME/ads/bin:$PATH"
 
+stages:
+  - compile
+  - test
+  - name: quality
+    if: branch = master
+
 jobs:
   include:
     - stage: compile
       script:
         - mkdir build
-        - ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
+        - ./scripts/compile.sh -d -o build src
         - mkdir -p $BIN_DIR
         - cp build/esc/esc $BIN_DIR
         - cp build/escd/escd $BIN_DIR
@@ -71,7 +77,7 @@ jobs:
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
-        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags  @non_existent"
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent"
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
@@ -89,9 +95,18 @@ jobs:
     #    - $ADS_CONF && $ADS_START && cd $TEST_DIR
     #    - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
 
-    # Sonar Qube
-    #- stage: quality
-    #  script: sonar-scanner
+    - stage: quality
+      script:
+        # compile
+        - mkdir build
+        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
+        - export PATH="build/esc:build/escd:$PATH"
+        # tests
+        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=build/esc/esc --daemon=build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
+        - $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags ~@status"
+        #Sonar Qube
+        - sonar-scanner
 
 notifications:
   email: false
