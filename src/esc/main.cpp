@@ -1,6 +1,5 @@
 #include <iostream>
 #include <boost/property_tree/json_parser.hpp>
-
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
@@ -12,15 +11,15 @@
 using namespace std;
 
 
-void talk2(NetworkClient& netClient, ResponseHandler& respHandler, settings& /*sts*/, std::unique_ptr<IBlockCommand> txs) { //len can be deduced from txstype
+void talk(NetworkClient& netClient, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
     if(!netClient.reconnect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
     }
 
-    if( txs->send(netClient) ) {
-        respHandler.onExecute(std::move(txs));
+    if(command->send(netClient) ) {
+        respHandler.onExecute(std::move(command));
     } else {
-        ELOG("ERROR reading global info talk2\n");
+        ELOG("ERROR reading global info talk\n");
     }
 }
 
@@ -30,31 +29,23 @@ int main(int argc, char* argv[]) {
     std::setbuf(stdout,NULL);
 #endif
 
+    auto workdir = settings::get_workdir(argc, argv);
+    if(workdir != ".") {
+        settings::change_working_dir(workdir);
+    }
+
     settings sts;
     sts.get(argc,argv);
-    boost::asio::io_service io_service;
-    boost::asio::ip::tcp::resolver resolver(io_service);
-    boost::asio::ip::tcp::resolver::query query(sts.host,std::to_string(sts.port).c_str());
-    boost::asio::ip::tcp::resolver::iterator endpoint_iterator = resolver.resolve(query);
-    boost::asio::ip::tcp::socket socket(io_service);
-
-    NetworkClient netClient(sts.host,std::to_string(sts.port));
-
+    NetworkClient netClient(sts.host, std::to_string(sts.port));
     ResponseHandler respHandler(sts);
 
 #if INTPTR_MAX == INT64_MAX
     assert(sizeof(long double)==16);
 #endif
     try {
-
-        usertxs_ptr txs;
         std::string line;
-        std::unique_ptr<IBlockCommand> t2;
 
         while (std::getline(std::cin, line)) {
-            int64_t deduct    = 0;
-            int64_t fee       = 0;
-
             DLOG("GOT REQUEST %s\n", line.c_str());
 
             if(line.at(0) == '.') {
@@ -64,20 +55,16 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            txs = run_json(sts, line, deduct, fee, t2);
+            auto command = run_json(sts, line);
 
-            if( !txs && ! t2) {
+            if(command) {
+                talk(netClient, respHandler, std::move(command));
+            }
+            else {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
                 continue;
-            }
-
-            //temporary solution for reimplementing
-            if(t2) {
-                talk2(netClient, respHandler, sts, std::move(t2));
-            } else if(txs) {
-                talk(endpoint_iterator, socket, sts, txs, deduct, fee);
             }
         }
     } catch (std::exception& e) {

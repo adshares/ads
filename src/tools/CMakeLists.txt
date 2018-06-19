@@ -37,5 +37,5 @@ SET (HEADERS_LIST
 
 add_executable(${MSG_PARSER_APP} ${SRC_LIST})
 
-target_link_libraries(${MSG_PARSER_APP} PUBLIC common)
+target_link_libraries(${MSG_PARSER_APP} LINK_PUBLIC common)
 target_link_libraries(${MSG_PARSER_APP} PRIVATE ssl crypto)

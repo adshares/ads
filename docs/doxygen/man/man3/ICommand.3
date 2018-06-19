@@ -1,4 +1,4 @@
-.TH "ICommand" 3 "Sat Jun 16 2018" "esc" \" -*- nroff -*-
+.TH "ICommand" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -135,7 +135,7 @@ Check actual signature\&.
 .PP
 
 .PP
-Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBLogAccount\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
 .SS "virtual bool ICommand::send (\fBINetworkClient\fP & netClient)\fC [pure virtual]\fP"
 
 .PP
@@ -150,7 +150,7 @@ Send data to the server\&.
 .PP
 
 .PP
-Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSendOne\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBLogAccount\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSendOne\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
 .SS "virtual void ICommand::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [pure virtual]\fP"
 
 .PP
@@ -167,7 +167,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 
 .PP
-Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
+Implemented in \fBSendMany\fP, \fBBroadcastMsg\fP, \fBGetBroadcastMsg\fP, \fBGetBlock\fP, \fBGetLog\fP, \fBSetAccountKey\fP, \fBGetAccount\fP, \fBGetAccounts\fP, \fBCreateAccount\fP, \fBSetNodeStatus\fP, \fBUnsetNodeStatus\fP, \fBCreateNode\fP, \fBGetBlocks\fP, \fBChangeNodeKey\fP, \fBGetSignatures\fP, \fBGetMessage\fP, \fBLogAccount\fP, \fBRetrieveFunds\fP, \fBSetAccountStatus\fP, \fBUnsetAccountStatus\fP, \fBGetMessageList\fP, \fBGetTransaction\fP, \fBGetVipKeys\fP, \fBConnected\fP, \fBSendOne\fP, \fBGetFields\fP, \fBTransactionAccepted\fP, and \fBTransactionFailed\fP\&.
 
 .SH "Author"
 .PP 

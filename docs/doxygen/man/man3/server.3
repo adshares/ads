@@ -1,4 +1,4 @@
-.TH "server" 3 "Sat Jun 16 2018" "esc" \" -*- nroff -*-
+.TH "server" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -79,6 +79,9 @@ server \-
 .RI "void \fBLAST_block_final\fP (\fBhash_s\fP &cand)"
 .br
 .ti -1c
+.RI "void \fBsignlater\fP ()"
+.br
+.ti -1c
 .RI "void \fBcount_votes\fP (uint32_t now, \fBhash_s\fP &cand)"
 .br
 .ti -1c
@@ -152,9 +155,6 @@ server \-
 .br
 .ti -1c
 .RI "uint64_t \fBppi_txid\fP (const uint64_t &ppi)"
-.br
-.ti -1c
-.RI "bool \fBremove_message\fP (message_ptr msg)"
 .br
 .ti -1c
 .RI "bool \fBundo_message\fP (message_ptr msg)"
