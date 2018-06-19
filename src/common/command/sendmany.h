@@ -22,8 +22,11 @@ class SendMany : public BlockCommand {
         /** \brief Free completeData object resources. */
         virtual ~SendMany();
 
-        /** \brief Return TXSTYPE_MPT as command type . */
+        /** \brief Return TXSTYPE_MPT as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eModifying as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;

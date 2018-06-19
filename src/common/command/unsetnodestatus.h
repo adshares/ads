@@ -17,8 +17,11 @@ class UnsetNodeStatus : public BlockCommand {
 
     bool            checkPubKeySignaure();
 
-    /** \brief Return TXSTYPE_UBS as command type . */
+    /** \brief Return TXSTYPE_UBS as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;

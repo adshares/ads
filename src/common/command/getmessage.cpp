@@ -53,6 +53,10 @@ int GetMessage::getType() {
     return TXSTYPE_MSG;
 }
 
+CommandType GetMessage::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetMessage::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -142,6 +146,10 @@ uint16_t GetMessage::getDestNode() {
 
 uint32_t GetMessage::getMsgId() {
     return m_data.info.node_msgid;
+}
+
+uint32_t GetMessage::getUserMessageId() {
+    return 0;
 }
 
 std::string GetMessage::toString(bool /*pretty*/) {

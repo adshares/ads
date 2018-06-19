@@ -22,15 +22,20 @@ class GetBroadcastMsg : public BlockCommand {
         /** \brief Free responseBuffer. */
         virtual ~GetBroadcastMsg();
 
+        /** \brief Return TXSTYPE_BLG as type . */
+        virtual int getType()                                       override;
 
-        /** \brief Return TXSTYPE_BLG as command type . */
-        virtual int getType()                                      override;
+        /** \brief Return eReadingOnly as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
 
         /** \brief Get pointer to response data. */
         virtual unsigned char*  getResponse()                       override;
+
+        /**  \brief Get message id. */
+        virtual uint32_t getUserMessageId()                         override;
 
         /** \brief Put data as a char list and put convert it to data structure. */
         virtual void setData(char* data)                            override;

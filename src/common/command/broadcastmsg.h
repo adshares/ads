@@ -20,8 +20,11 @@ class BroadcastMsg : public BlockCommand {
         /** \brief Free completeData object resources. */
         virtual ~BroadcastMsg();
 
-        /** \brief Return TXSTYPE_BRO as command type . */
+        /** \brief Return TXSTYPE_BRO as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eModifying as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -86,6 +89,9 @@ class BroadcastMsg : public BlockCommand {
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
 
+        /**  \brief Get message id. */
+        virtual  uint32_t       getUserMessageId()                          override;
+
         /** \brief Send data to the server.
          *
          * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -102,10 +108,6 @@ class BroadcastMsg : public BlockCommand {
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
       public:
-
-        /**  \brief Get message id. */
-        virtual  uint32_t       getUserMessageId();
-
         SendBroadcastData   m_data;
         unsigned char*      m_message;
         commandresponse     m_response;

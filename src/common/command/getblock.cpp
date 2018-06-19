@@ -60,6 +60,10 @@ int GetBlock::getType() {
     return TXSTYPE_NDS;
 }
 
+CommandType GetBlock::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetBlock::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -146,6 +150,10 @@ bool GetBlock::send(INetworkClient& netClient) {
 
 uint32_t GetBlock::getBlockId() {
     return m_data.info.block;
+}
+
+uint32_t GetBlock::getUserMessageId() {
+    return 0;
 }
 
 ErrorCodes::Code GetBlock::prepareResponse() {

@@ -52,6 +52,10 @@ int Connected::getType() {
     return TXSTYPE_CON;
 }
 
+CommandType Connected::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void Connected::sign(const uint8_t* /*hash*/, const uint8_t* /*sk*/, const uint8_t* /*pk*/) {
     // no signature
 }
@@ -81,6 +85,10 @@ int64_t Connected::getFee() {
 }
 
 int64_t Connected::getDeduct() {
+    return 0;
+}
+
+uint32_t Connected::getUserMessageId() {
     return 0;
 }
 

@@ -16,6 +16,10 @@ int UnsetNodeStatus::getType() {
     return TXSTYPE_UBS;
 }
 
+CommandType UnsetNodeStatus::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* UnsetNodeStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }

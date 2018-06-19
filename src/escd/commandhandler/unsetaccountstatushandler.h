@@ -15,9 +15,11 @@ class UnsetAccountStatusHandler : public CommandHandler {
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute() override;
-    virtual bool onValidate() override;
+    virtual ErrorCodes::Code onValidate() override;
 
   private:
+    ErrorCodes::Code validate();
+    ErrorCodes::Code performCommandSpecificValidation();
     std::unique_ptr<UnsetAccountStatus> m_command;
 };
 

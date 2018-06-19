@@ -10,8 +10,11 @@ class SendOne : public BlockCommand {
         SendOne();
         SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
 
-        /** \brief Return TXSTYPE_PUT as command type . */
+        /** \brief Return TXSTYPE_PUT as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eModifying as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;

@@ -18,6 +18,10 @@ int GetVipKeys::getType() {
     return TXSTYPE_VIP;
 }
 
+CommandType GetVipKeys::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 unsigned char* GetVipKeys::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -79,6 +83,10 @@ int64_t GetVipKeys::getFee() {
 }
 
 int64_t GetVipKeys::getDeduct() {
+    return 0;
+}
+
+uint32_t GetVipKeys::getUserMessageId() {
     return 0;
 }
 

@@ -15,7 +15,7 @@ class SetAccountStatusHandler : public CommandHandler {
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute()  override;
-    virtual bool onValidate() override;
+    virtual ErrorCodes::Code onValidate() override;
 
   private:
     std::unique_ptr<SetAccountStatus>  m_command;

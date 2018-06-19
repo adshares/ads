@@ -16,6 +16,10 @@ int LogAccount::getType() {
     return TXSTYPE_SAV;
 }
 
+CommandType LogAccount::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* LogAccount::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }

@@ -17,11 +17,14 @@ class SetNodeStatus : public BlockCommand {
 
     bool            checkPubKeySignaure();
 
-    /** \brief Return TXSTYPE_SBS as command type . */
+    /** \brief Return TXSTYPE_SBS as type . */
     virtual int  getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to response data. */
     virtual unsigned char*  getResponse()                       override;

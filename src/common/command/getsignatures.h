@@ -14,8 +14,11 @@ public:
     GetSignatures();
     GetSignatures(uint16_t abank, uint32_t auser, uint32_t ttime, uint32_t block);
 
-    /** \brief Return TXSTYPE_SIG as command type . */
+    /** \brief Return TXSTYPE_SIG as type . */
     virtual int getType()                                      override;
+
+    /** \brief Return eReadingOnly as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char* getData()                           override;
@@ -73,6 +76,9 @@ public:
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /**  \brief Get message id. */
+    virtual uint32_t getUserMessageId()                                 override;
 
     /** \brief Send data to the server.
      *

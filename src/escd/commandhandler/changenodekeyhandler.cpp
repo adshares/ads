@@ -90,45 +90,17 @@ void ChangeNodeKeyHandler::onExecute() {
     }
 }
 
-
-
-bool ChangeNodeKeyHandler::onValidate()
-{
-    ErrorCodes::Code errorCode  = ErrorCodes::Code::eNone;
-    int64_t         deduct      = m_command->getDeduct();
-    int64_t         fee         = m_command->getFee();
-
+ErrorCodes::Code ChangeNodeKeyHandler::onValidate() {
     hash_t secretKey;
     if (!m_command->getDestBankId() && !m_offi.find_key(m_command->getKey(), secretKey)) {
-        errorCode = ErrorCodes::Code::eMatchSecretKeyNotFound;
+        return ErrorCodes::Code::eMatchSecretKeyNotFound;
     }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-    else if(!m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if (m_command->getUserId()) {
+
+    if (m_command->getUserId()) {
         DLOG("ERROR: bad user %04X for bank key changes\n", m_command->getUserId());
-        errorCode = ErrorCodes::Code::eBadUser;
-    }
-    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
+        return ErrorCodes::Code::eBadUser;
     }
 
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+    return ErrorCodes::Code::eNone;
 }
+

@@ -53,6 +53,10 @@ int GetMessageList::getType() {
     return TXSTYPE_MGS;
 }
 
+CommandType GetMessageList::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetMessageList::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -84,6 +88,10 @@ int64_t GetMessageList::getFee() {
 }
 
 int64_t GetMessageList::getDeduct() {
+    return 0;
+}
+
+uint32_t GetMessageList::getUserMessageId() {
     return 0;
 }
 

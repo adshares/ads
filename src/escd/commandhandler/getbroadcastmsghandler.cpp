@@ -73,33 +73,8 @@ void GetBroadcastMsgHandler::onExecute() {
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
-
-
 }
 
-bool GetBroadcastMsgHandler::onValidate() {
-
-    auto        startedTime     = time(NULL);
-    int32_t diff = m_command->getBlockTime() - startedTime;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
-        errorCode = ErrorCodes::Code::eTimeInFuture;
-    }
-    else if(m_command->getBankId() != m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-
-    return true;
+ErrorCodes::Code GetBroadcastMsgHandler::onValidate() {
+    return ErrorCodes::Code::eNone;
 }

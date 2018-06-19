@@ -73,6 +73,10 @@ int BroadcastMsg::getType() {
     return TXSTYPE_BRO;
 }
 
+CommandType BroadcastMsg::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void BroadcastMsg::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     int dataSize = this->getDataSize();
     int additionalSize = this->getAdditionalDataSize();

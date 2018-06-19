@@ -17,6 +17,7 @@ class GetFields : public BlockCommand {
 
     //IBlock interface
     virtual int  getType()                                      override;
+    virtual CommandType getCommandType()                        override;
     virtual unsigned char*  getData()                           override;
     virtual unsigned char*  getResponse()                       override;
     virtual void setData(char* data)                            override;
@@ -35,6 +36,7 @@ class GetFields : public BlockCommand {
     virtual int64_t         getDeduct()                                 override;
     virtual bool            send(INetworkClient& netClient)             override;
     virtual void            saveResponse(settings& sts)                 override;
+    virtual uint32_t        getUserMessageId()                          override;
 
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;
