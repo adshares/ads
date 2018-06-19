@@ -1126,12 +1126,8 @@ NEXTUSER:
                               boost::bind(&peer::handle_read_header, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred), (BLOCKSEC));
     }
 
-    void handle_read_bank(const boost::system::error_code& error) {
-        static uint16_t last_bank=0;
-        static uint16_t last_msid=0;
-        static  int64_t weight=0;
-        //static SHA256_CTX sha256;
-        static uint64_t csum[4]= {0,0,0,0};
+    void handle_read_bank(const boost::system::error_code& error)
+    {
         int fd;
         if(error) {
             ELOG("%04X ERROR reading message\n",svid);
@@ -1164,20 +1160,20 @@ NEXTUSER:
         char filename[64];
         sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
         if(!read_msg_->msid) {
-            last_bank=bank;
-            last_msid=0;
-            weight=0;
-            bzero(csum,4*sizeof(uint64_t));
+            hrb_last_bank=bank;
+            hrb_last_msid=0;
+            hrb_last_weight=0;
+            bzero(hrb_last_csum,4*sizeof(uint64_t));
             //SHA256_Init(&sha256);
             fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
         } else {
-            if(last_bank!=bank||last_msid!=read_msg_->msid-1) {
+            if(hrb_last_bank!=bank||hrb_last_msid!=read_msg_->msid-1) {
                 unlink(filename);
                 ELOG("%04X ERROR reading bank %04X (incorrect message order)\n",svid,bank);
                 leave();
                 return;
             }
-            last_msid=read_msg_->msid;
+            hrb_last_msid=read_msg_->msid;
             fd=open(filename,O_WRONLY|O_APPEND,0644);
         }
         if(fd<0) { //trow or something :-)
@@ -1199,29 +1195,29 @@ NEXTUSER:
             //  uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight);
             DLOG("%04X USER:%04X m:%04X t:%08X s:%04X b:%04X u:%04X l:%08X r:%08X v:%016lX h:%08X\n",svid,
                  uid,u->msid,u->time,u->stat,u->node,u->user,u->lpath,u->rpath,u->weight,*((uint32_t*)(u->csum)));
-            weight+=u->weight;
+            hrb_last_weight+=u->weight;
             //SHA256_Update(&sha256,u,sizeof(user_t));
             server_.last_srvs_.user_csum(*u,bank,uid); //overwrite u.csum (TODO consider not sending over network!!!)
-            server_.last_srvs_.xor4(csum,u->csum);
+            server_.last_srvs_.xor4(hrb_last_csum,u->csum);
         }
         if(read_msg_->len+0x10000*read_msg_->msid<server_.last_srvs_.nodes[bank].users) {
             asyncWaitForNewMessageHeader();
             return;
         }
-        DLOG("%04X GOT bank %04X users %08X sum %016lX hash %08X\n",svid,bank,uid,weight,(uint32_t)(csum[0]&0xFFFFFFFF));
+        DLOG("%04X GOT bank %04X users %08X sum %016lX hash %08X\n",svid,bank,uid,hrb_last_weight,(uint32_t)(hrb_last_csum[0]&0xFFFFFFFF));
         //uint8_t hash[32];
         //SHA256_Final(hash,&sha256);
         //if(memcmp(server_.last_srvs_.nodes[bank].hash,hash,32))
-        if(server_.last_srvs_.nodes[bank].weight!=weight) {
+        if(server_.last_srvs_.nodes[bank].weight!=hrb_last_weight) {
             //unlink(filename); //TODO, enable this later
             ELOG("%04X ERROR reading bank %04X (bad sum)\n",svid,bank);
             leave();
             return;
         }
-        if(memcmp(server_.last_srvs_.nodes[bank].hash,csum,4*sizeof(uint64_t))) {
+        if(memcmp(server_.last_srvs_.nodes[bank].hash,hrb_last_csum,4*sizeof(uint64_t))) {
             //unlink(filename); //TODO, enable this later
             uint32_t* h=(uint32_t*)server_.last_srvs_.nodes[bank].hash;
-            ELOG("%04X ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",svid,bank,*h,(uint32_t)(csum[0]&0xFFFFFFFF));
+            ELOG("%04X ERROR reading bank %04X (bad hash) [%08X<>%08X]\n",svid,bank,*h,(uint32_t)(hrb_last_csum[0]&0xFFFFFFFF));
             leave();
             return;
         }
@@ -2126,6 +2122,13 @@ NEXTUSER:
     bool incoming_;
     servers& srvs_; //FIXME ==server_.srvs_
     options& opts_; //FIXME ==server_.opts_
+
+
+    //handle read bank
+    uint16_t    hrb_last_bank;
+    uint16_t    hrb_last_msid;
+    int64_t     hrb_last_weight;
+    uint64_t    hrb_last_csum[4];
 
     uint32_t msid;
     uint32_t peer_path; //used to load data when syncing
