@@ -14,9 +14,9 @@ include_directories("../../external")
 add_executable(${CLIENT_NAME} ${SRC_LST} ${HEADER_FILES})
 
 target_link_libraries(${CLIENT_NAME} LINK_PUBLIC common)
-target_link_libraries(${CLIENT_NAME} pthread)
-target_link_libraries(${CLIENT_NAME} ssl)
-target_link_libraries(${CLIENT_NAME} crypto)
+target_link_libraries(${CLIENT_NAME} PRIVATE pthread)
+target_link_libraries(${CLIENT_NAME} PRIVATE ssl)
+target_link_libraries(${CLIENT_NAME} PRIVATE crypto)
 
 install (TARGETS ${CLIENT_NAME} RUNTIME DESTINATION bin)
 

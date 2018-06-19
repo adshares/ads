@@ -1,4 +1,4 @@
-.TH "settings" 3 "Sat Jun 16 2018" "esc" \" -*- nroff -*-
+.TH "settings" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -23,6 +23,19 @@ settings \-
 .br
 .ti -1c
 .RI "void \fBget\fP (int ac, char *av[])"
+.br
+.in -1c
+.SS "Static Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "static void \fBprint_version\fP ()"
+.br
+.ti -1c
+.RI "static void \fBchange_working_dir\fP (std::string workdir)"
+.br
+.ti -1c
+.RI "static std::string \fBget_workdir\fP (int ac, char *av[])"
 .br
 .in -1c
 .SS "Public Attributes"
@@ -76,10 +89,13 @@ settings \-
 .ti -1c
 .RI "uint32_t \fBlastlog\fP"
 .br
+.ti -1c
+.RI "std::string \fBworkdir\fP"
+.br
 .in -1c
 .SH "Detailed Description"
 .PP 
-Definition at line 16 of file settings\&.hpp\&.
+Definition at line 17 of file settings\&.hpp\&.
 
 .SH "Author"
 .PP 

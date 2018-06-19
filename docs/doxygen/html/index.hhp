@@ -108,6 +108,10 @@ inxprinter_8cpp_source.html
 inxprinter_8h_source.html
 json_8cpp_source.html
 json_8h_source.html
+logaccount_8cpp_source.html
+logaccount_8h_source.html
+logaccounthandler_8cpp_source.html
+logaccounthandler_8h_source.html
 logprinter_8cpp_source.html
 logprinter_8h_source.html
 esc_2main_8cpp_source.html
@@ -384,6 +388,14 @@ class_inx_printer.html
 class_inx_printer-members.html
 structlog__s.html
 structlog__s-members.html
+class_log_account.html
+class_log_account-members.html
+struct_log_account_data.html
+struct_log_account_data-members.html
+class_log_account_handler.html
+class_log_account_handler-members.html
+struct_log_account_info.html
+struct_log_account_info-members.html
 class_log_printer.html
 class_log_printer-members.html
 classmessage.html
@@ -764,6 +776,12 @@ class_i_json_serialize__inherit__graph.png
 class_i_network_client__inherit__graph.png
 class_inx_printer__inherit__graph.png
 class_inx_printer__coll__graph.png
+class_log_account__inherit__graph.png
+class_log_account__coll__graph.png
+class_log_account_afb26a65d847abb0a48d7adcbc57cb955_cgraph.png
+struct_log_account_data__coll__graph.png
+class_log_account_handler__inherit__graph.png
+class_log_account_handler__coll__graph.png
 class_log_printer__inherit__graph.png
 class_log_printer__coll__graph.png
 classmessage__inherit__graph.png
@@ -957,3 +975,5 @@ inherit_graph_111.png
 inherit_graph_112.png
 inherit_graph_113.png
 inherit_graph_114.png
+inherit_graph_115.png
+inherit_graph_116.png

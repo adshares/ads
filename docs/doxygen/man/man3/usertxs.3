@@ -1,4 +1,4 @@
-.TH "usertxs" 3 "Sat Jun 16 2018" "esc" \" -*- nroff -*-
+.TH "usertxs" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -34,28 +34,10 @@ usertxs \-
 .RI "uint8_t * \fBget_sig\fP (char *buf)"
 .br
 .ti -1c
-.RI "void \fBsign\fP (uint8_t *hash, uint8_t *sk, uint8_t *pk)"
-.br
-.ti -1c
-.RI "int \fBwrong_sig\fP (uint8_t *buf, uint8_t *hash, uint8_t *pk)"
-.br
-.ti -1c
-.RI "int \fBsign2\fP (uint8_t *sig)"
-.br
-.ti -1c
-.RI "int \fBwrong_sig2\fP (uint8_t *buf)"
-.br
-.ti -1c
 .RI "int \fBsign_mlen2\fP ()"
 .br
 .ti -1c
 .RI "void \fBprint_head\fP ()"
-.br
-.ti -1c
-.RI "void \fBprint\fP ()"
-.br
-.ti -1c
-.RI "void \fBchange_time\fP (uint32_t nttime)"
 .br
 .ti -1c
 .RI "char * \fBusr\fP (char *buf)"
@@ -73,16 +55,7 @@ usertxs \-
 .RI "char * \fBupkey\fP (char *buf)"
 .br
 .ti -1c
-.RI "void \fBprint_broadcast\fP (char *buf)"
-.br
-.ti -1c
 .RI "char * \fBbroadcast\fP (char *buf)"
-.br
-.ti -1c
-.RI "char * \fBbroadcast_sigh\fP (char *buf, uint16_t bbank)"
-.br
-.ti -1c
-.RI "void \fBprint_toaddresses\fP (char *buf, uint16_t bbank)"
 .br
 .ti -1c
 .RI "char * \fBtoaddresses\fP (char *buf)"
@@ -133,7 +106,7 @@ usertxs \-
 .in -1c
 .SH "Detailed Description"
 .PP 
-Definition at line 57 of file user\&.hpp\&.
+Definition at line 49 of file user\&.hpp\&.
 
 .SH "Author"
 .PP 
