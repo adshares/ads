@@ -1,6 +1,5 @@
 #include <iostream>
 #include <boost/property_tree/json_parser.hpp>
-
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
@@ -29,6 +28,11 @@ int main(int argc, char* argv[]) {
 #ifndef NDEBUG
     std::setbuf(stdout,NULL);
 #endif
+
+    auto workdir = settings::get_workdir(argc, argv);
+    if(workdir != ".") {
+        settings::change_working_dir(workdir);
+    }
 
     settings sts;
     sts.get(argc,argv);
