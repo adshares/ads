@@ -189,25 +189,15 @@ if __name__ == '__main__':
 
     validate_platform()
 
-    node_env = {'data_dir': '/ads_data',
-                'client_bin_path': '/ads/esc/esc',
-                'daemon_bin_path': '/ads/escd/escd',
-                'node_interface': get_my_ip()}
-
-    description = {'data_dir': 'Writeable directory with node and accounts configurations.',
-                   'client_bin_path': 'Filepath to executable for esc client',
-                   'daemon_bin_path': 'Filepath to executable for esc daemon',
-                   'node_interface': 'Ip of this node'}
-
     parser = argparse.ArgumentParser(description='Configure ADS nodes.')
 
     parser.add_argument('genesis', default=None, help='Genesis file')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
 
-    parser.add_argument('--data_dir', default=node_env['data_dir'], help=description['data_dir'])
-    parser.add_argument('--client', default=node_env['client_bin_path'], help=description['client_bin_path'])
-    parser.add_argument('--daemon', default=node_env['daemon_bin_path'], help=description['daemon_bin_path'])
-    parser.add_argument('--interface', default=node_env['node_interface'], help=description['node_interface'])
+    parser.add_argument('--data_dir', default='/ads_data', help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--client', default='/ads/esc/esc', help='Filepath to executable for esc client.')
+    parser.add_argument('--daemon', default='/ads/escd/escd', help='Filepath to executable for esc daemon.')
+    parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
     args = parser.parse_args()
 
