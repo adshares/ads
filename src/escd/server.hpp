@@ -4440,6 +4440,14 @@ NEXTBANK:
             DLOG("ERROR, wrong network msid, postponing message write\n");
             return(0);
         }
+
+        uint32_t ntime=time(NULL);
+        if(ntime-srvs_.now>BLOCKSEC-5)
+        { // use 5s margin
+          DLOG("ERROR, waiting for new block, postponing message write\n");
+          return(0);
+        }
+
         usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
         user_t u0;
         int fd=open_bank(opts_.svid);
