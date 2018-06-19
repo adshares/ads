@@ -46,11 +46,8 @@ install:
   - sudo pip install psutil
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
-  - cd $TEST_DIR
-  - git checkout -qf ads-67-test-with-local-binary
   # COMMON
   - export PATH="$HOME/ads/bin:$PATH"
-  - cd $TRAVIS_BUILD_DIR
 
 jobs:
   include:
@@ -63,24 +60,34 @@ jobs:
         - cp build/escd/escd $BIN_DIR
         - export PATH="$BIN_DIR:$PATH"
 
-    #- stage: test
-    #  script:
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @transfer"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @transfer"
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @non_existent"
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @retrieve_funds"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags  @non_existent"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @retrieve_funds"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @account"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
     #- stage: test
     #  script:
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @account"
-    #- stage: test
-    #  script:
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @node"
-    #- stage: test
-    #  script:
-    #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @status"
+    #    - $ADS_CONF && $ADS_START && cd $TEST_DIR
+    #    - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
 
     # Sonar Qube
     #- stage: quality
