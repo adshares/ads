@@ -13,6 +13,8 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/blocks.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/filewrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchivereader.cpp
     PARENT_SCOPE
     )
 
@@ -32,5 +34,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/tarcompressor.h
     ${CMAKE_CURRENT_SOURCE_DIR}/blocks.h
     ${CMAKE_CURRENT_SOURCE_DIR}/filewrapper.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchive.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchivereader.h
     PARENT_SCOPE
     )

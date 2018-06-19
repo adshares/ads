@@ -182,4 +182,5 @@ TEST(SparseFileCompression, extractFileFromBigArch) {
 TEST(SparseFileCompression, clean) {
     boost::filesystem::remove_all("sparse_dir");
     boost::filesystem::remove_all("sparse_result");
+    boost::filesystem::remove("sparse.tar");
 }

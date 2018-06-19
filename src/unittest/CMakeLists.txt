@@ -4,6 +4,7 @@ SET (SRC_LIST
     unittest.cpp
     compressor_test.cpp
     blocks_helper_test.cpp
+    lib_archive_test.cpp
     )
 
 SET (HEADERS_LIST
