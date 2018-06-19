@@ -13,8 +13,8 @@ import hashlib
 import psutil
 
 
-DAEMON_BIN_NAME = 'escd'
-CLIENT_BIN_NAME = 'esc'
+DAEMON_BIN_NAME = 'adsd'
+CLIENT_BIN_NAME = 'ads'
 
 
 def start_node(nconf_path, genesis_time, init=False):
@@ -32,7 +32,7 @@ def start_node(nconf_path, genesis_time, init=False):
     with open('genesis.json', 'w') as f:
         json.dump(genesis, f)
 
-    cmd = ['./{0}'.format(DAEMON_BIN_NAME), '--genesis=genesis.json']
+    cmd = ['./{0}'.format(DAEMON_BIN_NAME), '--genesis=genesis.json', '--work-dir={0}'.format(nconf_path)]
 
     if init:
         cmd += ['--init=true']
@@ -44,8 +44,11 @@ def start_node(nconf_path, genesis_time, init=False):
 
     try:
         os.kill(proc.pid, 0)
-        with open('{0}.pid'.format(DAEMON_BIN_NAME), 'w') as f:
+
+        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+        with open(pidfile, 'w') as f:
             f.write(str(proc.pid))
+
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
@@ -109,7 +112,8 @@ def state(nconf_path):
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
     try:
-        with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
+        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+        with open(pidfile, 'r') as f:
             pid = int(f.read())
     except IOError:
         print("Pid file not found")
@@ -126,11 +130,13 @@ def investigate(uconf_path, silent=False):
     os.chdir(uconf_path)
 
     try:
+        cmd = ['echo -n \'{"run":"get_block"}\'', '|', CLIENT_BIN_NAME, '--work-dir={0}'.format(uconf_path)]
+
         if silent:
             with open(os.devnull, 'w') as devnull:
-                output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
+                output = subprocess.check_output(cmd, stderr=devnull, shell=True)
         else:
-            output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
+            output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as e:
         print(e)
         return False
@@ -212,7 +218,7 @@ def wait_action(data_dir):
                 started = True
                 break
             else:
-                print("Waiting for escd")
+                print("Waiting for adsd")
                 time.sleep(1)
 
     print("ADS started")
