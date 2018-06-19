@@ -14,13 +14,14 @@
 <area shape="rect" id="node15" href="$class_get_signatures_handler.html" title="GetSignaturesHandler" alt="" coords="377,613,528,640"/>
 <area shape="rect" id="node16" href="$class_get_transaction_handler.html" title="GetTransactionHandler" alt="" coords="375,664,531,691"/>
 <area shape="rect" id="node17" href="$class_get_vip_keys_handler.html" title="GetVipKeysHandler" alt="" coords="384,715,521,741"/>
-<area shape="rect" id="node18" href="$class_retrieve_funds_handler.html" title="RetrieveFundsHandler" alt="" coords="377,765,529,792"/>
-<area shape="rect" id="node19" href="$class_send_many_handler.html" title="SendManyHandler" alt="" coords="388,816,517,843"/>
-<area shape="rect" id="node20" href="$class_send_one_handler.html" title="SendOneHandler" alt="" coords="392,867,513,893"/>
-<area shape="rect" id="node21" href="$class_set_account_key_handler.html" title="SetAccountKeyHandler" alt="" coords="373,917,532,944"/>
-<area shape="rect" id="node22" href="$class_set_account_status_handler.html" title="SetAccountStatusHandler" alt="" coords="366,968,539,995"/>
-<area shape="rect" id="node23" href="$class_set_node_status_handler.html" title="SetNodeStatusHandler" alt="" coords="375,1019,531,1045"/>
-<area shape="rect" id="node24" href="$class_unset_account_status_handler.html" title="UnsetAccountStatusHandler" alt="" coords="359,1069,547,1096"/>
-<area shape="rect" id="node25" href="$class_unset_node_status_handler.html" title="UnsetNodeStatusHandler" alt="" coords="367,1120,538,1147"/>
-<area shape="rect" id="node2" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="5,563,136,589"/>
+<area shape="rect" id="node18" href="$class_log_account_handler.html" title="LogAccountHandler" alt="" coords="385,765,521,792"/>
+<area shape="rect" id="node19" href="$class_retrieve_funds_handler.html" title="RetrieveFundsHandler" alt="" coords="377,816,529,843"/>
+<area shape="rect" id="node20" href="$class_send_many_handler.html" title="SendManyHandler" alt="" coords="388,867,517,893"/>
+<area shape="rect" id="node21" href="$class_send_one_handler.html" title="SendOneHandler" alt="" coords="392,917,513,944"/>
+<area shape="rect" id="node22" href="$class_set_account_key_handler.html" title="SetAccountKeyHandler" alt="" coords="373,968,532,995"/>
+<area shape="rect" id="node23" href="$class_set_account_status_handler.html" title="SetAccountStatusHandler" alt="" coords="366,1019,539,1045"/>
+<area shape="rect" id="node24" href="$class_set_node_status_handler.html" title="SetNodeStatusHandler" alt="" coords="375,1069,531,1096"/>
+<area shape="rect" id="node25" href="$class_unset_account_status_handler.html" title="UnsetAccountStatusHandler" alt="" coords="359,1120,547,1147"/>
+<area shape="rect" id="node26" href="$class_unset_node_status_handler.html" title="UnsetNodeStatusHandler" alt="" coords="367,1171,538,1197"/>
+<area shape="rect" id="node2" href="$class_i_command_handler.html" title="Command handler Interface. " alt="" coords="5,588,136,615"/>
 </map>
