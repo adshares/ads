@@ -56,9 +56,6 @@ class AccountConfig(object):
         if not os.path.exists(directory):
             os.makedirs(directory)
 
-        if not os.path.exists(os.path.join(directory, "esc")):
-            os.symlink(self.node_env['client_bin_path'], os.path.join(directory, "esc"))
-
         filepath = os.path.join(directory, 'settings.cfg')
 
         save_config(filepath, options)
@@ -106,9 +103,6 @@ class NodeConfig(object):
 
         with open(os.path.join(directory, 'key', 'key.txt'), 'w') as f:
             f.write(self.private_key_file)
-
-        if not os.path.exists(os.path.join(directory, "escd")):
-            os.symlink(self.node_env['daemon_bin_path'], os.path.join(directory, "escd"))
 
         copyfile(genesis_filepath, os.path.join(directory, 'genesis.json'))
 
@@ -195,8 +189,6 @@ if __name__ == '__main__':
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
 
     parser.add_argument('--data_dir', default='/ads_data', help='Writeable directory with node and accounts configurations.')
-    parser.add_argument('--client', default='/ads/esc/esc', help='Filepath to executable for esc client.')
-    parser.add_argument('--daemon', default='/ads/escd/escd', help='Filepath to executable for esc daemon.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
     args = parser.parse_args()
