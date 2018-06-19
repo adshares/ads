@@ -4,7 +4,7 @@
 #include <cstring>
 #include <vector>
 #include <memory>
-
+#include <boost/thread/recursive_mutex.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -39,7 +39,11 @@
 #include "command/logaccount.h"
 #include "helper/txsname.h"
 
-boost::mutex flog; //to compile LOG()
+boost::recursive_mutex flog; //to compile LOG()
+
+using namespace Helper;
+
+
 FILE* stdlog=stderr; //to compile LOG()
 
 bool parse_user(uint32_t& to_user,std::string str_user) {

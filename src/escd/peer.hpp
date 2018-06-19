@@ -2098,6 +2098,7 @@ NEXTUSER:
     friend class PeerConnectManager;
 
   private:
+
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
     //bool        killme; // kill process initiated
@@ -2125,10 +2126,10 @@ NEXTUSER:
 
 
     //handle read bank
-    uint16_t    hrb_last_bank;
-    uint16_t    hrb_last_msid;
-    int64_t     hrb_last_weight;
-    uint64_t    hrb_last_csum[4];
+    uint16_t    hrb_last_bank{0};
+    uint16_t    hrb_last_msid{0};
+    int64_t     hrb_last_weight{0};
+    uint64_t    hrb_last_csum[4] = {0,0,0,0};
 
     uint32_t msid;
     uint32_t peer_path; //used to load data when syncing
