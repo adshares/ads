@@ -4837,6 +4837,14 @@ NEXTBANK:
         }
     }
 
+    void update_connection_info(std::string& message)
+    {
+      if(opts_.svid && msid_ == last_srvs_.nodes[opts_.svid].msid && (srvs_.nodes[opts_.svid].ipv4 != opts_.ipv4 || srvs_.nodes[opts_.svid].port != (opts_.port&0xFFFF))) {
+        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+        message.append((char*)txs.data,txs.size);
+      }
+    }
+
     bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) { // will be obsolete if we start tolerating empty blocks
         static uint32_t do_hallo=0;
         static uint32_t del=0;
