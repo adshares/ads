@@ -3,7 +3,9 @@
 
 #include <fcntl.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include "hash.hpp"
 #include "user.hpp"
 
@@ -305,7 +307,6 @@ class message :
             l=utxs.get_size((char*)p);            
             if(*p==TXSTYPE_SAV) {
                 uint32_t auser=*(uint32_t*)(p+3); // could be a user.hpp function
-                //if(!get_user(auser,*(user_t*)(p+txslen[TXSTYPE_SAV]+64)))
                 if(!get_user(auser,*(user_t*)utxs.usr((char*)p))) {
                     return(false);
                 }
@@ -316,6 +317,7 @@ class message :
     }
 
     bool hash_tree() {
+
         assert(data!=NULL);
         assert(data[0]==MSGTYPE_MSG); //FIXME, maybe killed by unload !!!
         assert(svid); //FIXME, svid==0 for block message
@@ -383,10 +385,12 @@ class message :
         return(true);
     }
 
-    bool hash_tree_get(uint32_t tnum,std::vector<hash_s>& hashes,uint32_t& mnum) {
+    bool hash_tree_get(uint32_t tnum,std::vector<hash_s>& hashes,uint32_t& mnum)
+    {
         char filename[128];
         assert(hashtype()==MSGTYPE_MSG);
         makefilename(filename,path,"msg");
+
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
@@ -405,6 +409,7 @@ class message :
         uint32_t ttot;
         uint32_t tmax;
         lseek(fd,mlen,SEEK_SET);
+
         read(fd,mhash,32);
         read(fd,&mnum,4);
         read(fd,&ttot,4); // not needed
@@ -432,9 +437,9 @@ class message :
                 len=mlen-pos;
             } else {
                 len=tmp[8+1+8]-pos;
-            }
+            }            
             hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
-            DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);
+            DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);            
             hashes.push_back(*(hash_s*)(&tmp[0]));
         } else {
             uint32_t tmp[1+8+1+8];
@@ -463,17 +468,18 @@ class message :
         tree.hashpath(tnum/2,(tmax+1)/2,add);
         for(auto n : add) {
             DLOG("HASHTREE add %d\n",n);
-            if(n*2==tmax-1) { //special case for last uneven hash
+            if(n*2>=tmax-1) { //special case for last uneven hash
                 lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
             } else {
                 assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
                 lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
             }
             hash_s phash;
-            read(fd,phash.hash,32);
+            read(fd,phash.hash,32);            
             hashes.push_back(phash);
         }
-        close(fd);
+        close(fd);        
+
         //DEBUG only, confirm hash
         hash_t nhash;
         tree.hashpathrun(nhash,hashes);
@@ -913,21 +919,6 @@ class message :
 
     void print(const char* suffix) const {
         DLOG("%04X [%04X-%08X] [l:%d] (%08X) %s\n",peer,svid,msid,len,now,suffix);
-    }
-
-    void print_header() {
-        assert(data!=NULL);
-        char hash[2*SHA256_DIGEST_LENGTH];
-        header_t* h=(header_t*)(data+4+64+10);
-        ELOG("HEADER: now:%08x msg:%08x nod:%d\n",h->now,h->msg,h->nod);
-        ed25519_key2text(hash,h->oldhash,32);
-        ELOG("OLDHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->msghash,32);
-        ELOG("TXSHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->nodhash,32);
-        ELOG("NODHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
-        ed25519_key2text(hash,h->nowhash,32);
-        ELOG("NOWHASH: %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     }
 
     uint32_t load(int16_t who) { //FIXME, this is not processing the data correctly, check scenarios

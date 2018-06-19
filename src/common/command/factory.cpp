@@ -26,6 +26,7 @@
 #include "retrievefunds.h"
 #include "getvipkeys.h"
 #include "getblocks.h"
+#include "logaccount.h"
 
 namespace command {
 
@@ -110,6 +111,9 @@ std::unique_ptr<IBlockCommand> factory::makeCommand(uint8_t type) {
         break;
     case TXSTYPE_BLK:
         command = std::make_unique<GetBlocks>();
+        break;
+    case TXSTYPE_SAV:
+        command = std::make_unique<LogAccount>();
         break;
     default:
         std::cerr<<"Unsupported transaction type "<<type<<" "<<Helper::getTxnName(type)<<std::endl;

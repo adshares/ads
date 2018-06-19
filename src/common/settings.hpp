@@ -5,6 +5,7 @@
 #include <iostream>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem.hpp>
 #include "openssl/sha.h"
 #include "ed25519/ed25519.h"
 #include "default.hpp"
@@ -55,6 +56,7 @@ class settings {
 //	std::string sold;
     std::string hash;	// my last message hash
     uint32_t lastlog;	// placeholder for last requested log entry
+    std::string workdir; // my last message hash
 
     uint16_t crc16(const uint8_t* data_p, uint8_t length) {
         uint8_t x;
@@ -164,7 +166,50 @@ class settings {
         return(true);
     }
 
+    static void print_version() {
+        std::string version = PROJECT_VERSION;
+        std::cerr << "Version ";
+        if(version.empty()) {
+          std::cerr << GIT_BRANCH << " @ " << GIT_COMMIT_HASH << "\n";
+        } else {
+          std::cerr << PROJECT_VERSION << "\n";
+        }
+    }
 
+    static void change_working_dir(std::string workdir) {
+        auto i = workdir.find("$HOME");
+        if(i != std::string::npos) {
+            char * home = std::getenv("HOME");
+            if(home) {
+                workdir.replace(i, strlen("$HOME"), home);
+            } else {
+                std::cerr << "Cannot find $HOME\n";
+                exit(-1);
+            }
+        }
+        boost::filesystem::create_directories(workdir);
+        if(chdir(workdir.c_str())) {
+            std::cerr << "Could not chdir to working directory\n";
+            exit(-1);
+        }
+        std::cout << "Working dir: " << workdir << "\n";
+    }
+
+    static std::string get_workdir(int ac, char *av[]) {
+      boost::program_options::options_description config;
+
+      config.add_options()
+          ("work-dir,w", boost::program_options::value<std::string>()->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory");
+
+      boost::program_options::options_description cmdline_options;
+      cmdline_options.add(config);
+      boost::program_options::variables_map vm;
+      store(boost::program_options::command_line_parser(ac, av).options(cmdline_options).allow_unregistered().run(), vm);
+      if(vm.count("work-dir")) {
+        return vm["work-dir"].as<std::string>();
+      }
+      return nullptr;
+    }
 
     void get(int ac, char *av[]) {
         try {
@@ -172,6 +217,7 @@ class settings {
             pktext[2*32]='\0';
             boost::program_options::options_description generic("Generic options");
             generic.add_options()
+            ("work-dir,w", boost::program_options::value<std::string>(&workdir)->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory")
             ("version,v", "print version string")
             ("help,h", "produce help message")
             ;
@@ -187,7 +233,7 @@ class settings {
             ("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
             ("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
             ("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
-            ("secret,s", boost::program_options::value<std::string>(&skey),					"passphrase or private key [64chars in hex format / 32bytes]")
+            ("secret,s", boost::program_options::value<std::string>(&skey),         "passphrase or private key [64chars in hex format / 32bytes]")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -199,13 +245,15 @@ class settings {
             store(parse_config_file(ifs, config_file_options), vm);
             notify(vm);
             if(vm.count("help")) {
-                std::cerr << "Usage: " << av[0] << " [settings]\n";
+                std::cerr << "Usage: " << PROJECT_NAME << " [settings]\n";
                 std::cerr << generic << "\n";
                 std::cerr << config << "\n";
+
+                print_version();
                 exit(0);
             }
             if(vm.count("version")) {
-                std::cerr << "Version 1.0\n";
+                print_version();
                 exit(0);
             }
 

@@ -20,9 +20,9 @@ add_subdirectory(network)
 
 add_executable(${DAEMON_NAME} ${SOURCED} ${HEADERSD})
 target_link_libraries(${DAEMON_NAME} LINK_PUBLIC common)
-target_link_libraries(${DAEMON_NAME} pthread)
-target_link_libraries(${DAEMON_NAME} ssl)
-target_link_libraries(${DAEMON_NAME} crypto)
+target_link_libraries(${DAEMON_NAME} PRIVATE pthread)
+target_link_libraries(${DAEMON_NAME} PRIVATE ssl)
+target_link_libraries(${DAEMON_NAME} PRIVATE crypto)
 
 install(TARGETS ${DAEMON_NAME} RUNTIME DESTINATION bin)
 
