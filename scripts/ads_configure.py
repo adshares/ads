@@ -266,3 +266,4 @@ if __name__ == '__main__':
             aconf.signature = account['_sign']
 
             aconf.save()
+            break
