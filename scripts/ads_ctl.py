@@ -170,9 +170,8 @@ def clean_action(data_dir):
         print("{0} doesn't exist".format(data_dir))
 
 
-def start_action(data_dir, init=False):
+def start_action(data_dir, block_time=512, init=False):
 
-    block_time = 32
     genesis_time = (int(time.time() + 8) / block_time) * block_time
     print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
@@ -228,9 +227,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
     parser.add_argument('action', choices=['start', 'stop', 'clean', 'nodes', 'network', 'wait'])
-    parser.add_argument('--init', action='store_true')
+    parser.add_argument('--init', action='store_true', help='Initialize the first network node.')
     parser.add_argument('--data', default='/ads_data', help='Writeable directory with node and accounts configurations.')
-    parser.add_argument('--wait', action='store_true')
+    parser.add_argument('--wait', action='store_true', help='Wait and make sure the daemon is working.')
+    parser.add_argument('-d', '--debug', type=int, default=512, help='Blockchain time (integer)')
 
     args = parser.parse_args()
 
@@ -245,7 +245,7 @@ if __name__ == '__main__':
         clean_action(args.data)
     elif args.action == 'start':
         check_data(args.data)
-        start_action(args.data, args.init)
+        start_action(args.data, args.debug, args.init)
     elif args.action == 'stop':
         stop_action(args.data)
     elif args.action == 'nodes':
