@@ -2098,7 +2098,6 @@ NEXTUSER:
     friend class PeerConnectManager;
 
   private:
-
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
     //bool        killme; // kill process initiated
