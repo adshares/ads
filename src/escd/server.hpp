@@ -2879,6 +2879,7 @@ NEXTUSER:
                     auto lu=changes.find(luser); // get user
                     if(lu==changes.end()) {
                         user_t u;
+                        bzero(&u, sizeof(user_t));
                         lseek(fd,luser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
                         read(fd,&u,sizeof(user_t));
                         changes[luser]=u;
@@ -2933,6 +2934,7 @@ NEXTUSER:
             auto au=changes.find(utxs.auser); // get user
             if(au==changes.end()) {
                 user_t u;
+                bzero(&u, sizeof(user_t));
                 lseek(fd,utxs.auser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
                 read(fd,&u,sizeof(user_t));
                 changes[utxs.auser]=u;
