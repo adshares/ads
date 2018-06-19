@@ -31,7 +31,7 @@ addons:
 before_install:
   # CONST
   - export TEST_DIR=$HOME/adshares/ads-tests
-  - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-retrieve-funds.json
+  - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-20x20-rf.json
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/ads/data
   - export ADS_CONF="./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$BIN_DIR/esc --daemon=$BIN_DIR/escd --interface=127.0.0.1 $GENESIS_FILE"
@@ -90,10 +90,10 @@ jobs:
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
-    #- stage: test
-    #  script:
-    #    - $ADS_CONF && $ADS_START && cd $TEST_DIR
-    #    - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
 
     - stage: quality
       script:
@@ -102,11 +102,11 @@ jobs:
         - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
         - export PATH="build/esc:build/escd:$PATH"
         # tests
-        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=build/esc/esc --daemon=build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
+        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
         - $ADS_START && cd $TEST_DIR
-        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags ~@status"
+        - mvn clean test $TESTS_ARGS
         #Sonar Qube
-        - sonar-scanner
+        - cd $TRAVIS_BUILD_DIR && sonar-scanner
 
 notifications:
   email: false
