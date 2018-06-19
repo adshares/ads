@@ -1156,8 +1156,16 @@ NEXTUSER:
                         undo_message(tm->second);
                     }
                     //bad_insert(tm->second); ... already inserted
-                    remove_message(tm->second);
+                    //remove_message(tm->second);
                     txs_msgs_.erase(tm);
+
+                    if(tm->second->svid==opts_.svid)
+                    {
+                      extern bool finish;
+                      ELOG("ERROR: trying to remove own invalid message, FATAL, MUST RESUBMIT (TODO!)\n");
+                      finish=true;
+                    }
+
                     continue;
                 }
                 if(!(tm->second->status & MSGSTAT_VAL) && (tm->second->status & MSGSTAT_COM)) {
@@ -1168,7 +1176,7 @@ NEXTUSER:
                         ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                         message_ptr msg=tm->second;
                         bad_insert(tm->second);
-                        remove_message(tm->second);
+                        //remove_message(tm->second);
                         txs_msgs_.erase(tm);
                         if(msg->svid==opts_.svid) {
                             sign_msgs_.push_front(msg);
@@ -1188,7 +1196,7 @@ NEXTUSER:
                         ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                         message_ptr msg=tm->second;
                         bad_insert(tm->second);
-                        remove_message(tm->second);
+                        //remove_message(tm->second);
                         txs_msgs_.erase(tm);
                         if(msg->svid==opts_.svid) {
                             sign_msgs_.push_front(msg);
@@ -2402,7 +2410,7 @@ NEXTUSER:
         return(p->v64); // msid,svid,tpos
     }
 
-    bool remove_message(message_ptr msg) {
+    /*bool remove_message(message_ptr msg) {
         if(msg->svid==opts_.svid) {
 #ifdef DOUBLE_SPEND
             if(opts_.svid == 4) { // make mess :-)
@@ -2415,7 +2423,7 @@ NEXTUSER:
             exit(-1);
         }
         return(true);
-    }
+    }*/
     /*bool remove_message(message_ptr msg) // log removing of message
     { uint8_t* p=(uint8_t*)msg->data+4+64+10;
       std::map<uint64_t,log_t> log;
