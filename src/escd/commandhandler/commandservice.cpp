@@ -33,7 +33,8 @@ CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& soc
       m_getSignaturesHandler(office, socket),
       m_retrieveFundsHandler(office, socket),
       m_getVipKeysHandler(office, socket),
-      m_getBlocksHandler(office, socket)
+      m_getBlocksHandler(office, socket),
+      m_logAccountHandler(office, socket)
 {
 }
 
@@ -117,6 +118,9 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         break;
     case TXSTYPE_BLK:
         m_getBlocksHandler.execute(std::move(command), usera);
+        break;
+    case TXSTYPE_SAV:
+        m_logAccountHandler.execute(std::move(command), usera);
         break;
     default:
         DLOG("Command type: %d without handler\n", command->getType());

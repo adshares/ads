@@ -135,11 +135,14 @@ public:
 
     bool save_get(uint32_t auser,uint16_t bbank,uint32_t buser,uint64_t atxid);
 
+    char* txid(const uint64_t& ppi);
+
     int total;
     char *data;
   private:
     int fd;
     char filename[64];
+    char txid_text[20];
     SHA256_CTX sha256;
 };
 

@@ -205,12 +205,10 @@ bool Hlog::save(char* buf,int len) {
     return(write(fd,buf,len)==len);
 }
 
-///TODO: why static?
-static char* txid(const uint64_t& ppi) {
-    static char text[20];
+char* Hlog::txid(const uint64_t& ppi) {
     ppi_t *p=(ppi_t*)&ppi;
-    sprintf(text,"%04X%08X%04X",p->v16[2],p->v32[0],p->v16[3]);
-    return(text);
+    sprintf(txid_text,"%04X%08X%04X",p->v16[2],p->v32[0],p->v16[3]);
+    return(txid_text);
 }
 
 void Hlog::read_uso(boost::property_tree::ptree& pt, char *buffer) {

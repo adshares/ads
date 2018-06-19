@@ -28,6 +28,7 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/getblocks.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/logaccount.cpp
     PARENT_SCOPE
     )
 
@@ -63,6 +64,7 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/retrievefunds.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getvipkeys.h
     ${CMAKE_CURRENT_SOURCE_DIR}/getblocks.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/logaccount.h
     PARENT_SCOPE
     )
 
