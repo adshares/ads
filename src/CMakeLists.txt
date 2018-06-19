@@ -62,11 +62,6 @@ if(CODE_COVERAGE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -O0 --coverage -fprofile-arcs -ftest-coverage ")
 endif()
 
-if(CODE_COVERAGE)
-    message("** SOURCE CODE COVERAGE ENABLED **")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -g -O0 --coverage -fprofile-arcs -ftest-coverage ")
-endif()
-
 add_subdirectory(common)
 add_subdirectory(esc)
 add_subdirectory(escd)
