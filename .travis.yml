@@ -13,9 +13,12 @@ cache:
   
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
       - realpath
-      - libboost-all-dev
+      - gcc-5 g++-5 build-essential make cmake
+      - openssl libboost-all-dev libssl-dev
   hosts:
       - esc.dock
   sonarcloud:
@@ -31,8 +34,14 @@ before_install:
   - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-retrieve-funds.json
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/ads/data
+  - export ADS_CONF="./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$BIN_DIR/esc --daemon=$BIN_DIR/escd --interface=127.0.0.1 $GENESIS_FILE"
+  - export ADS_START="./scripts/ads_ctl.py --data=$DATA_DIR --init --wait start"
+  - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
+  # C++14
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
   # PIP
   - sudo pip install psutil
   # QA TESTS
@@ -47,15 +56,7 @@ jobs:
   include:
     - stage: compile
       script:
-        # C++14
-        - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-        - sudo apt-get update -qq
-        - sudo apt-get --allow-unauthenticated install -qq gcc-5 g++-5 cmake
-        - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
-        - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
-        # ---
         - mkdir build
-        - sudo ./scripts/compile.sh -R src
         - ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
         - mkdir -p $BIN_DIR
         - cp build/esc/esc $BIN_DIR
@@ -67,10 +68,8 @@ jobs:
     #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @transfer"
     - stage: test
       script:
-        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$BIN_DIR/esc --daemon=$BIN_DIR/escd --interface=127.0.0.1 $GENESIS_FILE
-        - ./scripts/ads_ctl.py --data=$DATA_DIR --init --wait start
-        - cd $TEST_DIR
-        - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @broadcast"
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
     #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @non_existent"
     #    - mvn clean test -q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE -Dcucumber.options="--tags @retrieve_funds"
     #- stage: test
