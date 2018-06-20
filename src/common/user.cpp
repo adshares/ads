@@ -160,7 +160,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
             command = std::make_unique<GetAccount>(sts.bank,sts.user,sts.bank,sts.user,now);
         }
         else {
-            command = std::make_unique<GetAccount>(sts.bank,sts.user,sts.bank,sts.user,now);
+            command = std::make_unique<GetAccount>(sts.bank,sts.user,to_bank,to_user,now);
         }
     }
     else if(!run.compare(txsname[TXSTYPE_LOG])) {

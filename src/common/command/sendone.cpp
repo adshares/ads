@@ -91,6 +91,16 @@ uint32_t SendOne::getTime() {
     return m_data.info.ttime;
 }
 
+unsigned char*  SendOne::getBlockMessage()
+{
+    return reinterpret_cast<unsigned char*>(&m_data);
+}
+
+size_t  SendOne::getBlockMessageSize()
+{
+    return sizeof(UserSendOne);
+}
+
 int64_t SendOne::getFee() {
     int64_t fee=TXS_PUT_FEE(m_data.info.ntmass);
     if(m_data.info.abank!=m_data.info.bbank) {
