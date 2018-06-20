@@ -23,6 +23,12 @@ class CommandHandler : public ICommandHandler {
     office&                         m_offi;     ///< Reference to office object.
     boost::asio::ip::tcp::socket&   m_socket;   ///< Socket for connection with client.
     user_t                          m_usera;    ///< Current user blockchain data.
+    struct CommitResult {
+        ErrorCodes::Code errorCode;
+        uint32_t msid;
+        uint32_t mpos;
+    };
+    CommitResult commitChanges(IBlockCommand& command);
   private:
     ErrorCodes::Code executeImpl(std::unique_ptr<IBlockCommand>);
     ErrorCodes::Code performCommonValidation(IBlockCommand&);

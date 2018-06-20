@@ -19,7 +19,6 @@ void UnsetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void UnsetAccountStatusHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
     int64_t     fee             = m_command->getFee();
@@ -32,8 +31,8 @@ void UnsetAccountStatusHandler::onExecute() {
 
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
-    uint32_t msid;
-    uint32_t mpos;
+    auto errorCode = ErrorCodes::Code::eNone;
+    uint32_t msid, mpos;
 
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
         ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);

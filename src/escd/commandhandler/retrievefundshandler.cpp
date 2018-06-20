@@ -18,37 +18,17 @@ void RetrieveFundsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void RetrieveFundsHandler::onExecute() {
     assert(m_command);
+    const auto res = commitChanges(*m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-
-    //commit changes
-    m_usera.msid++;
-    m_usera.time  = m_command->getTime();
-    m_usera.lpath = lpath;
-
-    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-    uint32_t msid;
-    uint32_t mpos;
-
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-        errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    }
-
-    if(!errorCode) {
-        m_offi.set_user(m_command->getUserId(), m_usera, m_command->getDeduct()+m_command->getFee());
-
+    if(!res.errorCode) {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
         tlog.node   = m_command->getDestBankId();
         tlog.user   = m_command->getDestUserId();
         tlog.umid   = m_command->getUserMessageId();
-        tlog.nmid   = msid;
-        tlog.mpos   = mpos;
+        tlog.nmid   = res.msid;
+        tlog.mpos   = res.mpos;
 
         tInfo info;
         info.weight = m_usera.weight;
@@ -63,9 +43,9 @@ void RetrieveFundsHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        if(!res.errorCode) {
+            commandresponse response{m_usera, res.msid, res.mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {

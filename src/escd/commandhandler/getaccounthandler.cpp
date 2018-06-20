@@ -18,7 +18,7 @@ void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetAccountHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     userinfo&   data    = m_command->getDataStruct().info;
     std::vector<boost::asio::const_buffer> response;
 

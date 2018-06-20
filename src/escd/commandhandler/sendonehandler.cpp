@@ -20,42 +20,19 @@ void SendOneHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void SendOneHandler::onExecute() {
     assert(m_command);
 
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee{0};
-    int64_t     deposit{-1}; // if deposit=0 inform target
-    int64_t     deduct{0};
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    int64_t deposit = m_command->getDeduct(); // if deposit==0 inform target
+    const auto res = commitChanges(*m_command);
 
-    deposit = m_command->getDeduct();
-    deduct = m_command->getDeduct();
-    fee = m_command->getFee();
-
-    //commit changes
-    m_usera.msid++;
-    m_usera.time=m_command->getTime();
-    m_usera.lpath=lpath;
-
-    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-    uint32_t msid;
-    uint32_t mpos;
-
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-        errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    } else {
-        m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
-
+    if (!res.errorCode) {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
         tlog.node   = m_command->getDestBankId();
         tlog.user   = m_command->getDestUserId();
         tlog.umid   = m_command->getUserMessageId();
-        tlog.nmid   = msid;
-        tlog.mpos   = mpos;
-        tlog.weight = -deduct;
+        tlog.nmid   = res.msid;
+        tlog.mpos   = res.mpos;
+        tlog.weight = -m_command->getDeduct();
         memcpy(tlog.info, m_command->getInfoMsg(),32);
         m_offi.put_ulog(m_command->getUserId(),  tlog);
 
@@ -63,7 +40,7 @@ void SendOneHandler::onExecute() {
             tlog.type|=0x8000; //incoming
             tlog.node=m_command->getBankId();
             tlog.user=m_command->getUserId();
-            tlog.weight=deduct;
+            tlog.weight=m_command->getDeduct();
             m_offi.put_ulog(m_command->getDestUserId(), tlog);
             if(deposit>=0) {
                 m_offi.add_deposit(m_command->getDestUserId(), deposit);
@@ -72,9 +49,9 @@ void SendOneHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        if(!res.errorCode) {
+            commandresponse response{m_usera, res.msid, res.mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {

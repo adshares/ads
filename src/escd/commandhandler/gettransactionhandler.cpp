@@ -21,7 +21,7 @@ void GetTransactionHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetTransactionHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     std::vector<hash_s> hashes;
     GetTransactionResponse res;
     uint32_t mnum;

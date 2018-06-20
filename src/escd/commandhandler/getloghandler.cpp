@@ -19,7 +19,7 @@ void GetLogHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetLogHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     std::string slog;
     if (!m_offi.get_log(m_command->getBankId(), m_command->getUserId(), m_command->getTime(), slog)) {

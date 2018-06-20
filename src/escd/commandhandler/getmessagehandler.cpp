@@ -8,7 +8,6 @@ GetMessageHandler::GetMessageHandler(office& office, boost::asio::ip::tcp::socke
     : CommandHandler(office, socket) {
 }
 
-
 void GetMessageHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
         m_command = std::unique_ptr<GetMessage>(dynamic_cast<GetMessage*>(command.release()));
@@ -16,13 +15,12 @@ void GetMessageHandler::onInit(std::unique_ptr<IBlockCommand> command) {
         DLOG("GetMessage bad_cast caught: %s", bc.what());
         return;
     }
-
 }
 
 void GetMessageHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     message_ptr msg(new message(MSGTYPE_MSG, m_command->getBlockTime(), m_command->getDestNode(), m_command->getMsgId()));
     msg->load(BANK_MAX);
