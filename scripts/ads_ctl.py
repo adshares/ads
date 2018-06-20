@@ -248,7 +248,6 @@ if __name__ == '__main__':
         check_data(args.data_dir)
         wait_action(args.data_dir)
     elif args.action == 'clean':
-        check_data(args.data_dir)
         clean_action(args.data_dir)
     elif args.action == 'start':
         check_data(args.data_dir)
