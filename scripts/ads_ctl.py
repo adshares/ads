@@ -19,6 +19,15 @@ CLIENT_BIN_NAME = 'ads'
 
 
 def start_node(nconf_path, genesis_time, init=False):
+    """
+    Start a background node process. Modifies the local genesis file by setting the `genesis_time`.
+    On success, creates a pid file with the process number.
+
+    :param nconf_path: Path to node configuration directory.
+    :param genesis_time: Genesis time of the network.
+    :param init: Set it to true, if this is the first node of the network.
+    :return:
+    """
 
     genesis_path = os.path.join(nconf_path, 'genesis.json')
 
@@ -61,25 +70,37 @@ def start_node(nconf_path, genesis_time, init=False):
 
 
 def stop_node(nconf_path):
-    os.chdir(nconf_path)
+    """
+    Stop the node by sending a SIGKILL to the process. Process ID is read from the pid file.
 
+    :param nconf_path: Path to directory holding the pid file.
+    :return:
+    """
+
+    pid_filepath = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
     try:
-        with open('{0}.pid'.format(DAEMON_BIN_NAME), 'r') as f:
+        with open(pid_filepath, 'r') as f:
             pid = int(f.read())
 
         try:
             os.kill(pid, signal.SIGKILL)
+            os.remove(pid_filepath)
             print("ADS node {0} stopped.".format(nconf_path))
 
         except OSError:
-            print("ADS node not {0} killed (maybe not found).".format(nconf_path))
+            print("ADS node {0} not killed for node config.".format(nconf_path))
 
     except IOError:
         print("Pid file not found")
 
 
 def stop_all():
-    # https://stackoverflow.com/a/2241047
+    """
+    Kill all process matching the daemon binary name.
+    From: https://stackoverflow.com/a/2241047
+
+    :return:
+    """
 
     name = DAEMON_BIN_NAME
 
@@ -106,10 +127,17 @@ def stop_all():
 
 
 def state(nconf_path):
-    os.chdir(nconf_path)
+    """
+    Get node state with the following information:
+    * genesis.json hash
+    * check if process is alive by trying to ping it, using the pid file number.
+
+    :param nconf_path: Path to directory with the node's genesis.json and pid file.
+    :return: Exists system with status code 1 if pid is not found.
+    """
 
     m = hashlib.md5()
-    with open('genesis.json', 'r') as f:
+    with open(os.path.join(nconf_path, 'genesis.json'), 'r') as f:
         m.update(f.read())
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
@@ -130,7 +158,17 @@ def state(nconf_path):
 
 
 def investigate(uconf_path, silent=False):
+    """
+    Check the node status by sending it a message from a local account.
+    Prints out:
+    * ID of last block
+    * Hash of last block
+    * Time since last message.
 
+    :param uconf_path: Path to directory with the account config.
+    :param silent: Set to True to supress some outputs.
+    :return: True on receiving a response, False on failure.
+    """
     try:
         cmd = 'echo \'{"run":"get_block"}\''
         cmd += ' | {0} --work-dir={1}'.format(CLIENT_BIN_NAME, uconf_path)
@@ -159,13 +197,24 @@ def investigate(uconf_path, silent=False):
 
 
 def check_data(data_dir):
+    """
+    Check for node data in `data_dir`.
+
+    :param data_dir: Directory with the node configuration.
+    :return: Exists system with 1 if config not found.
+    """
     if not glob(data_dir + '/node*'):
         print("Cannot find nodes data in {0}".format(data_dir))
         sys.exit(1)
 
 
 def clean_action(data_dir):
+    """
+    Remove and recreate the whole ADS data directory.
 
+    :param data_dir: Directory to clean up.
+    :return:
+    """
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
         os.mkdir(data_dir)
@@ -175,7 +224,14 @@ def clean_action(data_dir):
 
 
 def start_action(data_dir, debug=False, init=False):
+    """
+    Create the genesis time and start the node in background.
 
+    :param data_dir: Directory with the node configuration.
+    :param debug: Set this to True for shorter block time. This will result in faster start time.
+    :param init: Set this to True if node is to be initialized.
+    :return:
+    """
     block_time = 512
     if debug:
         block_time = 32
@@ -188,6 +244,12 @@ def start_action(data_dir, debug=False, init=False):
 
 
 def stop_action(data_dir):
+    """
+    Try to stop nodes gently. Then try to kill all still living.
+
+    :param data_dir: Data directory with node configurations.
+    :return:
+    """
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
         stop_node(nconf)
@@ -195,27 +257,47 @@ def stop_action(data_dir):
 
 
 def nodes_action(data_dir):
+    """
+    Get the state of the nodes from static resources.
+
+    :param data_dir: Data directory with node configurations.
+    :return:
+    """
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
         state(nconf)
 
 
 def network_action(data_dir):
+    """
+    Get the state of the nodes from asking the node for information.
+
+    :param data_dir: Data directory with node configurations.
+    :return:
+    """
     for uconf in sorted(glob(data_dir + '/user*.00000000')):
         print(uconf)
         if not investigate(uconf):
             sys.exit(1)
 
 
-def wait_action(data_dir):
+def wait_action(data_dir, timeout=300):
+    """
+    Wait till the node is alive by waiting for a response.
 
+    Timeout can be set.
+
+    :param data_dir: Directory with account configuration used to connect to the nodes.
+    :param timeout: Timeout, in seconds.
+    :return:
+    """
     print("Waiting for ADS")
 
     t = time.time()
     started = False
     while not started:
 
-        if time.time() - t > 300:
+        if time.time() - t > timeout:
             print("ADS start timeout")
             sys.exit(1)
 
