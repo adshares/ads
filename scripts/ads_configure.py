@@ -61,7 +61,7 @@ class AccountConfig(object):
         filepath = os.path.join(directory, 'settings.cfg')
 
         save_config(filepath, options)
-        print("Saved account settings to: {0}".format(filepath))
+        print("{0} Saved settings to: {1}".format(self.address, filepath))
 
 
 class NodeConfig(object):
@@ -111,7 +111,7 @@ class NodeConfig(object):
         filepath = os.path.join(directory, 'options.cfg')
 
         save_config(filepath, options)
-        print("Saved node options to: {0}".format(filepath))
+        print("{0} Saved options to: {1}".format(self.svid, filepath))
 
 
 class GenesisFile(object):
@@ -189,7 +189,6 @@ if __name__ == '__main__':
 
     parser.add_argument('genesis', default=None, help='Genesis file')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
-
     parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
