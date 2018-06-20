@@ -8,6 +8,7 @@ import socket
 import sys
 from copy import copy
 from shutil import copyfile
+from os.path import expanduser
 
 
 class AccountAddressError(Exception):
@@ -15,6 +16,7 @@ class AccountAddressError(Exception):
 
 
 def save_config(filepath, settings):
+    print(filepath)
     with open(filepath, 'w') as f:
         for k, v in sorted(settings.items()):
             if isinstance(v, list):
@@ -188,15 +190,12 @@ if __name__ == '__main__':
     parser.add_argument('genesis', default=None, help='Genesis file')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
 
-    parser.add_argument('--data_dir', default='/ads_data', help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
     args = parser.parse_args()
 
-    local_env = {'data_dir': args.data_dir,
-                 'client_bin_path': args.client,
-                 'daemon_bin_path': args.daemon,
-                 'node_interface': args.interface}
+    local_env = {'data_dir': args.data_dir, 'node_interface': args.interface}
 
     genesis_data = GenesisFile(args.genesis)
     node_identifiers = genesis_data.node_identifiers()
