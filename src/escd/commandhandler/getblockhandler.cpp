@@ -19,9 +19,8 @@ void GetBlockHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetBlockHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
-    errorCode = m_command->prepareResponse();
+    const auto errorCode = m_command->prepareResponse();
 
     try {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));

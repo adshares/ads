@@ -22,7 +22,7 @@ void GetAccountsHandler::onExecute() {
     uint32_t path = m_offi.last_path();
     uint32_t users = m_offi.last_users(m_command->getDestBankId());
 
-    ErrorCodes::Code errorCode = m_command->prepareResponse(path, users);
+    const auto errorCode = m_command->prepareResponse(path, users);
     if (errorCode != ErrorCodes::Code::eNone) {
         DLOG("OnGetAccounts error: %s", ErrorCodes().getErrorMsg(errorCode));
     }

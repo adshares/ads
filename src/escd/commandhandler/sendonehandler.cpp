@@ -47,15 +47,19 @@ void SendOneHandler::onExecute() {
     } else {
         m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
 
+    int64_t deposit = m_command->getDeduct(); // if deposit==0 inform target
+    const auto res = commitChanges(*m_command);
+
+    if (!res.errorCode) {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
         tlog.node   = m_command->getDestBankId();
         tlog.user   = m_command->getDestUserId();
         tlog.umid   = m_command->getUserMessageId();
-        tlog.nmid   = msid;
-        tlog.mpos   = mpos;
-        tlog.weight = -deduct;
+        tlog.nmid   = res.msid;
+        tlog.mpos   = res.mpos;
+        tlog.weight = -m_command->getDeduct();
         memcpy(tlog.info, m_command->getInfoMsg(),32);
         m_offi.put_ulog(m_command->getUserId(),  tlog);
 
@@ -63,7 +67,7 @@ void SendOneHandler::onExecute() {
             tlog.type|=0x8000; //incoming
             tlog.node=m_command->getBankId();
             tlog.user=m_command->getUserId();
-            tlog.weight=deduct;
+            tlog.weight=m_command->getDeduct();
             m_offi.put_ulog(m_command->getDestUserId(), tlog);
             if(deposit>=0) {
                 m_offi.add_deposit(m_command->getDestUserId(), deposit);
@@ -72,9 +76,9 @@ void SendOneHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        if(!res.errorCode) {
+            commandresponse response{m_usera, res.msid, res.mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {

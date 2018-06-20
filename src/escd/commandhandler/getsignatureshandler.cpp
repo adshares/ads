@@ -19,7 +19,7 @@ void GetSignaturesHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void GetSignaturesHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     Helper::Signatures signatures;
     signatures.load(m_command->getBlockNumber());
 

@@ -19,39 +19,17 @@ void CreateNodeHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void CreateNodeHandler::onExecute() {
     assert(m_command);
 
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    const auto res = commitChanges(*m_command);
 
-    m_usera.msid++;
-    m_usera.time  = m_command->getTime();
-    //m_usera.node = 0;
-    //m_usera.user = 0;
-    m_usera.lpath = lpath;
-    //convert message to hash (use signature as input)
-    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-    //commit changes
-    uint32_t msid;
-    uint32_t mpos;
-
-    // could add set_user here
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-        errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    } else {
-
-        m_offi.set_user(m_command->getUserId(), m_usera, m_command->getDeduct()+m_command->getFee()); //will fail if status changed !!!
-
-        //addlogs
+    if(!res.errorCode) {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
         tlog.node   = 0;
         tlog.user   = m_command->getUserId();
         tlog.umid   = m_command->getUserMessageId();
-        tlog.nmid   = msid;
-        tlog.mpos   = mpos;
+        tlog.nmid   = res.msid;
+        tlog.mpos   = res.mpos;
 
         tInfo info;
         info.weight = m_usera.weight;
@@ -65,15 +43,15 @@ void CreateNodeHandler::onExecute() {
         m_offi.put_ulog(m_command->getUserId(), tlog);
 
 #ifdef DEBUG
-    DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_usera.node, m_usera.user, msid, mpos);
+    DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_usera.node, m_usera.user, res.msid, res.mpos);
 #endif
     }
 
     //send response
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        if(!res.errorCode) {
+            commandresponse response{m_usera, res.msid, res.mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {

@@ -22,7 +22,7 @@ void GetBroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void GetBroadcastMsgHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     uint32_t blockTime = m_command->getBlockTime();
     uint32_t path, lpath, size = 0;
 

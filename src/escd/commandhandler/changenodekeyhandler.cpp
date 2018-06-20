@@ -61,7 +61,6 @@ void ChangeNodeKeyHandler::onExecute() {
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
             tlog.node   = 0;
-//            tlog.user   = m_command->getKey();
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;
             tlog.mpos   = mpos;

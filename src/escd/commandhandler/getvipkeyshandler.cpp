@@ -19,7 +19,7 @@ void GetVipKeysHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetVipKeysHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     char hash[65];
     hash[64]='\0';

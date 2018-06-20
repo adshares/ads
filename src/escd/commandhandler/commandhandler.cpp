@@ -2,8 +2,8 @@
 #include "command/getaccount.h"
 #include "command/setaccountkey.h"
 #include "command/commandtype.h"
+#include "helper/hash.h"
 #include "../office.hpp"
-
 
 CommandHandler::CommandHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : m_offi(office),
@@ -105,4 +105,25 @@ ErrorCodes::Code CommandHandler::validateModifyingCommand(IBlockCommand& command
         return ErrorCodes::Code::eLowBalance;
     }
     return ErrorCodes::Code::eNone;
+}
+
+CommandHandler::CommitResult CommandHandler::commitChanges(IBlockCommand& command) {
+    auto startedTime = time(nullptr);
+    uint32_t lpath = startedTime-startedTime%BLOCKSEC;
+
+    m_usera.msid++;
+    m_usera.time = command.getTime();
+    m_usera.lpath = lpath;
+
+    Helper::create256signhash(command.getSignature(), command.getSignatureSize(), m_usera.hash, m_usera.hash);
+
+    uint32_t msid, mpos;
+
+    if(!m_offi.add_msg(command, msid, mpos)) {
+        DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
+        return {ErrorCodes::Code::eMessageSubmitFail, msid, mpos};
+    }
+
+    m_offi.set_user(command.getUserId(), m_usera, command.getDeduct() + command.getFee());
+    return {ErrorCodes::Code::eNone, msid, mpos};
 }

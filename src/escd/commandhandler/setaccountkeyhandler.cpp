@@ -24,7 +24,6 @@ void SetAccountKeyHandler::onExecute() {
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
     uint32_t    msid;
     uint32_t    mpos;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
     //execute    
     std::copy(data.pubkey, data.pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
@@ -35,6 +34,7 @@ void SetAccountKeyHandler::onExecute() {
     //convert message to hash (use signature as input)
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
+    auto errorCode = ErrorCodes::Code::eNone;
     // could add set_user here
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
         ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
