@@ -235,7 +235,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
     parser.add_argument('action', choices=['start', 'stop', 'clean', 'nodes', 'network', 'wait'])
     parser.add_argument('-i', '--init', action='store_true', help='Initialize the first network node.')
-    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--data-dir', default=expanduser('~/ads_data'), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('-w', '--wait', action='store_true', help='Wait and make sure the daemon is working.')
     parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
 
