@@ -83,7 +83,7 @@ TEST(LibArchiveTest, checkHeader) {
 
 TEST(LibArchiveTest, getFileFromArch) {
     int fd;
-    unsigned int offset, size;
+    uint64_t offset, size;
 
     Helper::LibArchive lib(ARCH_NAME);
     lib.getFileHandle(FILE3_PATH, &fd, &offset, &size);

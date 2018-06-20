@@ -61,7 +61,7 @@ int LibArchiveReader::read(void* buffer, unsigned int size)
 
 bool LibArchiveReader::lseek(int position, int whence)
 {
-    int offset = 0;
+    int64_t offset = 0;
     switch(whence)
     {
     case SEEK_CUR:
@@ -77,7 +77,7 @@ bool LibArchiveReader::lseek(int position, int whence)
         break;
     }
 
-    if (offset > (int)(m_fileSize + m_seek))
+    if (offset > (int64_t)(m_fileSize + m_seek))
     {
         offset = m_fileSize + m_seek;
         whence = SEEK_SET;

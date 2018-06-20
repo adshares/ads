@@ -1,6 +1,7 @@
 #ifndef LIBARCHIVEREADER_H
 #define LIBARCHIVEREADER_H
 
+#include <stdint.h>
 
 namespace Helper {
 
@@ -67,8 +68,8 @@ private:
     const char* m_archFilePath;
     const char* m_filePath;
     int m_fileDescriptor;
-    unsigned int m_seek;
-    unsigned int m_fileSize;
+    uint64_t m_seek;
+    uint64_t m_fileSize;
 };
 
 }

@@ -1,6 +1,8 @@
 #ifndef LIBARCHIVE_H
 #define LIBARCHIVE_H
 
+#include <stdint.h>
+
 /**
  * Header of archive
  * 2B - no. of files in archive
@@ -41,7 +43,7 @@ public:
      * @param file_size - [out] size of file
      * @return true if success otherwise false.
      */
-    bool getFileHandle(const char* filepath, int *file_descriptor, unsigned int *offset, unsigned int *file_size);
+    bool getFileHandle(const char* filepath, int *file_descriptor, uint64_t *offset, uint64_t *file_size);
 
 private:
     const char* m_filePath;

@@ -87,7 +87,7 @@ bool LibArchive::createArch(const char* directoryPath)
     return true;
 }
 
-bool LibArchive::getFileHandle(const char* filepath, int *file_descriptor, unsigned int *offset, unsigned int *file_size)
+bool LibArchive::getFileHandle(const char* filepath, int *file_descriptor, uint64_t *offset, uint64_t *file_size)
 {
 
     uint16_t no_of_files;
