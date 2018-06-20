@@ -467,7 +467,7 @@ class message :
         hashtree tree;
         tree.hashpath(tnum/2,(tmax+1)/2,add);
 
-        int secondLevel = (ttot -(mlen+32+4+4+4+(4+32)*tmax))/32;
+        uint32_t secondLevel = (ttot -(mlen+32+4+4+4+(4+32)*tmax))/32;
 
         for(auto n : add) {
             DLOG("HASHTREE add %d\n",n);

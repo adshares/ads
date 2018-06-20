@@ -8,6 +8,11 @@
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
 
+#define NETSRV_SOCK_TIMEOUT 5
+#define NETSRV_SOCK_IDLE    5
+#define NETSRV_SOCK_MAXTRY  3
+
+
 //this could all go to the office class and we could use just the start() function
 
 /**
@@ -38,6 +43,8 @@ class client : public boost::enable_shared_from_this<client> {
         return m_socket;
     }
 
+#include <sys/socket.h>
+
     void start() { //TODO consider providing a local user file pointer
 
 #ifdef DEBUG
@@ -46,7 +53,8 @@ class client : public boost::enable_shared_from_this<client> {
         DLOG("Client entered %s:%s\n",m_addr.c_str(),m_port.c_str());
 #endif
 
-        Helper::setSocketTimeout(m_socket);        
+        Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
+
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                 boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
