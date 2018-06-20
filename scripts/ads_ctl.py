@@ -132,13 +132,14 @@ def state(nconf_path):
 def investigate(uconf_path, silent=False):
 
     try:
-        cmd = ['echo -n \'{"run":"get_block"}\'', '|', CLIENT_BIN_NAME, '--work-dir={0}'.format(uconf_path)]
+        cmd = 'echo \'{"run":"get_block"}\''
+        cmd += ' | {0} --work-dir={1}'.format(CLIENT_BIN_NAME, uconf_path)
 
-        if silent:
-            with open(os.devnull, 'w') as devnull:
-                output = subprocess.check_output(cmd, stderr=devnull, shell=True)
-        else:
-            output = subprocess.check_output(cmd, shell=True)
+        #if silent:
+        with open(os.devnull, 'w') as devnull:
+            output = subprocess.check_output(cmd, stderr=devnull, shell=True)
+        #else:
+        #    output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as e:
         print(e)
         return False
