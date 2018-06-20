@@ -192,7 +192,7 @@ class settings {
             std::cerr << "Could not chdir to working directory\n";
             exit(-1);
         }
-        std::cout << "Working dir: " << workdir << "\n";
+        std::cerr << "Working dir: " << workdir << "\n";
     }
 
     static std::string get_workdir(int ac, char *av[]) {
