@@ -49,6 +49,8 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
         return;
     };
 
+    //TODO check if it is better for performance to create only proper handler.
+    // It is not needed to create all handlers.
     switch(command->getType()) {
     case TXSTYPE_INF:
         m_getAccountHandler.execute(std::move(command), usera);
