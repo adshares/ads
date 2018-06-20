@@ -29,12 +29,12 @@ install_dependencies() {
 
 install_apt_dependencies() {
 
-    apt-get update -qq
-    apt-get install -qq openssl libboost-all-dev
+    apt-get update -qy
+    apt-get install -qy openssl libboost-all-dev
 
     if [ $1 ]; then
-        apt-get -qq install libssl-dev
-        apt-get -qq install build-essential make cmake
+        apt-get -qy install libssl-dev
+        apt-get -qy install build-essential make cmake
     fi
 }
 
@@ -63,19 +63,6 @@ install_apk_dependencies() {
         apk add gcc g++
         apk add make cmake
     fi
-}
-
-compile() {
-    echo $0
-    echo $1
-    echo $2
-#    if [ $1 ]; then
-#        shift 1
-#        mkdir /ads
-#        cd /ads
-#        cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_PROJECT_CONFIG=esc $* /ads_repo/src
-#        make -j `nproc` escd esc
-#    fi
 }
 
 usage() {
@@ -168,23 +155,21 @@ echo "=== Cleaning ==="
 make clean
 
 echo "=== Configuring ==="
-if ! cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_PROJECT_CONFIG=esc $coptions $source
+if ! cmake -DCMAKE_BUILD_TYPE=$build_type -DCMAKE_PROJECT_CONFIG=ads $coptions $source
 then
     exit 1
 fi
 
-echo "=== Compiling ==="
-if ! make -j `nproc` $options escd esc
-then
-    exit 1
-fi
-
+targets="adsd ads"
 if [ -n "$install" ]
 then
-    echo "=== Installing binaries ==="
-    if ! make -j `nproc` $options install
-    then
-        exit 1
-    fi
+    targets="$targets install"
 fi
+
+echo "=== Compiling $targets ==="
+if ! make -j `nproc` $options $targets
+then
+    exit 1
+fi
+
 echo "=== END ==="

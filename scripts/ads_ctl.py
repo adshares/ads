@@ -11,28 +11,31 @@ import signal
 import sys
 import hashlib
 import psutil
+from os.path import expanduser
 
 
-DAEMON_BIN_NAME = 'escd'
-CLIENT_BIN_NAME = 'esc'
+DAEMON_BIN_NAME = 'adsd'
+CLIENT_BIN_NAME = 'ads'
 
 
 def start_node(nconf_path, genesis_time, init=False):
 
-    os.chdir(nconf_path)
+    genesis_path = os.path.join(nconf_path, 'genesis.json')
 
-    with open('genesis.json', 'r') as f:
+    with open(genesis_path, 'r') as f:
         genesis = json.load(f)
 
     genesis['config'] = dict()
     genesis['config']['start_time'] = genesis_time
 
-    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
-
-    with open('genesis.json', 'w') as f:
+    with open(genesis_path, 'w') as f:
         json.dump(genesis, f)
 
-    cmd = ['./{0}'.format(DAEMON_BIN_NAME), '--genesis=genesis.json']
+    cmd = [
+        DAEMON_BIN_NAME,
+        '--genesis={0}'.format(genesis_path),
+        '--work-dir={0}'.format(nconf_path)
+    ]
 
     if init:
         cmd += ['--init=true']
@@ -44,8 +47,11 @@ def start_node(nconf_path, genesis_time, init=False):
 
     try:
         os.kill(proc.pid, 0)
-        with open('{0}.pid'.format(DAEMON_BIN_NAME), 'w') as f:
+
+        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+        with open(pidfile, 'w') as f:
             f.write(str(proc.pid))
+
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
@@ -109,7 +115,8 @@ def state(nconf_path):
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
     try:
-        with open('{0}.pid'.format(DAEMON_BIN_NAME)) as f:
+        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+        with open(pidfile, 'r') as f:
             pid = int(f.read())
     except IOError:
         print("Pid file not found")
@@ -123,19 +130,21 @@ def state(nconf_path):
 
 
 def investigate(uconf_path, silent=False):
-    os.chdir(uconf_path)
 
     try:
+        cmd = ['echo -n \'{"run":"get_block"}\'', '|', CLIENT_BIN_NAME, '--work-dir={0}'.format(uconf_path)]
+
         if silent:
             with open(os.devnull, 'w') as devnull:
-                output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, stderr=devnull, shell=True)
+                output = subprocess.check_output(cmd, stderr=devnull, shell=True)
         else:
-            output = subprocess.check_output('echo -n \'{"run":"get_block"}\' | ./' + CLIENT_BIN_NAME, shell=True)
+            output = subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError as e:
         print(e)
         return False
 
     json_out = json.loads(output)
+
     try:
         last_block_id, last_block_hash = json_out['block']['id'], json_out['block']['nowhash']
         mtimes = sorted([int(n['mtim']) for n in json_out['block']['nodes']])
@@ -164,9 +173,11 @@ def clean_action(data_dir):
         print("{0} doesn't exist".format(data_dir))
 
 
-def start_action(data_dir, init=False):
+def start_action(data_dir, debug=False, init=False):
 
-    block_time = 32
+    block_time = 512
+    if debug:
+        block_time = 32
     genesis_time = (int(time.time() + 8) / block_time) * block_time
     print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
@@ -212,7 +223,7 @@ def wait_action(data_dir):
                 started = True
                 break
             else:
-                print("Waiting for escd")
+                print("Waiting for adsd")
                 time.sleep(1)
 
     print("ADS started")
@@ -222,29 +233,30 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
     parser.add_argument('action', choices=['start', 'stop', 'clean', 'nodes', 'network', 'wait'])
-    parser.add_argument('--init', action='store_true')
-    parser.add_argument('--data', default='/ads_data', help='Writeable directory with node and accounts configurations.')
-    parser.add_argument('--wait', action='store_true')
+    parser.add_argument('-i', '--init', action='store_true', help='Initialize the first network node.')
+    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('-w', '--wait', action='store_true', help='Wait and make sure the daemon is working.')
+    parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
 
     args = parser.parse_args()
 
     if args.action == 'network':
-        check_data(args.data)
-        network_action(args.data)
+        check_data(args.data_dir)
+        network_action(args.data_dir)
     elif args.action == 'wait':
-        check_data(args.data)
-        wait_action(args.data)
+        check_data(args.data_dir)
+        wait_action(args.data_dir)
     elif args.action == 'clean':
-        check_data(args.data)
-        clean_action(args.data)
+        check_data(args.data_dir)
+        clean_action(args.data_dir)
     elif args.action == 'start':
-        check_data(args.data)
-        start_action(args.data, args.init)
+        check_data(args.data_dir)
+        start_action(args.data_dir, args.debug, args.init)
     elif args.action == 'stop':
-        stop_action(args.data)
+        stop_action(args.data_dir)
     elif args.action == 'nodes':
-        check_data(args.data)
-        nodes_action(args.data)
+        check_data(args.data_dir)
+        nodes_action(args.data_dir)
 
     if args.wait:
-        wait_action(args.data)
+        wait_action(args.data_dir)
