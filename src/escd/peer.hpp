@@ -9,6 +9,11 @@
 #include "network/peerclient.h"
 #include "network/peerclientmanager.h"
 
+#define NETPEER_SOCK_TIMEOUT 5
+#define NETPEER_SOCK_IDLE    120
+#define NETPEER_SOCK_MAXTRY  5
+
+
 class peer : public boost::enable_shared_from_this<peer> {
 
 public:
@@ -138,7 +143,7 @@ public:
     {
         //only incoming connections
         assert(socket_.is_open());
-        Helper::setSocketTimeout(socket_);
+        Helper::setSocketTimeout(socket_, NETPEER_SOCK_TIMEOUT, NETPEER_SOCK_IDLE, NETPEER_SOCK_MAXTRY);
         assert(incoming_);       
         addr = socket_.remote_endpoint().address().to_string();
         port = socket_.remote_endpoint().port();

@@ -6,6 +6,10 @@
 #include "helper/ascii.h"
 #include "helper/socket.h"
 
+#define NETCL_SOCK_TIMEOUT 10
+#define NETCL_SOCK_IDLE    15
+#define NETCL_SOCK_MAXTRY  3
+
 NetworkClient::NetworkClient(const std::string& address, const std::string& port):
     m_query(address, port.c_str()),
     m_resolver(m_ioService) {
@@ -30,7 +34,8 @@ bool NetworkClient::connect() {
 
                 if(m_socket) {
                     m_socket->connect(*connectpoint++, error);
-                    Helper::setSocketTimeout(m_socket);
+                    Helper::setSocketTimeout(m_socket, NETCL_SOCK_TIMEOUT, NETCL_SOCK_IDLE, NETCL_SOCK_MAXTRY);
+                    Helper::setSocketNoDelay(m_socket, true);
                 }
             }
 
