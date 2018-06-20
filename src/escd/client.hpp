@@ -54,6 +54,7 @@ class client : public boost::enable_shared_from_this<client> {
 #endif
 
         Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
+        Helper::setSocketNoDelay(m_socket, true);
 
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                 boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
