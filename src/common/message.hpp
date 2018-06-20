@@ -466,14 +466,23 @@ class message :
         std::vector<uint32_t>add;
         hashtree tree;
         tree.hashpath(tnum/2,(tmax+1)/2,add);
+
+        int secondLevel = (ttot -(mlen+32+4+4+4+(4+32)*tmax))/32;
+
         for(auto n : add) {
             DLOG("HASHTREE add %d\n",n);
-            if(n*2>=tmax-1) { //special case for last uneven hash
-                lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
-            } else {
+            if(n > secondLevel-1)
+            {
+                if((tmax/2)%2 == 1 && tmax > 3)
+                    lseek(fd,ttot-32,SEEK_SET);
+                else
+                    lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
+            }else
+            {
                 assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
                 lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
             }
+
             hash_s phash;
             read(fd,phash.hash,32);            
             hashes.push_back(phash);
