@@ -20,11 +20,14 @@ class GetAccount : public BlockCommand {
     }
 
     //IBlock interface
-    /** \brief Return TXSTYPE_INF as command type . */
+    /** \brief Return TXSTYPE_INF as type . */
     virtual int  getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
+
+    /** \brief Return eReadingOnly as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to response data. */
     virtual unsigned char*  getResponse()                       override;
@@ -79,6 +82,9 @@ class GetAccount : public BlockCommand {
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /**  \brief Get message id. */
+    virtual uint32_t getUserMessageId()                                 override;
 
     /** \brief Send data to the server.
      *

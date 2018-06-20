@@ -16,6 +16,10 @@ int RetrieveFunds::getType() {
     return TXSTYPE_GET;
 }
 
+CommandType RetrieveFunds::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* RetrieveFunds::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }

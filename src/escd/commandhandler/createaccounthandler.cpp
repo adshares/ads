@@ -102,45 +102,15 @@ void CreateAccountHandler::onExecute() {
     }
 }
 
-bool CreateAccountHandler::onValidate() {
-    int64_t deduct = m_command->getDeduct();
-    int64_t fee = m_command->getFee();
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
-    }
-    else if (!m_offi.svid || m_command->getBankId()!= m_offi.svid) {
-        DLOG("ERROR Incorrect bank: %d, should be %d\n", m_command->getBankId(), m_offi.svid);
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
-        DLOG("OFFICE: reject transaction in readonly mode (todo: add notification)\n");
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if(m_usera.msid!=m_command->getUserMessageId()) {
-        DLOG("ERROR: bad msid %08X<>%08X\n", m_usera.msid, m_command->getUserMessageId());
-        errorCode = ErrorCodes::Code::eBadMsgId;
-    }
-    else if (m_command->getDestBankId() != m_offi.svid) {
+ErrorCodes::Code CreateAccountHandler::onValidate() {
+    if(m_command->getDestBankId() != m_offi.svid) {
         uint32_t now = time(NULL);
         if(now%BLOCKSEC>BLOCKSEC/2) {
             DLOG("ERROR: bad timing for remote account request, try after %d seconds\n",
                  BLOCKSEC-now%BLOCKSEC);
-            errorCode = ErrorCodes::Code::eCreateAccountBadTiming;
+            return ErrorCodes::Code::eCreateAccountBadTiming;
         }
     }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+    return ErrorCodes::Code::eNone;
 }
+

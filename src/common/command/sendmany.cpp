@@ -75,6 +75,10 @@ int SendMany::getType() {
     return TXSTYPE_MPT;
 }
 
+CommandType SendMany::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void SendMany::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     int dataSize = this->getDataSize();
     int additionalSize = this->getAdditionalDataSize();

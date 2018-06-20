@@ -7,7 +7,6 @@ BroadcastMsgHandler::BroadcastMsgHandler(office& office, boost::asio::ip::tcp::s
     : CommandHandler(office, socket) {
 }
 
-
 void BroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     try {
         m_command = std::unique_ptr<BroadcastMsg>(dynamic_cast<BroadcastMsg*>(command.release()));
@@ -78,42 +77,10 @@ void BroadcastMsgHandler::onExecute() {
     }
 }
 
-
-
-bool BroadcastMsgHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    int64_t deduct = m_command->getDeduct();
-    int64_t fee = m_command->getFee();
-
-    if (fee < 0 || m_command->getAdditionalDataSize() > MAX_BROADCAST_LENGTH) {
-        errorCode = ErrorCodes::Code::eBroadcastMaxLength;
+ErrorCodes::Code BroadcastMsgHandler::onValidate() {
+    if (m_command->getAdditionalDataSize() > MAX_BROADCAST_LENGTH) {
+        return ErrorCodes::Code::eBroadcastMaxLength;
     }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-    else if(!m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) {
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if(m_usera.msid != m_command->getUserMessageId()) {
-        errorCode = ErrorCodes::Code::eBadMsgId;
-    }
-    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+    return ErrorCodes::Code::eNone;
 }
+

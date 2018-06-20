@@ -13,8 +13,11 @@ public:
     RetrieveFunds();
     RetrieveFunds(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser);
 
-    /** \brief Return TXSTYPE_GET as command type . */
+    /** \brief Return TXSTYPE_GET as type . */
     virtual int getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char* getData()                           override;

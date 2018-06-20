@@ -50,6 +50,10 @@ int CreateNode::getType() {
     return TXSTYPE_BNK;
 }
 
+CommandType CreateNode::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void CreateNode::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -119,7 +123,7 @@ bool CreateNode::send(INetworkClient& netClient) {
     return true;
 }
 
-uint32_t CreateNode::getMessageId() {
+uint32_t CreateNode::getUserMessageId() {
     return m_data.data.amsid;
 }
 

@@ -13,8 +13,11 @@ public:
     LogAccount();
     LogAccount(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime);
 
-    /** \brief Return TXSTYPE_SAV as command type . */
+    /** \brief Return TXSTYPE_SAV as type . */
     virtual int getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char* getData()                           override;

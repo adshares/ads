@@ -62,24 +62,8 @@ void GetTransactionHandler::onExecute() {
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
-
 }
 
-bool GetTransactionHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+ErrorCodes::Code GetTransactionHandler::onValidate() {
+    return ErrorCodes::Code::eNone;
 }

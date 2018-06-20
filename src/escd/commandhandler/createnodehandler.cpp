@@ -49,7 +49,7 @@ void CreateNodeHandler::onExecute() {
         tlog.type   = m_command->getType();
         tlog.node   = 0;
         tlog.user   = m_command->getUserId();
-        tlog.umid   = m_command->getMessageId();
+        tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = msid;
         tlog.mpos   = mpos;
 
@@ -81,34 +81,7 @@ void CreateNodeHandler::onExecute() {
     }
 }
 
-bool CreateNodeHandler::onValidate() {
-    int64_t     deduct = m_command->getDeduct();
-    int64_t     fee    = m_command->getFee();
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if (m_command->getBankId() != m_offi.svid) {
-        ELOG("ERROR: bad bank\n");
-    errorCode = ErrorCodes::Code::eBankIncorrect;
-    } else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
-        ELOG("OFFICE: reject transaction in readonly mode (todo: add notification)\n");
-	errorCode = ErrorCodes::Code::eReadOnlyMode;
-    } else if(m_usera.msid!=m_command->getMessageId()) {
-        ELOG("ERROR: bad msid %08X<>%08X\n",m_usera.msid, m_command->getMessageId());
-	errorCode = ErrorCodes::Code::eBadMsgId;
-    } else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+ErrorCodes::Code CreateNodeHandler::onValidate() {
+    return ErrorCodes::Code::eNone;
 }
+

@@ -16,6 +16,10 @@ int UnsetAccountStatus::getType() {
     return TXSTYPE_UUS;
 }
 
+CommandType UnsetAccountStatus::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* UnsetAccountStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }

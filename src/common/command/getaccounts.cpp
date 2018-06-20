@@ -56,6 +56,10 @@ int GetAccounts::getType() {
     return TXSTYPE_NOD;
 }
 
+CommandType GetAccounts::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetAccounts::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -127,6 +131,10 @@ uint32_t GetAccounts::getDestBankId() {
 
 uint32_t GetAccounts::getBlockId() {
     return m_data.info.block;
+}
+
+uint32_t GetAccounts::getUserMessageId() {
+    return 0;
 }
 
 std::string GetAccounts::toString(bool /*pretty*/) {

@@ -51,6 +51,10 @@ int SendOne::getType() {
     return TXSTYPE_PUT;
 }
 
+CommandType SendOne::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void SendOne::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash,SHA256_DIGEST_LENGTH , getData(), getDataSize(), sk, pk, getSignature());
 }

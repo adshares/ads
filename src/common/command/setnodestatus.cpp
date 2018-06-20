@@ -16,6 +16,10 @@ int SetNodeStatus::getType() {
     return TXSTYPE_SBS;
 }
 
+CommandType SetNodeStatus::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* SetNodeStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }

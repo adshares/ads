@@ -22,8 +22,11 @@ class SetAccountKey : public BlockCommand {
 
     //IBlock interface
 
-    /** \brief Return TXSTYPE_KEY as command type . */
+    /** \brief Return TXSTYPE_KEY as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;

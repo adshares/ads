@@ -25,6 +25,10 @@ int GetBlocks::getType() {
     return TXSTYPE_BLK;
 }
 
+CommandType GetBlocks::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 unsigned char* GetBlocks::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -86,6 +90,10 @@ int64_t GetBlocks::getFee() {
 }
 
 int64_t GetBlocks::getDeduct() {
+    return 0;
+}
+
+uint32_t GetBlocks::getUserMessageId() {
     return 0;
 }
 

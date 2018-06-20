@@ -90,66 +90,31 @@ void UnsetAccountStatusHandler::onExecute() {
     }
 }
 
-bool UnsetAccountStatusHandler::onValidate() {
-
-    auto startedTime = time(NULL);
-    int32_t diff = m_command->getTime() - startedTime;
-
-    int64_t deduct = m_command->getDeduct();
-    int64_t fee = m_command->getFee();
-
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
-        errorCode = ErrorCodes::Code::eTimeInFuture;
-    }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-    else if(!m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) {
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if(m_usera.msid != m_command->getUserMessageId()) {
-        errorCode = ErrorCodes::Code::eBadMsgId;
-    }
-    else if(!m_offi.check_user(m_command->getDestBankId(),m_command->getDestUserId())) {
+ErrorCodes::Code UnsetAccountStatusHandler::onValidate() {
+    if(!m_offi.check_user(m_command->getDestBankId(),m_command->getDestUserId())) {
         DLOG("ERROR: bad target user %04X:%08X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        errorCode = ErrorCodes::Code::eUserBadTarget;
+        return ErrorCodes::Code::eUserBadTarget;
     }
-    else if(m_command->getDestBankId() != m_offi.svid) {
+
+    if(m_command->getDestBankId() != m_offi.svid) {
         DLOG("ERROR: changing account status on remote node is not allowed");
-        errorCode = ErrorCodes::Code::eAccountStatusOnRemoteNode;
+        return ErrorCodes::Code::eAccountStatusOnRemoteNode;
     }
-    else if(0x0 != (m_command->getStatus()&0x1)) {
+
+    if(0x0 != (m_command->getStatus()&0x1)) {
         DLOG("ERROR: not authorized to change first bit for user %08X \n", m_command->getDestUserId());
-        errorCode = ErrorCodes::Code::eAuthorizationError;
+        return ErrorCodes::Code::eAuthorizationError;
     }
-    else if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
+
+    if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
             (0x0 != (m_command->getStatus()&0xFFF0))) {
 
         DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",
-        m_command->getStatus(), m_command->getDestUserId());
+            m_command->getStatus(), m_command->getDestUserId());
 
-        errorCode = ErrorCodes::Code::eAuthorizationError;
-    }
-    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
+        return ErrorCodes::Code::eAuthorizationError;
     }
 
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+    return ErrorCodes::Code::eNone;
 }
+

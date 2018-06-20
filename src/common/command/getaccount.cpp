@@ -50,6 +50,14 @@ int GetAccount::getType() {
     return TXSTYPE_INF;
 }
 
+CommandType GetAccount::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
+uint32_t GetAccount::getUserMessageId() {
+    return 0;
+}
+
 void GetAccount::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }

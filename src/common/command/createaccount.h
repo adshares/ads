@@ -11,8 +11,11 @@ public:
     CreateAccount();
     CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time);
 
-    /** \brief Return TXSTYPE_USR as command type . */
+    /** \brief Return TXSTYPE_USR as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;

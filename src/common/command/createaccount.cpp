@@ -58,6 +58,10 @@ int CreateAccount::getType() {
     return TXSTYPE_USR;
 }
 
+CommandType CreateAccount::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void CreateAccount::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash,SHA256_DIGEST_LENGTH , getData(), getDataSize(), sk, pk, getSignature());
 }

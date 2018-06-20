@@ -58,6 +58,10 @@ int SetAccountKey::getType() {
     return TXSTYPE_KEY;
 }
 
+CommandType SetAccountKey::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void SetAccountKey::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 }

@@ -11,8 +11,11 @@ class GetTransaction : public BlockCommand {
         GetTransaction();
         GetTransaction(uint16_t src_node, uint32_t src_user, uint16_t dst_node, uint32_t node_msgid, uint32_t position, uint32_t time);
 
-        /** \brief Return TXSTYPE_TXS as command type . */
+        /** \brief Return TXSTYPE_TXS as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eReadingOnly as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -70,6 +73,9 @@ class GetTransaction : public BlockCommand {
 
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
+
+        /**  \brief Get message id. */
+        virtual uint32_t getUserMessageId()                                 override;
 
         /** \brief Send data to the server.
          *

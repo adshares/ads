@@ -39,25 +39,16 @@ void GetAccountsHandler::onExecute() {
     }
 }
 
-bool GetAccountsHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+ErrorCodes::Code GetAccountsHandler::onValidate() {
     uint32_t path=m_offi.last_path();
 
     if (m_command->getBlockId() != path) {
-        errorCode = ErrorCodes::Code::eBadPath;
-    }
-    else if (m_command->getDestBankId() > m_offi.last_nodes()) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
+        return ErrorCodes::Code::eBadPath;
     }
 
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket,boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
+    if (m_command->getDestBankId() > m_offi.last_nodes()) {
+        return ErrorCodes::Code::eBankIncorrect;
     }
 
-    return true;
+    return ErrorCodes::Code::eNone;
 }
