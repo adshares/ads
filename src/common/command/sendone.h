@@ -83,6 +83,10 @@ class SendOne : public BlockCommand {
         /** \brief Save command response to settings object. */
         virtual void            saveResponse(settings& sts)                 override;
 
+        virtual unsigned char*  getBlockMessage()       override;
+        virtual size_t          getBlockMessageSize()   override;
+
+
         //IJsonSerialize interface
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;

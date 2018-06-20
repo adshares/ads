@@ -41,7 +41,7 @@ void SendOneHandler::onExecute() {
     uint32_t msid;
     uint32_t mpos;
 
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
+    if(!m_offi.add_msg(m_command->getBlockMessage(), m_command->getBlockMessageSize(), msid, mpos)) {
         DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     } else {
