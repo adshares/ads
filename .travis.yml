@@ -35,7 +35,7 @@ before_install:
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/ads_data
   - export ADS_CONF="./scripts/ads_configure.py --data-dir=$DATA_DIR --interface=127.0.0.1 $GENESIS_FILE"
-  - export ADS_START="./scripts/ads_ctl.py --data-dir=$DATA_DIR -i -w -d start"
+  - export ADS_START="./scripts/ads_ctl.py --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
@@ -47,7 +47,7 @@ install:
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # COMMON
-  - export PATH="$HOME/ads/bin:$PATH"
+  - export PATH="$BIN_DIR:$PATH"
 
 stages:
   - compile
@@ -62,8 +62,8 @@ jobs:
         - mkdir build
         - ./scripts/compile.sh -d -o build src
         - mkdir -p $BIN_DIR
-        - cp build/esc/esc $BIN_DIR
-        - cp build/escd/escd $BIN_DIR
+        - cp build/esc/ads $BIN_DIR
+        - cp build/escd/adsd $BIN_DIR
         - export PATH="$BIN_DIR:$PATH"
 
     - stage: test
