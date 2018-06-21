@@ -8,12 +8,7 @@ RetrieveFundsHandler::RetrieveFundsHandler(office& office, boost::asio::ip::tcp:
 }
 
 void RetrieveFundsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<RetrieveFunds>(dynamic_cast<RetrieveFunds*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("RetrieveFunds bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<RetrieveFunds>(std::move(command));
 }
 
 void RetrieveFundsHandler::onExecute() {

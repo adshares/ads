@@ -8,17 +8,12 @@ SendManyHandler::SendManyHandler(office& office, boost::asio::ip::tcp::socket& s
 }
 
 void SendManyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SendMany>(dynamic_cast<SendMany*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("SendMany bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<SendMany>(std::move(command));
+    assert(m_command);
     m_command->initTransactionVector();
 }
 
 void SendManyHandler::onExecute() {
-    assert(m_command);
     auto errorCode = ErrorCodes::Code::eNone;
 
     std::vector<SendAmountTxnRecord> txns = m_command->getTransactionsVector();

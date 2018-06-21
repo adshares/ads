@@ -8,12 +8,7 @@ CreateNodeHandler::CreateNodeHandler(office& office, boost::asio::ip::tcp::socke
 }
 
 void CreateNodeHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<CreateNode>(dynamic_cast<CreateNode*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("OnCreateNode bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<CreateNode>(std::move(command));
 }
 
 void CreateNodeHandler::onExecute() {

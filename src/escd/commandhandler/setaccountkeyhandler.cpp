@@ -8,12 +8,7 @@ SetAccountKeyHandler::SetAccountKeyHandler(office& office, boost::asio::ip::tcp:
 }
 
 void SetAccountKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SetAccountKey>(dynamic_cast<SetAccountKey*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("OnSetAccountKey bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<SetAccountKey>(std::move(command));
 }
 
 void SetAccountKeyHandler::onExecute() {

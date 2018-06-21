@@ -11,12 +11,7 @@ GetTransactionHandler::GetTransactionHandler(office& office, boost::asio::ip::tc
 }
 
 void GetTransactionHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetTransaction>(dynamic_cast<GetTransaction*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetTransaction bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetTransaction>(std::move(command));
 }
 
 void GetTransactionHandler::onExecute() {

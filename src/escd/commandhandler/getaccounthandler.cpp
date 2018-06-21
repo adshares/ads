@@ -8,12 +8,7 @@ GetAccountHandler::GetAccountHandler(office& office, boost::asio::ip::tcp::socke
 }
 
 void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetAccount>(dynamic_cast<GetAccount*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("OnGetAccount bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetAccount>(std::move(command));
 }
 
 void GetAccountHandler::onExecute() {

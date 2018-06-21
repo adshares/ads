@@ -8,12 +8,7 @@ BroadcastMsgHandler::BroadcastMsgHandler(office& office, boost::asio::ip::tcp::s
 }
 
 void BroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<BroadcastMsg>(dynamic_cast<BroadcastMsg*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("BroadcastMsg bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<BroadcastMsg>(std::move(command));
 }
 
 void BroadcastMsgHandler::onExecute() {

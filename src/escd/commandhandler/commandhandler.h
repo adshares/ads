@@ -29,11 +29,25 @@ class CommandHandler : public ICommandHandler {
         uint32_t mpos;
     };
     CommitResult commitChanges(IBlockCommand& command);
+
+    template<typename CommandType>
+    std::unique_ptr<CommandType> init(std::unique_ptr<IBlockCommand> command);
+
   private:
     ErrorCodes::Code executeImpl(std::unique_ptr<IBlockCommand>);
     ErrorCodes::Code performCommonValidation(IBlockCommand&);
     ErrorCodes::Code validateModifyingCommand(IBlockCommand&);
     ErrorCodes::Code initialValidation(IBlockCommand&);
 };
+
+template<typename CommandType>
+std::unique_ptr<CommandType> CommandHandler::init(std::unique_ptr<IBlockCommand> cmd) {
+    if(CommandType* result = dynamic_cast<CommandType*>(cmd.get())) {
+        cmd.release();
+        return std::unique_ptr<CommandType>(result);
+    }
+    ELOG("ERROR while downcasting");
+    return std::unique_ptr<CommandType>(nullptr);
+}
 
 #endif // COMMANDHANDLER_H

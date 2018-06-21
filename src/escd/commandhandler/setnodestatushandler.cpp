@@ -8,12 +8,7 @@ SetNodeStatusHandler::SetNodeStatusHandler(office& office, boost::asio::ip::tcp:
 }
 
 void SetNodeStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SetNodeStatus>(dynamic_cast<SetNodeStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("SetNodeStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<SetNodeStatus>(std::move(command));
 }
 
 void SetNodeStatusHandler::onExecute() {

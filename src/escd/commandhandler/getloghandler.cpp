@@ -9,12 +9,7 @@ GetLogHandler::GetLogHandler(office& office, boost::asio::ip::tcp::socket& socke
 }
 
 void GetLogHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetLog>(dynamic_cast<GetLog*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetLog bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetLog>(std::move(command));
 }
 
 void GetLogHandler::onExecute() {
