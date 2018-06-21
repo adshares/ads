@@ -8,12 +8,7 @@ UnsetAccountStatusHandler::UnsetAccountStatusHandler(office& office, boost::asio
 }
 
 void UnsetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<UnsetAccountStatus>(dynamic_cast<UnsetAccountStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("UnsetAccountStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<UnsetAccountStatus>(std::move(command));
 }
 
 void UnsetAccountStatusHandler::onExecute() {

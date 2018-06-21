@@ -8,12 +8,7 @@ SetAccountStatusHandler::SetAccountStatusHandler(office& office, boost::asio::ip
 }
 
 void SetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SetAccountStatus>(dynamic_cast<SetAccountStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("SetAccountStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+     m_command = init<SetAccountStatus>(std::move(command));
 }
 
 void SetAccountStatusHandler::onExecute() {

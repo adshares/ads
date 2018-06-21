@@ -9,12 +9,7 @@ GetMessageHandler::GetMessageHandler(office& office, boost::asio::ip::tcp::socke
 }
 
 void GetMessageHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetMessage>(dynamic_cast<GetMessage*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetMessage bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetMessage>(std::move(command));
 }
 
 void GetMessageHandler::onExecute() {

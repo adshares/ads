@@ -8,12 +8,7 @@ GetMessageListHandler::GetMessageListHandler(office& office, boost::asio::ip::tc
 }
 
 void GetMessageListHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetMessageList>(dynamic_cast<GetMessageList*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetMessageList bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetMessageList>(std::move(command));
 }
 
 void GetMessageListHandler::onExecute() {

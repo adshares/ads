@@ -9,12 +9,7 @@ CreateAccountHandler::CreateAccountHandler(office& office, boost::asio::ip::tcp:
 }
 
 void CreateAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<CreateAccount>(dynamic_cast<CreateAccount*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("CreateAccount bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<CreateAccount>(std::move(command));
 }
 
 void CreateAccountHandler::onExecute() {

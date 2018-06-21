@@ -9,12 +9,7 @@ SendOneHandler::SendOneHandler(office& office, boost::asio::ip::tcp::socket& soc
 }
 
 void SendOneHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SendOne>(dynamic_cast<SendOne*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("SendOne bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<SendOne>(std::move(command));
 }
 
 void SendOneHandler::onExecute() {

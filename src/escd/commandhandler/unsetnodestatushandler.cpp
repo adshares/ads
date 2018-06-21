@@ -8,12 +8,7 @@ UnsetNodeStatusHandler::UnsetNodeStatusHandler(office& office, boost::asio::ip::
 }
 
 void UnsetNodeStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<UnsetNodeStatus>(dynamic_cast<UnsetNodeStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("UnsetNodeStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<UnsetNodeStatus>(std::move(command));
 }
 
 void UnsetNodeStatusHandler::onExecute() {

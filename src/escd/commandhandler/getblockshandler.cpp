@@ -10,12 +10,7 @@ GetBlocksHandler::GetBlocksHandler(office& office, boost::asio::ip::tcp::socket&
 }
 
 void GetBlocksHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetBlocks>(dynamic_cast<GetBlocks*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetBlocks bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetBlocks>(std::move(command));
 }
 
 void GetBlocksHandler::onExecute() {
