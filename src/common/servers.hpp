@@ -204,6 +204,7 @@ class servers { // also a block
             node_num++;
         }
         update_vipstatus();
+        write_start();
     }
 
     void init_fast(uint16_t node_count, hash_t pk) {
