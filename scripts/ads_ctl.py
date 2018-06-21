@@ -142,6 +142,11 @@ def state(nconf_path):
 
     print(" Genesis.json md5: {0}".format(m.hexdigest()))
 
+    with open(os.path.join(nconf_path, 'genesis.json'), 'r') as f:
+        genesis = json.load(f)
+
+    print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis['config']['start_time']))))
+
     try:
         pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
         with open(pidfile, 'r') as f:
