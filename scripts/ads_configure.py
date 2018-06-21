@@ -254,27 +254,19 @@ def get_my_ip(remote_ip="8.8.8.8", remote_port=53):
     return my_ip
 
 
-if __name__ == '__main__':
+def configure(data_dir, interface, identifiers, genesis_file):
+    """
+    Configure nodes and their first account
 
-    validate_platform()
+    :return:
+    """
+    local_env = {'data_dir': data_dir, 'node_interface': interface}
 
-    parser = argparse.ArgumentParser(description='Configure ADS nodes.')
+    genesis_data = GenesisFile(genesis_file)
 
-    parser.add_argument('genesis', default=None, help='Genesis file')
-    parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
-    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
-    parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
-
-    args = parser.parse_args()
-
-    local_env = {'data_dir': args.data_dir, 'node_interface': args.interface}
-
-    genesis_data = GenesisFile(args.genesis)
-    node_identifiers = genesis_data.node_identifiers()
-
-    if args.identifiers:
-        chosen_identifiers = set(args.identifiers.split(',')).intersection(set(genesis_data.node_identifiers()))
-        print("Configuring nodes: {0}".format(args.identifiers))
+    if identifiers:
+        chosen_identifiers = set(identifiers.split(',')).intersection(set(genesis_data.node_identifiers()))
+        print("Configuring nodes: {0}".format(identifiers))
     else:
         print("Configuring all nodes found in the genesis file.")
 
@@ -285,7 +277,7 @@ if __name__ == '__main__':
 
         node_numerical_identifier += 1
 
-        if args.identifiers and node_identifier not in chosen_identifiers:
+        if identifiers and node_identifier not in chosen_identifiers:
             continue
 
         nconf = NodeConfig(local_env)
@@ -305,7 +297,7 @@ if __name__ == '__main__':
 
         nconf.signature = node['_sign']
 
-        nconf.save(args.genesis)
+        nconf.save(genesis_file)
 
         for account in node['accounts']:
 
@@ -321,3 +313,19 @@ if __name__ == '__main__':
 
             aconf.save()
             break
+
+
+if __name__ == '__main__':
+
+    validate_platform()
+
+    parser = argparse.ArgumentParser(description='Configure ADS nodes.')
+
+    parser.add_argument('genesis', default=None, help='Genesis file')
+    parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
+    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
+
+    args = parser.parse_args()
+
+    configure(args.data_dir, args.interface, args.identifiers, args.genesis)
