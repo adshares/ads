@@ -78,7 +78,7 @@ public:
     virtual int64_t         getDeduct()                                 override;
 
     /**  \brief Get message id. */
-    virtual uint32_t getUserMessageId()                                 override;
+    virtual uint32_t        getUserMessageId()                          override;
 
     /** \brief Send data to the server.
      *

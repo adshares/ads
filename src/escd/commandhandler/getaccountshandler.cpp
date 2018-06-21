@@ -23,12 +23,14 @@ void GetAccountsHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
             uint32_t sizeOfResponse = m_command->getResponseSize();
-            boost::asio::write(m_socket, boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
+            response.emplace_back(boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
+            response.emplace_back(boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

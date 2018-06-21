@@ -89,7 +89,7 @@ class CreateNode : public BlockCommand {
     /** \brief Save command response to settings object. */
     virtual void            saveResponse(settings& sts)                 override;
 
-    /**  \brief Get message id. */
+    /**  \brief Get user message id. */
     virtual uint32_t        getUserMessageId()                          override;
 
     //IJsonSerialize interface

@@ -73,6 +73,9 @@ class SendOne : public BlockCommand {
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
 
+        /**  \brief Get user message id. */
+        virtual  uint32_t       getUserMessageId()                          override;
+
         /** \brief Get additional info typed by client in transaction message. */
         virtual uint8_t*        getInfoMsg();
 
@@ -102,8 +105,6 @@ class SendOne : public BlockCommand {
         /**  \brief Get destination user id. */
         virtual  uint32_t       getDestUserId();
 
-        /**  \brief Get message id. */
-        virtual  uint32_t       getUserMessageId();
 
         UserSendOne          m_data;
         commandresponse     m_response;

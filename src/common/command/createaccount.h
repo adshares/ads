@@ -99,8 +99,8 @@ public:
     /**  \brief Get destination bank id. */
     virtual  uint32_t       getDestBankId();
 
-    /**  \brief Get message id. */
-    virtual  uint32_t       getUserMessageId();
+    /**  \brief Get user message id. */
+    virtual  uint32_t       getUserMessageId()                          override;
 
     /** \brief Put new created account data */
     virtual void setAdditionalData(char* data);

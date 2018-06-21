@@ -18,23 +18,25 @@ void GetSignaturesHandler::onExecute() {
     Helper::Signatures signatures;
     signatures.load(m_command->getBlockNumber());
 
-    auto signaturesOk = signatures.getSignaturesOk();
-    int32_t signaturesOkSize = signaturesOk.size();
+    const auto signaturesOk = signatures.getSignaturesOk();
+    const int32_t signaturesOkSize = signaturesOk.size();
     if (signaturesOkSize == 0) {
         errorCode = ErrorCodes::Code::eGetSignatureUnavailable;
     }
 
-    auto signaturesNo = signatures.getSignaturesNo();
-    int32_t signaturesNoSize = signaturesNo.size();
+    const auto signaturesNo = signatures.getSignaturesNo();
+    const int32_t signaturesNoSize = signaturesNo.size();
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(&signaturesOkSize, sizeof(signaturesOkSize)));
-            boost::asio::write(m_socket, boost::asio::buffer(signaturesOk));
-            boost::asio::write(m_socket, boost::asio::buffer(&signaturesNoSize, sizeof(signaturesNoSize)));
-            boost::asio::write(m_socket, boost::asio::buffer(signaturesNo));
+            response.emplace_back(boost::asio::buffer(&signaturesOkSize, sizeof(signaturesOkSize)));
+            response.emplace_back(boost::asio::buffer(signaturesOk));
+            response.emplace_back(boost::asio::buffer(&signaturesNoSize, sizeof(signaturesNoSize)));
+            response.emplace_back(boost::asio::buffer(signaturesNo));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

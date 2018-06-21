@@ -96,7 +96,7 @@ class SetAccountKey : public BlockCommand {
     virtual void            saveResponse(settings& sts)                 override;
 
     /**  \brief Get message id. */
-    virtual  uint32_t       getUserMessageId();
+    virtual  uint32_t       getUserMessageId()                          override;
 
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;

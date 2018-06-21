@@ -46,14 +46,16 @@ void GetTransactionHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(&res, sizeof(GetTransactionResponse)));
-            boost::asio::write(m_socket, boost::asio::buffer(msg->data, msg->len));
+            response.emplace_back(boost::asio::buffer(&res, sizeof(GetTransactionResponse)));
+            response.emplace_back(boost::asio::buffer(msg->data, msg->len));
             for (auto &it : hashes) {
-                boost::asio::write(m_socket, boost::asio::buffer(it.hash, sizeof(it.hash)));
+                response.emplace_back(boost::asio::buffer(it.hash, sizeof(it.hash)));
             }
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

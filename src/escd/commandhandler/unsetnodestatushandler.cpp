@@ -38,11 +38,13 @@ void UnsetNodeStatusHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
         if(!res.errorCode) {
-            commandresponse response{m_usera, res.msid, res.mpos};
-            boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
+            commandresponse cresponse{m_usera, res.msid, res.mpos};
+            response.emplace_back(boost::asio::buffer(&cresponse, sizeof(cresponse)));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
