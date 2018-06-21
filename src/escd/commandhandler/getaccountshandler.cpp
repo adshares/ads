@@ -8,12 +8,7 @@ GetAccountsHandler::GetAccountsHandler(office& office, boost::asio::ip::tcp::soc
 }
 
 void GetAccountsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetAccounts>(dynamic_cast<GetAccounts*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("OnGetAccounts bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetAccounts>(std::move(command));
 }
 
 void GetAccountsHandler::onExecute() {
@@ -22,7 +17,7 @@ void GetAccountsHandler::onExecute() {
     uint32_t path = m_offi.last_path();
     uint32_t users = m_offi.last_users(m_command->getDestBankId());
 
-    ErrorCodes::Code errorCode = m_command->prepareResponse(path, users);
+    const auto errorCode = m_command->prepareResponse(path, users);
     if (errorCode != ErrorCodes::Code::eNone) {
         DLOG("OnGetAccounts error: %s", ErrorCodes().getErrorMsg(errorCode));
     }

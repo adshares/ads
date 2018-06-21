@@ -8,18 +8,13 @@ GetSignaturesHandler::GetSignaturesHandler(office& office, boost::asio::ip::tcp:
 }
 
 void GetSignaturesHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetSignatures>(dynamic_cast<GetSignatures*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("GetSignatures bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<GetSignatures>(std::move(command));
 }
 
 void GetSignaturesHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     Helper::Signatures signatures;
     signatures.load(m_command->getBlockNumber());
 

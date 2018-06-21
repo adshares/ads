@@ -8,49 +8,22 @@ UnsetNodeStatusHandler::UnsetNodeStatusHandler(office& office, boost::asio::ip::
 }
 
 void UnsetNodeStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<UnsetNodeStatus>(dynamic_cast<UnsetNodeStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("UnsetNodeStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<UnsetNodeStatus>(std::move(command));
 }
 
 void UnsetNodeStatusHandler::onExecute() {
     assert(m_command);
+    const auto res = commitChanges(*m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee             = m_command->getFee();
-    int64_t     deduct          = m_command->getDeduct();
-
-    //commit changes
-    m_usera.msid++;
-    m_usera.time  = m_command->getTime();
-    m_usera.lpath = lpath;
-
-    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-    uint32_t msid;
-    uint32_t mpos;
-
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-        ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-        errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    }
-
-    if(!errorCode) {
-        m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
-
+    if(!res.errorCode) {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
         tlog.node   = m_command->getDestBankId();
         tlog.user   = 0;
         tlog.umid   = m_command->getUserMessageId();
-        tlog.nmid   = msid;
-        tlog.mpos   = mpos;
+        tlog.nmid   = res.msid;
+        tlog.mpos   = res.mpos;
         tlog.weight = 0;
 
         tInfo info;
@@ -65,9 +38,9 @@ void UnsetNodeStatusHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
+        boost::asio::write(m_socket, boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
+        if(!res.errorCode) {
+            commandresponse response{m_usera, res.msid, res.mpos};
             boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
         }
     } catch (std::exception& e) {

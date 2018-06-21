@@ -9,17 +9,12 @@ GetVipKeysHandler::GetVipKeysHandler(office& office, boost::asio::ip::tcp::socke
 }
 
 void GetVipKeysHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetVipKeys>(dynamic_cast<GetVipKeys*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetVipKeys bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetVipKeys>(std::move(command));
 }
 
 void GetVipKeysHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     char hash[65];
     hash[64]='\0';

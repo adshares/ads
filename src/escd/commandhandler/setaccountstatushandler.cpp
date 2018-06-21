@@ -8,18 +8,12 @@ SetAccountStatusHandler::SetAccountStatusHandler(office& office, boost::asio::ip
 }
 
 void SetAccountStatusHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SetAccountStatus>(dynamic_cast<SetAccountStatus*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("SetAccountStatus bad_cast caught: %s\n", bc.what());
-        return;
-    }
+     m_command = init<SetAccountStatus>(std::move(command));
 }
 
 void SetAccountStatusHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
     auto        startedTime     = time(NULL);
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
     int64_t     fee             = m_command->getFee();
@@ -32,14 +26,13 @@ void SetAccountStatusHandler::onExecute() {
 
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
-    uint32_t msid;
-    uint32_t mpos;
+    auto errorCode = ErrorCodes::Code::eNone;
+    uint32_t msid, mpos;
 
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
         ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     }
-
 
     if(!errorCode) {
         if(!m_offi.set_account_status(m_command->getDestUserId(), m_command->getStatus())) {

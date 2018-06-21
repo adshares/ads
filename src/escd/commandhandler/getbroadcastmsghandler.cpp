@@ -11,18 +11,13 @@ GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::
 }
 
 void GetBroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetBroadcastMsg>(dynamic_cast<GetBroadcastMsg*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetBroadcastMsg bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetBroadcastMsg>(std::move(command));
 }
 
 void GetBroadcastMsgHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     uint32_t blockTime = m_command->getBlockTime();
     uint32_t path, lpath, size = 0;
 

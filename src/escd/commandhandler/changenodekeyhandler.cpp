@@ -7,12 +7,7 @@ ChangeNodeKeyHandler::ChangeNodeKeyHandler(office& office, boost::asio::ip::tcp:
 }
 
 void ChangeNodeKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<ChangeNodeKey>(dynamic_cast<ChangeNodeKey*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("ChangeNodeKey bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<ChangeNodeKey>(std::move(command));
 }
 
 void ChangeNodeKeyHandler::onExecute() {
@@ -61,7 +56,6 @@ void ChangeNodeKeyHandler::onExecute() {
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
             tlog.node   = 0;
-//            tlog.user   = m_command->getKey();
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;
             tlog.mpos   = mpos;

@@ -8,12 +8,7 @@ SetAccountKeyHandler::SetAccountKeyHandler(office& office, boost::asio::ip::tcp:
 }
 
 void SetAccountKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SetAccountKey>(dynamic_cast<SetAccountKey*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        ELOG("OnSetAccountKey bad_cast caught: %s\n", bc.what());
-        return;
-    }
+    m_command = init<SetAccountKey>(std::move(command));
 }
 
 void SetAccountKeyHandler::onExecute() {
@@ -24,7 +19,6 @@ void SetAccountKeyHandler::onExecute() {
     uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
     uint32_t    msid;
     uint32_t    mpos;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
     //execute    
     std::copy(data.pubkey, data.pubkey + SHA256_DIGEST_LENGTH, m_usera.pkey);
@@ -35,6 +29,7 @@ void SetAccountKeyHandler::onExecute() {
     //convert message to hash (use signature as input)
     Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
+    auto errorCode = ErrorCodes::Code::eNone;
     // could add set_user here
     if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
         ELOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);

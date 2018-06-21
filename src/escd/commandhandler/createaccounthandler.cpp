@@ -9,24 +9,13 @@ CreateAccountHandler::CreateAccountHandler(office& office, boost::asio::ip::tcp:
 }
 
 void CreateAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<CreateAccount>(dynamic_cast<CreateAccount*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("CreateAccount bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<CreateAccount>(std::move(command));
 }
 
 void CreateAccountHandler::onExecute() {
     assert(m_command);
 
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee{0};
-    int64_t     deduct{0};
-    uint32_t    msid;
-    uint32_t    mpos;
 
     uint32_t newUser = 0;
     if (m_command->getDestBankId() == m_offi.svid) {
@@ -39,26 +28,14 @@ void CreateAccountHandler::onExecute() {
         }
     }
 
+    uint32_t msid, mpos;
     if (!errorCode) {
-        deduct = m_command->getDeduct();
-        fee = m_command->getFee();
+        const auto res = commitChanges(*m_command);
+        errorCode = res.errorCode;
+        msid = res.msid;
+        mpos = res.mpos;
 
-        //commit changes
-        m_usera.msid++;
-        m_usera.time=m_command->getTime();
-        m_usera.lpath=lpath;
-        //m_usera.node = 0;
-
-
-        Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-        if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
-            DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-            errorCode = ErrorCodes::Code::eMessageSubmitFail;
-        } else {
-
-            m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
-
+        if(!errorCode) {
             log_t tlog;
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
@@ -67,12 +44,12 @@ void CreateAccountHandler::onExecute() {
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;
             tlog.mpos   = mpos;
-            tlog.weight = -deduct;
+            tlog.weight = -m_command->getDeduct();
 
             tInfo info;
             info.weight = m_usera.weight;
-            info.deduct = deduct;
-            info.fee = fee;
+            info.deduct = m_command->getDeduct();
+            info.fee = m_command->getFee();
             info.stat = m_usera.stat;
             memcpy(info.pkey, m_usera.pkey, sizeof(info.pkey));
             memcpy(tlog.info, &info, sizeof(tInfo));
@@ -83,7 +60,7 @@ void CreateAccountHandler::onExecute() {
                 tlog.type|=0x8000; //incoming
                 tlog.node = m_command->getBankId();
                 tlog.user = m_command->getUserId();
-                tlog.weight = deduct;
+                tlog.weight = m_command->getDeduct();
                 m_offi.put_ulog(newUser, tlog);
             }
         }
