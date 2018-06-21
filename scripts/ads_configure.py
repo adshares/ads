@@ -313,6 +313,7 @@ if __name__ == '__main__':
 
             aconf = AccountConfig(a_id, local_env)
 
+            aconf.port = nconf.offi
             aconf.address = account['_address']
             aconf.public_key = account['public_key']
             aconf.private_key = account['_secret']
