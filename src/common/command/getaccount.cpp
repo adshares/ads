@@ -96,6 +96,14 @@ user_t& GetAccount::getUserInfo() {
     return m_response.usera;
 }
 
+uint16_t GetAccount::getDestNode(){
+    return m_data.info.bbank;
+}
+
+uint32_t GetAccount::getDestUser(){
+    return m_data.info.buser;
+}
+
 bool GetAccount::send(INetworkClient& netClient) {
     if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
         ELOG("GetAccount sending error\n");
@@ -142,3 +150,4 @@ void GetAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+

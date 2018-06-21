@@ -14,23 +14,22 @@ void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void GetAccountHandler::onExecute() {
     assert(m_command);
     auto errorCode = ErrorCodes::Code::eNone;
-    userinfo&   data    = m_command->getDataStruct().info;
 
     user_t localAccount(m_usera);
     user_t remoteAccount;
 
-    if(!m_offi.get_user_global(remoteAccount, data.bbank, data.buser)) {
-        DLOG("FAILED to get global user info %08X:%04X\n", data.bbank, data.buser);
+    if(!m_offi.get_user_global(remoteAccount, m_command->getDestNode(), m_command->getDestUser())) {
+        DLOG("FAILED to get global user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
         errorCode = ErrorCodes::Code::eGetGlobalUserFail;
     }
 
-    if(m_offi.svid == data.bbank)
+    if(m_offi.svid == m_command->getDestNode())
     {
-        if(data.buser != data.auser)
+        if(m_command->getDestUser() != m_command->getUserId())
         {
-            if(!m_offi.get_user(localAccount, data.bbank, data.buser))
+            if(!m_offi.get_user(localAccount, m_command->getDestNode(), m_command->getDestUser()))
             {
-                DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
+                DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
                 errorCode = ErrorCodes::Code::eGetUserFail;
             }
         }
@@ -54,8 +53,7 @@ void GetAccountHandler::onExecute() {
 }
 
 ErrorCodes::Code GetAccountHandler::onValidate() {
-    userinfo& data = m_command->getDataStruct().info;
-    int32_t diff = data.ttime - time(nullptr);
+    int32_t diff = m_command->getTime() - time(nullptr);
 
 #ifdef DEBUG
     // this is special, just local info
@@ -73,19 +71,19 @@ ErrorCodes::Code GetAccountHandler::onValidate() {
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
 
-    if(data.abank != m_offi.svid && data.bbank != m_offi.svid) {
-        DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", data.abank, data.bbank, m_offi.svid );
+    if(m_command->getUserId() != m_offi.svid && m_command->getDestNode() != m_offi.svid) {
+        DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", m_command->getUserId(), m_command->getDestNode(), m_offi.svid );
         return ErrorCodes::Code::eBankNotFound;
     }
 
     user_t userb;
-    if(!m_offi.get_user(userb, data.bbank, data.buser)) {
-        DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
+    if(!m_offi.get_user(userb, m_command->getDestNode(), m_command->getDestUser())) {
+        DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
         return ErrorCodes::Code::eGetUserFail;
     }
 
 #ifdef DEBUG
-    DLOG("SENDING user info %08X:%04X\n", data.bbank, data.buser);
+    DLOG("SENDING user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
 #endif
 
     return ErrorCodes::Code::eNone;
