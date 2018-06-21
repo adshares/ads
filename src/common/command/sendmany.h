@@ -90,6 +90,9 @@ class SendMany : public BlockCommand {
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
 
+        /** \brief Get user message id. */
+        virtual  uint32_t       getUserMessageId()                          override;
+
         /** \brief Send data to the server.
          *
          * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -119,7 +122,6 @@ class SendMany : public BlockCommand {
 
       public:
         /**  \brief Get message id. */
-        virtual  uint32_t       getUserMessageId();
 
         SendManyData          m_data;
         commandresponse     m_response;

@@ -80,6 +80,9 @@ class SetNodeStatus : public BlockCommand {
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
 
+    /** \brief Get user message id. */
+    virtual uint32_t        getUserMessageId()                          override;
+
     /** \brief Send data to the server.
      *
      * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -95,7 +98,6 @@ class SetNodeStatus : public BlockCommand {
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-    uint32_t getUserMessageId();
     uint32_t getDestBankId();
     uint32_t getStatus();
 

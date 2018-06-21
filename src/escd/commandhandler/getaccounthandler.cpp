@@ -15,7 +15,6 @@ void GetAccountHandler::onExecute() {
     assert(m_command);
     auto errorCode = ErrorCodes::Code::eNone;
     userinfo&   data    = m_command->getDataStruct().info;
-    std::vector<boost::asio::const_buffer> response;
 
     user_t localAccount(m_usera);
     user_t remoteAccount;
@@ -40,18 +39,17 @@ void GetAccountHandler::onExecute() {
         localAccount = remoteAccount;
     }
 
-    response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
-    response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
-
-    if (errorCode) {
-        response.clear();
-    }
-
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+
+        if(!errorCode) {
+            response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
+            response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
+        }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 

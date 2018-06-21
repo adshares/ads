@@ -24,10 +24,12 @@ void GetMessageHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(msg->data, msg->len));
+            response.emplace_back(boost::asio::buffer(msg->data, msg->len));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception&) {
         DLOG("ERROR responding to client %08X\n",m_usera.user);
     }

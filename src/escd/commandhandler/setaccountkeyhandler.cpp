@@ -65,7 +65,6 @@ void SetAccountKeyHandler::onExecute() {
 
     try {
         std::vector<boost::asio::const_buffer> response;
-
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
 
         if(!errorCode) {            

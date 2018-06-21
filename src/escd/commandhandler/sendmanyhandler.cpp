@@ -82,11 +82,13 @@ void SendManyHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
-            boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
+            commandresponse cresponse{m_usera, msid, mpos};
+            response.emplace_back(boost::asio::buffer(&cresponse, sizeof(cresponse)));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

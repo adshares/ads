@@ -14,7 +14,6 @@ void GetVipKeysHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 
 void GetVipKeysHandler::onExecute() {
     assert(m_command);
-    auto errorCode = ErrorCodes::Code::eNone;
 
     char hash[65];
     hash[64]='\0';
@@ -26,17 +25,21 @@ void GetVipKeysHandler::onExecute() {
     vipKeys.loadFromFile(filename);
     const uint32_t fileLength = vipKeys.getLength();
 
+    auto errorCode = ErrorCodes::Code::eNone;
+
     if(fileLength == 0) {
         errorCode = ErrorCodes::Code::eCouldNotReadCorrectVipKeys;
         ELOG("ERROR file %s not found or empty\n", filename);
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(&fileLength, sizeof(fileLength)));
-            boost::asio::write(m_socket, boost::asio::buffer(vipKeys.getVipKeys(), fileLength));
+            response.emplace_back(boost::asio::buffer(&fileLength, sizeof(fileLength)));
+            response.emplace_back(boost::asio::buffer(vipKeys.getVipKeys(), fileLength));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

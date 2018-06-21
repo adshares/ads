@@ -22,11 +22,13 @@ void GetLogHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(&m_usera, sizeof(user_t)));
-            boost::asio::write(m_socket, boost::asio::buffer(slog.c_str(), slog.size()));
+            response.emplace_back(boost::asio::buffer(&m_usera, sizeof(user_t)));
+            response.emplace_back(boost::asio::buffer(slog.c_str(), slog.size()));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }

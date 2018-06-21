@@ -49,7 +49,7 @@ void GetBroadcastMsgHandler::onExecute() {
                 char messageBlock[sizeOfBlock];
                 ssBuffer.read(messageBlock, sizeOfBlock);
                 remainData -= sizeOfBlock;
-                fileBuffer.push_back(std::string(messageBlock, sizeOfBlock));
+                fileBuffer.emplace_back(std::string(messageBlock, sizeOfBlock));
             }
             broadcastFile.close();
         }
@@ -68,6 +68,7 @@ void GetBroadcastMsgHandler::onExecute() {
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
+
 }
 
 ErrorCodes::Code GetBroadcastMsgHandler::onValidate() {

@@ -18,18 +18,19 @@ void GetBlockHandler::onExecute() {
     const auto errorCode = m_command->prepareResponse();
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
             // only header
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
+            response.emplace_back(boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
             // nodes
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->m_responseNodes));
+            response.emplace_back(boost::asio::buffer(m_command->m_responseNodes));
             // hlog
             Helper::Hlog hlog(m_command->getBlockId());
             hlog.load();
-            boost::asio::write(m_socket, boost::asio::buffer(hlog.data, 4 + hlog.total));
-
+            response.emplace_back(boost::asio::buffer(hlog.data, 4 + hlog.total));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
