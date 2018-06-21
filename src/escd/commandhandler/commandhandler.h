@@ -46,7 +46,7 @@ std::unique_ptr<CommandType> CommandHandler::init(std::unique_ptr<IBlockCommand>
         cmd.release();
         return std::unique_ptr<CommandType>(result);
     }
-    ELOG("ERROR while downcasting");
+    ELOG("ERROR while downcasting\n");
     return std::unique_ptr<CommandType>(nullptr);
 }
 
