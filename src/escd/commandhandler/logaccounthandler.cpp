@@ -47,8 +47,9 @@ void LogAccountHandler::onExecute() {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&res.errorCode, ERROR_CODE_LENGTH));
         if(!res.errorCode) {
-            commandresponse cresponse{m_usera, res.msid, res.mpos};
-            response.emplace_back(boost::asio::buffer(&cresponse, sizeof(cresponse)));
+            response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
+            response.emplace_back(boost::asio::buffer(&res.msid, sizeof(res.msid)));
+            response.emplace_back(boost::asio::buffer(&res.mpos, sizeof(res.mpos)));
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
