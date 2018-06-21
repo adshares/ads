@@ -15,33 +15,6 @@ void SendOneHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void SendOneHandler::onExecute() {
     assert(m_command);
 
-    auto        startedTime     = time(NULL);
-    uint32_t    lpath           = startedTime-startedTime%BLOCKSEC;
-    int64_t     fee{0};
-    int64_t     deposit{-1}; // if deposit=0 inform target
-    int64_t     deduct{0};
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    deposit = m_command->getDeduct();
-    deduct = m_command->getDeduct();
-    fee = m_command->getFee();
-
-    //commit changes
-    m_usera.msid++;
-    m_usera.time=m_command->getTime();
-    m_usera.lpath=lpath;
-
-    Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
-
-    uint32_t msid;
-    uint32_t mpos;
-
-    if(!m_offi.add_msg(m_command->getBlockMessage(), m_command->getBlockMessageSize(), msid, mpos)) {
-        DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
-        errorCode = ErrorCodes::Code::eMessageSubmitFail;
-    } else {
-        m_offi.set_user(m_command->getUserId(), m_usera, deduct+fee);
-
     int64_t deposit = m_command->getDeduct(); // if deposit==0 inform target
     const auto res = commitChanges(*m_command);
 
