@@ -16,7 +16,21 @@ class AccountAddressError(Exception):
 
 
 def save_config(filepath, settings):
-    print(filepath)
+    """
+    Save config in ADS format:
+
+    key=value
+    (one per line)
+
+    A value can be a list (eg. [val1, val2]). This will be written like this:
+
+    key=val1
+    key=val2
+
+    :param filepath: Config file path.
+    :param settings: Dictionary of settings.
+    :return:
+    """
     with open(filepath, 'w') as f:
         for k, v in sorted(settings.items()):
             if isinstance(v, list):
@@ -27,9 +41,17 @@ def save_config(filepath, settings):
 
 
 class AccountConfig(object):
+    """
+    Object for user/account config.
+    """
 
     def __init__(self, identifier, loc_env):
+        """
+        Initialize the object with default values.
 
+        :param identifier: User account identifier
+        :param loc_env: Local node environment (ip, node identifier, etc.)
+        """
         self.id = identifier
 
         self.port = 9001
@@ -40,10 +62,18 @@ class AccountConfig(object):
         self.node_env = loc_env
 
     def validate_address(self):
+        """
+        Checks if address is correct.
+
+        :return:
+        """
         # TODO: checksum verification
         return re.match('[0-9a-fA-F]{4}-[0-9a-fA-F]{8}-[0-9a-fA-FX]{4}', self.address)
 
     def save(self):
+        """
+        Save settings to file.
+        """
 
         if not self.validate_address():
             raise AccountAddressError("Account address is not correct.")
@@ -61,13 +91,20 @@ class AccountConfig(object):
         filepath = os.path.join(directory, 'settings.cfg')
 
         save_config(filepath, options)
-        print("Saved account settings to: {0}".format(filepath))
+        print("{0} Saved settings to: {1}".format(self.address, filepath))
 
 
 class NodeConfig(object):
+    """
+    Object for node config.
+    """
 
     def __init__(self, loc_env):
+        """
+        Initialize the object with default values.
 
+        :param loc_env: Local node environment (ip, node identifier, etc.)
+        """
         self.svid = 0
         self.port = 8001
         self.offi = 9001
@@ -85,10 +122,19 @@ class NodeConfig(object):
         self.signature = None
 
     def add_account(self, account_dict):
+        """
+        Add account associated with this config.
+
+        :param account_dict: Account config from genesis file.
+        :return:
+        """
         # TODO: validation? logging?
         self.accounts.append(account_dict)
 
     def save(self, genesis_filepath):
+        """
+        Save settings to file.
+        """
 
         options = {'svid': int(self.svid, 16),
                    'offi': self.offi,
@@ -111,26 +157,48 @@ class NodeConfig(object):
         filepath = os.path.join(directory, 'options.cfg')
 
         save_config(filepath, options)
-        print("Saved node options to: {0}".format(filepath))
+        print("{0} Saved options to: {1}".format(self.svid, filepath))
 
 
 class GenesisFile(object):
-
+    """
+    Genesis file object, with helper functions.
+    """
     def __init__(self, genesis_file):
+        """
+        Read the file in.
 
+        :param genesis_file: Genesis filepath
+        """
         with open(genesis_file, 'r') as f:
             self.genesis = json.load(f)
 
         self.nodes = self.genesis['nodes']
 
     def node_count(self):
+        """
+        Get number of nodes in genesis file
+
+        :return: Number of nodes
+        """
         return len(self.nodes)
 
     def node_data(self, node_number):
+        """
+        Get keys and signatures associated with this node.
+
+        :param node_number: Node index number.
+        :return: Tuple of private key, public key and signature.
+        """
         node_config = self.nodes[node_number]
         return node_config['_secret'], node_config['public_key'], node_config['_sign']
 
     def node_identifiers(self):
+        """
+        Get node identifiers from the first account identifier associated with this node.
+
+        :return: List of identifiers.
+        """
         ids = []
         for node in self.nodes:
             for account in node['accounts']:
@@ -142,6 +210,11 @@ class GenesisFile(object):
 
 
 def validate_platform():
+    """
+    Check if you can run ADS. Currently supported only on 64 bit Linux.
+
+    :return: Exits with status code 1 if platform is not valid, otherwise just prints out some system information.
+    """
 
     # Platform check, linux or windows, or something else
     if not sys.platform.startswith('linux'):
@@ -189,7 +262,6 @@ if __name__ == '__main__':
 
     parser.add_argument('genesis', default=None, help='Genesis file')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
-
     parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 

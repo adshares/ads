@@ -1,0 +1,4 @@
+# LF line ending for shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+*.py text eol=lf
