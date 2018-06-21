@@ -101,21 +101,20 @@ class GetAccounts : public BlockCommand {
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-
       public:
         /**  \brief Get destination bank id. */
-        virtual uint32_t       getDestBankId();
+        uint32_t       getDestBankId();
 
         /** \brief Get block id. */
-        virtual uint32_t       getBlockId();
+        uint32_t       getBlockId();
 
         /** \brief Prepare response buffer. */
-        virtual ErrorCodes::Code prepareResponse(uint32_t lastPath, uint32_t lastUsers);
+        ErrorCodes::Code prepareResponse(uint32_t lastPath, uint32_t lastUsers);
 
 
     private:
         GetAccountsData      m_data;
-        unsigned char* m_responseBuffer;
+        std::unique_ptr<unsigned char[]> m_responseBuffer;
         uint32_t m_responseBufferLength;
 };
 

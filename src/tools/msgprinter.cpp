@@ -73,7 +73,7 @@ void MsgPrinter::printJson() {
 
         boost::property_tree::ptree hashvector;
 
-        for(int i=0;i<endHeader.tmax;i++)
+        for(auto i=0;i<endHeader.tmax;i++)
         {
             hash_s      hash;
             uint32_t    pos[1];

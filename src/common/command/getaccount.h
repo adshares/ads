@@ -15,9 +15,6 @@ class GetAccount : public BlockCommand {
     GetAccount();
     GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);
 
-    usertxs2& getDataStruct() {
-        return m_data;
-    }
 
     //IBlock interface
     /** \brief Return TXSTYPE_INF as type . */
@@ -102,9 +99,15 @@ class GetAccount : public BlockCommand {
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
 
-  public:
-    usertxs2            m_data;
+    uint16_t    getDestNode();
+    uint32_t    getDestUser();
+
+  private:
+    UserInfo            m_data;
     accountresponse     m_response;
+
+
+
 };
 
 #endif // GETACCOUNTCOMMAND_H

@@ -96,9 +96,9 @@ class GetMessage : public BlockCommand {
 
       public:
 
-        virtual uint32_t    getBlockTime();
-        virtual uint16_t    getDestNode();
-        virtual uint32_t    getMsgId();
+        uint32_t    getBlockTime();
+        uint16_t    getDestNode();
+        uint32_t    getMsgId();
 
         GetMessageData          m_data;
         commandresponse         m_response;

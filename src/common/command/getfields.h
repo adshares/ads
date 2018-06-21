@@ -44,7 +44,7 @@ class GetFields : public BlockCommand {
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
    private:
-    usertxs2    m_data;
+    UserInfo    m_data;
     user_t      m_response;
     uint8_t     m_type;
 };

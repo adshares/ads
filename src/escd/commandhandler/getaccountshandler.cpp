@@ -14,8 +14,8 @@ void GetAccountsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
 void GetAccountsHandler::onExecute() {
     assert(m_command);
 
-    uint32_t path = m_offi.last_path();
-    uint32_t users = m_offi.last_users(m_command->getDestBankId());
+    uint32_t path   = m_command->getBlockId() ? m_command->getBlockId() : m_offi.last_path();
+    uint32_t users  = m_offi.last_users(m_command->getDestBankId());
 
     const auto errorCode = m_command->prepareResponse(path, users);
     if (errorCode != ErrorCodes::Code::eNone) {
@@ -36,12 +36,7 @@ void GetAccountsHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetAccountsHandler::onValidate() {
-    uint32_t path=m_offi.last_path();
-
-    if (m_command->getBlockId() != path) {
-        return ErrorCodes::Code::eBadPath;
-    }
+ErrorCodes::Code GetAccountsHandler::onValidate() {    
 
     if (m_command->getDestBankId() > m_offi.last_nodes()) {
         return ErrorCodes::Code::eBankIncorrect;
