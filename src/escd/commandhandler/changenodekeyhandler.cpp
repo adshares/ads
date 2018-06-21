@@ -78,8 +78,9 @@ void ChangeNodeKeyHandler::onExecute() {
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
 
         if(!errorCode) {
-            commandresponse cresponse{m_usera, msid, mpos};
-            response.emplace_back(boost::asio::buffer(&cresponse, sizeof(cresponse)));
+            response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
+            response.emplace_back(boost::asio::buffer(&msid, sizeof(msid)));
+            response.emplace_back(boost::asio::buffer(&mpos, sizeof(mpos)));
         }
         boost::asio::write(m_socket, response);
 
