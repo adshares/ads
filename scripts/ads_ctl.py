@@ -235,7 +235,7 @@ def start_action(data_dir, debug=False, init=False):
     block_time = 512
     if debug:
         block_time = 32
-    genesis_time = (int(time.time() + 8) / block_time) * block_time
+    genesis_time = (int(time.time()) / block_time + 2) * block_time
     print("Genesis start time: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(float(genesis_time))))
 
     for nconf in sorted(glob(data_dir + '/node*')):
