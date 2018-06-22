@@ -72,9 +72,6 @@ class SendMany : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 
@@ -110,7 +107,7 @@ class SendMany : public BlockCommand {
          * @brief Checks for target duplicates and does amount is positive value.
          * @return ErrorCodes value, eNone if success.
          */
-        virtual ErrorCodes::Code    checkForDuplicates();
+        virtual void checkForDuplicates();
 
         /** \brief Retursn transactions vector */
         virtual std::vector<SendAmountTxnRecord> getTransactionsVector();
@@ -124,7 +121,7 @@ class SendMany : public BlockCommand {
         /**  \brief Get message id. */
 
         SendManyData          m_data;
-        commandresponse     m_response;
+        commandresponse       m_response;
 
     private:
         void fillAdditionalData();

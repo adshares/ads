@@ -119,10 +119,6 @@ uint32_t GetLog::getUserMessageId() {
     return 0;
 }
 
-user_t& GetLog::getUserInfo() {
-    return m_response;
-}
-
 bool GetLog::send(INetworkClient& netClient) {
     if (m_responseError) {
         // case when filter transaction type doesn't exists

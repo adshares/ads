@@ -42,6 +42,5 @@ void GetSignaturesHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetSignaturesHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetSignaturesHandler::onValidate() {
 }

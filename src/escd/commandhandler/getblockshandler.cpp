@@ -32,8 +32,7 @@ void GetBlocksHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetBlocksHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetBlocksHandler::onValidate() {
 }
 
 void GetBlocksHandler::sendFirstVipKeysIfNeeded() {

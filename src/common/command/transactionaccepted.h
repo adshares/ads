@@ -28,7 +28,6 @@ class TransactionAccepted : public BlockCommand {
     virtual int getSignatureSize()                              override;
     virtual void sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) override;
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
-    virtual user_t&         getUserInfo()                               override;
     virtual uint32_t        getTime()                                   override;
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;

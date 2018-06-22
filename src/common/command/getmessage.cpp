@@ -88,10 +88,6 @@ int64_t GetMessage::getDeduct() {
     return 0;
 }
 
-user_t& GetMessage::getUserInfo() {
-    return m_response.usera;
-}
-
 bool GetMessage::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetMessage sending error\n");

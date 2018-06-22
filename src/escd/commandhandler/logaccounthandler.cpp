@@ -57,7 +57,6 @@ void LogAccountHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code LogAccountHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void LogAccountHandler::onValidate() {
 }
 

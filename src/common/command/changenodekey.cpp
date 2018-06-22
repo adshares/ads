@@ -103,12 +103,6 @@ int64_t ChangeNodeKey::getDeduct() {
     return 0;
 }
 
-user_t& ChangeNodeKey::getUserInfo() {
-    return m_response.usera;
-}
-
-
-
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
     if(! netClient.sendData(getData(), sizeof(m_data) )) {

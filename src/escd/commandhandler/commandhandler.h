@@ -34,10 +34,10 @@ class CommandHandler : public ICommandHandler {
     std::unique_ptr<CommandType> init(std::unique_ptr<IBlockCommand> command);
 
   private:
-    ErrorCodes::Code executeImpl(std::unique_ptr<IBlockCommand>);
-    ErrorCodes::Code performCommonValidation(IBlockCommand&);
-    ErrorCodes::Code validateModifyingCommand(IBlockCommand&);
-    ErrorCodes::Code initialValidation(IBlockCommand&);
+    void executeImpl(std::unique_ptr<IBlockCommand>);
+    void performCommonValidation(IBlockCommand&);
+    void validateModifyingCommand(IBlockCommand&);
+    void sendErrorToClient(ErrorCodes::Code);
 };
 
 template<typename CommandType>

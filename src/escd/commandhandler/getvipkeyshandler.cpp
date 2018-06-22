@@ -45,6 +45,5 @@ void GetVipKeysHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetVipKeysHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetVipKeysHandler::onValidate() {
 }

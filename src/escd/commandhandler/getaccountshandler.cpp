@@ -36,11 +36,8 @@ void GetAccountsHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetAccountsHandler::onValidate() {    
-
+void GetAccountsHandler::onValidate() {
     if (m_command->getDestBankId() > m_offi.last_nodes()) {
-        return ErrorCodes::Code::eBankIncorrect;
+        throw ErrorCodes::Code::eBankIncorrect;
     }
-
-    return ErrorCodes::Code::eNone;
 }

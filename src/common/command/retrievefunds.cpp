@@ -60,10 +60,6 @@ bool RetrieveFunds::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& RetrieveFunds::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t RetrieveFunds::getTime() {
     return m_data.info.ttime;
 }

@@ -142,10 +142,6 @@ int64_t BroadcastMsg::getDeduct() {
     return 0;
 }
 
-user_t& BroadcastMsg::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t BroadcastMsg::getUserMessageId() {
     return m_data.info.msg_id;
 }

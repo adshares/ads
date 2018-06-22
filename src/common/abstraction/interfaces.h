@@ -78,8 +78,6 @@ class ICommand {
      * \param pk    Pointer to public key.
     */
     virtual bool                    checkSignature(const uint8_t* hash, const uint8_t* pk)      = 0;
-    /** \brief Get actual user for which command is performed. */
-    virtual user_t&                 getUserInfo()       = 0;
     /** \brief Get time of command. */
     virtual uint32_t                getTime()           = 0;
     /** \brief Get User ID. */
@@ -171,7 +169,7 @@ class ICommandHandler {
     virtual void onExecute()  = 0;
 
     /** \brief Validation event. It performs command specific validation*/
-    virtual ErrorCodes::Code onValidate() = 0;
+    virtual void onValidate() = 0;
 
     virtual ~ICommandHandler() = default;
 };

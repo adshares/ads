@@ -34,6 +34,5 @@ void GetLogHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetLogHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetLogHandler::onValidate() {
 }
