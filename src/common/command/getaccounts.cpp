@@ -30,7 +30,7 @@ void GetAccounts::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void GetAccounts::setResponse(char*) {
+void GetAccounts::setResponse(char* /*response*/) {
 }
 
 int GetAccounts::getDataSize() {
