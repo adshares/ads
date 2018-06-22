@@ -25,8 +25,8 @@ void GetAccountsHandler::onExecute() {
     try {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        uint32_t sizeOfResponse = m_command->getResponseSize();
         if (!errorCode) {
-            uint32_t sizeOfResponse = m_command->getResponseSize();
             response.emplace_back(boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
             response.emplace_back(boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
         }

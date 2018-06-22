@@ -20,14 +20,15 @@ void GetBlockHandler::onExecute() {
     try {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        Helper::Hlog hlog(m_command->getBlockId());
+        hlog.load();
+
         if (!errorCode) {
             // only header
             response.emplace_back(boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
             // nodes
             response.emplace_back(boost::asio::buffer(m_command->m_responseNodes));
             // hlog
-            Helper::Hlog hlog(m_command->getBlockId());
-            hlog.load();
             response.emplace_back(boost::asio::buffer(hlog.data, 4 + hlog.total));
         }
         boost::asio::write(m_socket, response);
