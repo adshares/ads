@@ -58,7 +58,6 @@ void CreateNodeHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code CreateNodeHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void CreateNodeHandler::onValidate() {
 }
 

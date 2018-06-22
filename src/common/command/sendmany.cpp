@@ -164,10 +164,6 @@ int64_t SendMany::getDeduct() {
     return deduct;
 }
 
-user_t& SendMany::getUserInfo() {
-    return m_response.usera;
-}
-
 bool SendMany::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), this->getDataSize())) {
         ELOG("SendMany ERROR sending data\n");
@@ -233,21 +229,20 @@ void SendMany::initTransactionVector() {
     }
 }
 
-ErrorCodes::Code SendMany::checkForDuplicates() {
+void SendMany::checkForDuplicates() {
     std::set<std::pair<uint16_t, uint32_t>> checkForDuplicate;
     for (auto &it : m_transactions) {
         uint16_t node = it.dest_node;
         uint32_t user = it.dest_user;
         if (!checkForDuplicate.insert(std::make_pair(node, user)).second) {
             ELOG("ERROR: duplicate target: %04X:%08X\n", node, user);
-            return ErrorCodes::Code::eDuplicatedTarget;
+            throw ErrorCodes::Code::eDuplicatedTarget;
         }
         if (it.amount < 0) {
             ELOG("ERROR: only positive non-zero transactions allowed in MPT\n");
-            return ErrorCodes::Code::eAmountBelowZero;
+            throw ErrorCodes::Code::eAmountBelowZero;
         }
     }
-    return ErrorCodes::Code::eNone;
 }
 
 std::vector<SendAmountTxnRecord> SendMany::getTransactionsVector() {

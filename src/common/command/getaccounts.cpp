@@ -31,7 +31,7 @@ void GetAccounts::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void GetAccounts::setResponse(char* response) {    
+void GetAccounts::setResponse(char*) {
 }
 
 int GetAccounts::getDataSize() {
@@ -87,11 +87,6 @@ int64_t GetAccounts::getFee() {
 
 int64_t GetAccounts::getDeduct() {
     return 0;
-}
-
-user_t& GetAccounts::getUserInfo() {
-    // in this case there is a multiple user info fields
-    return *(user_t*)nullptr;
 }
 
 bool GetAccounts::send(INetworkClient& netClient) {

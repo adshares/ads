@@ -51,24 +51,22 @@ void UnsetNodeStatusHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code UnsetNodeStatusHandler::onValidate() {
+void UnsetNodeStatusHandler::onValidate() {
     if(!m_offi.check_user(m_command->getDestBankId(), 0)) {
         DLOG("ERROR: bad target node %04X\n", m_command->getDestBankId());
-        return ErrorCodes::Code::eNodeBadTarget;
+        throw ErrorCodes::Code::eNodeBadTarget;
     }
 
     if(m_command->getUserId()) {
         DLOG("ERROR: user %08X not authorized to change node status bits\n",
             m_command->getUserId());
-        return ErrorCodes::Code::eNoNodeStatusChangeAuth;
+        throw ErrorCodes::Code::eNoNodeStatusChangeAuth;
     }
 
     if(0x0 != (m_command->getStatus()&0x7)) {
         DLOG("ERROR: not authorized to change first three bits of node status for node %04X\n",
              m_command->getDestBankId());
-        return ErrorCodes::Code::eAuthorizationError;
+        throw ErrorCodes::Code::eAuthorizationError;
     }
-
-    return ErrorCodes::Code::eNone;
 }
 

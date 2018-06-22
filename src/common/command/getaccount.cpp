@@ -92,10 +92,6 @@ int64_t GetAccount::getDeduct() {
     return 0;
 }
 
-user_t& GetAccount::getUserInfo() {
-    return m_response.usera;
-}
-
 uint16_t GetAccount::getDestNode(){
     return m_data.info.bbank;
 }

@@ -84,10 +84,6 @@ uint32_t GetFields::getUserMessageId() {
     return 0;
 }
 
-user_t& GetFields::getUserInfo() {
-    return m_response;
-}
-
 bool GetFields::send(INetworkClient& /*netClient*/) {
     return true;
 }

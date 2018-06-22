@@ -36,6 +36,5 @@ void GetBlockHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetBlockHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetBlockHandler::onValidate() {
 }

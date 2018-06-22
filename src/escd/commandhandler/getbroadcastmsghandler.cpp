@@ -71,6 +71,5 @@ void GetBroadcastMsgHandler::onExecute() {
 
 }
 
-ErrorCodes::Code GetBroadcastMsgHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetBroadcastMsgHandler::onValidate() {
 }

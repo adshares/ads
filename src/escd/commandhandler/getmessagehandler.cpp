@@ -35,6 +35,5 @@ void GetMessageHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetMessageHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetMessageHandler::onValidate() {
 }

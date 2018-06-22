@@ -64,9 +64,6 @@ public:
     /** \brief Get additional data size. */
     virtual int getAdditionalDataSize()                                 override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Set user info data */
     virtual void setAdditionalData(char* data);
 

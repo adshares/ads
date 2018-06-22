@@ -85,10 +85,6 @@ int64_t TransactionAccepted::getDeduct() {
     return 0;
 }
 
-user_t& TransactionAccepted::getUserInfo() {
-    return m_response;
-}
-
 uint32_t TransactionAccepted::getUserMessageId() {
     return 0;
 }
