@@ -58,11 +58,6 @@ public:
 
         iothp_.reset(new boost::thread(boost::bind(&peer::iorun,this)));
 
-        static int s_peerId = 0;
-        s_peerId++;
-
-        m_peerId = s_peerId;
-
         setIoThreadName();
     }
 
@@ -85,10 +80,10 @@ public:
     }
 
     void setIoThreadName()
-    {
+    {                      
 #ifdef LINUX
         if(iothp_){
-            std::string thName = "pr_" + std::to_string(svid) + "_" + std::to_string(m_peerId);
+            std::string thName = "pr_" + std::to_string(svid);
             pthread_setname_np(iothp_->native_handle(), thName.c_str());
 
         }
@@ -2104,15 +2099,13 @@ NEXTUSER:
 
   private:
     uint32_t    svid; // svid of peer
-    int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync
-    //bool        killme; // kill process initiated
+    int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync    
     uint32_t    busy; // waiting for response (used during sync load balancing) set to last request time
     uint32_t    last_active; // updated with every block sync, protects from disconnect, could be read only (private)
 
     // data from peer
     std::string addr;
-    uint32_t    port; // not needed
-    int         m_peerId;
+    uint32_t    port; // not needed    
 
     boost::asio::io_service peer_io_service_;	//TH
     boost::asio::io_service::work work_;		//TH

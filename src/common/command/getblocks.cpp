@@ -329,14 +329,14 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
             char hash[65];
             hash[64]='\0';
             ed25519_key2text(hash, s.signature, 32);
-            ELOG("ERROR vipkey (%d) failed %s\n", s.svid, hash);
+            ELOG("ERROR vipkey (%d) failed %s\n", s.svid, hash);            
         }
     }
 
     if(2*vok < (int)vipkeys.size()) {
         ELOG("ERROR failed to confirm enough signature for header %08X (2*%d<%d)\n",
         m_receivedHeaders[m_numOfBlocks-1].now, vok, (int)vipkeys.size());
-        return true;
+        return false;
     } else {
         ELOG("CONFIRMED enough signature for header %08X (2*%d>=%d)\n",
         m_receivedHeaders[m_numOfBlocks-1].now, vok, (int)vipkeys.size());

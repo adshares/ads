@@ -15,10 +15,7 @@ class GetAccounts : public BlockCommand {
         GetAccounts(const GetAccounts& obj) = delete;
 
         /** \brief Disabled copy assignment operator. */
-        GetAccounts &operator=(const GetAccounts&) = delete;
-
-        /** \brief Free responseBuffer. */
-        virtual ~GetAccounts();
+        GetAccounts &operator=(const GetAccounts&) = delete;        
 
         /** \brief Return TXSTYPE_NOD as type . */
         virtual int  getType()                                      override;

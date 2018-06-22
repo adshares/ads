@@ -615,8 +615,7 @@ NEXTUSER:
                             uint16_t svid=put_msg->request();
                             if(svid) {
                                 m_peerManager.deliver(put_msg,svid);
-                                ELOG("REQUESTING MSL from %04X \n",svid);
-                                DLOG("REQUESTING MSL from %04X \n",svid);
+                                ELOG("REQUESTING MSL from %04X \n",svid);                                
                             }
                         }
                         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
