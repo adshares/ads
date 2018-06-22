@@ -92,10 +92,6 @@ uint32_t Connected::getUserMessageId() {
     return 0;
 }
 
-user_t& Connected::getUserInfo() {
-    return m_response.usera;
-}
-
 bool Connected::send(INetworkClient& /*netClient*/) {
     return true;
 }

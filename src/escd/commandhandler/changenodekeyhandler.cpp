@@ -89,17 +89,15 @@ void ChangeNodeKeyHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code ChangeNodeKeyHandler::onValidate() {
+void ChangeNodeKeyHandler::onValidate() {
     hash_t secretKey;
     if (!m_command->getDestBankId() && !m_offi.find_key(m_command->getKey(), secretKey)) {
-        return ErrorCodes::Code::eMatchSecretKeyNotFound;
+        throw ErrorCodes::Code::eMatchSecretKeyNotFound;
     }
 
     if (m_command->getUserId()) {
         DLOG("ERROR: bad user %04X for bank key changes\n", m_command->getUserId());
-        return ErrorCodes::Code::eBadUser;
+        throw ErrorCodes::Code::eBadUser;
     }
-
-    return ErrorCodes::Code::eNone;
 }
 

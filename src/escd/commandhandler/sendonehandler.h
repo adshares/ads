@@ -16,7 +16,7 @@ class SendOneHandler : public CommandHandler {
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute() override;
-    virtual ErrorCodes::Code onValidate() override;
+    virtual void onValidate() override;
 
   private:
     std::unique_ptr<SendOne>  m_command;

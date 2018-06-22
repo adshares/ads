@@ -80,10 +80,9 @@ void SendOneHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code SendOneHandler::onValidate() {
+void SendOneHandler::onValidate() {
     if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
         DLOG("ERROR: bad target: node %04X user %04X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        return ErrorCodes::Code::eUserBadTarget;
+        throw ErrorCodes::Code::eUserBadTarget;
     }
-    return ErrorCodes::Code::eNone;
 }

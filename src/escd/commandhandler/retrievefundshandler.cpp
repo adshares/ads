@@ -51,11 +51,10 @@ void RetrieveFundsHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code RetrieveFundsHandler::onValidate() {
+void RetrieveFundsHandler::onValidate() {
     if(m_command->getBankId() == m_command->getDestBankId()) {
         DLOG("ERROR: bad bank %04X, use PUT\n", m_command->getDestBankId());
-        return ErrorCodes::Code::eBankIncorrect;
+        throw ErrorCodes::Code::eBankIncorrect;
     }
-    return ErrorCodes::Code::eNone;
 }
 

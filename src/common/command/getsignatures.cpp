@@ -61,10 +61,6 @@ bool GetSignatures::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return (ed25519_sign_open(getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& GetSignatures::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t GetSignatures::getTime() {
     return m_data.info.ttime;
 }

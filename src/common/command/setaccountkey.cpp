@@ -90,10 +90,6 @@ int64_t SetAccountKey::getDeduct() {
     return 0;
 }
 
-user_t& SetAccountKey::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t SetAccountKey::getUserMessageId()
 {
     return m_data.amsid;

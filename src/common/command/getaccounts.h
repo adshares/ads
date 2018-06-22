@@ -62,9 +62,6 @@ class GetAccounts : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 

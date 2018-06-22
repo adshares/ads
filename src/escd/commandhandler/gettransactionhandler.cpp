@@ -61,6 +61,5 @@ void GetTransactionHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetTransactionHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void GetTransactionHandler::onValidate() {
 }

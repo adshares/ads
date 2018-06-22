@@ -111,10 +111,6 @@ int64_t CreateAccount::getDeduct() {
     return USER_MIN_MASS;
 }
 
-user_t& CreateAccount::getUserInfo() {
-    return m_response.usera;
-}
-
 bool CreateAccount::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), getDataSize())) {
         ELOG("CreateAccount sending data error\n");

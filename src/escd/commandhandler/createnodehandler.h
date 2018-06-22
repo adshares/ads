@@ -15,7 +15,7 @@ class CreateNodeHandler : public CommandHandler {
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute()  override;
-    virtual ErrorCodes::Code onValidate() override;
+    virtual void onValidate() override;
 
   private:
     std::unique_ptr<CreateNode> m_command;

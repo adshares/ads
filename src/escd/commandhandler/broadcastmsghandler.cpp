@@ -52,10 +52,9 @@ void BroadcastMsgHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code BroadcastMsgHandler::onValidate() {
+void BroadcastMsgHandler::onValidate() {
     if (m_command->getAdditionalDataSize() > MAX_BROADCAST_LENGTH) {
-        return ErrorCodes::Code::eBroadcastMaxLength;
+        throw ErrorCodes::Code::eBroadcastMaxLength;
     }
-    return ErrorCodes::Code::eNone;
 }
 

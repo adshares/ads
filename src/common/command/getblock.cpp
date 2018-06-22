@@ -95,11 +95,6 @@ int64_t GetBlock::getDeduct() {
     return 0;
 }
 
-user_t& GetBlock::getUserInfo() {
-    // in this case there is a multiple user info fields
-    return *(user_t*)nullptr;
-}
-
 bool GetBlock::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetBlock sending error\n");

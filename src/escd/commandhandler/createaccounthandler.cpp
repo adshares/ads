@@ -82,15 +82,14 @@ void CreateAccountHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code CreateAccountHandler::onValidate() {
+void CreateAccountHandler::onValidate() {
     if(m_command->getDestBankId() != m_offi.svid) {
         uint32_t now = time(NULL);
         if(now%BLOCKSEC>BLOCKSEC/2) {
             DLOG("ERROR: bad timing for remote account request, try after %d seconds\n",
                  BLOCKSEC-now%BLOCKSEC);
-            return ErrorCodes::Code::eCreateAccountBadTiming;
+            throw ErrorCodes::Code::eCreateAccountBadTiming;
         }
     }
-    return ErrorCodes::Code::eNone;
 }
 

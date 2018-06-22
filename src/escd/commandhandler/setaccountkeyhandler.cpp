@@ -79,7 +79,6 @@ void SetAccountKeyHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code SetAccountKeyHandler::onValidate() {
-    return ErrorCodes::Code::eNone;
+void SetAccountKeyHandler::onValidate() {
 }
 

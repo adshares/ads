@@ -100,10 +100,6 @@ int64_t GetBroadcastMsg::getDeduct() {
     return 0;
 }
 
-user_t& GetBroadcastMsg::getUserInfo() {
-    return m_fakeResponse.usera;
-}
-
 bool GetBroadcastMsg::send(INetworkClient& netClient) {
     if (loadFromLocalPath()) {
         return true;

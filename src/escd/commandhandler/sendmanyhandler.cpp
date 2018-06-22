@@ -95,7 +95,7 @@ void SendManyHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code SendManyHandler::onValidate() {
-    return m_command->checkForDuplicates();
+void SendManyHandler::onValidate() {
+    m_command->checkForDuplicates();
 }
 

@@ -52,19 +52,19 @@ void GetAccountHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code GetAccountHandler::onValidate() {
-    int32_t diff = m_command->getTime() - time(nullptr);
+void GetAccountHandler::onValidate() {
+    const int32_t diff = m_command->getTime() - time(nullptr);
 
 #ifdef DEBUG
     // this is special, just local info
     if((abs(diff)>22)) {
         DLOG("ERROR: high time difference (%d>2s)\n", diff);
-        return ErrorCodes::Code::eHighTimeDifference;
+        throw ErrorCodes::Code::eHighTimeDifference;
     }
 #else
     if((abs(diff)>2)) {
         DLOG("ERROR: high time difference (%d>2s)\n",diff);
-        return ErrorCodes::Code::eHighTimeDifference;
+        throw ErrorCodes::Code::eHighTimeDifference;
     }
 #endif
 
@@ -73,18 +73,16 @@ ErrorCodes::Code GetAccountHandler::onValidate() {
 
     if(m_command->getUserId() != m_offi.svid && m_command->getDestNode() != m_offi.svid) {
         DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", m_command->getUserId(), m_command->getDestNode(), m_offi.svid );
-        return ErrorCodes::Code::eBankNotFound;
+        throw ErrorCodes::Code::eBankNotFound;
     }
 
     user_t userb;
     if(!m_offi.get_user(userb, m_command->getDestNode(), m_command->getDestUser())) {
         DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
-        return ErrorCodes::Code::eGetUserFail;
+        throw ErrorCodes::Code::eGetUserFail;
     }
 
 #ifdef DEBUG
     DLOG("SENDING user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
 #endif
-
-    return ErrorCodes::Code::eNone;
 }

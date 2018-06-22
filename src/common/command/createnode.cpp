@@ -97,10 +97,6 @@ int64_t CreateNode::getDeduct() {
     return BANK_MIN_UMASS + BANK_MIN_TMASS;
 }
 
-user_t& CreateNode::getUserInfo() {
-    return m_response.usera;
-}
-
 bool CreateNode::send(INetworkClient& netClient) {
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
         ELOG("CreateNode sending error\n");

@@ -95,10 +95,6 @@ uint32_t GetMessageList::getUserMessageId() {
     return 0;
 }
 
-user_t& GetMessageList::getUserInfo() {
-    return m_response.usera;
-}
-
 bool GetMessageList::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetMessageList sending error\n");

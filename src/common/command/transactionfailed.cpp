@@ -90,10 +90,6 @@ int64_t TransactionFailed::getDeduct() {
     return 0;
 }
 
-user_t& TransactionFailed::getUserInfo() {
-    return m_response;
-}
-
 uint32_t TransactionFailed::getUserMessageId() {
     return 0;
 }

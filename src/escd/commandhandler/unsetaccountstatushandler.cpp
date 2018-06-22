@@ -87,20 +87,20 @@ void UnsetAccountStatusHandler::onExecute() {
     }
 }
 
-ErrorCodes::Code UnsetAccountStatusHandler::onValidate() {
+void UnsetAccountStatusHandler::onValidate() {
     if(!m_offi.check_user(m_command->getDestBankId(),m_command->getDestUserId())) {
         DLOG("ERROR: bad target user %04X:%08X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        return ErrorCodes::Code::eUserBadTarget;
+        throw ErrorCodes::Code::eUserBadTarget;
     }
 
     if(m_command->getDestBankId() != m_offi.svid) {
         DLOG("ERROR: changing account status on remote node is not allowed");
-        return ErrorCodes::Code::eAccountStatusOnRemoteNode;
+        throw ErrorCodes::Code::eAccountStatusOnRemoteNode;
     }
 
     if(0x0 != (m_command->getStatus()&0x1)) {
         DLOG("ERROR: not authorized to change first bit for user %08X \n", m_command->getDestUserId());
-        return ErrorCodes::Code::eAuthorizationError;
+        throw ErrorCodes::Code::eAuthorizationError;
     }
 
     if(m_command->getUserId() && m_command->getUserId() != m_command->getDestUserId() &&
@@ -109,9 +109,7 @@ ErrorCodes::Code UnsetAccountStatusHandler::onValidate() {
         DLOG("ERROR: not authorized to change higher bits (%04X) for user %08X \n",
             m_command->getStatus(), m_command->getDestUserId());
 
-        return ErrorCodes::Code::eAuthorizationError;
+        throw ErrorCodes::Code::eAuthorizationError;
     }
-
-    return ErrorCodes::Code::eNone;
 }
 
