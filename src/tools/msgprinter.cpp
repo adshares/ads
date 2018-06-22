@@ -21,7 +21,7 @@ void MsgPrinter::printJson() {
     EndHeader   endHeader;
 
     try {
-        int readed = 0;
+        auto readed = 0u;
         file.open(m_filepath, std::ifstream::in | std::ifstream::binary);
         file.read((char*)&header, sizeof(header));
 
@@ -73,7 +73,7 @@ void MsgPrinter::printJson() {
 
         boost::property_tree::ptree hashvector;
 
-        for(auto i=0;i<endHeader.tmax;i++)
+        for(auto i=0u;i<endHeader.tmax;i++)
         {
             hash_s      hash;
             uint32_t    pos[1];

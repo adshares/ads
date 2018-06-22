@@ -4,9 +4,12 @@ cmake_policy(SET CMP0015 NEW)
 cmake_policy(SET CMP0023 NEW)
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -m64 -fPIC -pthread")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wextra -Og")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -m64 -fPIC -Os")
+
+
+set(Boost_USE_STATIC_LIBS   ON)
 
 if(UNIX AND NOT APPLE)
    add_definitions(-DLINUX)
@@ -68,9 +71,3 @@ add_subdirectory(esc)
 add_subdirectory(escd)
 add_subdirectory(tools)
 
-if(EXECUTE_LOCAL_TEST)
-    message("..............EXECUTE_LOCAL_TEST:         " ${EXECUTE_LOCAL_TEST})
-    install(FILES ../scripts/installesc.sh
-        PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ
-        DESTINATION bin)
-endif()

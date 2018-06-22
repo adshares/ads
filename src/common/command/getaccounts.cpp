@@ -16,9 +16,6 @@ GetAccounts::GetAccounts(uint16_t src_bank, uint32_t src_user, uint32_t block, u
     }
 }
 
-GetAccounts::~GetAccounts() {
-}
-
 unsigned char* GetAccounts::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -31,7 +28,7 @@ void GetAccounts::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void GetAccounts::setResponse(char* response) {    
+void GetAccounts::setResponse(char* response) {
 }
 
 int GetAccounts::getDataSize() {
