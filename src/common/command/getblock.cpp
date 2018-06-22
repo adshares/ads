@@ -156,8 +156,6 @@ ErrorCodes::Code GetBlock::prepareResponse() {
     uint32_t path = m_data.info.block;
     char filename[64];
     Helper::FileName::getName(filename, path, "servers.srv");
-    Helper::get_file_from_block(filename);
-
     Helper::Servers servers(filename);
     servers.load();
 

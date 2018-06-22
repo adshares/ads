@@ -2,6 +2,7 @@
 #define FILEWRAPPER_H
 
 #include <string>
+#include <fcntl.h>
 
 namespace Helper {
 
@@ -11,21 +12,21 @@ namespace Helper {
 class FileWrapper
 {
 public:
+    FileWrapper();
     FileWrapper(const std::string filepath, int mask, bool removeOnClose = false);
     ~FileWrapper();
-    FileWrapper(const FileWrapper& obj) = default;
-    FileWrapper &operator=(const FileWrapper&) = delete;
 
     bool isOpen();
     bool remove();
 
+    bool open(const char* filename, int mask = O_RDONLY, int mode = 0644, bool removeOnClose = false);
     bool seek(int position, int whence);
     int write(void* buffer, unsigned int size);
     int read(void* buffer, unsigned int size);
 
 private:
     int m_file_descriptor;
-    const std::string m_filepath;
+    std::string m_filepath;
     bool m_remove_on_close;
 };
 

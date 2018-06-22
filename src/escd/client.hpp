@@ -115,7 +115,6 @@ class client : public boost::enable_shared_from_this<client> {
         if(m_command)
         {
             auto lockUserId = m_command->getUserId();
-            Helper::set_user(m_command->getUserId());
 
             try{
                 if(m_offi.lock_user(lockUserId))
@@ -141,7 +140,6 @@ class client : public boost::enable_shared_from_this<client> {
             {
                 ELOG("ERROR exception in handle_read_txs_complete %s\n", e.what());
             }
-            Helper::cleanup_temp_directory();
             //@TODO: lock , unlock in RAII object.
         }
 

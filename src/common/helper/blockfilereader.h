@@ -1,36 +1,50 @@
-#ifndef LIBARCHIVEREADER_H
-#define LIBARCHIVEREADER_H
+#ifndef BLOCKFILEREADER_H
+#define BLOCKFILEREADER_H
 
 #include <stdint.h>
+#include <string>
 
 namespace Helper {
 
 /**
  * @brief Class to read file directly from archive without extracting.
+ * Note that you can use it also for read regular file, just put as argument file without .arch extension
  */
-class LibArchiveReader
+class BlockFileReader
 {
 public:
-    //! set path to archive file, do not open.
-    LibArchiveReader(const char* archPath);
+
+    BlockFileReader();
 
     /**
-     * @brief Set paths and OPEN file.
-     * @param archPath - path to archive
-     * @param filepath - path to file you're looking for.
+     * @brief set path to regular file, reader (depends on path) localize it in block or archive and will try to open
+     * @param filepath - full path to file in block (eg. blk/5AB/27000/servers.srv
      */
-    LibArchiveReader(const char* archPath, const char* filepath);
+    BlockFileReader(const char* filepath);
+
+    /**
+     * @brief Set paths and open file from archive.
+     * @param archPath - if has .arch extension then will be handled as archive otherwise as regular file
+     * @param filepath - path to file you're looking for. eg. server.srv
+     */
+    BlockFileReader(const char* archPath, const char* filepath);
 
     //! dstr close file descriptor if exists.
-    ~LibArchiveReader();
+    ~BlockFileReader();
 
     /**
      * @brief Search for file in archive and get handle to it.
      * Function successful invoke allows to use manipulation functions like: open, read, lseek.
-     * @param filepath - path to file you're looking for.
+     * @param filepath - new filepath, for already existing object
      * @return true if success, otherwise false.
      */
-    bool open(const char* filepath);
+    bool openFromArch(const std::string filepath = "");
+
+    /**
+     * @brief open regular file.
+     * @return true if success otherwise false.
+     */
+    bool openFile();
 
     /**
      * @brief Read data from file
@@ -65,8 +79,11 @@ public:
 
     //    unsigned int write();
 private:
-    const char* m_archFilePath;
-    const char* m_filePath;
+
+    bool isArchFile();
+
+    std::string m_archFilePath;
+    std::string m_filePath;
     int m_fileDescriptor;
     uint64_t m_seek;
     uint64_t m_fileSize;
@@ -74,4 +91,4 @@ private:
 
 }
 
-#endif // LIBARCHIVEREADER_H
+#endif // BLOCKFILEREADER_H

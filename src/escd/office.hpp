@@ -346,7 +346,7 @@ class office {
             uint32_t bank=svms>>32;
             uint32_t msid=svms&0xFFFFFFFF;
             Helper::FileName::getLog(filename, now, bank, msid);
-            int fd = Helper::open_block_file(filename, O_RDONLY);
+            int fd = open(filename, O_RDONLY);
             if(fd<0) {
                 DLOG("OFFICE, failed to open log file %s\n",filename);
                 continue;

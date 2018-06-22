@@ -417,7 +417,7 @@ class server {
             for(n=0; n<=rollback; n++) {
                 uint32_t npath=path+n*BLOCKSEC;
                 Helper::FileName::getUndo(filename, npath, bank);
-                int nd = Helper::open_block_file(filename, O_RDONLY);
+                int nd = open(filename, O_RDONLY);
                 if(nd<0) {
                     continue;
                 }
@@ -4371,8 +4371,14 @@ NEXTBANK:
             dbls_.unlock();
         }
         DLOG("NEW BLOCK created\n");
-        threadpool.create_thread(boost::bind(Helper::db_backup, this->srvs_.now - BLOCKSEC, srvs_.nodes.size()));
-        threadpool.create_thread(boost::bind(Helper::tar_old_blocks, this->srvs_.now - BLOCKSEC));
+#ifdef BLOCKS_COMPRESSED_SHIFT
+        boost::thread dbBackup_thread(boost::bind(Helper::db_backup, this->srvs_.now - BLOCKSEC, this->srvs_.nodes.size()));
+        dbBackup_thread.detach();
+
+        boost::thread archOldBlocks_thread(boost::bind(Helper::arch_old_blocks, this->srvs_.now - BLOCKSEC));
+        archOldBlocks_thread.detach();
+#endif
+
 //        srvs_.clean_old(opts_.svid);
     }
 

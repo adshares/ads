@@ -616,14 +616,11 @@ class servers { // also a block
         if(path>0) {
             Helper::FileName::getName(filename, path, "servers.srv");
         }
-        int fd=Helper::open_block_file(filename, O_RDONLY);
-        if(fd>=0) {
-            struct stat sb;
-            fstat(fd,&sb);
-            len=sb.st_size;
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
+            len=fd.getSize();
             data=(uint8_t*)malloc(4+len);
-            read(fd,data+4,len);
-            close(fd);
+            fd.read(data+4,len);
             //not a nice hack !!!
             hash=data+4
                  +sizeof(uint32_t) //version
@@ -744,15 +741,14 @@ class servers { // also a block
     int msgl_get(char* data) { // load only message list without hashtree
         char filename[64];
         Helper::FileName::getName(filename, now, "msglist.dat");
-        int fd = Helper::open_block_file(filename, O_RDONLY);
-        if(fd<0) {
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
             return(0);
         }
         //uint32_t msgnum;
         //read(fd,&msgnum,4); // not used
-        lseek(fd,4,SEEK_SET);
-        int len=read(fd,data,SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
-        close(fd);
+        fd.lseek(4,SEEK_SET);
+        int len=fd.read(data,SHA256_DIGEST_LENGTH+msg*(2+4+SHA256_DIGEST_LENGTH));
         return(len);
     }
     void msgl_map(char* data,std::map<uint64_t,message_ptr>& map,uint16_t mysvid) {
@@ -1116,44 +1112,43 @@ class servers { // also a block
     }
     int data_read(const char* filename,bool read_nodes) { //on change check read_servers()!!!
         uint32_t version;
-        int fd = Helper::open_block_file(const_cast<char*>(filename), O_RDONLY);
-        if(fd<0) {
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
             DLOG("ERROR, failed to read servers from %s\n",filename);
             return(0);
         }
-        read(fd,&version,sizeof(uint32_t)); // not used yet
-        read(fd,&now,sizeof(uint32_t));
-        read(fd,&msg,sizeof(uint32_t));
-        read(fd,&nod,sizeof(uint32_t));
-        read(fd,&div,sizeof(uint32_t));
-        read(fd,oldhash,SHA256_DIGEST_LENGTH);
-        read(fd,minhash,SHA256_DIGEST_LENGTH);
-        read(fd,msghash,SHA256_DIGEST_LENGTH);
-        read(fd,nodhash,SHA256_DIGEST_LENGTH);
-        read(fd,viphash,SHA256_DIGEST_LENGTH);
-        read(fd,nowhash,SHA256_DIGEST_LENGTH);
-        read(fd,&vok,sizeof(uint16_t));
-        read(fd,&vno,sizeof(uint16_t));
-        read(fd,&vtot,sizeof(uint16_t));
+        fd.read(&version,sizeof(uint32_t)); // not used yet
+        fd.read(&now,sizeof(uint32_t));
+        fd.read(&msg,sizeof(uint32_t));
+        fd.read(&nod,sizeof(uint32_t));
+        fd.read(&div,sizeof(uint32_t));
+        fd.read(oldhash,SHA256_DIGEST_LENGTH);
+        fd.read(minhash,SHA256_DIGEST_LENGTH);
+        fd.read(msghash,SHA256_DIGEST_LENGTH);
+        fd.read(nodhash,SHA256_DIGEST_LENGTH);
+        fd.read(viphash,SHA256_DIGEST_LENGTH);
+        fd.read(nowhash,SHA256_DIGEST_LENGTH);
+        fd.read(&vok,sizeof(uint16_t));
+        fd.read(&vno,sizeof(uint16_t));
+        fd.read(&vtot,sizeof(uint16_t));
         if(read_nodes && nod) {
             if(nodes.size()!=nod) {
                 nodes.resize(nod);
             }
             uint32_t n=0;
             for(; n<nod; n++) {
-                read(fd,nodes[n].pk,SHA256_DIGEST_LENGTH);
-                read(fd,nodes[n].hash,SHA256_DIGEST_LENGTH);
-                read(fd,nodes[n].msha,SHA256_DIGEST_LENGTH);
-                read(fd,&nodes[n].msid,sizeof(uint32_t));
-                read(fd,&nodes[n].mtim,sizeof(uint32_t));
-                read(fd,&nodes[n].weight,sizeof(uint64_t));
-                read(fd,&nodes[n].status,sizeof(uint32_t));
-                read(fd,&nodes[n].users,sizeof(uint32_t));
-                read(fd,&nodes[n].port,sizeof(uint32_t));
-                read(fd,&nodes[n].ipv4,sizeof(uint32_t));
+                fd.read(nodes[n].pk,SHA256_DIGEST_LENGTH);
+                fd.read(nodes[n].hash,SHA256_DIGEST_LENGTH);
+                fd.read(nodes[n].msha,SHA256_DIGEST_LENGTH);
+                fd.read(&nodes[n].msid,sizeof(uint32_t));
+                fd.read(&nodes[n].mtim,sizeof(uint32_t));
+                fd.read(&nodes[n].weight,sizeof(uint64_t));
+                fd.read(&nodes[n].status,sizeof(uint32_t));
+                fd.read(&nodes[n].users,sizeof(uint32_t));
+                fd.read(&nodes[n].port,sizeof(uint32_t));
+                fd.read(&nodes[n].ipv4,sizeof(uint32_t));
             }
         }
-        close(fd);
         return(now);
     }
     int data_write(const char* filename,bool write_nodes) {
@@ -1358,7 +1353,7 @@ class servers { // also a block
         //fprintf(fp,"%04X\t%.*s\t%d\n",(uint32_t)svid,4*SHA256_DIGEST_LENGTH,hash,ok);
         //fclose(fp);
 
-        sprintf(filepath,"blk/%03X/%05X/",path>>20,path&0xFFFFF);
+        Helper::FileName::getBlk(filepath, path);
 
         if(ok) {
             //vok++;
@@ -1370,7 +1365,6 @@ class servers { // also a block
             Helper::FileName::getName(filename, path, "signatures.no");
             DLOG("BLOCK differs (%s)\n",filename);
         }
-        Helper::get_file_from_block(filename);
 
         DLOG("SIGNATURE,  signatures in %s\n",filename);
 
@@ -1419,26 +1413,18 @@ class servers { // also a block
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);
 
-        int fd;
         char filename[64];
         Helper::FileName::getName(filename, path, "signatures.ok");
 
         DLOG("SIGNATURE, get signatures in %s\n",filename);
 
-        fd = Helper::open_block_file(filename, O_RDONLY);
-        if(fd>=0) {
-            struct stat sb;
-            fstat(fd,&sb);
-            if(!sb.st_size) {
-                close(fd);
-                return false;
-            }
-            nok=sb.st_size/sizeof(svsi_t);
+        Helper::BlockFileReader fd(filename);
+        if(fd.isOpen()) {
+            nok=fd.getSize()/sizeof(svsi_t);
             data=(uint8_t*)malloc(8+nok*sizeof(svsi_t));
             memcpy(data+0,&path,4);
             memcpy(data+4,&nok,4);
-            read(fd,data+8,nok*sizeof(svsi_t));
-            close(fd);
+            fd.read(data+8,nok*sizeof(svsi_t));
             return true;
         } else {
             nok=0;
@@ -1456,21 +1442,16 @@ class servers { // also a block
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);
 
-
-        int fd;
         char filename[64];
         Helper::FileName::getName(filename, path, "signatures.no");
-        fd = Helper::open_block_file(filename, O_RDONLY);
+        Helper::BlockFileReader fd(filename);
 
         DLOG("SIGNATURE,  read signatures2 in %s\n",filename);
 
-        if(fd>=0) {
-            struct stat sb;
-            fstat(fd,&sb);
-            nno=sb.st_size/sizeof(svsi_t);
+        if(fd.isOpen()) {
+            nno=fd.getSize()/sizeof(svsi_t);
             data=(uint8_t*)realloc(data,8+nok*sizeof(svsi_t)+4+nno*sizeof(svsi_t));
-            read(fd,data+8+nok*sizeof(svsi_t)+4,nno*sizeof(svsi_t));
-            close(fd);
+            fd.read(data+8+nok*sizeof(svsi_t)+4,nno*sizeof(svsi_t));
         } else {
             nno=0;
             data=(uint8_t*)realloc(data,8+nok*sizeof(svsi_t)+4);
@@ -1484,31 +1465,29 @@ class servers { // also a block
         extern boost::mutex siglock;
         boost::lock_guard<boost::mutex> lock(siglock);        
 
-        int fd;
         char filename[64];
         Helper::FileName::getName(filename, path, "signatures.ok");
-        fd = Helper::open_block_file(filename, O_RDONLY);
+        Helper::BlockFileReader sig_ok(filename);
 
         DLOG("SIGNATURE, Get signatures from %s\n",filename);
 
-        if(fd>=0) {
-            read(fd,data,sizeof(svsi_t)*nok);
+        if(sig_ok.isOpen()) {
+            sig_ok.read(data,sizeof(svsi_t)*nok);
             //vok=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
             //vok/=sizeof(svsi_t);
-            close(fd);
         } else {
             return false;
         }
         if(!nno) {
             return true;
         }
+
         Helper::FileName::getName(filename, path, "signatures.no");
-        fd = Helper::open_block_file(filename, O_RDONLY);
-        if(fd>=0) {
-            read(fd,data+sizeof(svsi_t)*nok,sizeof(svsi_t)*nno);
+        Helper::BlockFileReader sig_no(filename);
+        if(sig_no.isOpen()) {
+            sig_no.read(data+sizeof(svsi_t)*nok,sizeof(svsi_t)*nno);
             //vno=read(fd,ok,sizeof(svsi_t)*VIP_MAX);
             //vno/=sizeof(svsi_t);
-            close(fd);
         } else {
             return false;
         }

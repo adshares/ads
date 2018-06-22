@@ -7,14 +7,14 @@
 #include <boost/filesystem/operations.hpp>
 
 #include "../common/helper/libarchive.h"
-#include "../common/helper/libarchivereader.h"
+#include "../common/helper/blockfilereader.h"
 
 namespace LibArchiveSuite {
 
 const char* DIRECTORY = "arch_test";
-const char* FILE1_PATH = "arch_test/file1.txt";
-const char* FILE2_PATH = "arch_test/sub_dir/file2.dat";
-const char* FILE3_PATH = "arch_test/sub_dir/file3";
+std::string FILE1_PATH = "arch_test/file1.txt";
+std::string FILE2_PATH = "arch_test/sub_dir/file2.dat";
+std::string FILE3_PATH = "arch_test/sub_dir/file3";
 
 const char* FILE1_DATA = "File1 test\nSecond line\nThird line\n\n\n\n";
 const char* FILE2_DATA = "\x41\x42\x43\x44\x45\x46\x47\x00\x01\x02\n";
@@ -56,9 +56,9 @@ TEST(LibArchiveTest, checkHeader) {
     indexes.push_back(std::make_pair(FILE1_DATA_LENGTH, FILE2_PATH));
     indexes.push_back(std::make_pair(FILE1_DATA_LENGTH + FILE2_DATA_LENGTH, FILE3_PATH));
     int header_size = sizeof(uint16_t) +
-            sizeof(uint32_t) + strlen(FILE1_PATH) + 1 +
-            sizeof(uint32_t) + strlen(FILE2_PATH) + 1 +
-            sizeof(uint32_t) + strlen(FILE3_PATH) + 1;
+            sizeof(uint32_t) + FILE1_PATH.length() + 1 +
+            sizeof(uint32_t) + FILE2_PATH.length() + 1 +
+            sizeof(uint32_t) + FILE3_PATH.length() + 1;
 
     char buffer_expected[header_size] = {};
     uint16_t ids_size = indexes.size();
@@ -86,7 +86,7 @@ TEST(LibArchiveTest, getFileFromArch) {
     uint64_t offset, size;
 
     Helper::LibArchive lib(ARCH_NAME);
-    lib.getFileHandle(FILE3_PATH, &fd, &offset, &size);
+    lib.getFileHandle(FILE3_PATH.c_str(), &fd, &offset, &size);
     EXPECT_GE(fd, 0);
     EXPECT_EQ(offset, 134);
     EXPECT_EQ(size, FILE3_DATA_LENGTH);
@@ -94,7 +94,7 @@ TEST(LibArchiveTest, getFileFromArch) {
 }
 
 TEST(LibArchiveReaderTest, readFile) {
-    Helper::LibArchiveReader reader(ARCH_NAME, FILE3_PATH);
+    Helper::BlockFileReader reader(ARCH_NAME, FILE3_PATH.c_str());
     EXPECT_TRUE(reader.isOpen());
 
     char buffer[10];
@@ -105,7 +105,7 @@ TEST(LibArchiveReaderTest, readFile) {
 
     EXPECT_STREQ(expected_result.c_str(), buffer);
 
-    EXPECT_TRUE(reader.open(FILE1_PATH));
+    EXPECT_TRUE(reader.openFromArch(FILE1_PATH));
     EXPECT_EQ(reader.getSize(), FILE1_DATA_LENGTH);
 
     reader.lseek(FILE1_DATA_LENGTH + 10, SEEK_SET); // move over size, should set to the end of file

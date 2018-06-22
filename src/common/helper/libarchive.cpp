@@ -20,7 +20,7 @@ LibArchive::LibArchive(const char* archPath) : m_filePath(archPath)
 
 }
 
-bool LibArchive::createArch(const char* directoryPath)
+bool LibArchive::createArch(const char* directoryPath, bool cutRelativePath)
 {
     if (!m_filePath) return false;
 
@@ -33,6 +33,12 @@ bool LibArchive::createArch(const char* directoryPath)
     boost::filesystem::path path(directoryPath);
     boost::filesystem::recursive_directory_iterator directory(path), end;
 
+    int relative_path_length = 0;
+    if (cutRelativePath)
+    {
+        relative_path_length = path.relative_path().string().length();
+    }
+
     // preapre header
     struct stat st = {};
     uint32_t offset = 0;
@@ -42,17 +48,23 @@ bool LibArchive::createArch(const char* directoryPath)
         if (boost::filesystem::is_regular_file(*directory))
         {
             std::string entryPath(directory->path().string());
-            file_index.push_back(std::make_pair(offset, entryPath));
             stat(entryPath.c_str(), &st);
-            offset += st.st_size;
+            if (st.st_size > 0)
+            {
+                file_index.push_back(std::make_pair(offset, entryPath));
+                offset += st.st_size;
 
-            headerLength += sizeof(uint32_t);
-            headerLength += entryPath.length();
-            headerLength += 1; // null terminated string
+                headerLength += sizeof(uint32_t);
+                headerLength += entryPath.length() - relative_path_length;
+                headerLength += 1; // null terminated string
+            }
         }
         ++directory;
     }
 
+
+    std::ifstream entry;
+    entry.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
     try
     {
         // write header
@@ -62,12 +74,10 @@ bool LibArchive::createArch(const char* directoryPath)
         {
             offset = (*it).first + headerLength;
             outputFile.write((char*)&offset, sizeof(uint32_t));
-            outputFile << (*it).second << "\n";
+            outputFile << (*it).second.substr(relative_path_length, std::string::npos) << "\n";
         }
 
         // put files
-        std::ifstream entry;
-        entry.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
         for (auto it = file_index.begin(); it != file_index.end(); ++it)
         {
             entry.open((*it).second, std::ifstream::in | std::ifstream::binary);

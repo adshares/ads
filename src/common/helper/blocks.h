@@ -8,21 +8,13 @@
 
 #include "default.hpp"
 
-#define TMP_DIR "/run/shm/esc/"
-
 namespace Helper {
-
-/**
- * @brief Set user id to create personal temp directory for files extracted files from arch.
- * @param user_id - user id.
- */
-void set_user(uint32_t user_id);
 
 /**
  * @brief Compress old blocks, @see BLOCKS_COMPRESSED_SHIFT .
  * @param currentTime - decimal current block start value
  */
-void tar_old_blocks(uint32_t currentTime);
+void arch_old_blocks(uint32_t currentTime);
 
 /**
  * @brief Removes block from filesystem.
@@ -34,41 +26,11 @@ void remove_block(const char* blockPath);
 void remove_file(const char* filename);
 
 /**
- * @brief removes file if it has a temporary path
- * @param filename
- * @return true if file is temporary and was removed, otherwise (incl. not temp file) return false.
- */
-bool remove_file_if_temporary(const char* filename);
-
-//! cleanup temp directory for current user
-void cleanup_temp_directory();
-
-/**
- * @brief Extracts file from arch if needed.
- * @param filePath - [in|out] full path to file eg. staring from blk/.../0001.dat.
- * Note that filePath will be changed if file decompressed to temporary place.
- * @return true if file successful extracted and can be open, false if file not exists.
- */
-bool get_file_from_block(char *filePath);
-
-/**
- * @brief Open file from block or tar, depends on location.
- * @param filename - file path.
- * @param type - O_RDONLY, O_WRONLY etc.
- * @return file descriptor
- */
-int open_block_file(char *filename, int type = O_RDONLY, int mode = -1);
-
-/**
  * @brief Check is file exists in not compressed block
  * @param filePath
  * @return true if exists (not compressed yet), otherwise false.
  */
 bool is_file_not_compressed(const char *filePath);
-
-//! chech is file exists in temporary directory
-bool is_temporary_file(const char *filePath);
-bool is_temporary_file(const std::string& filePath);
 
 uint32_t get_users_count(uint16_t bank);
 

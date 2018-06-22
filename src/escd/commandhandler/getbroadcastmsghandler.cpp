@@ -5,6 +5,7 @@
 #include "../office.hpp"
 #include "helper/hash.h"
 #include "helper/blocks.h"
+#include "helper/blockfilereader.h"
 
 
 GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
@@ -36,24 +37,20 @@ void GetBroadcastMsgHandler::onExecute() {
     if (!errorCode) {
         char filename[64];
         Helper::FileName::getName(filename, path, "bro.log");
-        Helper::get_file_from_block(filename);
 
-        std::ifstream broadcastFile(filename, std::ifstream::binary | std::ifstream::in);
-        if (!broadcastFile.is_open()) {
+        Helper::BlockFileReader broadcastFile(filename);
+        if (!broadcastFile.isOpen()) {
             errorCode = ErrorCodes::Code::eNoBroadcastFile;
         } else {
-            auto ssBuffer = std::stringstream{};
-            ssBuffer << broadcastFile.rdbuf();
-            size = ssBuffer.str().length();
+            size = broadcastFile.getSize();
             int remainData = (size > MAX_BLG_SIZE) ? MAX_BLG_SIZE : size;
             while (remainData > 0) {
                 int sizeOfBlock = (remainData > MESSAGE_CHUNK) ? MESSAGE_CHUNK : remainData;
                 char messageBlock[sizeOfBlock];
-                ssBuffer.read(messageBlock, sizeOfBlock);
+                broadcastFile.read(messageBlock, sizeOfBlock);
                 remainData -= sizeOfBlock;
                 fileBuffer.emplace_back(std::string(messageBlock, sizeOfBlock));
             }
-            broadcastFile.close();
         }
     }
 
@@ -70,7 +67,6 @@ void GetBroadcastMsgHandler::onExecute() {
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
-
 }
 
 void GetBroadcastMsgHandler::onValidate() {

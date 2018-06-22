@@ -7,10 +7,15 @@
 
 namespace Helper {
 
-FileWrapper::FileWrapper(const std::string filepath, int mask, bool removeOnClose) :
-    m_filepath(filepath), m_remove_on_close(removeOnClose)
+FileWrapper::FileWrapper() :
+    m_file_descriptor(-1), m_filepath(""), m_remove_on_close(false)
 {
-    m_file_descriptor = open(m_filepath.c_str(), mask);
+}
+
+FileWrapper::FileWrapper(const std::string filepath, int mask, bool removeOnClose) :
+    m_file_descriptor(-1), m_filepath(filepath), m_remove_on_close(removeOnClose)
+{
+    m_file_descriptor = ::open(m_filepath.c_str(), mask);
 }
 
 FileWrapper::~FileWrapper()
@@ -20,6 +25,14 @@ FileWrapper::~FileWrapper()
     if (m_remove_on_close) {
         remove();
     }
+}
+
+bool FileWrapper::open(const char* filename, int mask, int mode, bool removeOnClose)
+{
+    m_filepath = filename;
+    m_remove_on_close = removeOnClose;
+    m_file_descriptor = ::open(filename, mask, mode);
+    return (m_file_descriptor >= 0);
 }
 
 bool FileWrapper::isOpen()

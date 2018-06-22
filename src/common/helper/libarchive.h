@@ -15,6 +15,8 @@
 
 namespace Helper {
 
+const char* const ARCH_EXTENSION = ".arch";
+
 /**
  * @brief Library to create and read archive with file index in header.
  */
@@ -30,13 +32,14 @@ public:
     /**
      * @brief Creates archive from directory.
      * @param directoryPath - directory to compress
+     * @param relativePath - path will be ommited from full path when putting to header
      * @return true if sucessfull created, otherwise false.
      */
-    bool createArch(const char* directoryPath);
+    bool createArch(const char* directoryPath, bool cutRelativePath = false);
 
     /**
      * @brief Gets handle to file inside arch withour extracting.
-     * Function open but not close fd, remember to do this.
+     * Function opens, but not close fd, remember to do this.
      * @param filepath - path to file looking for.
      * @param file_descriptor - [out] file descriptor (fd)
      * @param offset - [out] file begin offset in archive

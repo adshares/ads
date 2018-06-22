@@ -11,7 +11,7 @@
 #include "helper/ascii.h"
 #include "helper/json.h"
 #include "helper/blocks.h"
-
+#include "helper/blockfilereader.h"
 
 namespace Helper {
 
@@ -35,15 +35,14 @@ void Servers::load(const char* filePath) {
         return;
     }
 
-    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
-    if (file.is_open()) {
+    Helper::BlockFileReader file(m_filePath.c_str());
+    if (file.isOpen()) {
         file.read((char*)&m_header, sizeof(m_header));
         for (unsigned int i=0; i<m_header.nodesCount; ++i) {
             ServersNode node;
             file.read((char*)&node, sizeof(node));
             m_nodes.push_back(node);
         }
-        file.close();
     }
 }
 
@@ -54,16 +53,15 @@ bool Servers::loadHeader() {
             sprintf(filePath, "blk/header.hdr");
         } else {
             Helper::FileName::getName(filePath, m_header.ttime, "header.hdr");
-            Helper::get_file_from_block(filePath);
         }
         m_filePath = filePath;
     }
 
     uint32_t check = m_header.ttime;
-    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
-    if (file.is_open()) {
+
+    Helper::BlockFileReader file(m_filePath.c_str());
+    if (file.isOpen()) {
         file.read((char*)&m_header, sizeof(m_header));
-        file.close();
         if (check && check != m_header.ttime) {
             return false;
         }

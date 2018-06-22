@@ -6,6 +6,8 @@
 #include <boost/filesystem/operations.hpp>
 
 #include "../common/helper/blocks.h"
+#include "../common/helper/blockfilereader.h"
+#include "../common/helper/libarchive.h"
 #include "default.h"
 
 int m_timestamp = 1528201216;
@@ -23,7 +25,6 @@ TEST(BlockTest, prepareData) {
     p2 += "und/";
     boost::filesystem::create_directories(p);
     boost::filesystem::create_directories(p2);
-    boost::filesystem::create_directory("tmp/");
 
     p3 += "delta.txt";
     file.open(p3.string(), std::ofstream::out | std::ofstream::binary);
@@ -41,87 +42,34 @@ TEST(BlockTest, prepareData) {
     file.close();
 }
 
-TEST(BlockTest, getFileFromBlock) {
-    char filename[64] = {0};
-    Helper::FileName::getLog(filename, m_timestamp, m_bank, m_msid);
-    EXPECT_EQ(strlen(filename), Helper::FileName::kLogNameFixedLength);
-    EXPECT_TRUE(Helper::get_file_from_block(filename));
-
-    filename[0] = 0;
-    Helper::FileName::getUndo(filename, m_timestamp, m_bank);
-    EXPECT_EQ(strlen(filename), Helper::FileName::kUndoNameFixedLength);
-    EXPECT_TRUE(Helper::get_file_from_block(filename));
-}
-
 TEST(BlockTest, openFileFromDirectoryBlock) {
     char filename[64] = {0};
     Helper::FileName::getUndo(filename, m_timestamp, m_bank);
-    int fd = Helper::open_block_file(filename);
-    EXPECT_GE(fd, 0);
-    if (fd >= 0) {
-        close(fd);
-    }
+    Helper::BlockFileReader reader(filename);
+    EXPECT_TRUE(reader.isOpen());
+    EXPECT_EQ(reader.getSize(), strlen("Example text"));
 }
 
-TEST(BlockTest, tarOldBlock) {
+TEST(BlockTest, compressOldBlocks) {
     uint32_t timestamp = m_timestamp + ((BLOCKS_COMPRESSED_SHIFT) * BLOCKSEC);
 
     char dirpath[64];
     sprintf(dirpath, "blk/%03X/%05X", timestamp>>20, timestamp&0xFFFFF);
-    Helper::tar_old_blocks(timestamp);
+    Helper::arch_old_blocks(timestamp);
     EXPECT_FALSE(boost::filesystem::exists(dirpath));
-    sprintf(dirpath, "blk/%03X/%05X.tar", m_timestamp>>20, m_timestamp&0xFFFFF);
+    sprintf(dirpath, "blk/%03X/%05X%s", m_timestamp>>20, m_timestamp&0xFFFFF, Helper::ARCH_EXTENSION);
     EXPECT_TRUE(boost::filesystem::exists(dirpath));
-}
-
-TEST(BlockTest, getFileFromArch) {
-    char filename[64] = {0};
-    Helper::set_user(1);
-
-    // directory shouldnt exists here, removed in tarOldBlocks test
-    sprintf(filename, "blk/%03X/%05X", m_timestamp>>20, m_timestamp&0xFFFFF);
-    ASSERT_FALSE(boost::filesystem::exists(filename));
-
-    filename[0] = 0;
-    Helper::FileName::getLog(filename, m_timestamp, m_bank, m_msid);
-    EXPECT_EQ(strlen(filename), Helper::FileName::kLogNameFixedLength);
-
-    std::string newpath(filename);
-    newpath.replace(0, strlen(TMP_DIR), TMP_DIR); // replace blk with tmp
-    newpath.insert(strlen(TMP_DIR), m_userid);
-    EXPECT_TRUE(Helper::get_file_from_block(filename));
-    EXPECT_TRUE(boost::filesystem::exists(newpath));
-}
-
-TEST(BlockTest, openFileFromArch) {
-    Helper::set_user(1);
-
-    char filename[64] = {0};
-    // directory shouldnt exists here, removed in tarOldBlocks test
-    sprintf(filename, "blk/%03X/%05X", m_timestamp>>20, m_timestamp&0xFFFFF);
-    ASSERT_FALSE(boost::filesystem::exists(filename));
-
-    filename[0] = 0;
-    Helper::FileName::getLog(filename, m_timestamp, m_bank, m_msid);
-    int fd = Helper::open_block_file(filename);
-    EXPECT_GE(fd, 0);
-    if (fd >=0 ) {
-        close(fd);
-    }
 }
 
 TEST(BlockTest, filePathNotInBlock) {
     char filename[64] = {0};
     sprintf(filename, "servers.srv");
-    EXPECT_FALSE(Helper::get_file_from_block(filename));
+    Helper::BlockFileReader reader(filename);
+    EXPECT_FALSE(reader.isOpen());
 }
 
 TEST(BlockTest, clearData) {
     boost::filesystem::remove_all("blk");
-    boost::filesystem::remove_all("tmp");
     boost::filesystem::remove_all("und");
     boost::filesystem::remove_all("log");
-    boost::filesystem::path p(TMP_DIR);
-    p += m_userid;
-    boost::filesystem::remove_all(p);
 }
