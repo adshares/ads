@@ -73,17 +73,17 @@ void PeerConnectManager::startAccept()
 
 void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error)
 {    
-    DLOG("PEER ACCEPT %04X\n", new_peer->m_peerId);
+    DLOG("PEER ACCEPT %04X\n", new_peer->svid);
 
     uint32_t now    = time(NULL);
     auto address    = new_peer->socket().remote_endpoint().address().to_string();
     auto port       = new_peer->socket().remote_endpoint().port();
     in_addr_t addr  = inet_addr(address.c_str());
 
-    if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->m_peerId) )
+    if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->svid) )
     { 
         new_peer->leave();
-        DLOG("WARNING: dropping connection %d\n", new_peer->m_peerId);
+        DLOG("WARNING: dropping connection %d\n", new_peer->svid);
     }
     else
     {        
@@ -112,34 +112,6 @@ void PeerConnectManager::addActivePeer(uint16_t svid, boost::shared_ptr<peer> pe
     DLOG("Add active thread peer svid: %ud\n", svid);
     m_ioService.dispatch(boost::bind(&PeerConnectManager::addActivePeerImpl, this, svid, peer));
 }
-
-/*void PeerConnectManager::addPeer(std::string address, unsigned short port, boost::shared_ptr<peer> peer)
-{
-    DLOG("Add active thread peer port: %ud\n",port);
-    m_ioService.dispatch(boost::bind(&PeerConnectManager::addPeerImpl, this, address, port, peer));
-}
-
-void PeerConnectManager::addPeerImpl(std::string address, unsigned short port, boost::shared_ptr<peer> peer)
-{
-    try{
-        boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
-        DLOG("Add active peer port: %ud\n", port);
-
-        in_addr   addr;
-        inet_aton(address.c_str(), &addr);
-
-        if(alreadyConnected(addr.s_addr, port)){
-            DLOG("WARNING!!!: dropping PEER already connected %s:%d\n",address.c_str(),  port);
-            return;
-        }
-
-        m_peers[std::make_pair(addr.s_addr, port)] = peer;
-    }
-    catch(std::exception &e)
-    {
-        ELOG("ERROR: Leave peer exception%s", e.what());
-    }
-}*/
 
 void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<peer> peer)
 {
@@ -434,14 +406,13 @@ void PeerConnectManager::deliver(message_ptr msg, uint16_t svid)
 void PeerConnectManager::deliverImpl(message_ptr msg, uint16_t svid)
 {
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
-    //TODO think about speed up. Maybe m_peers should be map with svid as a key.
-    for(auto& peer: m_peers)
-    {
-        if(peer.second->svid == svid){
-            peer.second->deliver(msg);
-            return;
-        }
+
+    auto svidPeer = m_activePeers.find(svid);
+    if(svidPeer != m_activePeers.end()){
+        svidPeer->second->deliver(msg);
+        return;
     }
+
     msg->sent_erase(svid);
 }
 
@@ -454,8 +425,7 @@ void PeerConnectManager::deliverToAllImpl(message_ptr msg)
 {
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
-    for(auto& peer: m_peers)
-    {
+    for(auto& peer: m_activePeers){
         peer.second->deliver(msg);
     }
 }
