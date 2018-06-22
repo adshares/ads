@@ -19,8 +19,8 @@ void GetMessageListHandler::onExecute() {
     try {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        uint32_t no_of_msg = m_command->m_responseMessageList.size();
         if(!errorCode) {
-            uint32_t no_of_msg = m_command->m_responseMessageList.size();
             response.emplace_back(boost::asio::buffer(&no_of_msg, sizeof(no_of_msg)));
             response.emplace_back(boost::asio::buffer(m_command->m_responseTxnHash, sizeof(m_command->m_responseTxnHash)));
             response.emplace_back(boost::asio::buffer(m_command->m_responseMessageList));
