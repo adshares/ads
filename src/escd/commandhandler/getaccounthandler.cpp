@@ -55,23 +55,16 @@ void GetAccountHandler::onExecute() {
 void GetAccountHandler::onValidate() {
     const int32_t diff = m_command->getTime() - time(nullptr);
 
-#ifdef DEBUG
     // this is special, just local info
-    if((abs(diff)>22)) {
+    if((abs(diff)>2)) {
         DLOG("ERROR: high time difference (%d>2s)\n", diff);
         throw ErrorCodes::Code::eHighTimeDifference;
     }
-#else
-    if((abs(diff)>2)) {
-        DLOG("ERROR: high time difference (%d>2s)\n",diff);
-        throw ErrorCodes::Code::eHighTimeDifference;
-    }
-#endif
 
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
 
-    if(m_command->getUserId() != m_offi.svid && m_command->getDestNode() != m_offi.svid) {
+    if(m_command->getBankId() != m_offi.svid && m_command->getDestNode() != m_offi.svid) {
         DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", m_command->getUserId(), m_command->getDestNode(), m_offi.svid );
         throw ErrorCodes::Code::eBankNotFound;
     }
