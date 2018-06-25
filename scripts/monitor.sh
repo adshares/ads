@@ -1,7 +1,7 @@
 #!/bin/bash
 
 tps() {
-    tac $1 | while read line
+    tac $1 | grep CLOCK | while read line
     do
         if [[ $line =~ \[([0-9]+)\]\ CLOCK:\ ([0-9A-F]+).*txs:([0-9]+) ]]; then
 
@@ -34,7 +34,7 @@ tps() {
 }
 
 connections() {
-    tac $1 | while read line
+    tac $1 | grep OFFICE | while read line
     do
         if [[ $line =~ \[([0-9]+)\]\ OFFICE\ new\ ticket.*open:([0-9]+) ]]; then
 
