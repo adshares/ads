@@ -32,10 +32,9 @@ public:
     /**
      * @brief Creates archive from directory.
      * @param directoryPath - directory to compress
-     * @param relativePath - path will be ommited from full path when putting to header
      * @return true if sucessfull created, otherwise false.
      */
-    bool createArch(const char* directoryPath, bool cutRelativePath = false);
+    bool createArch(const char* directoryPath);
 
     /**
      * @brief Gets handle to file inside arch withour extracting.
@@ -49,6 +48,9 @@ public:
     bool getFileHandle(const char* filepath, int *file_descriptor, uint64_t *offset, uint64_t *file_size);
 
 private:
+
+//    int getFileId(const char *filename, uint64* offset, uint64_t *file_size);
+
     const char* m_filePath;
 
 };

@@ -66,6 +66,7 @@ bool MsglistParser::load(const char *filepath) {
     }
 
     Helper::BlockFileReader file(m_filePath.c_str());
+    if (!file.isOpen()) return false;
     file.read((char*)&m_header, sizeof(m_header));
     for (unsigned int i = 0; i<m_header.num_of_msg; ++i) {
         MessageRecord item;
