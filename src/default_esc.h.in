@@ -19,6 +19,7 @@
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
+#define BLOCKS_COMPRESSED_SHIFT 16 /* shift from current block to archive old blocks */
 #else
 #define BLOCKSEC 512 /* block period in seconds (17min) */
 #define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
@@ -34,7 +35,6 @@
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
 
-#define BLOCKS_COMPRESSED_SHIFT 8
 #define TOTALMASS 3875820600000000000L /* total balance (target) */
 #define MAX_USERS 0x40000000L /* maximum number of users in a node (1G => size:16GB) */
 #define LOCK_TIME (BLOCKDIV*BLOCKSEC) /*time needed for lock to start; LOCK_TIME => allow withdrawal*/
