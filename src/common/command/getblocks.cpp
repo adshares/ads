@@ -307,8 +307,8 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
     std::map<uint16_t, hash_s> vipkeys;
     for(uint32_t i=0; i<m_firstKeysLen; i+=2+32) {
         char* firstkeys = m_firstVipKeys.getVipKeys();
-        uint16_t svid=*((uint16_t*)(&firstkeys[i+4]));
-        vipkeys[svid]=*((hash_s*)(&firstkeys[i+2+4]));
+        uint16_t svid=*((uint16_t*)(&firstkeys[i]));
+        vipkeys[svid]=*((hash_s*)(&firstkeys[i+2]));
     }
 
     int vok=0;
