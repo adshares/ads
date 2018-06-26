@@ -21,8 +21,8 @@ void GetBlocksHandler::onExecute() {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
             sendFirstVipKeysIfNeeded();
+            sendBlockHeaders();
             if(m_serversHeaders.size() > 0) {
-                sendBlockHeaders();
                 sendLastBlockSignatures();
                 sendNewVipKeys();
             }

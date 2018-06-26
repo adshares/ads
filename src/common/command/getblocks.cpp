@@ -125,7 +125,7 @@ bool GetBlocks::saveNowhash(const header_t& head) {
 
 bool GetBlocks::receiveHeaders(INetworkClient& netClient) {
     if(!netClient.readData((int32_t*)&m_numOfBlocks, sizeof(m_numOfBlocks))) {
-        ELOG("GetBlocks ERROR reading length of first vip keys error\n");
+        ELOG("GetBlocks ERROR reading number of blocks\n");
         return false;
     }
 
