@@ -4,13 +4,25 @@
 #include <stdint.h>
 
 /**
- * Header of archive
- * 2B - no. of files in archive
- * for each file:
- * 4B - seek in archive to begin of file data
- * variable size (null terminated) filepath
+ * Archive file format
+ * 218B file:header.hdr
+ * 4B   Jump position to servers.srv
+ * 4B   Jump position to signatures.ok
+ * 4B   Jump position to signatures.no
+ * 4B   Jump position to hlog.hlg
+ * 4B   Jump position to msglist.dat
+ * *** for each *.msg file
+ * 4B   Jump to *.msg file
+ * ***
+ *      file:servers.srv
+ *      file:signatures.ok
+ *      file:signatures.no
+ *      file:hlog.hlg
+ *      file:msglist.dat
+ * *** for each *.msg file
+ *      file:*.msg
+ * ***
  *
- * files write continuously without separators
  */
 
 namespace Helper {
