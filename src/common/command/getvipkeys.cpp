@@ -153,10 +153,12 @@ void GetVipKeys::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         ptree.put("viphash",hash);
         boost::property_tree::ptree viptree;
-        for(char* p=m_vipKeys.getVipKeys(); p<m_vipKeys.getVipKeys()+m_vipKeys.getLength(); p+=32) {
-            ed25519_key2text(hash, (uint8_t*)p, 32);
+        for(char* p=m_vipKeys.getVipKeys(); p<m_vipKeys.getVipKeys()+m_vipKeys.getLength(); p+=32+sizeof(uint16_t)) {
+            uint16_t srvid = (uint16_t)*p;
+            ed25519_key2text(hash, (uint8_t*)(p+2), 32);
             boost::property_tree::ptree vipkey;
-            vipkey.put("", hash);
+            vipkey.put("server_id", srvid);
+            vipkey.put("public_key", hash);
             viptree.push_back(std::make_pair("", vipkey));
         }
         ptree.add_child("vipkeys", viptree);
