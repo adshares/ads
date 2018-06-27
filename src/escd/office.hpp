@@ -437,19 +437,13 @@ class office {
             } else
 #endif
 
-                if(!srv_.write_message(std::move(message))) {
+                if(!srv_.write_message(message)) {
                     file_.unlock();
                     DLOG("ERROR sending message %08X\n",newmsid);
                     continue;
                 }
-            //message.clear();
-            message_tnum=0;
-            if(message_lenght < MESSAGE_TNUM_OK){
-                message.reserve(message_lenght);
-            }
-            else{
-                message.reserve(MESSAGE_TNUM_OK);
-            }
+            message.clear();
+            message_tnum=0;            
 
             file_.unlock();
             del_msg(newmsid);
