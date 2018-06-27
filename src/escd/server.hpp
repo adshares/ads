@@ -4692,7 +4692,7 @@ NEXTBANK:
                 RETURN_ON_SHUTDOWN();
             }
             DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
-            if(!write_message(std::move(line))) {
+            if(!write_message(line)) {
                 ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }
