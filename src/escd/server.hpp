@@ -4445,7 +4445,7 @@ NEXTBANK:
     }
 #endif
 
-    uint32_t write_message(std::string&& line) { // assume single threaded
+    uint32_t write_message(std::string line) { // assume single threaded
         assert(opts_.svid); // READONLY ok
         if(srvs_.nodes[opts_.svid].msid!=msid_) {
             DLOG("ERROR, wrong network msid, postponing message write\n");
@@ -4479,7 +4479,6 @@ NEXTBANK:
             exit(-1);
         }
 
-        line.clear();
         writemsid();
         return(msid_);
         //update(msg);
