@@ -3,7 +3,48 @@
 # Formatting date and time
 date_msg()
 {
-    echo "$(date --date=@$1 +'%F %T')  $2"
+    echo "$(date +'%F %T') | $(date --date=@$1 +'%F %T')  $2"
+}
+
+# Checks if the node is alive
+status() {
+    opt_file="$1/options.cfg"
+
+    line=`grep -i addr= ${opt_file} | head -1`
+    if [[ ${line} =~ ^addr=(.+)$ ]]; then
+        host=${BASH_REMATCH[1]}
+    else
+        >&2 echo "Cannot find node address"
+    fi
+
+    line=`grep -i offi= ${opt_file} | head -1`
+    if [[ ${line} =~ ^offi=(.+)$ ]]; then
+        port=${BASH_REMATCH[1]}
+    else
+        >&2 echo "Cannot find node port"
+    fi
+
+    line=`grep -i svid= ${opt_file} | head -1`
+    if [[ ${line} =~ ^svid=(.+)$ ]]; then
+        node_id=${BASH_REMATCH[1]}
+    else
+        >&2 echo "Cannot find node id"
+    fi
+
+    data=`echo '{"run":"get_block"}' | ads -H${host} -P${port} --work-dir=$1 2> /dev/null`
+    if [[ ${data} =~ \"current_block_time\":\ \"([0-9]+)\".*\"previous_block_time\":\ \"([0-9]+)\" ]]; then
+        if [ -n "$2" ]; then
+            date_msg ${BASH_REMATCH[1]} "<-  $(date --date=@${BASH_REMATCH[2]} +'%F %T')  ${node_id}"
+        else
+            echo ${node_id}
+        fi
+    elif [[ ${data} =~ \"error\":\ \"(.+)\" ]]; then
+        >&2 echo "Response error: ${BASH_REMATCH[1]}"
+        exit 1
+    else
+        >&2 echo "Cannot parse 'get_block' response"
+        exit 1
+    fi
 }
 
 # Calculating transactions per second
@@ -118,19 +159,24 @@ show_help() {
 # Display usage message
 show_usage() {
     echo "Usage"
-    echo "  $0 [options] <path-to-stderr> <command>"
+    echo "  $0 [options] <command>"
     echo
     echo "Commands"
-    echo "  tps                 Transactions per second"
-    echo "  txs                 The number of awaiting transactions"
-    echo "  peers               The number of active peers"
-    echo "  conns               The number of currently open connections"
+    echo "  status                   checks if the node is alive"
+    echo "  tps                      transactions per second"
+    echo "  txs                      the number of awaiting transactions"
+    echo "  peers                    the number of active peers"
+    echo "  conns                    the number of currently open connections"
     echo
     echo "Options"
-    echo "  -v, --verbose       Verbose mode"
-    echo "  -c, --continuous    Continuous monitoring"
-    echo "  -h, --help          Display this help and exit"
+    echo "  -w, --working-dir <DIR>  working directory"
+    echo "  -e, --stderr-path <FILE> path to STDERR"
+    echo "  -v, --verbose            verbose mode"
+    echo "  -c, --continuous         continuous monitoring"
+    echo "  -h, --help               display this help and exit"
 }
+
+working_dir=~/.ads
 
 # Parsing options
 PARAMS=""
@@ -148,6 +194,20 @@ while (( "$#" )); do
             if [[ $1 = *"v"* ]]; then verbose=1; fi
             if [[ $1 = *"c"* ]]; then continuous=1; fi
             shift 1
+        ;;
+        -w|--working-dir)
+            if [ -z "$2" ]; then
+                show_error "Working directory is required"
+            fi
+            working_dir=$2
+            shift 2
+        ;;
+        -e|--stderr-path)
+            if [ -z "$2" ]; then
+                show_error "Path to stderr is required"
+            fi
+            stderr_path=$2
+            shift 2
         ;;
         -h|-\?|--help)
             show_help
@@ -170,32 +230,44 @@ done
 eval set -- "${PARAMS}"
 
 if [ -z "$1" ]; then
-    show_error "Path to stderr is required"
-fi
-if [ -z "$2" ]; then
     show_error "Command is required"
 fi
-if [ -n "$3" ]; then
+if [ -n "$2" ]; then
     show_error "To many arguments"
 fi
 
+# Checking paths and dirs
+if [ ! -d ${working_dir} ]; then
+    show_error "Cannot find working directory \"$working_dir\""
+fi
+working_dir=`realpath ${working_dir}`
+
+if [ -z "$stderr_path" ]; then
+    stderr_path="$working_dir/stderr"
+fi
+
+if [ ! -f ${stderr_path} ]; then
+    show_error "Cannot find STDERR file \"$stderr_path\""
+fi
+stderr_path=`realpath ${stderr_path}`
+
 # Parsing command
-monitor() {
-    case "$1" in
-        tps)    tps $2 $3 ;;
-        txs)    txs $2 $3 ;;
-        peers)  peers $2 $3 ;;
-        conns)  connections $2 $3 ;;
-        *)      show_error "Unsupported command \"$1\"" ;;
-    esac
-}
+command=
+case "$1" in
+    status) command="status ${working_dir} ${verbose}" ;;
+    tps)    command="tps ${stderr_path} ${verbose}" ;;
+    txs)    command="txs ${stderr_path} ${verbose}" ;;
+    peers)  command="peers ${stderr_path} ${verbose}" ;;
+    conns)  command="connections ${stderr_path} ${verbose}" ;;
+    *)      show_error "Unsupported command \"$1\"" ;;
+esac
 
 # Runs the monitor in a loop
 if [ -n "$continuous" ]; then
     while true; do
-        monitor $2 $1 ${verbose}
+        ${command}
         sleep 1
     done
 else
-    monitor $2 $1 ${verbose}
+    ${command}
 fi
