@@ -51,7 +51,7 @@ const std::string print_address(uint16_t node, uint32_t user, int32_t _suffix = 
 const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix = -1);
 char* mydate(uint32_t now);
 int check_csum(user_t& u,uint16_t peer,uint32_t uid);
-void printErrorJson(const char* errorMsg);
+void printErrorJson(const char* errorMsg, bool pretty);
 void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType);
 void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user);
 int getLogTxnTypeId(const char* txnName);
