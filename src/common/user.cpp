@@ -87,8 +87,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     uint32_t    to_from=0;
     uint8_t     to_info[32]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     uint8_t     to_pkey[32];
-    uint8_t     to_sign[64];
-    uint32_t    to_status=0;
+    uint8_t     to_sign[64];    
     std::string txn_type{};
     uint32_t    now=time(NULL);
     uint32_t    to_block=now-(now%BLOCKSEC)-BLOCKSEC;
@@ -136,10 +135,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     if(json_msid) {
         sts.msid=json_msid.get();
     }
-    boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
-    if(json_status) {
-        to_status=json_status.get();
-    }
+
     boost::optional<std::string> json_block=pt.get_optional<std::string>("block");
     if(json_block) {
         to_block=hexdec(json_block.get());
@@ -314,16 +310,38 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         command = std::make_unique<ChangeNodeKey>(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey);
     }
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
-        command = std::make_unique<SetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+
+        uint16_t    to_status=0;
+        boost::optional<uint16_t> json_status=pt.get_optional<uint16_t>("status");
+        if(json_status) {
+            to_status=json_status.get();
+                    command = std::make_unique<SetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+        }
     }
     else if(!run.compare(txsname[TXSTYPE_SBS])) {
-        command = std::make_unique<SetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+        uint32_t    to_status=0;
+        boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
+        if(json_status) {
+            to_status=json_status.get();
+            command = std::make_unique<SetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+        }
     }
     else if(!run.compare(txsname[TXSTYPE_UUS])) {
-        command = std::make_unique<UnsetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+        uint16_t    to_status=0;
+        boost::optional<uint16_t> json_status=pt.get_optional<uint16_t>("status");
+        if(json_status) {
+            to_status=json_status.get();
+            command = std::make_unique<UnsetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+        }
+
     }
     else if(!run.compare(txsname[TXSTYPE_UBS])) {
-        command = std::make_unique<UnsetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+        uint32_t    to_status=0;
+        boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
+        if(json_status) {
+            to_status=json_status.get();
+            command = std::make_unique<UnsetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+        }
     }
     else if (!run.compare(txsname[TXSTYPE_GFI])) {
         command = std::make_unique<GetFields>(txn_type.c_str());
