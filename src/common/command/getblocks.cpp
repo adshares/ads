@@ -358,9 +358,7 @@ bool GetBlocks::send(INetworkClient& netClient)
 
     if(m_responseError) {
         return true;
-    }
-
-    fprintf(stderr,"PROCESSING BLOCKS\n");
+    }    
 
     //read first vipkeys if needed
      if(!getBlockNumberFrom() || getBlockNumberFrom() == getBlockNumberTo()) {

@@ -10,9 +10,11 @@
 #define NETCL_SOCK_IDLE    15
 #define NETCL_SOCK_MAXTRY  3
 
-NetworkClient::NetworkClient(const std::string& address, const std::string& port):
+NetworkClient::NetworkClient(const std::string& address, const std::string& port, bool pretty):
     m_query(address, port.c_str()),
-    m_resolver(m_ioService) {
+    m_resolver(m_ioService),
+    m_prettyJson(pretty)
+{
 }
 
 NetworkClient::~NetworkClient() {
@@ -40,11 +42,11 @@ bool NetworkClient::connect() {
             }
 
             if (error) {
-                Helper::printErrorJson(error.message().c_str());
+                Helper::printErrorJson(error.message().c_str(), m_prettyJson);
                 return false;
             }
         } catch(std::exception& e) {
-            Helper::printErrorJson(e.what());
+            Helper::printErrorJson(e.what(), m_prettyJson);
             m_connected = false;
             return false;
         }
@@ -63,7 +65,7 @@ bool NetworkClient::disConnect() {
             }
             m_socket.reset();
         } catch(std::exception& e) {
-            Helper::printErrorJson(e.what());
+            Helper::printErrorJson(e.what(), m_prettyJson);
             m_connected = false;
             return false;
         }
@@ -88,7 +90,7 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
@@ -104,7 +106,7 @@ bool NetworkClient::sendData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
@@ -120,7 +122,7 @@ bool NetworkClient::readData(std::vector<uint8_t>& buff) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
@@ -135,7 +137,7 @@ bool NetworkClient::readData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
@@ -150,7 +152,7 @@ bool NetworkClient::readData(char* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
@@ -165,7 +167,7 @@ bool NetworkClient::readData(int32_t *buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what());
+        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
     }
 
