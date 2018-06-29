@@ -14,21 +14,27 @@ status() {
     if [[ ${line} =~ ^addr=(.+)$ ]]; then
         host=${BASH_REMATCH[1]}
     else
+        echo 0
         >&2 echo "Cannot find node address"
+        exit 1
     fi
 
     line=`grep -i offi= ${opt_file} | head -1`
     if [[ ${line} =~ ^offi=(.+)$ ]]; then
         port=${BASH_REMATCH[1]}
     else
+        echo 0
         >&2 echo "Cannot find node port"
+        exit 1
     fi
 
     line=`grep -i svid= ${opt_file} | head -1`
     if [[ ${line} =~ ^svid=(.+)$ ]]; then
         node_id=${BASH_REMATCH[1]}
     else
+        echo 0
         >&2 echo "Cannot find node id"
+        exit 1
     fi
 
     data=`echo '{"run":"get_block"}' | ads -H${host} -P${port} --work-dir=$1 2> /dev/null`
@@ -39,11 +45,17 @@ status() {
             echo ${node_id}
         fi
     elif [[ ${data} =~ \"error\":\ \"(.+)\" ]]; then
-        >&2 echo "Response error: ${BASH_REMATCH[1]}"
-        exit 1
+        if [ -n "$2" ]; then
+            echo "0  Response error: ${BASH_REMATCH[1]}"
+        else
+            echo 0
+        fi
     else
-        >&2 echo "Cannot parse 'get_block' response"
-        exit 1
+        if [ -n "$2" ]; then
+            echo "0  Cannot parse 'get_block' response"
+        else
+            echo 0
+        fi
     fi
 }
 
