@@ -54,6 +54,10 @@ int TransactionFailed::getType() {
     return TXSTYPE_NON;
 }
 
+CommandType TransactionFailed::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void TransactionFailed::sign(const uint8_t* /*hash*/, const uint8_t* /*sk*/, const uint8_t* /*pk*/) {
     // no signature
 }
@@ -86,8 +90,8 @@ int64_t TransactionFailed::getDeduct() {
     return 0;
 }
 
-user_t& TransactionFailed::getUserInfo() {
-    return m_response;
+uint32_t TransactionFailed::getUserMessageId() {
+    return 0;
 }
 
 bool TransactionFailed::send(INetworkClient& /*netClient*/) {

@@ -57,6 +57,10 @@ int GetTransaction::getType() {
     return TXSTYPE_TXS;
 }
 
+CommandType GetTransaction::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetTransaction::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -88,8 +92,8 @@ int64_t GetTransaction::getDeduct() {
     return 0;
 }
 
-user_t& GetTransaction::getUserInfo() {
-    return m_response.usera;
+uint32_t GetTransaction::getUserMessageId() {
+    return 0;
 }
 
 bool GetTransaction::send(INetworkClient& netClient) {

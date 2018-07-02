@@ -11,17 +11,12 @@ GetTransactionHandler::GetTransactionHandler(office& office, boost::asio::ip::tc
 }
 
 void GetTransactionHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetTransaction>(dynamic_cast<GetTransaction*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetTransaction bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetTransaction>(std::move(command));
 }
 
 void GetTransactionHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     std::vector<hash_s> hashes;
     GetTransactionResponse res;
     uint32_t mnum;
@@ -51,35 +46,20 @@ void GetTransactionHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(&res, sizeof(GetTransactionResponse)));
-            boost::asio::write(m_socket, boost::asio::buffer(msg->data, msg->len));
+            response.emplace_back(boost::asio::buffer(&res, sizeof(GetTransactionResponse)));
+            response.emplace_back(boost::asio::buffer(msg->data, msg->len));
             for (auto &it : hashes) {
-                boost::asio::write(m_socket, boost::asio::buffer(it.hash, sizeof(it.hash)));
+                response.emplace_back(boost::asio::buffer(it.hash, sizeof(it.hash)));
             }
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
-
 }
 
-bool GetTransactionHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+void GetTransactionHandler::onValidate() {
 }

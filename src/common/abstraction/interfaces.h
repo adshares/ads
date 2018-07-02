@@ -6,6 +6,7 @@
 #include "default.hpp"
 #include "settings.hpp"
 #include "command/errorcodes.h"
+#include "command/commandtype.h"
 
 class office;
 
@@ -40,8 +41,10 @@ class INetworkClient {
  */
 class ICommand {
   public:
-    /** \brief Get command type. */
+    /** \brief Get type. */
     virtual int                     getType()           = 0;
+    /** \brief Get command type. */
+    virtual CommandType             getCommandType()    = 0;
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*          getData()           = 0;
     /** \brief Get additional data. */
@@ -75,8 +78,6 @@ class ICommand {
      * \param pk    Pointer to public key.
     */
     virtual bool                    checkSignature(const uint8_t* hash, const uint8_t* pk)      = 0;
-    /** \brief Get actual user for which command is performed. */
-    virtual user_t&                 getUserInfo()       = 0;
     /** \brief Get time of command. */
     virtual uint32_t                getTime()           = 0;
     /** \brief Get User ID. */
@@ -91,6 +92,8 @@ class ICommand {
     virtual unsigned char*          getBlockMessage()   = 0;
     /** \brief Get blockchain data size. */
     virtual size_t getBlockMessageSize()                = 0;
+    /** \brief Get user message id */
+    virtual uint32_t getUserMessageId()                 = 0;
     /** \brief Send data to the server.
      *
      * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -162,13 +165,11 @@ class ICommandHandler {
     */
     virtual void onInit(std::unique_ptr<IBlockCommand> command)  = 0;
 
-    /** \brief Execution event. It execute actual command and commiting it to blockchain. */
+    /** \brief Execution event. It executes actual command and commit it to blockchain. */
     virtual void onExecute()  = 0;
-    /** \brief Validtaion event. It execute validation of data if it contain all proper value. */
-    virtual bool onValidate() = 0;
 
-    //virtual void onCommit(std::unique_ptr<IBlockCommand> command)     = 0;
-    //virtual void onSend()     = 0;
+    /** \brief Validation event. It performs command specific validation*/
+    virtual void onValidate() = 0;
 
     virtual ~ICommandHandler() = default;
 };

@@ -16,6 +16,10 @@ int UnsetNodeStatus::getType() {
     return TXSTYPE_UBS;
 }
 
+CommandType UnsetNodeStatus::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* UnsetNodeStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -54,10 +58,6 @@ void UnsetNodeStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t
 
 bool UnsetNodeStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
-}
-
-user_t& UnsetNodeStatus::getUserInfo() {
-    return m_response.usera;
 }
 
 uint32_t UnsetNodeStatus::getTime() {

@@ -13,8 +13,11 @@ public:
     LogAccount();
     LogAccount(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime);
 
-    /** \brief Return TXSTYPE_SAV as command type . */
+    /** \brief Return TXSTYPE_SAV as type . */
     virtual int getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char* getData()                           override;
@@ -61,9 +64,6 @@ public:
     /** \brief Get additional data size. */
     virtual int getAdditionalDataSize()                                 override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Set user info data */
     virtual void setAdditionalData(char* data);
 
@@ -82,6 +82,9 @@ public:
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
 
+    /** \brief Get user message id. */
+    virtual uint32_t        getUserMessageId()                          override;
+
     /** \brief Send data to the server.
      *
      * \param netClient  Netwrok client implementation of INetworkClient interface.
@@ -97,7 +100,6 @@ public:
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-    uint32_t getUserMessageId();
 private:
     LogAccountData m_data;
     commandresponse m_response;

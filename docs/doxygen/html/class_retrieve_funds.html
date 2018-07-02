@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a4e655cf3dbe755bbe00a372822f2d03b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a230574643ee6c7f7cf4d02e0908367a6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a230574643ee6c7f7cf4d02e0908367a6"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#a230574643ee6c7f7cf4d02e0908367a6">getType</a> () override</td></tr>
-<tr class="memdesc:a230574643ee6c7f7cf4d02e0908367a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_GET as command type . <br /></td></tr>
+<tr class="memdesc:a230574643ee6c7f7cf4d02e0908367a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_GET as type . <br /></td></tr>
 <tr class="separator:a230574643ee6c7f7cf4d02e0908367a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd0641a150fe8248550ac4a53cfcc99f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abd0641a150fe8248550ac4a53cfcc99f"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#abd0641a150fe8248550ac4a53cfcc99f">getCommandType</a> () override</td></tr>
+<tr class="memdesc:abd0641a150fe8248550ac4a53cfcc99f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:abd0641a150fe8248550ac4a53cfcc99f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2cc61ab9bf10cccdadd5d5929afdd81"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab2cc61ab9bf10cccdadd5d5929afdd81"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#ab2cc61ab9bf10cccdadd5d5929afdd81">getData</a> () override</td></tr>
 <tr class="memdesc:ab2cc61ab9bf10cccdadd5d5929afdd81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ab1157a2c89a9132b0383592535acf307"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#ab1157a2c89a9132b0383592535acf307">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ab1157a2c89a9132b0383592535acf307"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ab1157a2c89a9132b0383592535acf307">More...</a><br /></td></tr>
 <tr class="separator:ab1157a2c89a9132b0383592535acf307"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaa7774bd8ace68237cf48c49a96392ba"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaa7774bd8ace68237cf48c49a96392ba"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#aaa7774bd8ace68237cf48c49a96392ba">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:aaa7774bd8ace68237cf48c49a96392ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:aaa7774bd8ace68237cf48c49a96392ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23832cd8492b9fa53790b7db14c19d5e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a23832cd8492b9fa53790b7db14c19d5e"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#a23832cd8492b9fa53790b7db14c19d5e">getTime</a> () override</td></tr>
 <tr class="memdesc:a23832cd8492b9fa53790b7db14c19d5e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -150,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#a90bf1e5bc1075bd77ab880b58189aacd">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a90bf1e5bc1075bd77ab880b58189aacd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a90bf1e5bc1075bd77ab880b58189aacd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13dfcea8381fcea9c081d0276253af64"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a13dfcea8381fcea9c081d0276253af64"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#a13dfcea8381fcea9c081d0276253af64">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a13dfcea8381fcea9c081d0276253af64"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:a13dfcea8381fcea9c081d0276253af64"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a16792dd33e26638fa57b29e1cbfa10a0"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_retrieve_funds.html#a16792dd33e26638fa57b29e1cbfa10a0">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a16792dd33e26638fa57b29e1cbfa10a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a16792dd33e26638fa57b29e1cbfa10a0">More...</a><br /></td></tr>
 <tr class="separator:a16792dd33e26638fa57b29e1cbfa10a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -166,9 +170,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a8aebefbe00dc2e270615305d40a58c80"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8aebefbe00dc2e270615305d40a58c80"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a8aebefbe00dc2e270615305d40a58c80"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3db982bce3f49228f0a76601580ba311"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3db982bce3f49228f0a76601580ba311"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getUserMessageId</b> ()</td></tr>
-<tr class="separator:a3db982bce3f49228f0a76601580ba311"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aea45441a74ef39201ebfa5a78cfcaf1a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aea45441a74ef39201ebfa5a78cfcaf1a"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestBankId</b> ()</td></tr>
 <tr class="separator:aea45441a74ef39201ebfa5a78cfcaf1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -231,7 +232,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="retrievefunds_8cpp_source.html#l00055">55</a> of file <a class="el" href="retrievefunds_8cpp_source.html">retrievefunds.cpp</a>.</p>
+<p>Definition at line <a class="el" href="retrievefunds_8cpp_source.html#l00059">59</a> of file <a class="el" href="retrievefunds_8cpp_source.html">retrievefunds.cpp</a>.</p>
 
 </div>
 </div>
@@ -333,7 +334,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="retrievefunds_8cpp_source.html#l00051">51</a> of file <a class="el" href="retrievefunds_8cpp_source.html">retrievefunds.cpp</a>.</p>
+<p>Definition at line <a class="el" href="retrievefunds_8cpp_source.html#l00055">55</a> of file <a class="el" href="retrievefunds_8cpp_source.html">retrievefunds.cpp</a>.</p>
 
 </div>
 </div>

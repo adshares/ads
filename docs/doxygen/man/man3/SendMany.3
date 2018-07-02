@@ -1,4 +1,4 @@
-.TH "SendMany" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "SendMany" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -29,7 +29,11 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_MPT as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_MPT as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eModifying as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -79,10 +83,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -103,6 +103,10 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIGet change in cash balance after command\&. \fP"
 .ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet user message id\&. \fP"
+.ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
 .br
 .RI "\fISend data to the server\&. \fP"
@@ -115,7 +119,7 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIInit transaction vector depends on additionalData buffer\&. \fP"
 .ti -1c
-.RI "virtual \fBErrorCodes::Code\fP \fBcheckForDuplicates\fP ()"
+.RI "virtual void \fBcheckForDuplicates\fP ()"
 .br
 .RI "\fIChecks for target duplicates and does amount is positive value\&. \fP"
 .ti -1c
@@ -131,10 +135,6 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
-.ti -1c
-.RI "virtual uint32_t \fBgetUserMessageId\fP ()"
-.br
-.RI "\fIGet message id\&. \fP"
 .in -1c
 .SS "Public Attributes"
 
@@ -142,6 +142,7 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "\fBSendManyData\fP \fBm_data\fP"
 .br
+.RI "\fIGet message id\&. \fP"
 .ti -1c
 .RI "\fBcommandresponse\fP \fBm_response\fP"
 .br
@@ -151,7 +152,7 @@ Inherits \fBBlockCommand\fP\&.
 Definition at line 10 of file sendmany\&.h\&.
 .SH "Member Function Documentation"
 .PP 
-.SS "\fBErrorCodes::Code\fP SendMany::checkForDuplicates ()\fC [virtual]\fP"
+.SS "void SendMany::checkForDuplicates ()\fC [virtual]\fP"
 
 .PP
 Checks for target duplicates and does amount is positive value\&. 
@@ -180,7 +181,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 95 of file sendmany\&.cpp\&.
+Definition at line 99 of file sendmany\&.cpp\&.
 .SS "bool SendMany::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -216,7 +217,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 78 of file sendmany\&.cpp\&.
+Definition at line 82 of file sendmany\&.cpp\&.
 
 .SH "Author"
 .PP 

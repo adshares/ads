@@ -1,4 +1,4 @@
-.TH "CommandHandler" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "CommandHandler" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -13,6 +13,13 @@ CommandHandler \- Base class for all command handlers\&.
 Inherits \fBICommandHandler\fP\&.
 .PP
 Inherited by \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAccountHandler\fP, \fBCreateNodeHandler\fP, \fBGetAccountHandler\fP, \fBGetAccountsHandler\fP, \fBGetBlockHandler\fP, \fBGetBlocksHandler\fP, \fBGetBroadcastMsgHandler\fP, \fBGetLogHandler\fP, \fBGetMessageHandler\fP, \fBGetMessageListHandler\fP, \fBGetSignaturesHandler\fP, \fBGetTransactionHandler\fP, \fBGetVipKeysHandler\fP, \fBLogAccountHandler\fP, \fBRetrieveFundsHandler\fP, \fBSendManyHandler\fP, \fBSendOneHandler\fP, \fBSetAccountKeyHandler\fP, \fBSetAccountStatusHandler\fP, \fBSetNodeStatusHandler\fP, \fBUnsetAccountStatusHandler\fP, and \fBUnsetNodeStatusHandler\fP\&.
+.SS "Classes"
+
+.in +1c
+.ti -1c
+.RI "struct \fBCommitResult\fP"
+.br
+.in -1c
 .SS "Public Member Functions"
 
 .in +1c
@@ -24,6 +31,16 @@ Inherited by \fBBroadcastMsgHandler\fP, \fBChangeNodeKeyHandler\fP, \fBCreateAcc
 .RI "virtual void \fBexecute\fP (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP &usera) override"
 .br
 .RI "\fIExecute command\&. \fP"
+.in -1c
+.SS "Protected Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBCommitResult\fP \fBcommitChanges\fP (\fBIBlockCommand\fP &command)"
+.br
+.ti -1c
+.RI "template<typename CommandType > std::unique_ptr< CommandType > \fBinit\fP (std::unique_ptr< \fBIBlockCommand\fP > command)"
+.br
 .in -1c
 .SS "Protected Attributes"
 
@@ -62,7 +79,7 @@ Constructor\&.
 .PP
 
 .PP
-Definition at line 7 of file commandhandler\&.cpp\&.
+Definition at line 8 of file commandhandler\&.cpp\&.
 .SH "Member Function Documentation"
 .PP 
 .SS "void CommandHandler::execute (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP & usera)\fC [override]\fP, \fC [virtual]\fP"
@@ -81,7 +98,7 @@ Execute command\&.
 .PP
 Implements \fBICommandHandler\fP\&.
 .PP
-Definition at line 12 of file commandhandler\&.cpp\&.
+Definition at line 13 of file commandhandler\&.cpp\&.
 
 .SH "Author"
 .PP 

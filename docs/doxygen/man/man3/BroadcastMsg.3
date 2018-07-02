@@ -1,4 +1,4 @@
-.TH "BroadcastMsg" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "BroadcastMsg" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -32,7 +32,11 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_BRO as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_BRO as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eModifying as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -82,10 +86,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -106,6 +106,10 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIGet change in cash balance after command\&. \fP"
 .ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet message id\&. \fP"
+.ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
 .br
 .RI "\fISend data to the server\&. \fP"
@@ -122,10 +126,6 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
-.ti -1c
-.RI "virtual uint32_t \fBgetUserMessageId\fP ()"
-.br
-.RI "\fIGet message id\&. \fP"
 .in -1c
 .SS "Public Attributes"
 
@@ -163,7 +163,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 88 of file broadcastmsg\&.cpp\&.
+Definition at line 92 of file broadcastmsg\&.cpp\&.
 .SS "bool BroadcastMsg::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -199,7 +199,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 76 of file broadcastmsg\&.cpp\&.
+Definition at line 80 of file broadcastmsg\&.cpp\&.
 
 .SH "Author"
 .PP 

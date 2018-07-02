@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a14c25df643b90f46148bed41f9474f80"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a441614ff0a1efa0c11cb5005f3657c9e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a441614ff0a1efa0c11cb5005f3657c9e"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a441614ff0a1efa0c11cb5005f3657c9e">getType</a> () override</td></tr>
-<tr class="memdesc:a441614ff0a1efa0c11cb5005f3657c9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_BKY as command type . <br /></td></tr>
+<tr class="memdesc:a441614ff0a1efa0c11cb5005f3657c9e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_BKY as type . <br /></td></tr>
 <tr class="separator:a441614ff0a1efa0c11cb5005f3657c9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a86389b7a32c5f6a3e4a62ead3b67b354"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a86389b7a32c5f6a3e4a62ead3b67b354"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a86389b7a32c5f6a3e4a62ead3b67b354">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a86389b7a32c5f6a3e4a62ead3b67b354"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:a86389b7a32c5f6a3e4a62ead3b67b354"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab7b207393bdeef492532dc97b85b76d1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab7b207393bdeef492532dc97b85b76d1"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#ab7b207393bdeef492532dc97b85b76d1">getData</a> () override</td></tr>
 <tr class="memdesc:ab7b207393bdeef492532dc97b85b76d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a13dfaed1989d404d71edae5145be2889"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a13dfaed1989d404d71edae5145be2889">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:a13dfaed1989d404d71edae5145be2889"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#a13dfaed1989d404d71edae5145be2889">More...</a><br /></td></tr>
 <tr class="separator:a13dfaed1989d404d71edae5145be2889"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae14d32343e7c0ef0a9931aecf924c36e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae14d32343e7c0ef0a9931aecf924c36e"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#ae14d32343e7c0ef0a9931aecf924c36e">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:ae14d32343e7c0ef0a9931aecf924c36e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:ae14d32343e7c0ef0a9931aecf924c36e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d12abe8368133c2a73b3f8855d823cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6d12abe8368133c2a73b3f8855d823cc"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a6d12abe8368133c2a73b3f8855d823cc">getTime</a> () override</td></tr>
 <tr class="memdesc:a6d12abe8368133c2a73b3f8855d823cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -150,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#aa6772c6fd64c90d377722f587c91058d">getDeduct</a> () override</td></tr>
 <tr class="memdesc:aa6772c6fd64c90d377722f587c91058d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:aa6772c6fd64c90d377722f587c91058d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad6b57d12d7313792a7e6064c1f19aab3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad6b57d12d7313792a7e6064c1f19aab3"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#ad6b57d12d7313792a7e6064c1f19aab3">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:ad6b57d12d7313792a7e6064c1f19aab3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:ad6b57d12d7313792a7e6064c1f19aab3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a558f6b0e21d18dd2c20a13e39a5a73a6"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a558f6b0e21d18dd2c20a13e39a5a73a6">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a558f6b0e21d18dd2c20a13e39a5a73a6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a558f6b0e21d18dd2c20a13e39a5a73a6">More...</a><br /></td></tr>
 <tr class="separator:a558f6b0e21d18dd2c20a13e39a5a73a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -173,10 +177,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 virtual uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a11e7330b2c91e5d5541045863c29a159">getOldPublicKey</a> ()</td></tr>
 <tr class="memdesc:a11e7330b2c91e5d5541045863c29a159"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get old public key. <br /></td></tr>
 <tr class="separator:a11e7330b2c91e5d5541045863c29a159"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a773fb0e46084c2681a7b860d724e2ce7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a773fb0e46084c2681a7b860d724e2ce7"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#a773fb0e46084c2681a7b860d724e2ce7">getUserMessageId</a> ()</td></tr>
-<tr class="memdesc:a773fb0e46084c2681a7b860d724e2ce7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
-<tr class="separator:a773fb0e46084c2681a7b860d724e2ce7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abe14d073f2ffc04ee281894773ef906c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abe14d073f2ffc04ee281894773ef906c"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_change_node_key.html#abe14d073f2ffc04ee281894773ef906c">getBlockMessage</a> () override</td></tr>
 <tr class="memdesc:abe14d073f2ffc04ee281894773ef906c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get data as it is stored in blockchain. <br /></td></tr>
@@ -251,7 +251,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00059">59</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00063">63</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
 
 </div>
 </div>
@@ -288,7 +288,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00108">108</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00106">106</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -353,7 +353,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00054">54</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="changenodekey_8cpp_source.html#l00058">58</a> of file <a class="el" href="changenodekey_8cpp_source.html">changenodekey.cpp</a>.</p>
 
 </div>
 </div>

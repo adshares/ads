@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a8066d597eb1c21d3a9099f62312d6cf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11fa45c3f24ffd2fc492ca14d58b6882"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a11fa45c3f24ffd2fc492ca14d58b6882"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#a11fa45c3f24ffd2fc492ca14d58b6882">getType</a> () override</td></tr>
-<tr class="memdesc:a11fa45c3f24ffd2fc492ca14d58b6882"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SAV as command type . <br /></td></tr>
+<tr class="memdesc:a11fa45c3f24ffd2fc492ca14d58b6882"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SAV as type . <br /></td></tr>
 <tr class="separator:a11fa45c3f24ffd2fc492ca14d58b6882"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abe73f5280f66fc7cb7f35a091451007e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abe73f5280f66fc7cb7f35a091451007e"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#abe73f5280f66fc7cb7f35a091451007e">getCommandType</a> () override</td></tr>
+<tr class="memdesc:abe73f5280f66fc7cb7f35a091451007e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:abe73f5280f66fc7cb7f35a091451007e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4dd9e2e30343d9c7ae04cdad862dedd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af4dd9e2e30343d9c7ae04cdad862dedd"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#af4dd9e2e30343d9c7ae04cdad862dedd">getData</a> () override</td></tr>
 <tr class="memdesc:af4dd9e2e30343d9c7ae04cdad862dedd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -134,10 +138,6 @@ virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a cl
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#aef1bb34b113627458bf571626f39396f">getAdditionalDataSize</a> () override</td></tr>
 <tr class="memdesc:aef1bb34b113627458bf571626f39396f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional data size. <br /></td></tr>
 <tr class="separator:aef1bb34b113627458bf571626f39396f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a097cd2de934b7f2da25042b7b0ab75d3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a097cd2de934b7f2da25042b7b0ab75d3"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#a097cd2de934b7f2da25042b7b0ab75d3">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a097cd2de934b7f2da25042b7b0ab75d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a097cd2de934b7f2da25042b7b0ab75d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a371c2a725807409066841b4e6a1a4a97"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a371c2a725807409066841b4e6a1a4a97"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#a371c2a725807409066841b4e6a1a4a97">setAdditionalData</a> (char *data)</td></tr>
 <tr class="memdesc:a371c2a725807409066841b4e6a1a4a97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set user info data. <br /></td></tr>
@@ -162,6 +162,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#a01df310f322ba79c5755ca3e4e802dc4">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a01df310f322ba79c5755ca3e4e802dc4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a01df310f322ba79c5755ca3e4e802dc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afc7e4576a25986cfbef1f68d30f4f13a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afc7e4576a25986cfbef1f68d30f4f13a"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#afc7e4576a25986cfbef1f68d30f4f13a">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:afc7e4576a25986cfbef1f68d30f4f13a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:afc7e4576a25986cfbef1f68d30f4f13a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afb26a65d847abb0a48d7adcbc57cb955"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account.html#afb26a65d847abb0a48d7adcbc57cb955">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:afb26a65d847abb0a48d7adcbc57cb955"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#afb26a65d847abb0a48d7adcbc57cb955">More...</a><br /></td></tr>
 <tr class="separator:afb26a65d847abb0a48d7adcbc57cb955"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -178,9 +182,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a4c7fb72dff871b8cf8cb98b7fc0bff58"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4c7fb72dff871b8cf8cb98b7fc0bff58"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a4c7fb72dff871b8cf8cb98b7fc0bff58"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a87e708cec5a2eb05eb625c6d79e0a003"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a87e708cec5a2eb05eb625c6d79e0a003"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getUserMessageId</b> ()</td></tr>
-<tr class="separator:a87e708cec5a2eb05eb625c6d79e0a003"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -237,7 +238,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="logaccount_8cpp_source.html#l00060">60</a> of file <a class="el" href="logaccount_8cpp_source.html">logaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="logaccount_8cpp_source.html#l00064">64</a> of file <a class="el" href="logaccount_8cpp_source.html">logaccount.cpp</a>.</p>
 
 </div>
 </div>
@@ -339,7 +340,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="logaccount_8cpp_source.html#l00056">56</a> of file <a class="el" href="logaccount_8cpp_source.html">logaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="logaccount_8cpp_source.html#l00060">60</a> of file <a class="el" href="logaccount_8cpp_source.html">logaccount.cpp</a>.</p>
 
 </div>
 </div>

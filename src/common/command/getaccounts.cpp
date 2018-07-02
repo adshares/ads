@@ -6,18 +6,14 @@
 #include "helper/json.h"
 
 GetAccounts::GetAccounts()
-    : m_data{}, m_responseBuffer(nullptr) {
+    : m_data{} {
 }
 
 GetAccounts::GetAccounts(uint16_t src_bank, uint32_t src_user, uint32_t block, uint16_t dst_bank, uint32_t time)
-    : m_data(src_bank, src_user, time, block, dst_bank), m_responseBuffer(nullptr) {
+    : m_data(src_bank, src_user, time, block, dst_bank) {
     if (!dst_bank) {
         m_data.info.dst_node = src_bank;
     }
-}
-
-GetAccounts::~GetAccounts() {
-    delete[] m_responseBuffer;
 }
 
 unsigned char* GetAccounts::getData() {
@@ -25,15 +21,14 @@ unsigned char* GetAccounts::getData() {
 }
 
 unsigned char* GetAccounts::getResponse() {
-    return m_responseBuffer;
+    return m_responseBuffer.get();
 }
 
 void GetAccounts::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void GetAccounts::setResponse(char* response) {
-    m_responseBuffer = reinterpret_cast<unsigned char*>(response);
+void GetAccounts::setResponse(char*) {
 }
 
 int GetAccounts::getDataSize() {
@@ -54,6 +49,10 @@ int GetAccounts::getSignatureSize() {
 
 int GetAccounts::getType() {
     return TXSTYPE_NOD;
+}
+
+CommandType GetAccounts::getCommandType() {
+    return CommandType::eReadingOnly;
 }
 
 void GetAccounts::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
@@ -87,11 +86,6 @@ int64_t GetAccounts::getDeduct() {
     return 0;
 }
 
-user_t& GetAccounts::getUserInfo() {
-    // in this case there is a multiple user info fields
-    return *(user_t*)nullptr;
-}
-
 bool GetAccounts::send(INetworkClient& netClient) {
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetAccounts sending error\n");
@@ -113,8 +107,8 @@ bool GetAccounts::send(INetworkClient& netClient) {
     }
 
     // read rest of buffer, all accounts
-    m_responseBuffer = new unsigned char[m_responseBufferLength];
-    if (!netClient.readData(m_responseBuffer, m_responseBufferLength)) {
+    m_responseBuffer = std::make_unique<unsigned char[] >(m_responseBufferLength);
+    if (!netClient.readData(m_responseBuffer.get(), m_responseBufferLength)) {
         ELOG("GetAccounts ERROR reading response\n");
         return false;
     }
@@ -127,6 +121,10 @@ uint32_t GetAccounts::getDestBankId() {
 
 uint32_t GetAccounts::getBlockId() {
     return m_data.info.block;
+}
+
+uint32_t GetAccounts::getUserMessageId() {
+    return 0;
 }
 
 std::string GetAccounts::toString(bool /*pretty*/) {
@@ -171,8 +169,9 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
 
     if (!errorCode) {
         m_responseBufferLength = lastUsers * sizeof(user_t);
-        m_responseBuffer = new unsigned char[m_responseBufferLength];
-        uint8_t *dp = m_responseBuffer;
+        //m_responseBuffer = new unsigned char[m_responseBufferLength];
+        m_responseBuffer = std::make_unique<unsigned char[] >(m_responseBufferLength);
+        uint8_t *dp = m_responseBuffer.get();
         for(uint32_t user=0; user<lastUsers; user++,dp+=sizeof(user_t)) {
             user_t u;
             u.msid=0;

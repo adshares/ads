@@ -25,6 +25,10 @@ int GetBlocks::getType() {
     return TXSTYPE_BLK;
 }
 
+CommandType GetBlocks::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 unsigned char* GetBlocks::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -65,10 +69,6 @@ bool GetBlocks::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return (ed25519_sign_open(getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& GetBlocks::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t GetBlocks::getTime() {
     return m_data.info.ttime;
 }
@@ -86,6 +86,10 @@ int64_t GetBlocks::getFee() {
 }
 
 int64_t GetBlocks::getDeduct() {
+    return 0;
+}
+
+uint32_t GetBlocks::getUserMessageId() {
     return 0;
 }
 
@@ -121,7 +125,7 @@ bool GetBlocks::saveNowhash(const header_t& head) {
 
 bool GetBlocks::receiveHeaders(INetworkClient& netClient) {
     if(!netClient.readData((int32_t*)&m_numOfBlocks, sizeof(m_numOfBlocks))) {
-        ELOG("GetBlocks ERROR reading length of first vip keys error\n");
+        ELOG("GetBlocks ERROR reading number of blocks\n");
         return false;
     }
 
@@ -303,8 +307,8 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
     std::map<uint16_t, hash_s> vipkeys;
     for(uint32_t i=0; i<m_firstKeysLen; i+=2+32) {
         char* firstkeys = m_firstVipKeys.getVipKeys();
-        uint16_t svid=*((uint16_t*)(&firstkeys[i+4]));
-        vipkeys[svid]=*((hash_s*)(&firstkeys[i+2+4]));
+        uint16_t svid=*((uint16_t*)(&firstkeys[i]));
+        vipkeys[svid]=*((hash_s*)(&firstkeys[i+2]));
     }
 
     int vok=0;
@@ -325,14 +329,14 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
             char hash[65];
             hash[64]='\0';
             ed25519_key2text(hash, s.signature, 32);
-            ELOG("ERROR vipkey (%d) failed %s\n", s.svid, hash);
+            ELOG("ERROR vipkey (%d) failed %s\n", s.svid, hash);            
         }
     }
 
     if(2*vok < (int)vipkeys.size()) {
         ELOG("ERROR failed to confirm enough signature for header %08X (2*%d<%d)\n",
         m_receivedHeaders[m_numOfBlocks-1].now, vok, (int)vipkeys.size());
-        return true;
+        return false;
     } else {
         ELOG("CONFIRMED enough signature for header %08X (2*%d>=%d)\n",
         m_receivedHeaders[m_numOfBlocks-1].now, vok, (int)vipkeys.size());
@@ -354,9 +358,7 @@ bool GetBlocks::send(INetworkClient& netClient)
 
     if(m_responseError) {
         return true;
-    }
-
-    fprintf(stderr,"PROCESSING BLOCKS\n");
+    }    
 
     //read first vipkeys if needed
      if(!getBlockNumberFrom() || getBlockNumberFrom() == getBlockNumberTo()) {

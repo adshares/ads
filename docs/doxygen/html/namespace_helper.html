@@ -148,9 +148,9 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><b>mydate</b> (uint32_
 <tr class="memitem:a3b858263a92a9ab4dfd038702aa628c8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3b858263a92a9ab4dfd038702aa628c8"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>check_csum</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;u, uint16_t <a class="el" href="classpeer.html">peer</a>, uint32_t uid)</td></tr>
 <tr class="separator:a3b858263a92a9ab4dfd038702aa628c8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a033766073dc7dc1ba4684db6b2535016"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a033766073dc7dc1ba4684db6b2535016"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>printErrorJson</b> (const char *errorMsg)</td></tr>
-<tr class="separator:a033766073dc7dc1ba4684db6b2535016"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad50c5a16c82c2f0068991d13060c6dcd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad50c5a16c82c2f0068991d13060c6dcd"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>printErrorJson</b> (const char *errorMsg, bool pretty)</td></tr>
+<tr class="separator:ad50c5a16c82c2f0068991d13060c6dcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a613e63b18a1ce1c017f725b05d025e68"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a613e63b18a1ce1c017f725b05d025e68"></a>
 const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>print_address</b> (uint16_t <a class="el" href="classnode.html">node</a>, uint32_t user, int32_t _suffix)</td></tr>
 <tr class="separator:a613e63b18a1ce1c017f725b05d025e68"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,21 +169,18 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>getLogTxnTypeId</b> (c
 <tr class="memitem:a1ceb096ba030415ea724f73f153dad24"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1ceb096ba030415ea724f73f153dad24"></a>
 struct <a class="el" href="struct_helper_1_1_servers_node.html">Helper::ServersNode</a>&#160;</td><td class="memItemRight" valign="bottom"><b>__attribute__</b> ((packed))</td></tr>
 <tr class="separator:a1ceb096ba030415ea724f73f153dad24"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:affd6480f51b7342cc5f9e7bec1afeb52"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="affd6480f51b7342cc5f9e7bec1afeb52"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketTimeout</b> (boost::asio::ip::tcp::socket &amp;socket, unsigned int timeout)</td></tr>
-<tr class="separator:affd6480f51b7342cc5f9e7bec1afeb52"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29fe7292478fa18ae1f653cbd81a688b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a29fe7292478fa18ae1f653cbd81a688b"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketTimeout</b> (std::unique_ptr&lt; boost::asio::ip::tcp::socket &gt; &amp;socket, unsigned int timeout)</td></tr>
-<tr class="separator:a29fe7292478fa18ae1f653cbd81a688b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2825bae787faa24b7bde524a107c667e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2825bae787faa24b7bde524a107c667e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketTimeout</b> (boost::asio::ip::tcp::socket &amp;socket, unsigned int timeout, unsigned int idletimeout, unsigned int maxtry)</td></tr>
+<tr class="separator:a2825bae787faa24b7bde524a107c667e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7ec7a34655aac1bcc9b42188109adacc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7ec7a34655aac1bcc9b42188109adacc"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketTimeout</b> (std::unique_ptr&lt; boost::asio::ip::tcp::socket &gt; &amp;socket, unsigned int timeout, unsigned int idletimeout, unsigned int maxtry)</td></tr>
+<tr class="separator:a7ec7a34655aac1bcc9b42188109adacc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a051910adcf787859163e2432c183ed31"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a051910adcf787859163e2432c183ed31"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketNoDelay</b> (boost::asio::ip::tcp::socket &amp;socket, bool noDelay)</td></tr>
 <tr class="separator:a051910adcf787859163e2432c183ed31"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af17689e5d49025464faf26cd70ff799c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af17689e5d49025464faf26cd70ff799c"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketNoDelay</b> (std::unique_ptr&lt; boost::asio::ip::tcp::socket &gt; &amp;socket, bool noDelay)</td></tr>
 <tr class="separator:af17689e5d49025464faf26cd70ff799c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a040c8b4a1cd62bbb861c7a85c43d29c5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a040c8b4a1cd62bbb861c7a85c43d29c5"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>setSocketNoDelay</b> (std::unique_ptr&lt; boost::asio::ip::tcp::socket &gt;, bool noDelay)</td></tr>
-<tr class="separator:a040c8b4a1cd62bbb861c7a85c43d29c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a517fe2815cf9ee1374d3a1bb34fef076"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a517fe2815cf9ee1374d3a1bb34fef076"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>getTxnTypeId</b> (const char *txnName)</td></tr>
 <tr class="separator:a517fe2815cf9ee1374d3a1bb34fef076"><td class="memSeparator" colspan="2">&#160;</td></tr>

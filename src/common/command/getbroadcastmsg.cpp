@@ -61,6 +61,14 @@ int GetBroadcastMsg::getType() {
     return TXSTYPE_BLG;
 }
 
+CommandType GetBroadcastMsg::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
+uint32_t GetBroadcastMsg::getUserMessageId() {
+    return 0;
+}
+
 void GetBroadcastMsg::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -90,10 +98,6 @@ int64_t GetBroadcastMsg::getFee() {
 
 int64_t GetBroadcastMsg::getDeduct() {
     return 0;
-}
-
-user_t& GetBroadcastMsg::getUserInfo() {
-    return m_fakeResponse.usera;
 }
 
 bool GetBroadcastMsg::send(INetworkClient& netClient) {

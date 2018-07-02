@@ -1,3 +1,4 @@
 <map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
-<area shape="rect" id="node1" href="$structlog__s.html" title="log_s" alt="" coords="5,5,59,32"/>
+<area shape="rect" id="node1" href="$class_i_network_client.html" title="Interface for class which is responible for client network connection. " alt="" coords="5,5,115,32"/>
+<area shape="rect" id="node2" href="$class_network_client.html" title="NetworkClient" alt="" coords="163,5,268,32"/>
 </map>

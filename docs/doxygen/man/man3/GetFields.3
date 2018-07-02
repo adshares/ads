@@ -1,4 +1,4 @@
-.TH "GetFields" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "GetFields" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -19,6 +19,10 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
+.br
+.RI "\fIGet type\&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
 .br
 .RI "\fIGet command type\&. \fP"
 .ti -1c
@@ -62,10 +66,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual user for which command is performed\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -93,6 +93,10 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual void \fBsaveResponse\fP (\fBsettings\fP &sts) override"
 .br
 .RI "\fISave command response to settings object\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet user message id\&. \fP"
 .ti -1c
 .RI "virtual std::string \fBtoString\fP (bool pretty) override"
 .br
@@ -127,7 +131,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 52 of file getfields\&.cpp\&.
+Definition at line 56 of file getfields\&.cpp\&.
 .SS "bool GetFields::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -144,7 +148,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 83 of file getfields\&.cpp\&.
+Definition at line 87 of file getfields\&.cpp\&.
 .SS "void GetFields::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -163,7 +167,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 49 of file getfields\&.cpp\&.
+Definition at line 53 of file getfields\&.cpp\&.
 
 .SH "Author"
 .PP 

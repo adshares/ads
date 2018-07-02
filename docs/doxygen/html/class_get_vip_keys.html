@@ -81,12 +81,16 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a9442ac876a34d8bb51f4727d67d6c553"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9355870b112473f2854b6bf30d5fe67"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa9355870b112473f2854b6bf30d5fe67"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#aa9355870b112473f2854b6bf30d5fe67">getType</a> () override</td></tr>
-<tr class="memdesc:aa9355870b112473f2854b6bf30d5fe67"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_VIP as command type . <br /></td></tr>
+<tr class="memdesc:aa9355870b112473f2854b6bf30d5fe67"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_VIP as type . <br /></td></tr>
 <tr class="separator:aa9355870b112473f2854b6bf30d5fe67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2678d89f4bf37c89dc2c5a1e149dfa2d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2678d89f4bf37c89dc2c5a1e149dfa2d"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a2678d89f4bf37c89dc2c5a1e149dfa2d">getData</a> () override</td></tr>
 <tr class="memdesc:a2678d89f4bf37c89dc2c5a1e149dfa2d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
 <tr class="separator:a2678d89f4bf37c89dc2c5a1e149dfa2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a533328087798fdf5458f53863e32e02c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a533328087798fdf5458f53863e32e02c"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a533328087798fdf5458f53863e32e02c">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a533328087798fdf5458f53863e32e02c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:a533328087798fdf5458f53863e32e02c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae884d37d4f57182720606f86fbd4eb25"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae884d37d4f57182720606f86fbd4eb25"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#ae884d37d4f57182720606f86fbd4eb25">getResponse</a> () override</td></tr>
 <tr class="memdesc:ae884d37d4f57182720606f86fbd4eb25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to response data. <br /></td></tr>
@@ -121,10 +125,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a659a7cfc46da6d88172e6fb9bd961267"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a659a7cfc46da6d88172e6fb9bd961267">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:a659a7cfc46da6d88172e6fb9bd961267"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#a659a7cfc46da6d88172e6fb9bd961267">More...</a><br /></td></tr>
 <tr class="separator:a659a7cfc46da6d88172e6fb9bd961267"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab88cda27b729e3e3ad02c2940a7e8807"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab88cda27b729e3e3ad02c2940a7e8807"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#ab88cda27b729e3e3ad02c2940a7e8807">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:ab88cda27b729e3e3ad02c2940a7e8807"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:ab88cda27b729e3e3ad02c2940a7e8807"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad660cd6ea08524caa06f394b0f11358d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad660cd6ea08524caa06f394b0f11358d"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#ad660cd6ea08524caa06f394b0f11358d">getTime</a> () override</td></tr>
 <tr class="memdesc:ad660cd6ea08524caa06f394b0f11358d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -145,6 +145,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a4f240e628655f9212aba3e2ae85745e4">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a4f240e628655f9212aba3e2ae85745e4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a4f240e628655f9212aba3e2ae85745e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d8ed6fd21df0d41fdeabd01e1235ad0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1d8ed6fd21df0d41fdeabd01e1235ad0"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a1d8ed6fd21df0d41fdeabd01e1235ad0">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a1d8ed6fd21df0d41fdeabd01e1235ad0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a1d8ed6fd21df0d41fdeabd01e1235ad0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1c10ae2a9dccce63901ed84f119ada4c"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_vip_keys.html#a1c10ae2a9dccce63901ed84f119ada4c">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a1c10ae2a9dccce63901ed84f119ada4c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a1c10ae2a9dccce63901ed84f119ada4c">More...</a><br /></td></tr>
 <tr class="separator:a1c10ae2a9dccce63901ed84f119ada4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -219,7 +223,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00057">57</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00061">61</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
 
 </div>
 </div>
@@ -256,7 +260,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00085">85</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00089">89</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -321,7 +325,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00053">53</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getvipkeys_8cpp_source.html#l00057">57</a> of file <a class="el" href="getvipkeys_8cpp_source.html">getvipkeys.cpp</a>.</p>
 
 </div>
 </div>

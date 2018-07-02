@@ -15,16 +15,16 @@ class GetAccount : public BlockCommand {
     GetAccount();
     GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);
 
-    usertxs2& getDataStruct() {
-        return m_data;
-    }
 
     //IBlock interface
-    /** \brief Return TXSTYPE_INF as command type . */
+    /** \brief Return TXSTYPE_INF as type . */
     virtual int  getType()                                      override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
+
+    /** \brief Return eReadingOnly as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to response data. */
     virtual unsigned char*  getResponse()                       override;
@@ -62,9 +62,6 @@ class GetAccount : public BlockCommand {
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -79,6 +76,9 @@ class GetAccount : public BlockCommand {
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /**  \brief Get message id. */
+    virtual uint32_t getUserMessageId()                                 override;
 
     /** \brief Send data to the server.
      *
@@ -96,9 +96,15 @@ class GetAccount : public BlockCommand {
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
 
-  public:
-    usertxs2            m_data;
+    uint16_t    getDestNode();
+    uint32_t    getDestUser();
+
+  private:
+    UserInfo            m_data;
     accountresponse     m_response;
+
+
+
 };
 
 #endif // GETACCOUNTCOMMAND_H

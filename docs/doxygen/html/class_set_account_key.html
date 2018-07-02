@@ -92,8 +92,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>checkPubKeySignaure</
 <tr class="separator:abf9b477874a2b3f458e6d6054398dc2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab7c8e065ebecf36fe0043221d2c4674f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab7c8e065ebecf36fe0043221d2c4674f"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#ab7c8e065ebecf36fe0043221d2c4674f">getType</a> () override</td></tr>
-<tr class="memdesc:ab7c8e065ebecf36fe0043221d2c4674f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_KEY as command type . <br /></td></tr>
+<tr class="memdesc:ab7c8e065ebecf36fe0043221d2c4674f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_KEY as type . <br /></td></tr>
 <tr class="separator:ab7c8e065ebecf36fe0043221d2c4674f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38a1f71006b68fcb42f8e0eda70e0e62"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a38a1f71006b68fcb42f8e0eda70e0e62"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#a38a1f71006b68fcb42f8e0eda70e0e62">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a38a1f71006b68fcb42f8e0eda70e0e62"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:a38a1f71006b68fcb42f8e0eda70e0e62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14edac1a271b527cbb3aab516154fb9c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a14edac1a271b527cbb3aab516154fb9c"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#a14edac1a271b527cbb3aab516154fb9c">getData</a> () override</td></tr>
 <tr class="memdesc:a14edac1a271b527cbb3aab516154fb9c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -132,10 +136,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:afc5a90f60ae8ae2d50a849b716e7d8e5"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#afc5a90f60ae8ae2d50a849b716e7d8e5">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:afc5a90f60ae8ae2d50a849b716e7d8e5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#afc5a90f60ae8ae2d50a849b716e7d8e5">More...</a><br /></td></tr>
 <tr class="separator:afc5a90f60ae8ae2d50a849b716e7d8e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a35018b25358bff3f7870ab79b124fdc4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a35018b25358bff3f7870ab79b124fdc4"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#a35018b25358bff3f7870ab79b124fdc4">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a35018b25358bff3f7870ab79b124fdc4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a35018b25358bff3f7870ab79b124fdc4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab2d285740b959b81bea5c79c41905e4a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab2d285740b959b81bea5c79c41905e4a"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#ab2d285740b959b81bea5c79c41905e4a">getTime</a> () override</td></tr>
 <tr class="memdesc:ab2d285740b959b81bea5c79c41905e4a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -163,10 +163,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#aa871f1bb430a6e96f3b53641c0a27981">saveResponse</a> (<a class="el" href="classsettings.html">settings</a> &amp;sts) override</td></tr>
 <tr class="memdesc:aa871f1bb430a6e96f3b53641c0a27981"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save command response to settings object. <br /></td></tr>
 <tr class="separator:aa871f1bb430a6e96f3b53641c0a27981"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a37bf0a7f6f7f3b77b537e70ed3ec06d3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a37bf0a7f6f7f3b77b537e70ed3ec06d3"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#a37bf0a7f6f7f3b77b537e70ed3ec06d3">getUserMessageId</a> ()</td></tr>
-<tr class="memdesc:a37bf0a7f6f7f3b77b537e70ed3ec06d3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
-<tr class="separator:a37bf0a7f6f7f3b77b537e70ed3ec06d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a44f7e32cdda4be3f95fe50846c30fbde"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a44f7e32cdda4be3f95fe50846c30fbde"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_key.html#a44f7e32cdda4be3f95fe50846c30fbde">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a44f7e32cdda4be3f95fe50846c30fbde"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a44f7e32cdda4be3f95fe50846c30fbde"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa77a2097c1403bfe833291d71dd9714e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa77a2097c1403bfe833291d71dd9714e"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>toString</b> (bool pretty) override</td></tr>
 <tr class="separator:aa77a2097c1403bfe833291d71dd9714e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -232,7 +232,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setaccountkey_8cpp_source.html#l00065">65</a> of file <a class="el" href="setaccountkey_8cpp_source.html">setaccountkey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setaccountkey_8cpp_source.html#l00069">69</a> of file <a class="el" href="setaccountkey_8cpp_source.html">setaccountkey.cpp</a>.</p>
 
 </div>
 </div>
@@ -334,7 +334,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setaccountkey_8cpp_source.html#l00061">61</a> of file <a class="el" href="setaccountkey_8cpp_source.html">setaccountkey.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setaccountkey_8cpp_source.html#l00065">65</a> of file <a class="el" href="setaccountkey_8cpp_source.html">setaccountkey.cpp</a>.</p>
 
 </div>
 </div>

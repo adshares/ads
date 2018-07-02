@@ -90,8 +90,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a3eeedeb7a67fb119d9fed08c4087e8d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6bd3d0acffc0bbd8a002e61a5c2a8714"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a6bd3d0acffc0bbd8a002e61a5c2a8714">getType</a> () override</td></tr>
-<tr class="memdesc:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_CON as command type . <br /></td></tr>
+<tr class="memdesc:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_CON as type . <br /></td></tr>
 <tr class="separator:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5efafdffb4addcfaefde5be98f5a632"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac5efafdffb4addcfaefde5be98f5a632"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#ac5efafdffb4addcfaefde5be98f5a632">getCommandType</a> () override</td></tr>
+<tr class="memdesc:ac5efafdffb4addcfaefde5be98f5a632"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:ac5efafdffb4addcfaefde5be98f5a632"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa278b79f29e316efa8dc52637394649d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa278b79f29e316efa8dc52637394649d"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#aa278b79f29e316efa8dc52637394649d">getData</a> () override</td></tr>
 <tr class="memdesc:aa278b79f29e316efa8dc52637394649d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -130,10 +134,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ab197e7a89939ef7de4c8a677bbc818c6"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#ab197e7a89939ef7de4c8a677bbc818c6">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ab197e7a89939ef7de4c8a677bbc818c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ab197e7a89939ef7de4c8a677bbc818c6">More...</a><br /></td></tr>
 <tr class="separator:ab197e7a89939ef7de4c8a677bbc818c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a75dd042712a3fa45eb6ac69a46f5d2ba"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a75dd042712a3fa45eb6ac69a46f5d2ba"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a75dd042712a3fa45eb6ac69a46f5d2ba">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a75dd042712a3fa45eb6ac69a46f5d2ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a75dd042712a3fa45eb6ac69a46f5d2ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5113ec1a61ffbd609ed99cfd11da29da"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5113ec1a61ffbd609ed99cfd11da29da"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a5113ec1a61ffbd609ed99cfd11da29da">getTime</a> () override</td></tr>
 <tr class="memdesc:a5113ec1a61ffbd609ed99cfd11da29da"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -154,6 +154,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#aaad015db9c49c046bf746473a85012bb">getDeduct</a> () override</td></tr>
 <tr class="memdesc:aaad015db9c49c046bf746473a85012bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:aaad015db9c49c046bf746473a85012bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5fa5cab5f3fcc30acb8b908734905ad8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5fa5cab5f3fcc30acb8b908734905ad8"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a5fa5cab5f3fcc30acb8b908734905ad8">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a5fa5cab5f3fcc30acb8b908734905ad8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a5fa5cab5f3fcc30acb8b908734905ad8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2e8309c28b806453acd52ac12e5f5372"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a2e8309c28b806453acd52ac12e5f5372">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a2e8309c28b806453acd52ac12e5f5372"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a2e8309c28b806453acd52ac12e5f5372">More...</a><br /></td></tr>
 <tr class="separator:a2e8309c28b806453acd52ac12e5f5372"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -232,7 +236,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00059">59</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
+<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00063">63</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
 
 </div>
 </div>
@@ -269,7 +273,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00091">91</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
+<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00095">95</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
 
 </div>
 </div>
@@ -323,7 +327,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00055">55</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
+<p>Definition at line <a class="el" href="connected_8cpp_source.html#l00059">59</a> of file <a class="el" href="connected_8cpp_source.html">connected.cpp</a>.</p>
 
 </div>
 </div>

@@ -131,19 +131,9 @@ class message :
         memcpy(data+4+64+2,&mymsid,4);
         memcpy(data+4+64+6,&now,4);
         memcpy(data+4+64+10,text,text_len);
-        //DEBUG :-( check keys :-(
-        {
-            if (mysk != NULL) {
-                hash_s ha;
-                SHA256_CTX sha256;
-                SHA256_Init(&sha256);
-                SHA256_Update(&sha256,mysk,32);
-                SHA256_Final(ha.hash,&sha256);
-                DLOG("INI:%016lX:%016lX\n",*(uint64_t*)mypk,*(uint64_t*)ha.hash);
-            } else {
-                DLOG("INI:%016lX\n",*(uint64_t*)mypk);
-            }
-        }
+
+        DLOG("INI:%016lX\n",*(uint64_t*)mypk);
+
         if(text_type==MSGTYPE_BLK) {
             if(mysk==NULL) { // creating message from network
                 memcpy(data+4,mypk,64);
@@ -466,14 +456,23 @@ class message :
         std::vector<uint32_t>add;
         hashtree tree;
         tree.hashpath(tnum/2,(tmax+1)/2,add);
+
+        uint32_t secondLevel = (ttot -(mlen+32+4+4+4+(4+32)*tmax))/32;
+
         for(auto n : add) {
             DLOG("HASHTREE add %d\n",n);
-            if(n*2>=tmax-1) { //special case for last uneven hash
-                lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
-            } else {
+            if(n > secondLevel-1)
+            {
+                if((tmax/2)%2 == 1 && tmax > 3)
+                    lseek(fd,ttot-32,SEEK_SET);
+                else
+                    lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
+            }else
+            {
                 assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
                 lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
             }
+
             hash_s phash;
             read(fd,phash.hash,32);            
             hashes.push_back(phash);

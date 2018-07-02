@@ -8,21 +8,14 @@ GetMessageHandler::GetMessageHandler(office& office, boost::asio::ip::tcp::socke
     : CommandHandler(office, socket) {
 }
 
-
 void GetMessageHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetMessage>(dynamic_cast<GetMessage*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetMessage bad_cast caught: %s", bc.what());
-        return;
-    }
-
+    m_command = init<GetMessage>(std::move(command));
 }
 
 void GetMessageHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     message_ptr msg(new message(MSGTYPE_MSG, m_command->getBlockTime(), m_command->getDestNode(), m_command->getMsgId()));
     msg->load(BANK_MAX);
@@ -31,33 +24,16 @@ void GetMessageHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            boost::asio::write(m_socket, boost::asio::buffer(msg->data, msg->len));
+            response.emplace_back(boost::asio::buffer(msg->data, msg->len));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception&) {
         DLOG("ERROR responding to client %08X\n",m_usera.user);
     }
 }
 
-
-
-bool GetMessageHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-        ELOG("GetMessageList error: %s\n", ErrorCodes().getErrorMsg(errorCode));
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+void GetMessageHandler::onValidate() {
 }

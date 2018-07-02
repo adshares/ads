@@ -8,6 +8,11 @@
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
 
+#define NETSRV_SOCK_TIMEOUT 5
+#define NETSRV_SOCK_IDLE    5
+#define NETSRV_SOCK_MAXTRY  3
+
+
 //this could all go to the office class and we could use just the start() function
 
 /**
@@ -21,8 +26,7 @@ class client : public boost::enable_shared_from_this<client> {
         : m_socket(io_service),
           m_offi(offi),
           m_addr(""),
-          m_port(""),
-          m_buf(nullptr),
+          m_port(""),      
           m_commandService(m_offi, m_socket) {
 #ifdef DEBUG
         DLOG("OFFICER ready %04X\n",m_offi.svid);
@@ -32,25 +36,27 @@ class client : public boost::enable_shared_from_this<client> {
     ~client() {
 #ifdef DEBUG
         DLOG("Client left %s:%s\n",m_addr.c_str(),m_port.c_str());
-#endif
-        free(m_buf);
-        m_buf=nullptr;
+#endif        
     }
 
     boost::asio::ip::tcp::socket& socket() {
         return m_socket;
     }
 
+#include <sys/socket.h>
+
     void start() { //TODO consider providing a local user file pointer
+
+#ifdef DEBUG
         m_addr  = m_socket.remote_endpoint().address().to_string();
         m_port  = std::to_string(m_socket.remote_endpoint().port());
-#ifdef DEBUG
         DLOG("Client entered %s:%s\n",m_addr.c_str(),m_port.c_str());
 #endif
 
-        Helper::setSocketTimeout(m_socket);
-        m_buf=(char*)std::malloc(txslen[TXSTYPE_MAX]+64+128);
-        boost::asio::async_read(m_socket,boost::asio::buffer(m_buf,1),
+        Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
+        Helper::setSocketNoDelay(m_socket, true);
+
+        boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                 boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
 
@@ -61,13 +67,13 @@ class client : public boost::enable_shared_from_this<client> {
             return;
         }
 
-        if(*m_buf >= TXSTYPE_MAX) {
+        if(m_type >= TXSTYPE_MAX) {
             DLOG("ERROR: read txstype failed\n");
             m_offi.leave(shared_from_this());
             return;
         }
 
-        m_command = command::factory::makeCommand(*m_buf);
+        m_command = command::factory::makeCommand(m_type);
 
         if(m_command) {
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
@@ -144,7 +150,8 @@ private:
     office&                           m_offi;
     std::string                       m_addr;
     std::string                       m_port;
-    char*                             m_buf;
+
+    char                              m_type{TXSTYPE_NON};
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
 };

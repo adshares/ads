@@ -51,6 +51,10 @@ int ChangeNodeKey::getType() {
     return TXSTYPE_BKY;
 }
 
+CommandType ChangeNodeKey::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void ChangeNodeKey::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), sk, pk, getSignature());
 
@@ -98,12 +102,6 @@ int64_t ChangeNodeKey::getFee() {
 int64_t ChangeNodeKey::getDeduct() {
     return 0;
 }
-
-user_t& ChangeNodeKey::getUserInfo() {
-    return m_response.usera;
-}
-
-
 
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {

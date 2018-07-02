@@ -1,4 +1,4 @@
-.TH "SendManyHandler" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "SendManyHandler" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -21,11 +21,11 @@ Inherits \fBCommandHandler\fP\&.
 .ti -1c
 .RI "virtual void \fBonExecute\fP () override"
 .br
-.RI "\fIExecution event\&. It execute actual command and commiting it to blockchain\&. \fP"
+.RI "\fIExecution event\&. It executes actual command and commit it to blockchain\&. \fP"
 .ti -1c
-.RI "virtual bool \fBonValidate\fP () override"
+.RI "virtual void \fBonValidate\fP () override"
 .br
-.RI "\fIValidtaion event\&. It execute validation of data if it contain all proper value\&. \fP"
+.RI "\fIValidation event\&. It performs command specific validation\&. \fP"
 .in -1c
 .SS "Additional Inherited Members"
 .SH "Detailed Description"
@@ -47,7 +47,7 @@ Int command event\&. It prepare data's needed to execute command\&. If 'command'
 .PP
 Implements \fBICommandHandler\fP\&.
 .PP
-Definition at line 11 of file sendmanyhandler\&.cpp\&.
+Definition at line 10 of file sendmanyhandler\&.cpp\&.
 
 .SH "Author"
 .PP 

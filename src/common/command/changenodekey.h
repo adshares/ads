@@ -14,8 +14,11 @@ class ChangeNodeKey : public BlockCommand {
     ChangeNodeKey(uint16_t srcBank, uint32_t srcUser, uint32_t msid, uint16_t dstNode, uint32_t time, uint8_t pubkey[32]);
 
     //IBlock interface
-    /** \brief Return TXSTYPE_BKY as command type . */
+    /** \brief Return TXSTYPE_BKY as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
@@ -56,9 +59,6 @@ class ChangeNodeKey : public BlockCommand {
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -73,6 +73,9 @@ class ChangeNodeKey : public BlockCommand {
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /** \brief Get user message id */
+    virtual uint32_t        getUserMessageId()                          override;
 
     /** \brief Send data to the server.
      *
@@ -96,8 +99,6 @@ class ChangeNodeKey : public BlockCommand {
     /** \brief Get old public key */
     virtual uint8_t* getOldPublicKey();
 
-    /** \brief Get user message id */
-    virtual uint32_t getUserMessageId();
 
     virtual unsigned char* getBlockMessage() override;
     virtual size_t getBlockMessageSize() override;

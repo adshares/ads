@@ -10,24 +10,19 @@ GetBlocksHandler::GetBlocksHandler(office& office, boost::asio::ip::tcp::socket&
 }
 
 void GetBlocksHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetBlocks>(dynamic_cast<GetBlocks*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetBlocks bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetBlocks>(std::move(command));
 }
 
 void GetBlocksHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = prepareResponse();
+    const auto errorCode = prepareResponse();
 
     try {
         boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
             sendFirstVipKeysIfNeeded();
+            sendBlockHeaders();
             if(m_serversHeaders.size() > 0) {
-                sendBlockHeaders();
                 sendLastBlockSignatures();
                 sendNewVipKeys();
             }
@@ -37,29 +32,7 @@ void GetBlocksHandler::onExecute() {
     }
 }
 
-bool GetBlocksHandler::onValidate() {
-    auto startedTime = time(NULL);
-    int32_t diff = m_command->getTime() - startedTime;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
-        errorCode = ErrorCodes::Code::eTimeInFuture;
-    }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+void GetBlocksHandler::onValidate() {
 }
 
 void GetBlocksHandler::sendFirstVipKeysIfNeeded() {

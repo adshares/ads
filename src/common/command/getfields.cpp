@@ -46,6 +46,10 @@ int GetFields::getType() {
     return TXSTYPE_GFI;
 }
 
+CommandType GetFields::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetFields::sign(const uint8_t* /*hash*/, const uint8_t* /*sk*/, const uint8_t* /*pk*/) {
 }
 
@@ -76,8 +80,8 @@ int64_t GetFields::getDeduct() {
     return 0;
 }
 
-user_t& GetFields::getUserInfo() {
-    return m_response;
+uint32_t GetFields::getUserMessageId() {
+    return 0;
 }
 
 bool GetFields::send(INetworkClient& /*netClient*/) {

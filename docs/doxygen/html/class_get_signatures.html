@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a69b81a9a8b0663d9f6f46b37dd831b38"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4dc98294a0440eafb63dec72f8dfe04b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4dc98294a0440eafb63dec72f8dfe04b"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a4dc98294a0440eafb63dec72f8dfe04b">getType</a> () override</td></tr>
-<tr class="memdesc:a4dc98294a0440eafb63dec72f8dfe04b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SIG as command type . <br /></td></tr>
+<tr class="memdesc:a4dc98294a0440eafb63dec72f8dfe04b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SIG as type . <br /></td></tr>
 <tr class="separator:a4dc98294a0440eafb63dec72f8dfe04b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeecb273957c8c2e2d5e021db85fec36b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aeecb273957c8c2e2d5e021db85fec36b"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#aeecb273957c8c2e2d5e021db85fec36b">getCommandType</a> () override</td></tr>
+<tr class="memdesc:aeecb273957c8c2e2d5e021db85fec36b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:aeecb273957c8c2e2d5e021db85fec36b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1328d25ae4edcd25442b73ff88634356"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1328d25ae4edcd25442b73ff88634356"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a1328d25ae4edcd25442b73ff88634356">getData</a> () override</td></tr>
 <tr class="memdesc:a1328d25ae4edcd25442b73ff88634356"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ae5bcc70ffa8d2a1853365fc605bb69af"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#ae5bcc70ffa8d2a1853365fc605bb69af">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ae5bcc70ffa8d2a1853365fc605bb69af"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ae5bcc70ffa8d2a1853365fc605bb69af">More...</a><br /></td></tr>
 <tr class="separator:ae5bcc70ffa8d2a1853365fc605bb69af"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a511d5b2321a2a735c225f5bfebebd861"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a511d5b2321a2a735c225f5bfebebd861"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a511d5b2321a2a735c225f5bfebebd861">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a511d5b2321a2a735c225f5bfebebd861"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a511d5b2321a2a735c225f5bfebebd861"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0f270bc0d010a208a68edfb55775a63f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0f270bc0d010a208a68edfb55775a63f"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a0f270bc0d010a208a68edfb55775a63f">getTime</a> () override</td></tr>
 <tr class="memdesc:a0f270bc0d010a208a68edfb55775a63f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -150,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a6de3ebdd50c2df4bb2854c816220feab">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a6de3ebdd50c2df4bb2854c816220feab"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a6de3ebdd50c2df4bb2854c816220feab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c46d823ed74bfa2a60db2aa54008f7c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c46d823ed74bfa2a60db2aa54008f7c"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a0c46d823ed74bfa2a60db2aa54008f7c">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a0c46d823ed74bfa2a60db2aa54008f7c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a0c46d823ed74bfa2a60db2aa54008f7c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47286046da65f734f9ed8710a4533d1a"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_signatures.html#a47286046da65f734f9ed8710a4533d1a">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a47286046da65f734f9ed8710a4533d1a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a47286046da65f734f9ed8710a4533d1a">More...</a><br /></td></tr>
 <tr class="separator:a47286046da65f734f9ed8710a4533d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -225,7 +229,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00056">56</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00060">60</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
 
 </div>
 </div>
@@ -262,7 +266,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00084">84</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00088">88</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -327,7 +331,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00052">52</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getsignatures_8cpp_source.html#l00056">56</a> of file <a class="el" href="getsignatures_8cpp_source.html">getsignatures.cpp</a>.</p>
 
 </div>
 </div>

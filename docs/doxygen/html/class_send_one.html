@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ab80dba8140a433995fc6b46b9cd71c96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aac0572a1fc8ae7d287d44a9f847c38cc"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#aac0572a1fc8ae7d287d44a9f847c38cc">getType</a> () override</td></tr>
-<tr class="memdesc:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_PUT as command type . <br /></td></tr>
+<tr class="memdesc:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_PUT as type . <br /></td></tr>
 <tr class="separator:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad3886ad00c7416ae87aa0ff70c8914b9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad3886ad00c7416ae87aa0ff70c8914b9"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#ad3886ad00c7416ae87aa0ff70c8914b9">getCommandType</a> () override</td></tr>
+<tr class="memdesc:ad3886ad00c7416ae87aa0ff70c8914b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:ad3886ad00c7416ae87aa0ff70c8914b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c211f53b27a11218d5f68d8d653ba90"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8c211f53b27a11218d5f68d8d653ba90"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a8c211f53b27a11218d5f68d8d653ba90">getData</a> () override</td></tr>
 <tr class="memdesc:a8c211f53b27a11218d5f68d8d653ba90"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ad4c0b8c8be5a4821e1fd64acbdd945f6"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#ad4c0b8c8be5a4821e1fd64acbdd945f6">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ad4c0b8c8be5a4821e1fd64acbdd945f6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ad4c0b8c8be5a4821e1fd64acbdd945f6">More...</a><br /></td></tr>
 <tr class="separator:ad4c0b8c8be5a4821e1fd64acbdd945f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab111530942b6da0d6052ef7c295c0fad"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab111530942b6da0d6052ef7c295c0fad"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#ab111530942b6da0d6052ef7c295c0fad">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:ab111530942b6da0d6052ef7c295c0fad"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:ab111530942b6da0d6052ef7c295c0fad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affa0e56da19304fda5d9e7b971006a49"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="affa0e56da19304fda5d9e7b971006a49"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#affa0e56da19304fda5d9e7b971006a49">getTime</a> () override</td></tr>
 <tr class="memdesc:affa0e56da19304fda5d9e7b971006a49"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -150,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#aef0c69e6b1e650e53ca6039501a7c321">getDeduct</a> () override</td></tr>
 <tr class="memdesc:aef0c69e6b1e650e53ca6039501a7c321"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:aef0c69e6b1e650e53ca6039501a7c321"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a54e2351bf62ffba38ec37e2447bc767d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a54e2351bf62ffba38ec37e2447bc767d"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a54e2351bf62ffba38ec37e2447bc767d">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a54e2351bf62ffba38ec37e2447bc767d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:a54e2351bf62ffba38ec37e2447bc767d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac10fd0f6e5a877bb78238014594790e7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac10fd0f6e5a877bb78238014594790e7"></a>
 virtual uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#ac10fd0f6e5a877bb78238014594790e7">getInfoMsg</a> ()</td></tr>
 <tr class="memdesc:ac10fd0f6e5a877bb78238014594790e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get additional info typed by client in transaction message. <br /></td></tr>
@@ -161,6 +165,14 @@ virtual uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="e
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#ad4ffcec41a190d8afdc11b9df88ed4c9">saveResponse</a> (<a class="el" href="classsettings.html">settings</a> &amp;sts) override</td></tr>
 <tr class="memdesc:ad4ffcec41a190d8afdc11b9df88ed4c9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save command response to settings object. <br /></td></tr>
 <tr class="separator:ad4ffcec41a190d8afdc11b9df88ed4c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2d44a7e89517960cec06eaf6a15352c2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2d44a7e89517960cec06eaf6a15352c2"></a>
+virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a2d44a7e89517960cec06eaf6a15352c2">getBlockMessage</a> () override</td></tr>
+<tr class="memdesc:a2d44a7e89517960cec06eaf6a15352c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get data as it is stored in blockchain. <br /></td></tr>
+<tr class="separator:a2d44a7e89517960cec06eaf6a15352c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e8a5eddbac99dbde6a7dacb04c47671"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0e8a5eddbac99dbde6a7dacb04c47671"></a>
+virtual size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a0e8a5eddbac99dbde6a7dacb04c47671">getBlockMessageSize</a> () override</td></tr>
+<tr class="memdesc:a0e8a5eddbac99dbde6a7dacb04c47671"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get blockchain data size. <br /></td></tr>
+<tr class="separator:a0e8a5eddbac99dbde6a7dacb04c47671"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7aad45618bb8788f8273ee95d564b90b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7aad45618bb8788f8273ee95d564b90b"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>toString</b> (bool pretty) override</td></tr>
 <tr class="separator:a7aad45618bb8788f8273ee95d564b90b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -178,10 +190,6 @@ virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#afed0d545a9c062267baa26adca47d421">getDestUserId</a> ()</td></tr>
 <tr class="memdesc:afed0d545a9c062267baa26adca47d421"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get destination user id. <br /></td></tr>
 <tr class="separator:afed0d545a9c062267baa26adca47d421"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80c549982eb06cac52415989c2364a24"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a80c549982eb06cac52415989c2364a24"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a80c549982eb06cac52415989c2364a24">getUserMessageId</a> ()</td></tr>
-<tr class="memdesc:a80c549982eb06cac52415989c2364a24"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
-<tr class="separator:a80c549982eb06cac52415989c2364a24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -243,7 +251,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00058">58</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00062">62</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
 
 </div>
 </div>
@@ -280,7 +288,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00109">109</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00119">119</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -345,7 +353,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00054">54</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendone_8cpp_source.html#l00058">58</a> of file <a class="el" href="sendone_8cpp_source.html">sendone.cpp</a>.</p>
 
 </div>
 </div>

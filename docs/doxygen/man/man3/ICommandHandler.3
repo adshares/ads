@@ -1,4 +1,4 @@
-.TH "ICommandHandler" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "ICommandHandler" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -25,17 +25,17 @@ Inherited by \fBCommandHandler\fP\&.
 .ti -1c
 .RI "virtual void \fBonExecute\fP ()=0"
 .br
-.RI "\fIExecution event\&. It execute actual command and commiting it to blockchain\&. \fP"
+.RI "\fIExecution event\&. It executes actual command and commit it to blockchain\&. \fP"
 .ti -1c
-.RI "virtual bool \fBonValidate\fP ()=0"
+.RI "virtual void \fBonValidate\fP ()=0"
 .br
-.RI "\fIValidtaion event\&. It execute validation of data if it contain all proper value\&. \fP"
+.RI "\fIValidation event\&. It performs command specific validation\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
 Command handler Interface\&. 
 .PP
-Definition at line 149 of file interfaces\&.h\&.
+Definition at line 152 of file interfaces\&.h\&.
 .SH "Member Function Documentation"
 .PP 
 .SS "virtual void ICommandHandler::execute (std::unique_ptr< \fBIBlockCommand\fP > command, const \fBuser_t\fP & usera)\fC [pure virtual]\fP"

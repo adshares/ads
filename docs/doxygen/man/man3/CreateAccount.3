@@ -1,4 +1,4 @@
-.TH "CreateAccount" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "CreateAccount" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -17,7 +17,11 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_USR as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_USR as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eModifying as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -67,10 +71,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -112,9 +112,9 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIGet destination bank id\&. \fP"
 .ti -1c
-.RI "virtual uint32_t \fBgetUserMessageId\fP ()"
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
 .br
-.RI "\fIGet message id\&. \fP"
+.RI "\fIGet user message id\&. \fP"
 .ti -1c
 .RI "virtual void \fBsetAdditionalData\fP (char *data)"
 .br
@@ -146,7 +146,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 65 of file createaccount\&.cpp\&.
+Definition at line 69 of file createaccount\&.cpp\&.
 .SS "bool CreateAccount::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -197,7 +197,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 61 of file createaccount\&.cpp\&.
+Definition at line 65 of file createaccount\&.cpp\&.
 
 .SH "Author"
 .PP 
