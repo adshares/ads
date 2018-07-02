@@ -56,5 +56,9 @@ void RetrieveFundsHandler::onValidate() {
         DLOG("ERROR: bad bank %04X, use PUT\n", m_command->getDestBankId());
         throw ErrorCodes::Code::eBankIncorrect;
     }
+    if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
+        DLOG("ERROR: bad target: node %04X user %04X\n", m_command->getDestBankId(), m_command->getDestUserId());
+        throw ErrorCodes::Code::eUserBadTarget;
+    }
 }
 
