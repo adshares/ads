@@ -16,6 +16,10 @@ int SetAccountStatus::getType() {
     return TXSTYPE_SUS;
 }
 
+CommandType SetAccountStatus::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* SetAccountStatus::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -54,10 +58,6 @@ void SetAccountStatus::sign(const uint8_t* hash, const uint8_t* sk, const uint8_
 
 bool SetAccountStatus::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
-}
-
-user_t& SetAccountStatus::getUserInfo() {
-    return m_response.usera;
 }
 
 uint32_t SetAccountStatus::getTime() {

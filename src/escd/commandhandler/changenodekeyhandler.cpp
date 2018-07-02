@@ -7,12 +7,7 @@ ChangeNodeKeyHandler::ChangeNodeKeyHandler(office& office, boost::asio::ip::tcp:
 }
 
 void ChangeNodeKeyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<ChangeNodeKey>(dynamic_cast<ChangeNodeKey*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("ChangeNodeKey bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<ChangeNodeKey>(std::move(command));
 }
 
 void ChangeNodeKeyHandler::onExecute() {
@@ -61,7 +56,6 @@ void ChangeNodeKeyHandler::onExecute() {
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
             tlog.node   = 0;
-//            tlog.user   = m_command->getKey();
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;
             tlog.mpos   = mpos;
@@ -80,55 +74,30 @@ void ChangeNodeKeyHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+
         if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
-            boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
+            response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
+            response.emplace_back(boost::asio::buffer(&msid, sizeof(msid)));
+            response.emplace_back(boost::asio::buffer(&mpos, sizeof(mpos)));
         }
+        boost::asio::write(m_socket, response);
+
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
-
-
-bool ChangeNodeKeyHandler::onValidate()
-{
-    ErrorCodes::Code errorCode  = ErrorCodes::Code::eNone;
-    int64_t         deduct      = m_command->getDeduct();
-    int64_t         fee         = m_command->getFee();
-
+void ChangeNodeKeyHandler::onValidate() {
     hash_t secretKey;
     if (!m_command->getDestBankId() && !m_offi.find_key(m_command->getKey(), secretKey)) {
-        errorCode = ErrorCodes::Code::eMatchSecretKeyNotFound;
+        throw ErrorCodes::Code::eMatchSecretKeyNotFound;
     }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-    else if(!m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) { //FIXME, notify user.cpp about errors !!!
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if (m_command->getUserId()) {
+
+    if (m_command->getUserId()) {
         DLOG("ERROR: bad user %04X for bank key changes\n", m_command->getUserId());
-        errorCode = ErrorCodes::Code::eBadUser;
+        throw ErrorCodes::Code::eBadUser;
     }
-    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
 }
+

@@ -51,6 +51,10 @@ int SendOne::getType() {
     return TXSTYPE_PUT;
 }
 
+CommandType SendOne::getCommandType() {
+    return CommandType::eModifying;
+}
+
 void SendOne::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign2(hash,SHA256_DIGEST_LENGTH , getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -87,6 +91,16 @@ uint32_t SendOne::getTime() {
     return m_data.info.ttime;
 }
 
+unsigned char*  SendOne::getBlockMessage()
+{
+    return reinterpret_cast<unsigned char*>(&m_data);
+}
+
+size_t  SendOne::getBlockMessageSize()
+{
+    return sizeof(UserSendOne);
+}
+
 int64_t SendOne::getFee() {
     int64_t fee=TXS_PUT_FEE(m_data.info.ntmass);
     if(m_data.info.abank!=m_data.info.bbank) {
@@ -100,10 +114,6 @@ int64_t SendOne::getFee() {
 
 int64_t SendOne::getDeduct() {
     return m_data.info.ntmass;
-}
-
-user_t& SendOne::getUserInfo() {
-    return m_response.usera;
 }
 
 bool SendOne::send(INetworkClient& netClient) {

@@ -8,56 +8,36 @@ GetAccountsHandler::GetAccountsHandler(office& office, boost::asio::ip::tcp::soc
 }
 
 void GetAccountsHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetAccounts>(dynamic_cast<GetAccounts*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("OnGetAccounts bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetAccounts>(std::move(command));
 }
 
 void GetAccountsHandler::onExecute() {
     assert(m_command);
 
-    uint32_t path = m_offi.last_path();
-    uint32_t users = m_offi.last_users(m_command->getDestBankId());
+    uint32_t path   = m_command->getBlockId() ? m_command->getBlockId() : m_offi.last_path();
+    uint32_t users  = m_offi.last_users(m_command->getDestBankId());
 
-    ErrorCodes::Code errorCode = m_command->prepareResponse(path, users);
+    const auto errorCode = m_command->prepareResponse(path, users);
     if (errorCode != ErrorCodes::Code::eNone) {
         DLOG("OnGetAccounts error: %s", ErrorCodes().getErrorMsg(errorCode));
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        uint32_t sizeOfResponse = m_command->getResponseSize();
         if (!errorCode) {
-            uint32_t sizeOfResponse = m_command->getResponseSize();
-            boost::asio::write(m_socket, boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
+            response.emplace_back(boost::asio::buffer(&sizeOfResponse, sizeof(uint32_t)));
+            response.emplace_back(boost::asio::buffer(m_command->getResponse(), sizeOfResponse));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
-bool GetAccountsHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    uint32_t path=m_offi.last_path();
-
-    if (m_command->getBlockId() != path) {
-        errorCode = ErrorCodes::Code::eBadPath;
+void GetAccountsHandler::onValidate() {
+    if (m_command->getDestBankId() > m_offi.last_nodes()) {
+        throw ErrorCodes::Code::eBankIncorrect;
     }
-    else if (m_command->getDestBankId() > m_offi.last_nodes()) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket,boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
 }

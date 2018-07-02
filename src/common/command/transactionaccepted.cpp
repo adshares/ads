@@ -49,6 +49,10 @@ int TransactionAccepted::getType() {
     return TXSTYPE_UOK;
 }
 
+CommandType TransactionAccepted::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void TransactionAccepted::sign(const uint8_t* /*hash*/, const uint8_t* /*sk*/, const uint8_t* /*pk*/) {
     // no signature
 }
@@ -81,8 +85,8 @@ int64_t TransactionAccepted::getDeduct() {
     return 0;
 }
 
-user_t& TransactionAccepted::getUserInfo() {
-    return m_response;
+uint32_t TransactionAccepted::getUserMessageId() {
+    return 0;
 }
 
 bool TransactionAccepted::send(INetworkClient& /*netClient*/) {

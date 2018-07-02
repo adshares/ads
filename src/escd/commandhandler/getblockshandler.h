@@ -20,7 +20,7 @@ class GetBlocksHandler : public CommandHandler {
 
     virtual void onInit(std::unique_ptr<IBlockCommand>) override;
     virtual void onExecute() override;
-    virtual bool onValidate() override;
+    virtual void onValidate() override;
 
   private:
     bool prepareFirstVipKeys(uint8_t* vipHash);

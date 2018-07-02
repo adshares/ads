@@ -8,35 +8,28 @@ GetAccountHandler::GetAccountHandler(office& office, boost::asio::ip::tcp::socke
 }
 
 void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetAccount>(dynamic_cast<GetAccount*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("OnGetAccount bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetAccount>(std::move(command));
 }
 
 void GetAccountHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    userinfo&   data    = m_command->getDataStruct().info;
-    std::vector<boost::asio::const_buffer> response;
+    auto errorCode = ErrorCodes::Code::eNone;
 
     user_t localAccount(m_usera);
     user_t remoteAccount;
 
-    if(!m_offi.get_user_global(remoteAccount, data.bbank, data.buser)) {
-        DLOG("FAILED to get global user info %08X:%04X\n", data.bbank, data.buser);
+    if(!m_offi.get_user_global(remoteAccount, m_command->getDestNode(), m_command->getDestUser())) {
+        DLOG("FAILED to get global user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
         errorCode = ErrorCodes::Code::eGetGlobalUserFail;
     }
 
-    if(m_offi.svid == data.bbank)
+    if(m_offi.svid == m_command->getDestNode())
     {
-        if(data.buser != data.auser)
+        if(m_command->getDestUser() != m_command->getUserId())
         {
-            if(!m_offi.get_user(localAccount, data.bbank, data.buser))
+            if(!m_offi.get_user(localAccount, m_command->getDestNode(), m_command->getDestUser()))
             {
-                DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
+                DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
                 errorCode = ErrorCodes::Code::eGetUserFail;
             }
         }
@@ -45,64 +38,44 @@ void GetAccountHandler::onExecute() {
         localAccount = remoteAccount;
     }
 
-    response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
-    response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
-
-    if (errorCode) {
-        response.clear();
-    }
-
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+
+        if(!errorCode) {
+            response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
+            response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
+        }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
-bool GetAccountHandler::onValidate() {
-    userinfo&   data    = m_command->getDataStruct().info;
-    int32_t     diff    = data.ttime - time(nullptr);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-    user_t userb;
+void GetAccountHandler::onValidate() {
+    const int32_t diff = m_command->getTime() - time(nullptr);
 
-#ifdef DEBUG
     // this is special, just local info
-    if((abs(diff)>22)) {
-        DLOG("ERROR: high time difference (%d>2s)\n", diff);
-        errorCode = ErrorCodes::Code::eHighTimeDifference;
-    }
-#else
     if((abs(diff)>2)) {
-        DLOG("ERROR: high time difference (%d>2s)\n",diff);
-        return false;
+        DLOG("ERROR: high time difference (%d>2s)\n", diff);
+        throw ErrorCodes::Code::eHighTimeDifference;
     }
-#endif
 
 //FIXME, read data also from server
 //FIXME, if local account locked, check if unlock was successfull based on time passed after change
-    if (!errorCode) {
-        if(data.abank != m_offi.svid && data.bbank != m_offi.svid) {
-            DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", data.abank, data.bbank, m_offi.svid );
-            errorCode = ErrorCodes::Code::eBankNotFound;
-        } else if(!m_offi.get_user(userb, data.bbank, data.buser)) {
-            DLOG("FAILED to get user info %08X:%04X\n", data.bbank, data.buser);
-            errorCode = ErrorCodes::Code::eGetUserFail;
-        }
+
+    if(m_command->getBankId() != m_offi.svid && m_command->getDestNode() != m_offi.svid) {
+        DLOG("ERROR: bad bank for INF abank: %d bbank: %d SVID: %d\n", m_command->getUserId(), m_command->getDestNode(), m_offi.svid );
+        throw ErrorCodes::Code::eBankNotFound;
     }
 
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
+    user_t userb;
+    if(!m_offi.get_user(userb, m_command->getDestNode(), m_command->getDestUser())) {
+        DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
+        throw ErrorCodes::Code::eGetUserFail;
     }
 
 #ifdef DEBUG
-    DLOG("SENDING user info %08X:%04X\n", data.bbank, data.buser);
+    DLOG("SENDING user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
 #endif
-
-    return true;
 }

@@ -11,7 +11,7 @@
 
 class NetworkClient : public INetworkClient {
   public:
-    explicit NetworkClient(const std::string& address, const std::string& port);
+    explicit NetworkClient(const std::string& address, const std::string& port, bool pretty);
     virtual ~NetworkClient();
 
     // INetworkClient interface
@@ -31,7 +31,7 @@ class NetworkClient : public INetworkClient {
     boost::asio::ip::tcp::resolver                      m_resolver;
     std::unique_ptr<boost::asio::ip::tcp::socket>       m_socket;
     std::atomic<bool>                                   m_connected{false};
-
+    bool                                                m_prettyJson;
 };
 
 #endif // NETWORKCLIENT_H

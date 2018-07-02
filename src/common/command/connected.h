@@ -10,8 +10,11 @@ class Connected : public BlockCommand {
         Connected();
         Connected(uint16_t port, uint32_t ip_address);
 
-        /** \brief Return TXSTYPE_CON as command type . */
+        /** \brief Return TXSTYPE_CON as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eReadingOnly as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -52,9 +55,6 @@ class Connected : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 
@@ -69,6 +69,9 @@ class Connected : public BlockCommand {
 
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
+
+        /**  \brief Get message id. */
+        virtual uint32_t        getUserMessageId()                          override;
 
         /** \brief Send data to the server.
          *

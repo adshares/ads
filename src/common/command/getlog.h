@@ -22,14 +22,20 @@ class GetLog : public BlockCommand {
     GetLog(uint16_t bank, uint32_t user, uint32_t from, const char* txnTypeFilter);
 
     //IBlock interface
-    /** \brief Return TXSTYPE_LOG as command type . */
+    /** \brief Return TXSTYPE_LOG as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eReadingOnly as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
 
     /** \brief Get pointer to response data. */
     virtual unsigned char*  getResponse()                       override;
+
+    /**  \brief Get message id. */
+    virtual uint32_t getUserMessageId()                         override;
 
     /** \brief Put data as a char list and put convert it to data structure. */
     virtual void setData(char* data)                            override;
@@ -63,9 +69,6 @@ class GetLog : public BlockCommand {
      * \param pk    Pointer to public key.
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
-
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
 
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;

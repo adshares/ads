@@ -13,8 +13,11 @@ public:
     UnsetAccountStatus();
     UnsetAccountStatus(uint16_t abank, uint32_t auser, uint32_t amsid, uint32_t ttime, uint16_t bbank, uint32_t buser, uint16_t status);
 
-    /** \brief Return TXSTYPE_UUS as command type . */
+    /** \brief Return TXSTYPE_UUS as type . */
     virtual int getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                       override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char* getData()                           override;
@@ -55,9 +58,6 @@ public:
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -72,6 +72,9 @@ public:
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /** \brief Get user message id. */
+    virtual uint32_t        getUserMessageId()                          override;
 
     /** \brief Send data to the server.
      *
@@ -88,7 +91,6 @@ public:
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-    uint32_t getUserMessageId();
     uint32_t getDestBankId();
     uint32_t getDestUserId();
     uint16_t getStatus();

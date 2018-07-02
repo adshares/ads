@@ -615,8 +615,7 @@ NEXTUSER:
                             uint16_t svid=put_msg->request();
                             if(svid) {
                                 m_peerManager.deliver(put_msg,svid);
-                                ELOG("REQUESTING MSL from %04X \n",svid);
-                                DLOG("REQUESTING MSL from %04X \n",svid);
+                                ELOG("REQUESTING MSL from %04X \n",svid);                                
                             }
                         }
                         boost::this_thread::sleep(boost::posix_time::milliseconds(50));
@@ -4446,7 +4445,7 @@ NEXTBANK:
     }
 #endif
 
-    uint32_t write_message(std::string&& line) { // assume single threaded
+    uint32_t write_message(std::string line) { // assume single threaded
         assert(opts_.svid); // READONLY ok
         if(srvs_.nodes[opts_.svid].msid!=msid_) {
             DLOG("ERROR, wrong network msid, postponing message write\n");
@@ -4480,7 +4479,6 @@ NEXTBANK:
             exit(-1);
         }
 
-        line.clear();
         writemsid();
         return(msid_);
         //update(msg);
@@ -4694,7 +4692,7 @@ NEXTBANK:
                 RETURN_ON_SHUTDOWN();
             }
             DLOG("DEBUG, adding office message queue (%08X)\n",msid_+1);
-            if(!write_message(std::move(line))) {
+            if(!write_message(line)) {
                 ELOG("ERROR, failed to add office message (%08X), fatal\n",msid_+1);
                 exit(-1);
             }

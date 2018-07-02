@@ -14,8 +14,8 @@ class UnsetNodeStatusHandler : public CommandHandler {
     UnsetNodeStatusHandler(office& office, boost::asio::ip::tcp::socket& socket);
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
-    virtual void onExecute()  override;
-    virtual bool onValidate() override;
+    virtual void onExecute() override;
+    virtual void onValidate() override;
 
   private:
     std::unique_ptr<UnsetNodeStatus>  m_command;

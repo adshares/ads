@@ -17,8 +17,11 @@ class UnsetNodeStatus : public BlockCommand {
 
     bool            checkPubKeySignaure();
 
-    /** \brief Return TXSTYPE_UBS as command type . */
+    /** \brief Return TXSTYPE_UBS as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
@@ -59,9 +62,6 @@ class UnsetNodeStatus : public BlockCommand {
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -76,6 +76,9 @@ class UnsetNodeStatus : public BlockCommand {
 
     /** \brief Get change in cash balance after command. */
     virtual int64_t         getDeduct()                                 override;
+
+    /** \brief Get user message id. */
+    virtual uint32_t        getUserMessageId()                          override;
 
     /** \brief Send data to the server.
      *
@@ -92,7 +95,6 @@ class UnsetNodeStatus : public BlockCommand {
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-    uint32_t getUserMessageId();
     uint32_t getDestBankId();
     uint32_t getStatus();
 

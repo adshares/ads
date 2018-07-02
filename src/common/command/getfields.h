@@ -17,6 +17,7 @@ class GetFields : public BlockCommand {
 
     //IBlock interface
     virtual int  getType()                                      override;
+    virtual CommandType getCommandType()                        override;
     virtual unsigned char*  getData()                           override;
     virtual unsigned char*  getResponse()                       override;
     virtual void setData(char* data)                            override;
@@ -27,7 +28,6 @@ class GetFields : public BlockCommand {
     virtual int getSignatureSize()                              override;
     virtual void sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) override;
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
-    virtual user_t&         getUserInfo()                               override;
     virtual uint32_t        getTime()                                   override;
     virtual uint32_t        getUserId()                                 override;
     virtual uint32_t        getBankId()                                 override;
@@ -35,6 +35,7 @@ class GetFields : public BlockCommand {
     virtual int64_t         getDeduct()                                 override;
     virtual bool            send(INetworkClient& netClient)             override;
     virtual void            saveResponse(settings& sts)                 override;
+    virtual uint32_t        getUserMessageId()                          override;
 
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;
@@ -42,7 +43,7 @@ class GetFields : public BlockCommand {
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
    private:
-    usertxs2    m_data;
+    UserInfo    m_data;
     user_t      m_response;
     uint8_t     m_type;
 };

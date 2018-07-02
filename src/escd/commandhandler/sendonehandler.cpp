@@ -9,12 +9,7 @@ SendOneHandler::SendOneHandler(office& office, boost::asio::ip::tcp::socket& soc
 }
 
 void SendOneHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<SendOne>(dynamic_cast<SendOne*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("SendOne bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<SendOne>(std::move(command));
 }
 
 void SendOneHandler::onExecute() {
@@ -41,7 +36,7 @@ void SendOneHandler::onExecute() {
     uint32_t msid;
     uint32_t mpos;
 
-    if(!m_offi.add_msg(*m_command.get(), msid, mpos)) {
+    if(!m_offi.add_msg(m_command->getBlockMessage(), m_command->getBlockMessageSize(), msid, mpos)) {
         DLOG("ERROR: message submission failed (%08X:%08X)\n",msid, mpos);
         errorCode = ErrorCodes::Code::eMessageSubmitFail;
     } else {
@@ -72,66 +67,22 @@ void SendOneHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            commandresponse response{m_usera, msid, mpos};
-            boost::asio::write(m_socket, boost::asio::buffer(&response, sizeof(response)));
+            response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
+            response.emplace_back(boost::asio::buffer(&msid, sizeof(msid)));
+            response.emplace_back(boost::asio::buffer(&mpos, sizeof(mpos)));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
-bool SendOneHandler::onValidate() {
-    auto startedTime = time(NULL);
-    int32_t diff = m_command->getTime() - startedTime;
-
-    int64_t deduct = m_command->getDeduct();
-    int64_t fee = m_command->getFee();
-
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
-        errorCode = ErrorCodes::Code::eTimeInFuture;
-    }
-    else if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-    else if(!m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankIncorrect;
-    }
-    else if(m_offi.readonly) {
-        errorCode = ErrorCodes::Code::eReadOnlyMode;
-    }
-    else if(m_usera.msid != m_command->getUserMessageId()) {
-        errorCode = ErrorCodes::Code::eBadMsgId;
-    }
-    else if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
+void SendOneHandler::onValidate() {
+    if(!m_offi.check_user(m_command->getDestBankId(), m_command->getDestUserId())) {
         DLOG("ERROR: bad target: node %04X user %04X\n", m_command->getDestBankId(), m_command->getDestUserId());
-        errorCode = ErrorCodes::Code::eUserBadTarget;
+        throw ErrorCodes::Code::eUserBadTarget;
     }
-    else if(deduct<0){
-        errorCode = ErrorCodes::Code::eFeeBelowZero;
-    }
-    else if(fee<0){
-        errorCode = ErrorCodes::Code::eFeeBelowZero;
-    }
-    else if(deduct+fee+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
-        DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             deduct, fee, (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        errorCode = ErrorCodes::Code::eLowBalance;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-
-    return true;
 }

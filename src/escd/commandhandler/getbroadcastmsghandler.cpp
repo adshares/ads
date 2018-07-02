@@ -11,18 +11,13 @@ GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::
 }
 
 void GetBroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetBroadcastMsg>(dynamic_cast<GetBroadcastMsg*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetBroadcastMsg bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetBroadcastMsg>(std::move(command));
 }
 
 void GetBroadcastMsgHandler::onExecute() {
     assert(m_command);
 
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
+    auto errorCode = ErrorCodes::Code::eNone;
     uint32_t blockTime = m_command->getBlockTime();
     uint32_t path, lpath, size = 0;
 
@@ -54,7 +49,7 @@ void GetBroadcastMsgHandler::onExecute() {
                 char messageBlock[sizeOfBlock];
                 ssBuffer.read(messageBlock, sizeOfBlock);
                 remainData -= sizeOfBlock;
-                fileBuffer.push_back(std::string(messageBlock, sizeOfBlock));
+                fileBuffer.emplace_back(std::string(messageBlock, sizeOfBlock));
             }
             broadcastFile.close();
         }
@@ -74,32 +69,7 @@ void GetBroadcastMsgHandler::onExecute() {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 
-
 }
 
-bool GetBroadcastMsgHandler::onValidate() {
-
-    auto        startedTime     = time(NULL);
-    int32_t diff = m_command->getBlockTime() - startedTime;
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
-        errorCode = ErrorCodes::Code::eTimeInFuture;
-    }
-    else if(m_command->getBankId() != m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-
-    return true;
+void GetBroadcastMsgHandler::onValidate() {
 }

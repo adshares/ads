@@ -15,13 +15,13 @@ class GetAccounts : public BlockCommand {
         GetAccounts(const GetAccounts& obj) = delete;
 
         /** \brief Disabled copy assignment operator. */
-        GetAccounts &operator=(const GetAccounts&) = delete;
+        GetAccounts &operator=(const GetAccounts&) = delete;        
 
-        /** \brief Free responseBuffer. */
-        virtual ~GetAccounts();
-
-        /** \brief Return TXSTYPE_NOD as command type . */
+        /** \brief Return TXSTYPE_NOD as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eReadingOnly as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -62,9 +62,6 @@ class GetAccounts : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 
@@ -79,6 +76,9 @@ class GetAccounts : public BlockCommand {
 
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
+
+        /**  \brief Get message id. */
+        virtual uint32_t getUserMessageId()                                 override;
 
         /** \brief Send data to the server.
          *
@@ -95,21 +95,20 @@ class GetAccounts : public BlockCommand {
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
 
-
       public:
         /**  \brief Get destination bank id. */
-        virtual uint32_t       getDestBankId();
+        uint32_t       getDestBankId();
 
         /** \brief Get block id. */
-        virtual uint32_t       getBlockId();
+        uint32_t       getBlockId();
 
         /** \brief Prepare response buffer. */
-        virtual ErrorCodes::Code prepareResponse(uint32_t lastPath, uint32_t lastUsers);
+        ErrorCodes::Code prepareResponse(uint32_t lastPath, uint32_t lastUsers);
 
 
     private:
         GetAccountsData      m_data;
-        unsigned char* m_responseBuffer;
+        std::unique_ptr<unsigned char[]> m_responseBuffer;
         uint32_t m_responseBufferLength;
 };
 
