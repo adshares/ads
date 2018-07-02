@@ -60,6 +60,10 @@ int GetBlock::getType() {
     return TXSTYPE_NDS;
 }
 
+CommandType GetBlock::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetBlock::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -89,11 +93,6 @@ int64_t GetBlock::getFee() {
 
 int64_t GetBlock::getDeduct() {
     return 0;
-}
-
-user_t& GetBlock::getUserInfo() {
-    // in this case there is a multiple user info fields
-    return *(user_t*)nullptr;
 }
 
 bool GetBlock::send(INetworkClient& netClient) {
@@ -146,6 +145,10 @@ bool GetBlock::send(INetworkClient& netClient) {
 
 uint32_t GetBlock::getBlockId() {
     return m_data.info.block;
+}
+
+uint32_t GetBlock::getUserMessageId() {
+    return 0;
 }
 
 ErrorCodes::Code GetBlock::prepareResponse() {

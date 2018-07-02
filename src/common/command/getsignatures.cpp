@@ -17,6 +17,10 @@ int GetSignatures::getType() {
     return TXSTYPE_SIG;
 }
 
+CommandType GetSignatures::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 unsigned char* GetSignatures::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -57,10 +61,6 @@ bool GetSignatures::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return (ed25519_sign_open(getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& GetSignatures::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t GetSignatures::getTime() {
     return m_data.info.ttime;
 }
@@ -78,6 +78,10 @@ int64_t GetSignatures::getFee() {
 }
 
 int64_t GetSignatures::getDeduct() {
+    return 0;
+}
+
+uint32_t GetSignatures::getUserMessageId() {
     return 0;
 }
 

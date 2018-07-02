@@ -16,6 +16,10 @@ int LogAccount::getType() {
     return TXSTYPE_SAV;
 }
 
+CommandType LogAccount::getCommandType() {
+    return CommandType::eModifying;
+}
+
 unsigned char* LogAccount::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -59,10 +63,6 @@ void LogAccount::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk)
 
 bool LogAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     return (ed25519_sign_open2(hash, SHA256_DIGEST_LENGTH, getData(), getDataSize(), pk, getSignature()) == 0);
-}
-
-user_t& LogAccount::getUserInfo() {
-    return m_response.usera;
 }
 
 uint32_t LogAccount::getTime() {

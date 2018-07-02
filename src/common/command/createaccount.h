@@ -11,8 +11,11 @@ public:
     CreateAccount();
     CreateAccount(uint16_t src_bank, uint32_t src_user, uint32_t msg_id, uint16_t dst_bank, uint32_t time);
 
-    /** \brief Return TXSTYPE_USR as command type . */
+    /** \brief Return TXSTYPE_USR as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
@@ -59,9 +62,6 @@ public:
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -96,8 +96,8 @@ public:
     /**  \brief Get destination bank id. */
     virtual  uint32_t       getDestBankId();
 
-    /**  \brief Get message id. */
-    virtual  uint32_t       getUserMessageId();
+    /**  \brief Get user message id. */
+    virtual  uint32_t       getUserMessageId()                          override;
 
     /** \brief Put new created account data */
     virtual void setAdditionalData(char* data);

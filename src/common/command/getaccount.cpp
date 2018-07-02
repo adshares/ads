@@ -50,6 +50,14 @@ int GetAccount::getType() {
     return TXSTYPE_INF;
 }
 
+CommandType GetAccount::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
+uint32_t GetAccount::getUserMessageId() {
+    return 0;
+}
+
 void GetAccount::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -84,8 +92,12 @@ int64_t GetAccount::getDeduct() {
     return 0;
 }
 
-user_t& GetAccount::getUserInfo() {
-    return m_response.usera;
+uint16_t GetAccount::getDestNode(){
+    return m_data.info.bbank;
+}
+
+uint32_t GetAccount::getDestUser(){
+    return m_data.info.buser;
 }
 
 bool GetAccount::send(INetworkClient& netClient) {
@@ -134,3 +146,4 @@ void GetAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+

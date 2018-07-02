@@ -26,9 +26,9 @@ struct tInfo {
 }__attribute__((packed));
 
 /** \brief Struct data for get_me and get_accout command */
-struct userinfo {
-    userinfo() = default;
-    userinfo(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint16_t buser_, uint32_t time_)
+struct UserInfoData {
+    UserInfoData() = default;
+    UserInfoData(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint16_t buser_, uint32_t time_)
         : abank{abank_},
           auser{auser_},
           bbank{bbank_},
@@ -49,13 +49,13 @@ struct userinfo {
 
 
 /** \brief Full struct data for get_me and get_accout command with signature */
-struct usertxs2 {
-    usertxs2() = default;
-    usertxs2(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
+struct UserInfo {
+    UserInfo() = default;
+    UserInfo(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
         : info(abank, auser, bbank, buser, time) {
     }
 
-    userinfo        info;
+    UserInfoData        info;
     unsigned char   sign[64];
 } __attribute__((packed));
 

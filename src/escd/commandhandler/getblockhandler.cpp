@@ -9,53 +9,33 @@ GetBlockHandler::GetBlockHandler(office& office, boost::asio::ip::tcp::socket& s
 }
 
 void GetBlockHandler::onInit(std::unique_ptr<IBlockCommand> command) {
-    try {
-        m_command = std::unique_ptr<GetBlock>(dynamic_cast<GetBlock*>(command.release()));
-    } catch (std::bad_cast& bc) {
-        DLOG("GetBlock bad_cast caught: %s", bc.what());
-        return;
-    }
+    m_command = init<GetBlock>(std::move(command));
 }
 
 void GetBlockHandler::onExecute() {
     assert(m_command);
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
 
-    errorCode = m_command->prepareResponse();
+    const auto errorCode = m_command->prepareResponse();
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        Helper::Hlog hlog(m_command->getBlockId());
+        hlog.load();
+
         if (!errorCode) {
             // only header
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
+            response.emplace_back(boost::asio::buffer(m_command->getResponse(), m_command->getResponseSize()));
             // nodes
-            boost::asio::write(m_socket, boost::asio::buffer(m_command->m_responseNodes));
+            response.emplace_back(boost::asio::buffer(m_command->m_responseNodes));
             // hlog
-            Helper::Hlog hlog(m_command->getBlockId());
-            hlog.load();
-            boost::asio::write(m_socket, boost::asio::buffer(hlog.data, 4 + hlog.total));
-
+            response.emplace_back(boost::asio::buffer(hlog.data, 4 + hlog.total));
         }
+        boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
-bool GetBlockHandler::onValidate() {
-    ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
-
-    if(m_command->getBankId()!=m_offi.svid) {
-        errorCode = ErrorCodes::Code::eBankNotFound;
-    }
-
-    if (errorCode) {
-        try {
-            boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        } catch (std::exception& e) {
-            DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
-        }
-        return false;
-    }
-
-    return true;
+void GetBlockHandler::onValidate() {
 }

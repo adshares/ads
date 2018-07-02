@@ -18,6 +18,10 @@ int GetVipKeys::getType() {
     return TXSTYPE_VIP;
 }
 
+CommandType GetVipKeys::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 unsigned char* GetVipKeys::getData() {
     return reinterpret_cast<unsigned char*>(&m_data.info);
 }
@@ -58,10 +62,6 @@ bool GetVipKeys::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
     return (ed25519_sign_open(getData(), getDataSize(), pk, getSignature()) == 0);
 }
 
-user_t& GetVipKeys::getUserInfo() {
-    return m_response.usera;
-}
-
 uint32_t GetVipKeys::getTime() {
     return m_data.info.ttime;
 }
@@ -79,6 +79,10 @@ int64_t GetVipKeys::getFee() {
 }
 
 int64_t GetVipKeys::getDeduct() {
+    return 0;
+}
+
+uint32_t GetVipKeys::getUserMessageId() {
     return 0;
 }
 
@@ -149,10 +153,12 @@ void GetVipKeys::toJson(boost::property_tree::ptree &ptree) {
     if (!m_responseError) {
         ptree.put("viphash",hash);
         boost::property_tree::ptree viptree;
-        for(char* p=m_vipKeys.getVipKeys(); p<m_vipKeys.getVipKeys()+m_vipKeys.getLength(); p+=32) {
-            ed25519_key2text(hash, (uint8_t*)p, 32);
+        for(char* p=m_vipKeys.getVipKeys(); p<m_vipKeys.getVipKeys()+m_vipKeys.getLength(); p+=32+sizeof(uint16_t)) {
+            uint16_t srvid = (uint16_t)*p;
+            ed25519_key2text(hash, (uint8_t*)(p+2), 32);
             boost::property_tree::ptree vipkey;
-            vipkey.put("", hash);
+            vipkey.put("server_id", srvid);
+            vipkey.put("public_key", hash);
             viptree.push_back(std::make_pair("", vipkey));
         }
         ptree.add_child("vipkeys", viptree);

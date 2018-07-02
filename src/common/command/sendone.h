@@ -10,8 +10,11 @@ class SendOne : public BlockCommand {
         SendOne();
         SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
 
-        /** \brief Return TXSTYPE_PUT as command type . */
+        /** \brief Return TXSTYPE_PUT as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eModifying as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -52,9 +55,6 @@ class SendOne : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 
@@ -70,6 +70,9 @@ class SendOne : public BlockCommand {
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
 
+        /**  \brief Get user message id. */
+        virtual  uint32_t       getUserMessageId()                          override;
+
         /** \brief Get additional info typed by client in transaction message. */
         virtual uint8_t*        getInfoMsg();
 
@@ -83,6 +86,10 @@ class SendOne : public BlockCommand {
         /** \brief Save command response to settings object. */
         virtual void            saveResponse(settings& sts)                 override;
 
+        virtual unsigned char*  getBlockMessage()       override;
+        virtual size_t          getBlockMessageSize()   override;
+
+
         //IJsonSerialize interface
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
@@ -95,8 +102,6 @@ class SendOne : public BlockCommand {
         /**  \brief Get destination user id. */
         virtual  uint32_t       getDestUserId();
 
-        /**  \brief Get message id. */
-        virtual  uint32_t       getUserMessageId();
 
         UserSendOne          m_data;
         commandresponse     m_response;

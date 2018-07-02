@@ -22,8 +22,11 @@ class SetAccountKey : public BlockCommand {
 
     //IBlock interface
 
-    /** \brief Return TXSTYPE_KEY as command type . */
+    /** \brief Return TXSTYPE_KEY as type . */
     virtual int  getType()                                      override;
+
+    /** \brief Return eModifying as command type . */
+    virtual CommandType getCommandType()                        override;
 
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
@@ -64,9 +67,6 @@ class SetAccountKey : public BlockCommand {
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-    /** \brief Get actual blockchain user info. */
-    virtual user_t&         getUserInfo()                               override;
-
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
 
@@ -93,7 +93,7 @@ class SetAccountKey : public BlockCommand {
     virtual void            saveResponse(settings& sts)                 override;
 
     /**  \brief Get message id. */
-    virtual  uint32_t       getUserMessageId();
+    virtual  uint32_t       getUserMessageId()                          override;
 
     //IJsonSerialize interface
     virtual std::string  toString(bool pretty)                          override;

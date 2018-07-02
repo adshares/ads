@@ -22,8 +22,11 @@ class SendMany : public BlockCommand {
         /** \brief Free completeData object resources. */
         virtual ~SendMany();
 
-        /** \brief Return TXSTYPE_MPT as command type . */
+        /** \brief Return TXSTYPE_MPT as type . */
         virtual int  getType()                                      override;
+
+        /** \brief Return eModifying as command type . */
+        virtual CommandType getCommandType()                        override;
 
         /** \brief Get pointer to command data structure. */
         virtual unsigned char*  getData()                           override;
@@ -69,9 +72,6 @@ class SendMany : public BlockCommand {
         */
         virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
 
-        /** \brief Get actual blockchain user info. */
-        virtual user_t&         getUserInfo()                               override;
-
         /** \brief Get time of command. */
         virtual uint32_t        getTime()                                   override;
 
@@ -86,6 +86,9 @@ class SendMany : public BlockCommand {
 
         /** \brief Get change in cash balance after command. */
         virtual int64_t         getDeduct()                                 override;
+
+        /** \brief Get user message id. */
+        virtual  uint32_t       getUserMessageId()                          override;
 
         /** \brief Send data to the server.
          *
@@ -104,7 +107,7 @@ class SendMany : public BlockCommand {
          * @brief Checks for target duplicates and does amount is positive value.
          * @return ErrorCodes value, eNone if success.
          */
-        virtual ErrorCodes::Code    checkForDuplicates();
+        virtual void checkForDuplicates();
 
         /** \brief Retursn transactions vector */
         virtual std::vector<SendAmountTxnRecord> getTransactionsVector();
@@ -116,10 +119,9 @@ class SendMany : public BlockCommand {
 
       public:
         /**  \brief Get message id. */
-        virtual  uint32_t       getUserMessageId();
 
         SendManyData          m_data;
-        commandresponse     m_response;
+        commandresponse       m_response;
 
     private:
         void fillAdditionalData();

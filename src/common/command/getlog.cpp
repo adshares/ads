@@ -80,6 +80,10 @@ int GetLog::getType() {
     return TXSTYPE_LOG;
 }
 
+CommandType GetLog::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void GetLog::sign(const uint8_t* /*hash*/, const uint8_t* sk, const uint8_t* pk) {
     ed25519_sign(getData(), getDataSize(), sk, pk, getSignature());
 }
@@ -111,8 +115,8 @@ int64_t GetLog::getDeduct() {
     return 0;
 }
 
-user_t& GetLog::getUserInfo() {
-    return m_response;
+uint32_t GetLog::getUserMessageId() {
+    return 0;
 }
 
 bool GetLog::send(INetworkClient& netClient) {

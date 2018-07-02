@@ -52,6 +52,10 @@ int Connected::getType() {
     return TXSTYPE_CON;
 }
 
+CommandType Connected::getCommandType() {
+    return CommandType::eReadingOnly;
+}
+
 void Connected::sign(const uint8_t* /*hash*/, const uint8_t* /*sk*/, const uint8_t* /*pk*/) {
     // no signature
 }
@@ -84,8 +88,8 @@ int64_t Connected::getDeduct() {
     return 0;
 }
 
-user_t& Connected::getUserInfo() {
-    return m_response.usera;
+uint32_t Connected::getUserMessageId() {
+    return 0;
 }
 
 bool Connected::send(INetworkClient& /*netClient*/) {
