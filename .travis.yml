@@ -99,12 +99,12 @@ jobs:
       script:
         # compile
         - mkdir build
-        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
+        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/ads_compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
         - export PATH="build/esc:build/escd:$PATH"
         # tests
-        - ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
-        - $ADS_START && cd $TEST_DIR
-        - mvn clean test $TESTS_ARGS
+        #- ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
+        #- $ADS_START && cd $TEST_DIR
+        #- mvn clean test $TESTS_ARGS
         #Sonar Qube
         - cd $TRAVIS_BUILD_DIR && sonar-scanner
 
