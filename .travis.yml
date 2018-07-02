@@ -60,7 +60,7 @@ jobs:
     - stage: compile
       script:
         - mkdir build
-        - ./scripts/compile.sh -d -o build src
+        - ./scripts/ads_compile.sh -d -o build src
         - mkdir -p $BIN_DIR
         - cp build/esc/ads $BIN_DIR
         - cp build/escd/adsd $BIN_DIR
