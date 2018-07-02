@@ -91,12 +91,16 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ac17ac6a4ed758da00f462d3443c8ac0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a53f3546fc9f172310bf7aef8daf394d2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a53f3546fc9f172310bf7aef8daf394d2"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a53f3546fc9f172310bf7aef8daf394d2">getType</a> () override</td></tr>
-<tr class="memdesc:a53f3546fc9f172310bf7aef8daf394d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_MSG as command type . <br /></td></tr>
+<tr class="memdesc:a53f3546fc9f172310bf7aef8daf394d2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_MSG as type . <br /></td></tr>
 <tr class="separator:a53f3546fc9f172310bf7aef8daf394d2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a292869538b62fa6552470b1e7a07f05f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a292869538b62fa6552470b1e7a07f05f"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a292869538b62fa6552470b1e7a07f05f">getData</a> () override</td></tr>
 <tr class="memdesc:a292869538b62fa6552470b1e7a07f05f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
 <tr class="separator:a292869538b62fa6552470b1e7a07f05f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5936c45521ec4f516d7eb3d2e714dcd5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5936c45521ec4f516d7eb3d2e714dcd5"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a5936c45521ec4f516d7eb3d2e714dcd5">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a5936c45521ec4f516d7eb3d2e714dcd5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:a5936c45521ec4f516d7eb3d2e714dcd5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ec3075a1a38ccf4575cd93b2d750239"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6ec3075a1a38ccf4575cd93b2d750239"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a6ec3075a1a38ccf4575cd93b2d750239">getResponse</a> () override</td></tr>
 <tr class="memdesc:a6ec3075a1a38ccf4575cd93b2d750239"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to response data. <br /></td></tr>
@@ -131,10 +135,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ab9a4999d2a9fed98d32f32025226b8ca"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#ab9a4999d2a9fed98d32f32025226b8ca">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ab9a4999d2a9fed98d32f32025226b8ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ab9a4999d2a9fed98d32f32025226b8ca">More...</a><br /></td></tr>
 <tr class="separator:ab9a4999d2a9fed98d32f32025226b8ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac8fe81c5656efc08287a1b50199f5e25"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac8fe81c5656efc08287a1b50199f5e25"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#ac8fe81c5656efc08287a1b50199f5e25">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:ac8fe81c5656efc08287a1b50199f5e25"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:ac8fe81c5656efc08287a1b50199f5e25"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a59d66fe9b81adb7a9267e5ce1459254b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a59d66fe9b81adb7a9267e5ce1459254b"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a59d66fe9b81adb7a9267e5ce1459254b">getTime</a> () override</td></tr>
 <tr class="memdesc:a59d66fe9b81adb7a9267e5ce1459254b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -155,6 +155,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#ad584af3650d5fc00fa58a232c81b3a70">getDeduct</a> () override</td></tr>
 <tr class="memdesc:ad584af3650d5fc00fa58a232c81b3a70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:ad584af3650d5fc00fa58a232c81b3a70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad5893070e4e7c9efb5d923943bfae6f5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad5893070e4e7c9efb5d923943bfae6f5"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#ad5893070e4e7c9efb5d923943bfae6f5">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:ad5893070e4e7c9efb5d923943bfae6f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:ad5893070e4e7c9efb5d923943bfae6f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a24d72d59b2be81bd1b74d80b23f429c4"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message.html#a24d72d59b2be81bd1b74d80b23f429c4">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a24d72d59b2be81bd1b74d80b23f429c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a24d72d59b2be81bd1b74d80b23f429c4">More...</a><br /></td></tr>
 <tr class="separator:a24d72d59b2be81bd1b74d80b23f429c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -172,13 +176,13 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a8046f3ad02335fbdb820e36a30d58196"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c1cdba651d4ccca48f4f0d075ae990c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c1cdba651d4ccca48f4f0d075ae990c"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getBlockTime</b> ()</td></tr>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getBlockTime</b> ()</td></tr>
 <tr class="separator:a0c1cdba651d4ccca48f4f0d075ae990c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a853383923dbbd65b445484c7bf1ebe71"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a853383923dbbd65b445484c7bf1ebe71"></a>
-virtual uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestNode</b> ()</td></tr>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestNode</b> ()</td></tr>
 <tr class="separator:a853383923dbbd65b445484c7bf1ebe71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd3c3a599d3684acf64a0c66fd3bf5ae"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acd3c3a599d3684acf64a0c66fd3bf5ae"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getMsgId</b> ()</td></tr>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getMsgId</b> ()</td></tr>
 <tr class="separator:acd3c3a599d3684acf64a0c66fd3bf5ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
@@ -246,7 +250,7 @@ message_ptr&#160;</td><td class="memItemRight" valign="bottom"><b>m_responseMsg<
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getmessage_8cpp_source.html#l00060">60</a> of file <a class="el" href="getmessage_8cpp_source.html">getmessage.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getmessage_8cpp_source.html#l00064">64</a> of file <a class="el" href="getmessage_8cpp_source.html">getmessage.cpp</a>.</p>
 
 </div>
 </div>
@@ -290,9 +294,8 @@ Here is the call graph for this function:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_get_message_a24d72d59b2be81bd1b74d80b23f429c4_cgraph.png" border="0" usemap="#class_get_message_a24d72d59b2be81bd1b74d80b23f429c4_cgraph" alt=""/></div>
 <map name="class_get_message_a24d72d59b2be81bd1b74d80b23f429c4_cgraph" id="class_get_message_a24d72d59b2be81bd1b74d80b23f429c4_cgraph">
-<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="212,5,385,32"/>
-<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="213,56,384,83"/>
-<area shape="rect" id="node4" href="classcommand_1_1factory.html#afed46d44bee54e75b19d762b1ecdeeae" title="Make command function. " alt="" coords="185,107,412,133"/>
+<area shape="rect" id="node2" href="class_i_network_client.html#abdbaff32040dbcf6deee5de06cf484f3" title="Send data using pointer to bufor and size. " alt="" coords="185,5,359,32"/>
+<area shape="rect" id="node3" href="class_i_network_client.html#af80ef17edd0a926d2f3c8f0ec32ef78c" title="Read data to buffor. " alt="" coords="187,56,357,83"/>
 </map>
 </div>
 </p>
@@ -349,7 +352,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getmessage_8cpp_source.html#l00056">56</a> of file <a class="el" href="getmessage_8cpp_source.html">getmessage.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getmessage_8cpp_source.html#l00060">60</a> of file <a class="el" href="getmessage_8cpp_source.html">getmessage.cpp</a>.</p>
 
 </div>
 </div>

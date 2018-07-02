@@ -91,8 +91,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a9cba0d223db0478523ee0865cbced342"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8cd312bb08490ee4b195ef28f6d490f1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8cd312bb08490ee4b195ef28f6d490f1"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a8cd312bb08490ee4b195ef28f6d490f1">getType</a> () override</td></tr>
-<tr class="memdesc:a8cd312bb08490ee4b195ef28f6d490f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_TXS as command type . <br /></td></tr>
+<tr class="memdesc:a8cd312bb08490ee4b195ef28f6d490f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_TXS as type . <br /></td></tr>
 <tr class="separator:a8cd312bb08490ee4b195ef28f6d490f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd9f65244ac5e735b93ed726753a9580"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abd9f65244ac5e735b93ed726753a9580"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#abd9f65244ac5e735b93ed726753a9580">getCommandType</a> () override</td></tr>
+<tr class="memdesc:abd9f65244ac5e735b93ed726753a9580"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:abd9f65244ac5e735b93ed726753a9580"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af0fefc7ec1b0ed4f757d373cff791bf5"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af0fefc7ec1b0ed4f757d373cff791bf5"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#af0fefc7ec1b0ed4f757d373cff791bf5">getData</a> () override</td></tr>
 <tr class="memdesc:af0fefc7ec1b0ed4f757d373cff791bf5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -131,10 +135,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:af81ee1147d5ca779b8c861c6abbe0aea"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#af81ee1147d5ca779b8c861c6abbe0aea">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:af81ee1147d5ca779b8c861c6abbe0aea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#af81ee1147d5ca779b8c861c6abbe0aea">More...</a><br /></td></tr>
 <tr class="separator:af81ee1147d5ca779b8c861c6abbe0aea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a40d9c2b81c80519cdc6b73d90bcfcf0b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a40d9c2b81c80519cdc6b73d90bcfcf0b"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a40d9c2b81c80519cdc6b73d90bcfcf0b">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a40d9c2b81c80519cdc6b73d90bcfcf0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a40d9c2b81c80519cdc6b73d90bcfcf0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ce830a927211989b59c9e6c611ab556"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7ce830a927211989b59c9e6c611ab556"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a7ce830a927211989b59c9e6c611ab556">getTime</a> () override</td></tr>
 <tr class="memdesc:a7ce830a927211989b59c9e6c611ab556"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -155,6 +155,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a08916e14722c29e08f69557f6dccec29">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a08916e14722c29e08f69557f6dccec29"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a08916e14722c29e08f69557f6dccec29"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a88c0aadbc037993c047860811e153bbe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a88c0aadbc037993c047860811e153bbe"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a88c0aadbc037993c047860811e153bbe">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a88c0aadbc037993c047860811e153bbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a88c0aadbc037993c047860811e153bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a843761cdc06aa93e789b0788ec839f59"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_transaction.html#a843761cdc06aa93e789b0788ec839f59">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a843761cdc06aa93e789b0788ec839f59"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a843761cdc06aa93e789b0788ec839f59">More...</a><br /></td></tr>
 <tr class="separator:a843761cdc06aa93e789b0788ec839f59"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -242,7 +246,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00064">64</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
+<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00068">68</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
 
 </div>
 </div>
@@ -279,7 +283,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00095">95</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
+<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00099">99</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -345,7 +349,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00060">60</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
+<p>Definition at line <a class="el" href="gettransaction_8cpp_source.html#l00064">64</a> of file <a class="el" href="gettransaction_8cpp_source.html">gettransaction.cpp</a>.</p>
 
 </div>
 </div>

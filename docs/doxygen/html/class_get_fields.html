@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ac3d47de7b824d1694844df3b3f74d0b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a690e5bede8bc85db44f76dd12e48fa73"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a690e5bede8bc85db44f76dd12e48fa73"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#a690e5bede8bc85db44f76dd12e48fa73">getType</a> () override</td></tr>
-<tr class="memdesc:a690e5bede8bc85db44f76dd12e48fa73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get command type. <br /></td></tr>
+<tr class="memdesc:a690e5bede8bc85db44f76dd12e48fa73"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get type. <br /></td></tr>
 <tr class="separator:a690e5bede8bc85db44f76dd12e48fa73"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95179c07f6a8beeba5c42d8b07f6c541"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a95179c07f6a8beeba5c42d8b07f6c541"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#a95179c07f6a8beeba5c42d8b07f6c541">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a95179c07f6a8beeba5c42d8b07f6c541"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get command type. <br /></td></tr>
+<tr class="separator:a95179c07f6a8beeba5c42d8b07f6c541"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac6d779b85bb93a648992a9e0640bfa85"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac6d779b85bb93a648992a9e0640bfa85"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#ac6d779b85bb93a648992a9e0640bfa85">getData</a> () override</td></tr>
 <tr class="memdesc:ac6d779b85bb93a648992a9e0640bfa85"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:aed2679152dafc4e3c7fd913d151fd948"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#aed2679152dafc4e3c7fd913d151fd948">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:aed2679152dafc4e3c7fd913d151fd948"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#aed2679152dafc4e3c7fd913d151fd948">More...</a><br /></td></tr>
 <tr class="separator:aed2679152dafc4e3c7fd913d151fd948"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a44cd224fb43b7686fcbbe42a04aea142"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a44cd224fb43b7686fcbbe42a04aea142"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#a44cd224fb43b7686fcbbe42a04aea142">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a44cd224fb43b7686fcbbe42a04aea142"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual user for which command is performed. <br /></td></tr>
-<tr class="separator:a44cd224fb43b7686fcbbe42a04aea142"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7248fa3cfb9fbf4bff0ea9dcf1d71c28"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7248fa3cfb9fbf4bff0ea9dcf1d71c28"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#a7248fa3cfb9fbf4bff0ea9dcf1d71c28">getTime</a> () override</td></tr>
 <tr class="memdesc:a7248fa3cfb9fbf4bff0ea9dcf1d71c28"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -157,6 +157,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#aaaeb28cc1a5799f1f3ed956b42a66040">saveResponse</a> (<a class="el" href="classsettings.html">settings</a> &amp;sts) override</td></tr>
 <tr class="memdesc:aaaeb28cc1a5799f1f3ed956b42a66040"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save command response to settings object. <br /></td></tr>
 <tr class="separator:aaaeb28cc1a5799f1f3ed956b42a66040"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b3f18411a84e80511ce1d89fb7177ce"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1b3f18411a84e80511ce1d89fb7177ce"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_fields.html#a1b3f18411a84e80511ce1d89fb7177ce">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a1b3f18411a84e80511ce1d89fb7177ce"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:a1b3f18411a84e80511ce1d89fb7177ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79acca52f1e56ff362bc5fdc09552443"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a79acca52f1e56ff362bc5fdc09552443"></a>
 virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>toString</b> (bool pretty) override</td></tr>
 <tr class="separator:a79acca52f1e56ff362bc5fdc09552443"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -222,7 +226,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00052">52</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00056">56</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
 
 </div>
 </div>
@@ -259,7 +263,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00083">83</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00087">87</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -323,7 +327,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00049">49</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getfields_8cpp_source.html#l00053">53</a> of file <a class="el" href="getfields_8cpp_source.html">getfields.cpp</a>.</p>
 
 </div>
 </div>

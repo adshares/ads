@@ -89,12 +89,16 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>checkPubKeySignaure</
 <tr class="separator:ae9cb840ddf31646502240255be32be1f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41a6de706e1dc92090da67aa8aebf62e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a41a6de706e1dc92090da67aa8aebf62e"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a41a6de706e1dc92090da67aa8aebf62e">getType</a> () override</td></tr>
-<tr class="memdesc:a41a6de706e1dc92090da67aa8aebf62e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SBS as command type . <br /></td></tr>
+<tr class="memdesc:a41a6de706e1dc92090da67aa8aebf62e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SBS as type . <br /></td></tr>
 <tr class="separator:a41a6de706e1dc92090da67aa8aebf62e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae162e9a2005cfad708ff61400cd557d1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae162e9a2005cfad708ff61400cd557d1"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#ae162e9a2005cfad708ff61400cd557d1">getData</a> () override</td></tr>
 <tr class="memdesc:ae162e9a2005cfad708ff61400cd557d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
 <tr class="separator:ae162e9a2005cfad708ff61400cd557d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a98f2d54ff122346ce1761956b7acd803"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a98f2d54ff122346ce1761956b7acd803"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a98f2d54ff122346ce1761956b7acd803">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a98f2d54ff122346ce1761956b7acd803"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:a98f2d54ff122346ce1761956b7acd803"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5d32c750e9871e66dc656351ec627e81"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d32c750e9871e66dc656351ec627e81"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a5d32c750e9871e66dc656351ec627e81">getResponse</a> () override</td></tr>
 <tr class="memdesc:a5d32c750e9871e66dc656351ec627e81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to response data. <br /></td></tr>
@@ -129,10 +133,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:afae72b171cdab130ef5d034dc8ffcfef"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#afae72b171cdab130ef5d034dc8ffcfef">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:afae72b171cdab130ef5d034dc8ffcfef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#afae72b171cdab130ef5d034dc8ffcfef">More...</a><br /></td></tr>
 <tr class="separator:afae72b171cdab130ef5d034dc8ffcfef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa636595e4d5c201ee09fbd3562a0bb1c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa636595e4d5c201ee09fbd3562a0bb1c"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#aa636595e4d5c201ee09fbd3562a0bb1c">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:aa636595e4d5c201ee09fbd3562a0bb1c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:aa636595e4d5c201ee09fbd3562a0bb1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a47d1bf4f949f6ec3deeecea28d71892b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a47d1bf4f949f6ec3deeecea28d71892b"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a47d1bf4f949f6ec3deeecea28d71892b">getTime</a> () override</td></tr>
 <tr class="memdesc:a47d1bf4f949f6ec3deeecea28d71892b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -153,6 +153,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a0fc4be725beb4101ecbf0f77809b0bf7">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a0fc4be725beb4101ecbf0f77809b0bf7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a0fc4be725beb4101ecbf0f77809b0bf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab79aee78873e7b5521a3772a73d748a3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab79aee78873e7b5521a3772a73d748a3"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#ab79aee78873e7b5521a3772a73d748a3">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:ab79aee78873e7b5521a3772a73d748a3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:ab79aee78873e7b5521a3772a73d748a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a250a594e7028fb7ea4a052ef14df68fe"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_node_status.html#a250a594e7028fb7ea4a052ef14df68fe">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a250a594e7028fb7ea4a052ef14df68fe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a250a594e7028fb7ea4a052ef14df68fe">More...</a><br /></td></tr>
 <tr class="separator:a250a594e7028fb7ea4a052ef14df68fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,9 +173,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a6b5e96b42a179242b905949c726522a9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6b5e96b42a179242b905949c726522a9"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a6b5e96b42a179242b905949c726522a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac48e71c51699fc4a460ca1144f209d88"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac48e71c51699fc4a460ca1144f209d88"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getUserMessageId</b> ()</td></tr>
-<tr class="separator:ac48e71c51699fc4a460ca1144f209d88"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af69192501fd35dfb3bc13605798d255c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af69192501fd35dfb3bc13605798d255c"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestBankId</b> ()</td></tr>
 <tr class="separator:af69192501fd35dfb3bc13605798d255c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -234,7 +235,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setnodestatus_8cpp_source.html#l00055">55</a> of file <a class="el" href="setnodestatus_8cpp_source.html">setnodestatus.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setnodestatus_8cpp_source.html#l00059">59</a> of file <a class="el" href="setnodestatus_8cpp_source.html">setnodestatus.cpp</a>.</p>
 
 </div>
 </div>
@@ -336,7 +337,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setnodestatus_8cpp_source.html#l00051">51</a> of file <a class="el" href="setnodestatus_8cpp_source.html">setnodestatus.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setnodestatus_8cpp_source.html#l00055">55</a> of file <a class="el" href="setnodestatus_8cpp_source.html">setnodestatus.cpp</a>.</p>
 
 </div>
 </div>

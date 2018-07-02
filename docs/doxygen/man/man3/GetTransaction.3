@@ -1,4 +1,4 @@
-.TH "GetTransaction" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "GetTransaction" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -20,7 +20,11 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_TXS as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_TXS as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eReadingOnly as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -62,10 +66,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -85,6 +85,10 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual int64_t \fBgetDeduct\fP () override"
 .br
 .RI "\fIGet change in cash balance after command\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet message id\&. \fP"
 .ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
 .br
@@ -145,7 +149,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 64 of file gettransaction\&.cpp\&.
+Definition at line 68 of file gettransaction\&.cpp\&.
 .SS "bool GetTransaction::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -162,7 +166,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 95 of file gettransaction\&.cpp\&.
+Definition at line 99 of file gettransaction\&.cpp\&.
 .SS "void GetTransaction::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -181,7 +185,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 60 of file gettransaction\&.cpp\&.
+Definition at line 64 of file gettransaction\&.cpp\&.
 
 .SH "Author"
 .PP 

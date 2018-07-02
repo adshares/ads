@@ -1,4 +1,4 @@
-.TH "GetLog" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "GetLog" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -20,7 +20,11 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_LOG as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_LOG as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eReadingOnly as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -29,6 +33,10 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual unsigned char * \fBgetResponse\fP () override"
 .br
 .RI "\fIGet pointer to response data\&. \fP"
+.ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet message id\&. \fP"
 .ti -1c
 .RI "virtual void \fBsetData\fP (char *data) override"
 .br
@@ -61,10 +69,6 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual bool \fBcheckSignature\fP (const uint8_t *hash, const uint8_t *pk) override"
 .br
 .RI "\fICheck actual signature\&. \fP"
-.ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
 .ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
@@ -150,7 +154,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 87 of file getlog\&.cpp\&.
+Definition at line 91 of file getlog\&.cpp\&.
 .SS "bool GetLog::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -167,7 +171,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 118 of file getlog\&.cpp\&.
+Definition at line 122 of file getlog\&.cpp\&.
 .SS "void GetLog::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -186,7 +190,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 83 of file getlog\&.cpp\&.
+Definition at line 87 of file getlog\&.cpp\&.
 
 .SH "Author"
 .PP 

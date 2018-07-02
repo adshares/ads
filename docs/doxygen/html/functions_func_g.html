@@ -144,13 +144,46 @@
 <li>getBlockMessage()
 : <a class="el" href="class_change_node_key.html#abe14d073f2ffc04ee281894773ef906c">ChangeNodeKey</a>
 , <a class="el" href="class_i_command.html#a5f7ec5dee21c23f526c5f6a1dd70906d">ICommand</a>
+, <a class="el" href="class_send_one.html#a2d44a7e89517960cec06eaf6a15352c2">SendOne</a>
 </li>
 <li>getBlockMessageSize()
 : <a class="el" href="class_change_node_key.html#a179e99280f648fc4d81510caa1ce3e8f">ChangeNodeKey</a>
 , <a class="el" href="class_i_command.html#a0eef79550bf508b7f3ca5a3e4f8ccd99">ICommand</a>
+, <a class="el" href="class_send_one.html#a0e8a5eddbac99dbde6a7dacb04c47671">SendOne</a>
 </li>
 <li>GetBroadcastMsg()
 : <a class="el" href="class_get_broadcast_msg.html#a176a71a1acf55d28fa31d6c03abb49b6">GetBroadcastMsg</a>
+</li>
+<li>getCommandType()
+: <a class="el" href="class_broadcast_msg.html#aee7f3173aec4d42c4e62eb0cda68527e">BroadcastMsg</a>
+, <a class="el" href="class_change_node_key.html#a86389b7a32c5f6a3e4a62ead3b67b354">ChangeNodeKey</a>
+, <a class="el" href="class_connected.html#ac5efafdffb4addcfaefde5be98f5a632">Connected</a>
+, <a class="el" href="class_create_account.html#a667392a70f0df17cdbe8980922889e81">CreateAccount</a>
+, <a class="el" href="class_create_node.html#a3748460c13b9b96547b455a26b95ec1b">CreateNode</a>
+, <a class="el" href="class_get_account.html#a36097b9ca6946efbb69c30be0f92722e">GetAccount</a>
+, <a class="el" href="class_get_accounts.html#abb06b1b45769424dd9f9d0c4c29dd82a">GetAccounts</a>
+, <a class="el" href="class_get_block.html#aefe3599e03420c3dc4e3b38647aaaabf">GetBlock</a>
+, <a class="el" href="class_get_blocks.html#abff39fed0665c8b751b3edca0522b4d9">GetBlocks</a>
+, <a class="el" href="class_get_broadcast_msg.html#ad8f97fcf09071efc065b669cd77e99b7">GetBroadcastMsg</a>
+, <a class="el" href="class_get_fields.html#a95179c07f6a8beeba5c42d8b07f6c541">GetFields</a>
+, <a class="el" href="class_get_log.html#a3bfd44e4f530eebaa4d13f0f121eeea0">GetLog</a>
+, <a class="el" href="class_get_message.html#a5936c45521ec4f516d7eb3d2e714dcd5">GetMessage</a>
+, <a class="el" href="class_get_message_list.html#a1e340bf4382b1e251cb9eaa393994e6f">GetMessageList</a>
+, <a class="el" href="class_get_signatures.html#aeecb273957c8c2e2d5e021db85fec36b">GetSignatures</a>
+, <a class="el" href="class_get_transaction.html#abd9f65244ac5e735b93ed726753a9580">GetTransaction</a>
+, <a class="el" href="class_get_vip_keys.html#a533328087798fdf5458f53863e32e02c">GetVipKeys</a>
+, <a class="el" href="class_i_command.html#a7932e851356791a709c8758f75c793fe">ICommand</a>
+, <a class="el" href="class_log_account.html#abe73f5280f66fc7cb7f35a091451007e">LogAccount</a>
+, <a class="el" href="class_retrieve_funds.html#abd0641a150fe8248550ac4a53cfcc99f">RetrieveFunds</a>
+, <a class="el" href="class_send_many.html#a0e9762d161798cafdbaa8815059db86f">SendMany</a>
+, <a class="el" href="class_send_one.html#ad3886ad00c7416ae87aa0ff70c8914b9">SendOne</a>
+, <a class="el" href="class_set_account_key.html#a38a1f71006b68fcb42f8e0eda70e0e62">SetAccountKey</a>
+, <a class="el" href="class_set_account_status.html#a9c58953a1dae5b3685cac82dfc2685c1">SetAccountStatus</a>
+, <a class="el" href="class_set_node_status.html#a98f2d54ff122346ce1761956b7acd803">SetNodeStatus</a>
+, <a class="el" href="class_transaction_accepted.html#aac6cd3d8d46e331a5f84037110a87306">TransactionAccepted</a>
+, <a class="el" href="class_transaction_failed.html#a196232130b48128a1c6e0ba41ddd61c5">TransactionFailed</a>
+, <a class="el" href="class_unset_account_status.html#a7329c79fe325b0f09cf7f46f1207c0aa">UnsetAccountStatus</a>
+, <a class="el" href="class_unset_node_status.html#aca76932a2692964eca86632fdf85cb45">UnsetNodeStatus</a>
 </li>
 <li>getData()
 : <a class="el" href="class_broadcast_msg.html#a4bd00d679177af53e14084e53895061c">BroadcastMsg</a>
@@ -541,44 +574,36 @@
 , <a class="el" href="class_unset_account_status.html#af1cfb9e3bc8f5888bb91189e9cdd89ac">UnsetAccountStatus</a>
 , <a class="el" href="class_unset_node_status.html#af3bb821bfa203703b6f31d00c95ac6ba">UnsetNodeStatus</a>
 </li>
-<li>getUserInfo()
-: <a class="el" href="class_broadcast_msg.html#a67c4a14a6e0d211a8976b229e5c02dfe">BroadcastMsg</a>
-, <a class="el" href="class_change_node_key.html#ae14d32343e7c0ef0a9931aecf924c36e">ChangeNodeKey</a>
-, <a class="el" href="class_connected.html#a75dd042712a3fa45eb6ac69a46f5d2ba">Connected</a>
-, <a class="el" href="class_create_account.html#af4295ceb8f75bdd428941a7f0657fa3b">CreateAccount</a>
-, <a class="el" href="class_create_node.html#a96560dd65755e12dab1c5f760f9ba31e">CreateNode</a>
-, <a class="el" href="class_get_account.html#a87e50352cc197b20b6f3f83d7822b2be">GetAccount</a>
-, <a class="el" href="class_get_accounts.html#a89eacdaa7fc123d0381fd2647be23083">GetAccounts</a>
-, <a class="el" href="class_get_block.html#a0397741b3c547a202fcd73620044f6ed">GetBlock</a>
-, <a class="el" href="class_get_blocks.html#a9fef1645a7c9139643bbdf62901d3a57">GetBlocks</a>
-, <a class="el" href="class_get_broadcast_msg.html#a3714b7faa7e6bb52cebdb4548b6e2217">GetBroadcastMsg</a>
-, <a class="el" href="class_get_fields.html#a44cd224fb43b7686fcbbe42a04aea142">GetFields</a>
-, <a class="el" href="class_get_log.html#a140d353d58bd313d0ca9d8ce34c4f79b">GetLog</a>
-, <a class="el" href="class_get_message.html#ac8fe81c5656efc08287a1b50199f5e25">GetMessage</a>
-, <a class="el" href="class_get_message_list.html#aaedde969a8de7300bcf2a7b3803967bc">GetMessageList</a>
-, <a class="el" href="class_get_signatures.html#a511d5b2321a2a735c225f5bfebebd861">GetSignatures</a>
-, <a class="el" href="class_get_transaction.html#a40d9c2b81c80519cdc6b73d90bcfcf0b">GetTransaction</a>
-, <a class="el" href="class_get_vip_keys.html#ab88cda27b729e3e3ad02c2940a7e8807">GetVipKeys</a>
-, <a class="el" href="class_i_command.html#a985f86da8773c7f55626fc81ac838743">ICommand</a>
-, <a class="el" href="class_log_account.html#a097cd2de934b7f2da25042b7b0ab75d3">LogAccount</a>
-, <a class="el" href="class_retrieve_funds.html#aaa7774bd8ace68237cf48c49a96392ba">RetrieveFunds</a>
-, <a class="el" href="class_send_many.html#a5b3b5abdf8459f3f12279e6d8a6818ac">SendMany</a>
-, <a class="el" href="class_send_one.html#ab111530942b6da0d6052ef7c295c0fad">SendOne</a>
-, <a class="el" href="class_set_account_key.html#a35018b25358bff3f7870ab79b124fdc4">SetAccountKey</a>
-, <a class="el" href="class_set_account_status.html#a62298e7e3c623ceca70a0d8541a7a4ee">SetAccountStatus</a>
-, <a class="el" href="class_set_node_status.html#aa636595e4d5c201ee09fbd3562a0bb1c">SetNodeStatus</a>
-, <a class="el" href="class_transaction_accepted.html#a8ea23d7504d1582df3d51921c784635f">TransactionAccepted</a>
-, <a class="el" href="class_transaction_failed.html#a8920804c4b884aeff8fe746805ef810a">TransactionFailed</a>
-, <a class="el" href="class_unset_account_status.html#ae318a4597a1fb407287e51feb66a2b92">UnsetAccountStatus</a>
-, <a class="el" href="class_unset_node_status.html#ab50ba2f9eaa9642c4577175d678e5221">UnsetNodeStatus</a>
-</li>
 <li>getUserMessageId()
-: <a class="el" href="class_broadcast_msg.html#ae2c4d014fb57c30f37c2ab5f0a7a3845">BroadcastMsg</a>
-, <a class="el" href="class_change_node_key.html#a773fb0e46084c2681a7b860d724e2ce7">ChangeNodeKey</a>
-, <a class="el" href="class_create_account.html#a8c36aad024865d86dc125df0da5a97ca">CreateAccount</a>
-, <a class="el" href="class_send_many.html#a3024212474572044c0f82f37a92cf028">SendMany</a>
-, <a class="el" href="class_send_one.html#a80c549982eb06cac52415989c2364a24">SendOne</a>
-, <a class="el" href="class_set_account_key.html#a37bf0a7f6f7f3b77b537e70ed3ec06d3">SetAccountKey</a>
+: <a class="el" href="class_broadcast_msg.html#a8b82356ce81e614775da95d273542365">BroadcastMsg</a>
+, <a class="el" href="class_change_node_key.html#ad6b57d12d7313792a7e6064c1f19aab3">ChangeNodeKey</a>
+, <a class="el" href="class_connected.html#a5fa5cab5f3fcc30acb8b908734905ad8">Connected</a>
+, <a class="el" href="class_create_account.html#aa48de96dd25c6653aff86e22fc408872">CreateAccount</a>
+, <a class="el" href="class_create_node.html#aa0d8abcd291d0d5db54f5bef2c15e7c9">CreateNode</a>
+, <a class="el" href="class_get_account.html#a0d1cb09cba386192e272d4917bfcc835">GetAccount</a>
+, <a class="el" href="class_get_accounts.html#a2140e89a88f6cb55d6f1f489fd21de1a">GetAccounts</a>
+, <a class="el" href="class_get_block.html#a910cdd09e25e48020e5d8e2ec447111f">GetBlock</a>
+, <a class="el" href="class_get_blocks.html#a650023cb57464acc77cca0624bfc8890">GetBlocks</a>
+, <a class="el" href="class_get_broadcast_msg.html#aa07223f1aa53f85c232671f6b73fba96">GetBroadcastMsg</a>
+, <a class="el" href="class_get_fields.html#a1b3f18411a84e80511ce1d89fb7177ce">GetFields</a>
+, <a class="el" href="class_get_log.html#a21b076c9e12fe4665c7c87ff028be841">GetLog</a>
+, <a class="el" href="class_get_message.html#ad5893070e4e7c9efb5d923943bfae6f5">GetMessage</a>
+, <a class="el" href="class_get_message_list.html#a425c7caad90cdff7b6580fe8cabdc419">GetMessageList</a>
+, <a class="el" href="class_get_signatures.html#a0c46d823ed74bfa2a60db2aa54008f7c">GetSignatures</a>
+, <a class="el" href="class_get_transaction.html#a88c0aadbc037993c047860811e153bbe">GetTransaction</a>
+, <a class="el" href="class_get_vip_keys.html#a1d8ed6fd21df0d41fdeabd01e1235ad0">GetVipKeys</a>
+, <a class="el" href="class_i_command.html#a6fb68f150036bbc6a7dcf85ba3d432af">ICommand</a>
+, <a class="el" href="class_log_account.html#afc7e4576a25986cfbef1f68d30f4f13a">LogAccount</a>
+, <a class="el" href="class_retrieve_funds.html#a13dfcea8381fcea9c081d0276253af64">RetrieveFunds</a>
+, <a class="el" href="class_send_many.html#a43ddb1e2ce1f7f37b832d6ceb517eb83">SendMany</a>
+, <a class="el" href="class_send_one.html#a54e2351bf62ffba38ec37e2447bc767d">SendOne</a>
+, <a class="el" href="class_set_account_key.html#a44f7e32cdda4be3f95fe50846c30fbde">SetAccountKey</a>
+, <a class="el" href="class_set_account_status.html#a7bd0b993684a0f1d5c7abb0de43dbe58">SetAccountStatus</a>
+, <a class="el" href="class_set_node_status.html#ab79aee78873e7b5521a3772a73d748a3">SetNodeStatus</a>
+, <a class="el" href="class_transaction_accepted.html#a95356e664c4b895e763397932f33da1a">TransactionAccepted</a>
+, <a class="el" href="class_transaction_failed.html#a13648a905e579ab84582dcac67dc10f3">TransactionFailed</a>
+, <a class="el" href="class_unset_account_status.html#a3cbf7a7a3e5c52b363403f512307e023">UnsetAccountStatus</a>
+, <a class="el" href="class_unset_node_status.html#a93eee152bb0cf6cce9b8dfef068386fe">UnsetNodeStatus</a>
 </li>
 </ul>
 </div><!-- contents -->

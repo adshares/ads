@@ -86,8 +86,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a8aed8b0aa3f2dd51772ac3705fa99eff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8522cd92e516b9a28723919c21b0642e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8522cd92e516b9a28723919c21b0642e"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a8522cd92e516b9a28723919c21b0642e">getType</a> () override</td></tr>
-<tr class="memdesc:a8522cd92e516b9a28723919c21b0642e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SUS as command type . <br /></td></tr>
+<tr class="memdesc:a8522cd92e516b9a28723919c21b0642e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_SUS as type . <br /></td></tr>
 <tr class="separator:a8522cd92e516b9a28723919c21b0642e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9c58953a1dae5b3685cac82dfc2685c1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9c58953a1dae5b3685cac82dfc2685c1"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a9c58953a1dae5b3685cac82dfc2685c1">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a9c58953a1dae5b3685cac82dfc2685c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:a9c58953a1dae5b3685cac82dfc2685c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae53c797513a672801cfe9de3b982ecb6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae53c797513a672801cfe9de3b982ecb6"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#ae53c797513a672801cfe9de3b982ecb6">getData</a> () override</td></tr>
 <tr class="memdesc:ae53c797513a672801cfe9de3b982ecb6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -126,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:afec0d587358589ae6c018c78d2b4f84e"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#afec0d587358589ae6c018c78d2b4f84e">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:afec0d587358589ae6c018c78d2b4f84e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#afec0d587358589ae6c018c78d2b4f84e">More...</a><br /></td></tr>
 <tr class="separator:afec0d587358589ae6c018c78d2b4f84e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a62298e7e3c623ceca70a0d8541a7a4ee"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a62298e7e3c623ceca70a0d8541a7a4ee"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a62298e7e3c623ceca70a0d8541a7a4ee">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a62298e7e3c623ceca70a0d8541a7a4ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a62298e7e3c623ceca70a0d8541a7a4ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a526dbaaa2eaff60b4d28e4acb3440b8a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a526dbaaa2eaff60b4d28e4acb3440b8a"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a526dbaaa2eaff60b4d28e4acb3440b8a">getTime</a> () override</td></tr>
 <tr class="memdesc:a526dbaaa2eaff60b4d28e4acb3440b8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -150,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#ac90d05aed027e37e3ed9ad9e23e922ed">getDeduct</a> () override</td></tr>
 <tr class="memdesc:ac90d05aed027e37e3ed9ad9e23e922ed"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:ac90d05aed027e37e3ed9ad9e23e922ed"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bd0b993684a0f1d5c7abb0de43dbe58"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7bd0b993684a0f1d5c7abb0de43dbe58"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a7bd0b993684a0f1d5c7abb0de43dbe58">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a7bd0b993684a0f1d5c7abb0de43dbe58"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:a7bd0b993684a0f1d5c7abb0de43dbe58"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4cce011865af3d7469b53ce9decc0b80"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_set_account_status.html#a4cce011865af3d7469b53ce9decc0b80">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a4cce011865af3d7469b53ce9decc0b80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a4cce011865af3d7469b53ce9decc0b80">More...</a><br /></td></tr>
 <tr class="separator:a4cce011865af3d7469b53ce9decc0b80"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -166,9 +170,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a5d1b3070ba3b80ac22273180e85120f6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5d1b3070ba3b80ac22273180e85120f6"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a5d1b3070ba3b80ac22273180e85120f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad0219cc2fb89309d9597e9ae80e90509"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad0219cc2fb89309d9597e9ae80e90509"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getUserMessageId</b> ()</td></tr>
-<tr class="separator:ad0219cc2fb89309d9597e9ae80e90509"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28454e380492040ed82ab7b85416347f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a28454e380492040ed82ab7b85416347f"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestBankId</b> ()</td></tr>
 <tr class="separator:a28454e380492040ed82ab7b85416347f"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -234,7 +235,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setaccountstatus_8cpp_source.html#l00055">55</a> of file <a class="el" href="setaccountstatus_8cpp_source.html">setaccountstatus.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setaccountstatus_8cpp_source.html#l00059">59</a> of file <a class="el" href="setaccountstatus_8cpp_source.html">setaccountstatus.cpp</a>.</p>
 
 </div>
 </div>
@@ -336,7 +337,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="setaccountstatus_8cpp_source.html#l00051">51</a> of file <a class="el" href="setaccountstatus_8cpp_source.html">setaccountstatus.cpp</a>.</p>
+<p>Definition at line <a class="el" href="setaccountstatus_8cpp_source.html#l00055">55</a> of file <a class="el" href="setaccountstatus_8cpp_source.html">setaccountstatus.cpp</a>.</p>
 
 </div>
 </div>

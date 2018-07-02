@@ -91,8 +91,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ac422b254f3ae8cee1dcfc498c4cc7eff"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aedb46c5dda0992f3fd5ed0e7ad93976d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aedb46c5dda0992f3fd5ed0e7ad93976d"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#aedb46c5dda0992f3fd5ed0e7ad93976d">getType</a> () override</td></tr>
-<tr class="memdesc:aedb46c5dda0992f3fd5ed0e7ad93976d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_MSG as command type . <br /></td></tr>
+<tr class="memdesc:aedb46c5dda0992f3fd5ed0e7ad93976d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_MSG as type . <br /></td></tr>
 <tr class="separator:aedb46c5dda0992f3fd5ed0e7ad93976d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1e340bf4382b1e251cb9eaa393994e6f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1e340bf4382b1e251cb9eaa393994e6f"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#a1e340bf4382b1e251cb9eaa393994e6f">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a1e340bf4382b1e251cb9eaa393994e6f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:a1e340bf4382b1e251cb9eaa393994e6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad01c760dffb0d27cc98b9cea29684714"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad01c760dffb0d27cc98b9cea29684714"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#ad01c760dffb0d27cc98b9cea29684714">getData</a> () override</td></tr>
 <tr class="memdesc:ad01c760dffb0d27cc98b9cea29684714"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -131,10 +135,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:ae04fe05ac58a0bea26e8ac35bffac117"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#ae04fe05ac58a0bea26e8ac35bffac117">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:ae04fe05ac58a0bea26e8ac35bffac117"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#ae04fe05ac58a0bea26e8ac35bffac117">More...</a><br /></td></tr>
 <tr class="separator:ae04fe05ac58a0bea26e8ac35bffac117"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaedde969a8de7300bcf2a7b3803967bc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaedde969a8de7300bcf2a7b3803967bc"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#aaedde969a8de7300bcf2a7b3803967bc">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:aaedde969a8de7300bcf2a7b3803967bc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:aaedde969a8de7300bcf2a7b3803967bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5348461edc12ab22d662bca43681fa20"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5348461edc12ab22d662bca43681fa20"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#a5348461edc12ab22d662bca43681fa20">getTime</a> () override</td></tr>
 <tr class="memdesc:a5348461edc12ab22d662bca43681fa20"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -155,6 +155,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#a54bda8c6bf4e16cbaa8451e1378e0a4b">getDeduct</a> () override</td></tr>
 <tr class="memdesc:a54bda8c6bf4e16cbaa8451e1378e0a4b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a54bda8c6bf4e16cbaa8451e1378e0a4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a425c7caad90cdff7b6580fe8cabdc419"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a425c7caad90cdff7b6580fe8cabdc419"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#a425c7caad90cdff7b6580fe8cabdc419">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a425c7caad90cdff7b6580fe8cabdc419"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a425c7caad90cdff7b6580fe8cabdc419"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41accbb81561b1b9042e7c36f5cbcbec"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_message_list.html#a41accbb81561b1b9042e7c36f5cbcbec">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a41accbb81561b1b9042e7c36f5cbcbec"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a41accbb81561b1b9042e7c36f5cbcbec">More...</a><br /></td></tr>
 <tr class="separator:a41accbb81561b1b9042e7c36f5cbcbec"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -246,7 +250,7 @@ std::vector&lt; <a class="el" href="struct_message_record.html">MessageRecord</a
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00060">60</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00064">64</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
 
 </div>
 </div>
@@ -283,7 +287,7 @@ std::vector&lt; <a class="el" href="struct_message_record.html">MessageRecord</a
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00094">94</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00098">98</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -348,7 +352,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00056">56</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getmessagelist_8cpp_source.html#l00060">60</a> of file <a class="el" href="getmessagelist_8cpp_source.html">getmessagelist.cpp</a>.</p>
 
 </div>
 </div>

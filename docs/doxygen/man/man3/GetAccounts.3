@@ -1,4 +1,4 @@
-.TH "GetAccounts" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "GetAccounts" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -23,13 +23,13 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIDisabled copy assignment operator\&. \fP"
 .ti -1c
-.RI "virtual \fB~GetAccounts\fP ()"
-.br
-.RI "\fIFree responseBuffer\&. \fP"
-.ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
-.RI "\fIReturn TXSTYPE_NOD as command type \&. \fP"
+.RI "\fIReturn TXSTYPE_NOD as type \&. \fP"
+.ti -1c
+.RI "virtual CommandType \fBgetCommandType\fP () override"
+.br
+.RI "\fIReturn eReadingOnly as command type \&. \fP"
 .ti -1c
 .RI "virtual unsigned char * \fBgetData\fP () override"
 .br
@@ -71,10 +71,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fICheck actual signature\&. \fP"
 .ti -1c
-.RI "virtual \fBuser_t\fP & \fBgetUserInfo\fP () override"
-.br
-.RI "\fIGet actual blockchain user info\&. \fP"
-.ti -1c
 .RI "virtual uint32_t \fBgetTime\fP () override"
 .br
 .RI "\fIGet time of command\&. \fP"
@@ -95,6 +91,10 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fIGet change in cash balance after command\&. \fP"
 .ti -1c
+.RI "virtual uint32_t \fBgetUserMessageId\fP () override"
+.br
+.RI "\fIGet message id\&. \fP"
+.ti -1c
 .RI "virtual bool \fBsend\fP (\fBINetworkClient\fP &netClient) override"
 .br
 .RI "\fISend data to the server\&. \fP"
@@ -112,15 +112,15 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
 .ti -1c
-.RI "virtual uint32_t \fBgetDestBankId\fP ()"
+.RI "uint32_t \fBgetDestBankId\fP ()"
 .br
 .RI "\fIGet destination bank id\&. \fP"
 .ti -1c
-.RI "virtual uint32_t \fBgetBlockId\fP ()"
+.RI "uint32_t \fBgetBlockId\fP ()"
 .br
 .RI "\fIGet block id\&. \fP"
 .ti -1c
-.RI "virtual \fBErrorCodes::Code\fP \fBprepareResponse\fP (uint32_t lastPath, uint32_t lastUsers)"
+.RI "\fBErrorCodes::Code\fP \fBprepareResponse\fP (uint32_t lastPath, uint32_t lastUsers)"
 .br
 .RI "\fIPrepare response buffer\&. \fP"
 .in -1c
@@ -146,7 +146,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 63 of file getaccounts\&.cpp\&.
+Definition at line 62 of file getaccounts\&.cpp\&.
 .SS "bool GetAccounts::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -163,7 +163,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 95 of file getaccounts\&.cpp\&.
+Definition at line 89 of file getaccounts\&.cpp\&.
 .SS "void GetAccounts::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -182,7 +182,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 59 of file getaccounts\&.cpp\&.
+Definition at line 58 of file getaccounts\&.cpp\&.
 
 .SH "Author"
 .PP 

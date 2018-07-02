@@ -30,6 +30,7 @@ commandhandler_8cpp_source.html
 commandhandler_8h_source.html
 commandservice_8cpp_source.html
 commandservice_8h_source.html
+commandtype_8h_source.html
 connected_8cpp_source.html
 connected_8h_source.html
 createaccount_8cpp_source.html
@@ -224,6 +225,8 @@ classclient.html
 classclient-members.html
 class_command_handler.html
 class_command_handler-members.html
+struct_command_handler_1_1_commit_result.html
+struct_command_handler_1_1_commit_result-members.html
 structcommandresponse.html
 structcommandresponse-members.html
 class_command_service.html
@@ -518,16 +521,16 @@ structuok__t.html
 structuok__t-members.html
 structuser__s.html
 structuser__s-members.html
-structuserinfo.html
-structuserinfo-members.html
+struct_user_info.html
+struct_user_info-members.html
+struct_user_info_data.html
+struct_user_info_data-members.html
 struct_user_send_one.html
 struct_user_send_one-members.html
 struct_user_send_one_info.html
 struct_user_send_one_info-members.html
 classusertxs.html
 classusertxs-members.html
-structusertxs2.html
-structusertxs2-members.html
 structusr__t.html
 structusr__t-members.html
 class_vip_printer.html
@@ -770,6 +773,7 @@ class_hlog_printer__coll__graph.png
 class_i_block_command__inherit__graph.png
 class_i_block_command__coll__graph.png
 class_i_command__inherit__graph.png
+class_i_command_a028b270daeeaa4355a98f57535f1a241_icgraph.png
 class_i_command_handler__inherit__graph.png
 class_i_command_handler_afad80318a6c269d0436649eef58edbdd_icgraph.png
 class_i_json_serialize__inherit__graph.png
@@ -849,8 +853,8 @@ class_unset_node_status__coll__graph.png
 class_unset_node_status_a0f8a3c6e21c48b716bd7b34e50790f5f_cgraph.png
 class_unset_node_status_handler__inherit__graph.png
 class_unset_node_status_handler__coll__graph.png
+struct_user_info__coll__graph.png
 struct_user_send_one__coll__graph.png
-structusertxs2__coll__graph.png
 class_vip_printer__inherit__graph.png
 class_vip_printer__coll__graph.png
 classcommand_1_1factory_afed46d44bee54e75b19d762b1ecdeeae_icgraph.png
@@ -977,3 +981,4 @@ inherit_graph_113.png
 inherit_graph_114.png
 inherit_graph_115.png
 inherit_graph_116.png
+inherit_graph_117.png

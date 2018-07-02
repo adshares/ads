@@ -103,8 +103,12 @@ virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="c
 <tr class="separator:aee0b986181357ee46f8beea96592b5bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2672a698544ac1dd45c6a25133837da9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2672a698544ac1dd45c6a25133837da9"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a2672a698544ac1dd45c6a25133837da9">getType</a> () override</td></tr>
-<tr class="memdesc:a2672a698544ac1dd45c6a25133837da9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_BRO as command type . <br /></td></tr>
+<tr class="memdesc:a2672a698544ac1dd45c6a25133837da9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_BRO as type . <br /></td></tr>
 <tr class="separator:a2672a698544ac1dd45c6a25133837da9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee7f3173aec4d42c4e62eb0cda68527e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aee7f3173aec4d42c4e62eb0cda68527e"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#aee7f3173aec4d42c4e62eb0cda68527e">getCommandType</a> () override</td></tr>
+<tr class="memdesc:aee7f3173aec4d42c4e62eb0cda68527e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:aee7f3173aec4d42c4e62eb0cda68527e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4bd00d679177af53e14084e53895061c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4bd00d679177af53e14084e53895061c"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a4bd00d679177af53e14084e53895061c">getData</a> () override</td></tr>
 <tr class="memdesc:a4bd00d679177af53e14084e53895061c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -151,10 +155,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a975672df83c4448473ae957bbd9cac0b"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a975672df83c4448473ae957bbd9cac0b">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:a975672df83c4448473ae957bbd9cac0b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#a975672df83c4448473ae957bbd9cac0b">More...</a><br /></td></tr>
 <tr class="separator:a975672df83c4448473ae957bbd9cac0b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a67c4a14a6e0d211a8976b229e5c02dfe"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a67c4a14a6e0d211a8976b229e5c02dfe"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a67c4a14a6e0d211a8976b229e5c02dfe">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a67c4a14a6e0d211a8976b229e5c02dfe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a67c4a14a6e0d211a8976b229e5c02dfe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae7fd6990ad107f507cb77e7c7c546480"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae7fd6990ad107f507cb77e7c7c546480"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#ae7fd6990ad107f507cb77e7c7c546480">getTime</a> () override</td></tr>
 <tr class="memdesc:ae7fd6990ad107f507cb77e7c7c546480"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -175,6 +175,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#afe507c6ef869fcd6c5c68063c870ed7a">getDeduct</a> () override</td></tr>
 <tr class="memdesc:afe507c6ef869fcd6c5c68063c870ed7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:afe507c6ef869fcd6c5c68063c870ed7a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8b82356ce81e614775da95d273542365"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8b82356ce81e614775da95d273542365"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a8b82356ce81e614775da95d273542365">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a8b82356ce81e614775da95d273542365"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a8b82356ce81e614775da95d273542365"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5c2a603157569b1c2f8d0563605c274b"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#a5c2a603157569b1c2f8d0563605c274b">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a5c2a603157569b1c2f8d0563605c274b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a5c2a603157569b1c2f8d0563605c274b">More...</a><br /></td></tr>
 <tr class="separator:a5c2a603157569b1c2f8d0563605c274b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -191,10 +195,6 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:ad959e1d66169b35e7c0a5681c0003582"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad959e1d66169b35e7c0a5681c0003582"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:ad959e1d66169b35e7c0a5681c0003582"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae2c4d014fb57c30f37c2ab5f0a7a3845"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae2c4d014fb57c30f37c2ab5f0a7a3845"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_broadcast_msg.html#ae2c4d014fb57c30f37c2ab5f0a7a3845">getUserMessageId</a> ()</td></tr>
-<tr class="memdesc:ae2c4d014fb57c30f37c2ab5f0a7a3845"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
-<tr class="separator:ae2c4d014fb57c30f37c2ab5f0a7a3845"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -260,7 +260,7 @@ unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><b>m_message<
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="broadcastmsg_8cpp_source.html#l00088">88</a> of file <a class="el" href="broadcastmsg_8cpp_source.html">broadcastmsg.cpp</a>.</p>
+<p>Definition at line <a class="el" href="broadcastmsg_8cpp_source.html#l00092">92</a> of file <a class="el" href="broadcastmsg_8cpp_source.html">broadcastmsg.cpp</a>.</p>
 
 </div>
 </div>
@@ -362,7 +362,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="broadcastmsg_8cpp_source.html#l00076">76</a> of file <a class="el" href="broadcastmsg_8cpp_source.html">broadcastmsg.cpp</a>.</p>
+<p>Definition at line <a class="el" href="broadcastmsg_8cpp_source.html#l00080">80</a> of file <a class="el" href="broadcastmsg_8cpp_source.html">broadcastmsg.cpp</a>.</p>
 
 </div>
 </div>

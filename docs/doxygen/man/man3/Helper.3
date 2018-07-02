@@ -1,4 +1,4 @@
-.TH "Helper" 3 "Tue Jun 19 2018" "esc" \" -*- nroff -*-
+.TH "Helper" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -123,7 +123,7 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "int \fBcheck_csum\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
 .br
 .ti -1c
-.RI "void \fBprintErrorJson\fP (const char *errorMsg)"
+.RI "void \fBprintErrorJson\fP (const char *errorMsg, bool pretty)"
 .br
 .ti -1c
 .RI "const std::string \fBprint_address\fP (uint16_t \fBnode\fP, uint32_t user, int32_t _suffix)"
@@ -144,19 +144,16 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "struct \fBHelper::ServersNode\fP \fB__attribute__\fP ((packed))"
 .br
 .ti -1c
-.RI "void \fBsetSocketTimeout\fP (boost::asio::ip::tcp::socket &socket, unsigned int timeout)"
+.RI "void \fBsetSocketTimeout\fP (boost::asio::ip::tcp::socket &socket, unsigned int timeout, unsigned int idletimeout, unsigned int maxtry)"
 .br
 .ti -1c
-.RI "void \fBsetSocketTimeout\fP (std::unique_ptr< boost::asio::ip::tcp::socket > &socket, unsigned int timeout)"
+.RI "void \fBsetSocketTimeout\fP (std::unique_ptr< boost::asio::ip::tcp::socket > &socket, unsigned int timeout, unsigned int idletimeout, unsigned int maxtry)"
 .br
 .ti -1c
 .RI "void \fBsetSocketNoDelay\fP (boost::asio::ip::tcp::socket &socket, bool noDelay)"
 .br
 .ti -1c
 .RI "void \fBsetSocketNoDelay\fP (std::unique_ptr< boost::asio::ip::tcp::socket > &socket, bool noDelay)"
-.br
-.ti -1c
-.RI "void \fBsetSocketNoDelay\fP (std::unique_ptr< boost::asio::ip::tcp::socket >, bool noDelay)"
 .br
 .ti -1c
 .RI "int \fBgetTxnTypeId\fP (const char *txnName)"

@@ -81,8 +81,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:ab4ca5c3f4c6b910a71619a842d14a64b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a145c0ca858872a00d770c010bd3f0e2c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a145c0ca858872a00d770c010bd3f0e2c"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a145c0ca858872a00d770c010bd3f0e2c">getType</a> () override</td></tr>
-<tr class="memdesc:a145c0ca858872a00d770c010bd3f0e2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_USR as command type . <br /></td></tr>
+<tr class="memdesc:a145c0ca858872a00d770c010bd3f0e2c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_USR as type . <br /></td></tr>
 <tr class="separator:a145c0ca858872a00d770c010bd3f0e2c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a667392a70f0df17cdbe8980922889e81"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a667392a70f0df17cdbe8980922889e81"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a667392a70f0df17cdbe8980922889e81">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a667392a70f0df17cdbe8980922889e81"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eModifying as command type . <br /></td></tr>
+<tr class="separator:a667392a70f0df17cdbe8980922889e81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae3ea639e65887758a81331010864a84a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae3ea639e65887758a81331010864a84a"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#ae3ea639e65887758a81331010864a84a">getData</a> () override</td></tr>
 <tr class="memdesc:ae3ea639e65887758a81331010864a84a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -129,10 +133,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a3287f27ce8dca58fceb6d1869b93899e"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a3287f27ce8dca58fceb6d1869b93899e">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:a3287f27ce8dca58fceb6d1869b93899e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#a3287f27ce8dca58fceb6d1869b93899e">More...</a><br /></td></tr>
 <tr class="separator:a3287f27ce8dca58fceb6d1869b93899e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af4295ceb8f75bdd428941a7f0657fa3b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af4295ceb8f75bdd428941a7f0657fa3b"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#af4295ceb8f75bdd428941a7f0657fa3b">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:af4295ceb8f75bdd428941a7f0657fa3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:af4295ceb8f75bdd428941a7f0657fa3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6f7748d3c65dcbd64b86ad00c259749d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6f7748d3c65dcbd64b86ad00c259749d"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a6f7748d3c65dcbd64b86ad00c259749d">getTime</a> () override</td></tr>
 <tr class="memdesc:a6f7748d3c65dcbd64b86ad00c259749d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -173,10 +173,10 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a48fceb8f97f6a0444e71eb367b5f93ee">getDestBankId</a> ()</td></tr>
 <tr class="memdesc:a48fceb8f97f6a0444e71eb367b5f93ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get destination bank id. <br /></td></tr>
 <tr class="separator:a48fceb8f97f6a0444e71eb367b5f93ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8c36aad024865d86dc125df0da5a97ca"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8c36aad024865d86dc125df0da5a97ca"></a>
-virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a8c36aad024865d86dc125df0da5a97ca">getUserMessageId</a> ()</td></tr>
-<tr class="memdesc:a8c36aad024865d86dc125df0da5a97ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
-<tr class="separator:a8c36aad024865d86dc125df0da5a97ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa48de96dd25c6653aff86e22fc408872"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa48de96dd25c6653aff86e22fc408872"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#aa48de96dd25c6653aff86e22fc408872">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:aa48de96dd25c6653aff86e22fc408872"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:aa48de96dd25c6653aff86e22fc408872"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5278b1f56dccb0a025f8ff7db9b5b821"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5278b1f56dccb0a025f8ff7db9b5b821"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a5278b1f56dccb0a025f8ff7db9b5b821">setAdditionalData</a> (char *data)</td></tr>
 <tr class="memdesc:a5278b1f56dccb0a025f8ff7db9b5b821"><td class="mdescLeft">&#160;</td><td class="mdescRight">Put new created account data. <br /></td></tr>
@@ -239,7 +239,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00065">65</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00069">69</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -417,7 +417,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00061">61</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00065">65</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>

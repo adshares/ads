@@ -46,7 +46,6 @@
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#pub-attribs">Public Attributes</a> &#124;
 <a href="class_get_account-members.html">List of all members</a>  </div>
   <div class="headertitle">
 <div class="title">GetAccount Class Reference</div>  </div>
@@ -73,14 +72,10 @@ Collaboration diagram for GetAccount:</div>
 <div class="dyncontent">
 <div class="center"><img src="class_get_account__coll__graph.png" border="0" usemap="#_get_account_coll__map" alt="Collaboration graph"/></div>
 <map name="_get_account_coll__map" id="_get_account_coll__map">
-<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,185,166,212"/>
-<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,81,168,108"/>
+<area shape="rect" id="node2" href="class_block_command.html" title="BlockCommand" alt="" coords="51,155,166,181"/>
+<area shape="rect" id="node3" href="class_i_block_command.html" title="Base interface for command. It combain ICommand BlockCommandand IJsonSerialize Interface. " alt="" coords="49,80,168,107"/>
 <area shape="rect" id="node4" href="class_i_command.html" title="Command Interface. Base class for all command. " alt="" coords="5,5,92,32"/>
 <area shape="rect" id="node5" href="class_i_json_serialize.html" title="Interface which allow convert command data to JSON or string. Not used for now. " alt="" coords="117,5,221,32"/>
-<area shape="rect" id="node6" href="structaccountresponse.html" title="Struct data for get_me and get_accout response. " alt="" coords="191,185,312,212"/>
-<area shape="rect" id="node7" href="structuser__s.html" title="user_s" alt="" coords="221,81,282,108"/>
-<area shape="rect" id="node8" href="structusertxs2.html" title="Full struct data for get_me and get_accout command with signature. " alt="" coords="337,185,409,212"/>
-<area shape="rect" id="node9" href="structuserinfo.html" title="Struct data for get_me and get_accout command. " alt="" coords="339,81,407,108"/>
 </map>
 <center><span class="legend">[<a href="graph_legend.html">legend</a>]</span></center></div>
 <table class="memberdecls">
@@ -89,17 +84,18 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ac19caab5af00fbb40f7db45f57d557ea"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac19caab5af00fbb40f7db45f57d557ea"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>GetAccount</b> (uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)</td></tr>
 <tr class="separator:ac19caab5af00fbb40f7db45f57d557ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab65689aae97ee41fface85612b9ae820"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab65689aae97ee41fface85612b9ae820"></a>
-<a class="el" href="structusertxs2.html">usertxs2</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getDataStruct</b> ()</td></tr>
-<tr class="separator:ab65689aae97ee41fface85612b9ae820"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa97ec1e88ebe10b2af583cc053503c14"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa97ec1e88ebe10b2af583cc053503c14"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#aa97ec1e88ebe10b2af583cc053503c14">getType</a> () override</td></tr>
-<tr class="memdesc:aa97ec1e88ebe10b2af583cc053503c14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_INF as command type . <br /></td></tr>
+<tr class="memdesc:aa97ec1e88ebe10b2af583cc053503c14"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_INF as type . <br /></td></tr>
 <tr class="separator:aa97ec1e88ebe10b2af583cc053503c14"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2dd4532a6006f6204fe5f0bf309aeccf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a2dd4532a6006f6204fe5f0bf309aeccf"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a2dd4532a6006f6204fe5f0bf309aeccf">getData</a> () override</td></tr>
 <tr class="memdesc:a2dd4532a6006f6204fe5f0bf309aeccf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
 <tr class="separator:a2dd4532a6006f6204fe5f0bf309aeccf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a36097b9ca6946efbb69c30be0f92722e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a36097b9ca6946efbb69c30be0f92722e"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a36097b9ca6946efbb69c30be0f92722e">getCommandType</a> () override</td></tr>
+<tr class="memdesc:a36097b9ca6946efbb69c30be0f92722e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return eReadingOnly as command type . <br /></td></tr>
+<tr class="separator:a36097b9ca6946efbb69c30be0f92722e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a362261355593e10acf25a3b8aa6b7d69"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a362261355593e10acf25a3b8aa6b7d69"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a362261355593e10acf25a3b8aa6b7d69">getResponse</a> () override</td></tr>
 <tr class="memdesc:a362261355593e10acf25a3b8aa6b7d69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to response data. <br /></td></tr>
@@ -134,10 +130,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:aeefa25d1eb05d521797377bd3df0e696"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#aeefa25d1eb05d521797377bd3df0e696">checkSignature</a> (const uint8_t *hash, const uint8_t *pk) override</td></tr>
 <tr class="memdesc:aeefa25d1eb05d521797377bd3df0e696"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#aeefa25d1eb05d521797377bd3df0e696">More...</a><br /></td></tr>
 <tr class="separator:aeefa25d1eb05d521797377bd3df0e696"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a87e50352cc197b20b6f3f83d7822b2be"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a87e50352cc197b20b6f3f83d7822b2be"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a87e50352cc197b20b6f3f83d7822b2be">getUserInfo</a> () override</td></tr>
-<tr class="memdesc:a87e50352cc197b20b6f3f83d7822b2be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual blockchain user info. <br /></td></tr>
-<tr class="separator:a87e50352cc197b20b6f3f83d7822b2be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8c0162c42b73dc3d551de81258a0b140"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8c0162c42b73dc3d551de81258a0b140"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a8c0162c42b73dc3d551de81258a0b140">getTime</a> () override</td></tr>
 <tr class="memdesc:a8c0162c42b73dc3d551de81258a0b140"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -158,6 +150,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#aa83c3f32590f3f53a8a7d32ca2158e22">getDeduct</a> () override</td></tr>
 <tr class="memdesc:aa83c3f32590f3f53a8a7d32ca2158e22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:aa83c3f32590f3f53a8a7d32ca2158e22"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d1cb09cba386192e272d4917bfcc835"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0d1cb09cba386192e272d4917bfcc835"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a0d1cb09cba386192e272d4917bfcc835">getUserMessageId</a> () override</td></tr>
+<tr class="memdesc:a0d1cb09cba386192e272d4917bfcc835"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get message id. <br /></td></tr>
+<tr class="separator:a0d1cb09cba386192e272d4917bfcc835"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a59f4b38c919f4bc5993ae75faf39719b"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_get_account.html#a59f4b38c919f4bc5993ae75faf39719b">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient) override</td></tr>
 <tr class="memdesc:a59f4b38c919f4bc5993ae75faf39719b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a59f4b38c919f4bc5993ae75faf39719b">More...</a><br /></td></tr>
 <tr class="separator:a59f4b38c919f4bc5993ae75faf39719b"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -174,15 +170,15 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:aaffca58e8de523d24a3bf6d97b3b7ada"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aaffca58e8de523d24a3bf6d97b3b7ada"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:aaffca58e8de523d24a3bf6d97b3b7ada"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3170f42a401c036fbdda97bf2c62b4cf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3170f42a401c036fbdda97bf2c62b4cf"></a>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestNode</b> ()</td></tr>
+<tr class="separator:a3170f42a401c036fbdda97bf2c62b4cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a893aba63ca273ff1772c1f78995b2a17"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a893aba63ca273ff1772c1f78995b2a17"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getDestUser</b> ()</td></tr>
+<tr class="separator:a893aba63ca273ff1772c1f78995b2a17"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
-Public Attributes</h2></td></tr>
-<tr class="memitem:a84d5f902c1467918a832f6d95e91d685"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a84d5f902c1467918a832f6d95e91d685"></a>
-<a class="el" href="structusertxs2.html">usertxs2</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_data</b></td></tr>
-<tr class="separator:a84d5f902c1467918a832f6d95e91d685"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5e1bbc03e1f114606491944392a2a659"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5e1bbc03e1f114606491944392a2a659"></a>
-<a class="el" href="structaccountresponse.html">accountresponse</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_response</b></td></tr>
-<tr class="separator:a5e1bbc03e1f114606491944392a2a659"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
+Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pub_attribs_class_i_command"><td colspan="2" onclick="javascript:toggleInherit('pub_attribs_class_i_command')"><img src="closed.png" alt="-"/>&#160;Public Attributes inherited from <a class="el" href="class_i_command.html">ICommand</a></td></tr>
 <tr class="memitem:a0c16100a6d220633935407515852defe inherit pub_attribs_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0c16100a6d220633935407515852defe"></a>
 <a class="el" href="class_error_codes.html#af8bc214dae5536a13e868a90bbe631a8">ErrorCodes::Code</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_responseError</b></td></tr>
@@ -236,7 +232,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00057">57</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00065">65</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
 
 </div>
 </div>
@@ -273,7 +269,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00091">91</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00103">103</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -338,7 +334,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00053">53</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getaccount_8cpp_source.html#l00061">61</a> of file <a class="el" href="getaccount_8cpp_source.html">getaccount.cpp</a>.</p>
 
 </div>
 </div>

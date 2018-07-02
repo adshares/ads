@@ -104,8 +104,12 @@ Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pub_methods_class_i_command"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_i_command')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_i_command.html">ICommand</a></td></tr>
 <tr class="memitem:a8720373fa12ff6bd47664ae1501e55e7 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8720373fa12ff6bd47664ae1501e55e7"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a8720373fa12ff6bd47664ae1501e55e7">getType</a> ()=0</td></tr>
-<tr class="memdesc:a8720373fa12ff6bd47664ae1501e55e7 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get command type. <br /></td></tr>
+<tr class="memdesc:a8720373fa12ff6bd47664ae1501e55e7 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get type. <br /></td></tr>
 <tr class="separator:a8720373fa12ff6bd47664ae1501e55e7 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7932e851356791a709c8758f75c793fe inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7932e851356791a709c8758f75c793fe"></a>
+virtual CommandType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a7932e851356791a709c8758f75c793fe">getCommandType</a> ()=0</td></tr>
+<tr class="memdesc:a7932e851356791a709c8758f75c793fe inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get command type. <br /></td></tr>
+<tr class="separator:a7932e851356791a709c8758f75c793fe inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a63f6319036d3a81392277353bbbcfa0e inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a63f6319036d3a81392277353bbbcfa0e"></a>
 virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a63f6319036d3a81392277353bbbcfa0e">getData</a> ()=0</td></tr>
 <tr class="memdesc:a63f6319036d3a81392277353bbbcfa0e inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get pointer to command data structure. <br /></td></tr>
@@ -144,10 +148,6 @@ virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hre
 <tr class="memitem:a028b270daeeaa4355a98f57535f1a241 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">checkSignature</a> (const uint8_t *hash, const uint8_t *pk)=0</td></tr>
 <tr class="memdesc:a028b270daeeaa4355a98f57535f1a241 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check actual signature.  <a href="#a028b270daeeaa4355a98f57535f1a241">More...</a><br /></td></tr>
 <tr class="separator:a028b270daeeaa4355a98f57535f1a241 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a985f86da8773c7f55626fc81ac838743 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a985f86da8773c7f55626fc81ac838743"></a>
-virtual <a class="el" href="structuser__s.html">user_t</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a985f86da8773c7f55626fc81ac838743">getUserInfo</a> ()=0</td></tr>
-<tr class="memdesc:a985f86da8773c7f55626fc81ac838743 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get actual user for which command is performed. <br /></td></tr>
-<tr class="separator:a985f86da8773c7f55626fc81ac838743 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad839e07a14960e292926d567ad15aa74 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ad839e07a14960e292926d567ad15aa74"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#ad839e07a14960e292926d567ad15aa74">getTime</a> ()=0</td></tr>
 <tr class="memdesc:ad839e07a14960e292926d567ad15aa74 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get time of command. <br /></td></tr>
@@ -168,6 +168,10 @@ virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el"
 virtual int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a1ad23c7c5a0fdd0f071340e87baada02">getDeduct</a> ()=0</td></tr>
 <tr class="memdesc:a1ad23c7c5a0fdd0f071340e87baada02 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get change in cash balance after command. <br /></td></tr>
 <tr class="separator:a1ad23c7c5a0fdd0f071340e87baada02 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6fb68f150036bbc6a7dcf85ba3d432af inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6fb68f150036bbc6a7dcf85ba3d432af"></a>
+virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a6fb68f150036bbc6a7dcf85ba3d432af">getUserMessageId</a> ()=0</td></tr>
+<tr class="memdesc:a6fb68f150036bbc6a7dcf85ba3d432af inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get user message id. <br /></td></tr>
+<tr class="separator:a6fb68f150036bbc6a7dcf85ba3d432af inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58818c39b7e5b251c92884d1ac3d7ff0 inherit pub_methods_class_i_command"><td class="memItemLeft" align="right" valign="top">virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">send</a> (<a class="el" href="class_i_network_client.html">INetworkClient</a> &amp;netClient)=0</td></tr>
 <tr class="memdesc:a58818c39b7e5b251c92884d1ac3d7ff0 inherit pub_methods_class_i_command"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send data to the server.  <a href="#a58818c39b7e5b251c92884d1ac3d7ff0">More...</a><br /></td></tr>
 <tr class="separator:a58818c39b7e5b251c92884d1ac3d7ff0 inherit pub_methods_class_i_command"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -192,7 +196,7 @@ virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>toStri
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p>Definition at line <a class="el" href="interfaces_8h_source.html#l00129">129</a> of file <a class="el" href="interfaces_8h_source.html">interfaces.h</a>.</p>
+<p>Definition at line <a class="el" href="interfaces_8h_source.html#l00132">132</a> of file <a class="el" href="interfaces_8h_source.html">interfaces.h</a>.</p>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li><a class="el" href="interfaces_8h_source.html">interfaces.h</a></li>
 </ul>

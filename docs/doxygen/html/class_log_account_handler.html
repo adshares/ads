@@ -82,12 +82,12 @@ Public Member Functions</h2></td></tr>
 <tr class="separator:a581cd52f5b46b6e2e75b681c0b1fbd18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a70bc9e79335b7244d8663676a782a63f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a70bc9e79335b7244d8663676a782a63f"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account_handler.html#a70bc9e79335b7244d8663676a782a63f">onExecute</a> () override</td></tr>
-<tr class="memdesc:a70bc9e79335b7244d8663676a782a63f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Execution event. It execute actual command and commiting it to blockchain. <br /></td></tr>
+<tr class="memdesc:a70bc9e79335b7244d8663676a782a63f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Execution event. It executes actual command and commit it to blockchain. <br /></td></tr>
 <tr class="separator:a70bc9e79335b7244d8663676a782a63f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7dabbc16f6b3354b5718366b5ccc00bd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7dabbc16f6b3354b5718366b5ccc00bd"></a>
-virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account_handler.html#a7dabbc16f6b3354b5718366b5ccc00bd">onValidate</a> () override</td></tr>
-<tr class="memdesc:a7dabbc16f6b3354b5718366b5ccc00bd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Validtaion event. It execute validation of data if it contain all proper value. <br /></td></tr>
-<tr class="separator:a7dabbc16f6b3354b5718366b5ccc00bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac96d27f5ad4b999c043addfe7595069a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac96d27f5ad4b999c043addfe7595069a"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_log_account_handler.html#ac96d27f5ad4b999c043addfe7595069a">onValidate</a> () override</td></tr>
+<tr class="memdesc:ac96d27f5ad4b999c043addfe7595069a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Validation event. It performs command specific validation. <br /></td></tr>
+<tr class="separator:ac96d27f5ad4b999c043addfe7595069a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_class_command_handler"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_class_command_handler')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="class_command_handler.html">CommandHandler</a></td></tr>
 <tr class="memitem:a107e7a35b14ba346e24c2072948fced0 inherit pub_methods_class_command_handler"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_command_handler.html#a107e7a35b14ba346e24c2072948fced0">CommandHandler</a> (<a class="el" href="classoffice.html">office</a> &amp;<a class="el" href="classoffice.html">office</a>, boost::asio::ip::tcp::socket &amp;socket)</td></tr>
 <tr class="memdesc:a107e7a35b14ba346e24c2072948fced0 inherit pub_methods_class_command_handler"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <a href="#a107e7a35b14ba346e24c2072948fced0">More...</a><br /></td></tr>
@@ -98,6 +98,14 @@ virtual bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
+<tr class="inherit_header pro_methods_class_command_handler"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_class_command_handler')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="class_command_handler.html">CommandHandler</a></td></tr>
+<tr class="memitem:a0d5b1e6b0db6ec32f56efe11ef8ce8b7 inherit pro_methods_class_command_handler"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0d5b1e6b0db6ec32f56efe11ef8ce8b7"></a>
+<a class="el" href="struct_command_handler_1_1_commit_result.html">CommitResult</a>&#160;</td><td class="memItemRight" valign="bottom"><b>commitChanges</b> (<a class="el" href="class_i_block_command.html">IBlockCommand</a> &amp;command)</td></tr>
+<tr class="separator:a0d5b1e6b0db6ec32f56efe11ef8ce8b7 inherit pro_methods_class_command_handler"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abcd9348496fd1ae9706abe3efaf38eee inherit pro_methods_class_command_handler"><td class="memTemplParams" colspan="2"><a class="anchor" id="abcd9348496fd1ae9706abe3efaf38eee"></a>
+template&lt;typename CommandType &gt; </td></tr>
+<tr class="memitem:abcd9348496fd1ae9706abe3efaf38eee inherit pro_methods_class_command_handler"><td class="memTemplItemLeft" align="right" valign="top">std::unique_ptr&lt; CommandType &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>init</b> (std::unique_ptr&lt; <a class="el" href="class_i_block_command.html">IBlockCommand</a> &gt; command)</td></tr>
+<tr class="separator:abcd9348496fd1ae9706abe3efaf38eee inherit pro_methods_class_command_handler"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pro_attribs_class_command_handler"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_class_command_handler')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="class_command_handler.html">CommandHandler</a></td></tr>
 <tr class="memitem:a5570b3fbb2122e0450c400e7110a4d15 inherit pro_attribs_class_command_handler"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5570b3fbb2122e0450c400e7110a4d15"></a>
 <a class="el" href="classoffice.html">office</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_command_handler.html#a5570b3fbb2122e0450c400e7110a4d15">m_offi</a></td></tr>
