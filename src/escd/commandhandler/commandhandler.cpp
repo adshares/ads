@@ -17,7 +17,7 @@ void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_
     try {
         executeImpl(std::move(command));
     }
-    catch(ErrorCodes::Code error) {
+    catch(const ErrorCodes::Code& error) {
         sendErrorToClient(error);
     }
 }
