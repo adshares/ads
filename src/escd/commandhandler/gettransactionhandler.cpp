@@ -2,7 +2,6 @@
 #include "command/gettransaction.h"
 #include "../office.hpp"
 #include "helper/hash.h"
-#include "helper/hlog.h"
 #include "helper/servers.h"
 #include "servers.hpp"
 

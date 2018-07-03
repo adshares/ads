@@ -4,15 +4,21 @@
 #include <sstream>
 #include <vector>
 
+#include "../helper/blocks.h"
+#include "../helper/blockfilereader.h"
+
 namespace Parser {
 
 MsglistParser::MsglistParser(uint32_t path) : m_filePath(""){
     char filepath[64];
-    sprintf(filepath,"blk/%03X/%05X/msglist.dat", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(filepath, path, "msglist.dat");
     m_filePath = filepath;
 }
 
 MsglistParser::MsglistParser(const char* filepath) : m_filePath(filepath) {
+}
+
+MsglistParser::~MsglistParser() {
 }
 
 bool MsglistParser::save(const char* filepath) {
@@ -59,28 +65,22 @@ bool MsglistParser::load(const char *filepath) {
         m_filePath = filepath;
     }
 
-    std::ifstream file;
-    file.exceptions(std::ifstream::failbit | std::ifstream::badbit | std::ifstream::eofbit);
-    try {
-        file.open(m_filePath, std::ifstream::in | std::ifstream::binary);
+    Helper::BlockFileReader file(m_filePath.c_str());
+    if (!file.isOpen()) return false;
+    file.read((char*)&m_header, sizeof(m_header));
+    for (unsigned int i = 0; i<m_header.num_of_msg; ++i) {
+        MessageRecord item;
+        file.read((char*)&item, sizeof(item));
+        m_msgList.push_back(item);
+    }
 
-        file.read((char*)&m_header, sizeof(m_header));
-        for (unsigned int i = 0; i<m_header.num_of_msg; ++i) {
-            MessageRecord item;
-            file.read((char*)&item, sizeof(item));
-            m_msgList.push_back(item);
-        }
+    uint32_t hashesSize;
+    file.read((char*)&hashesSize, sizeof(hashesSize));
 
-        uint32_t hashesSize;
-        file.read((char*)&hashesSize, sizeof(hashesSize));
-
-        for (unsigned int i=0; i<hashesSize; ++i) {
-            hash_s hash;
-            file.read((char*)&hash, sizeof(hash));
-            m_hashes.push_back(hash);
-        }
-    } catch (std::exception&) {
-        return false;
+    for (unsigned int i=0; i<hashesSize; ++i) {
+        hash_s hash;
+        file.read((char*)&hash, sizeof(hash));
+        m_hashes.push_back(hash);
     }
 
     return true;

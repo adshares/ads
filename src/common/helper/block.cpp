@@ -2,6 +2,8 @@
 #include <fstream>
 #include "block.h"
 #include "hash.hpp"
+#include "blocks.h"
+#include "blockfilereader.h"
 
 namespace Helper {
 
@@ -31,11 +33,11 @@ bool Block::readDataFromHeaderFile() {
     if(!m_data.ttime) {
         sprintf(fileName,"blk/header.hdr");
     } else {
-        sprintf(fileName,"blk/%03X/%05X/header.hdr", m_data.ttime>>20, m_data.ttime&0xFFFFF);
+        Helper::FileName::getName(fileName, m_data.ttime, "header.hdr");
     }
     const uint32_t check = m_data.ttime;
-    std::ifstream file(fileName, std::ifstream::in | std::ifstream::binary);
-    if(file.is_open()) {
+    Helper::BlockFileReader file(fileName);
+    if(file.isOpen()) {
         file.read((char*)&m_data, sizeof(m_data));
         file.close();
         if(m_data.ttime == 0) {

@@ -6,6 +6,8 @@
 
 #include "ascii.h"
 #include "default.hpp"
+#include "helper/blockfilereader.h"
+#include "helper/filewrapper.h"
 
 #define HLOG_USO 1
 #define HLOG_UOK 2
@@ -140,7 +142,8 @@ public:
     int total;
     char *data;
   private:
-    int fd;
+    std::shared_ptr<Helper::BlockFileReader> fd;
+    Helper::FileWrapper m_save_file;
     char filename[64];
     char txid_text[20];
     SHA256_CTX sha256;

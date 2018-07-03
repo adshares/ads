@@ -8,7 +8,8 @@
 #include <boost/enable_shared_from_this.hpp>
 #include "hash.hpp"
 #include "user.hpp"
-
+#include "helper/blocks.h"
+#include "helper/blockfilereader.h"
 
 class message :
     public boost::enable_shared_from_this<message> {
@@ -270,8 +271,8 @@ class message :
         close(fd);
         uint32_t block=now-now%BLOCKSEC;
         for(; block<=path; block+=BLOCKSEC) {
-            sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,svid);
-            int fd=open(filename,O_RDONLY);
+            Helper::FileName::getUndo(filename, block, svid);
+            int fd = open(filename, O_RDONLY);
             if(fd<0) {
                 continue;
             }
@@ -382,46 +383,44 @@ class message :
         makefilename(filename,path,"msg");
 
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0) {
+        Helper::BlockFileReader fd(filename);
+
+        if(!fd.isOpen()) {
             DLOG("ERROR %s not found\n",filename);
             return(false);
         }
         uint32_t mlen;
-        read(fd,&mlen,4);
+        fd.read(&mlen, 4);
         mlen>>=8;
         if(!mlen) {
             DLOG("ERROR %s failed to read message length\n",filename);
-            close(fd);
             return(false);
         }
         hash_t mhash;
         uint32_t ttot;
         uint32_t tmax;
-        lseek(fd,mlen,SEEK_SET);
+        fd.lseek(mlen, SEEK_SET);
 
-        read(fd,mhash,32);
-        read(fd,&mnum,4);
-        read(fd,&ttot,4); // not needed
-        read(fd,&tmax,4);
+        fd.read(mhash,32);
+        fd.read(&mnum,4);
+        fd.read(&ttot,4); // not needed
+        fd.read(&tmax,4);
         //struct stat sb;
         //fstat(fd,&sb);
         //assert(sb.st_size==ttot);
         if(!tmax) {
             DLOG("ERROR %s failed to read number of hashes\n",filename);
-            close(fd);
             return(false);
         }
         if(tnum>=tmax) {
             DLOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
-            close(fd);
             return(false);
         }
         uint32_t pos;
         if(tnum%2) {
             uint32_t tmp[8+1+8+1];
-            lseek(fd,mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
-            read(fd,tmp,32+4+32+4);
+            fd.lseek(mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
+            fd.read(tmp,32+4+32+4);
             pos=tmp[8];
             if(tnum==tmax-1) {
                 len=mlen-pos;
@@ -433,8 +432,8 @@ class message :
             hashes.push_back(*(hash_s*)(&tmp[0]));
         } else {
             uint32_t tmp[1+8+1+8];
-            lseek(fd,mlen+32+4+4+4+(4+32)*tnum,SEEK_SET);
-            read(fd,tmp,4+32+4+32);
+            fd.lseek(mlen+32+4+4+4+(4+32)*tnum,SEEK_SET);
+            fd.read(tmp,4+32+4+32);
             pos=tmp[0];
             hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
             if(tnum==tmax-1) {
@@ -451,8 +450,8 @@ class message :
         }
         assert(len>0 && len<mlen);
         data=(uint8_t*)std::malloc(len);
-        lseek(fd,pos,SEEK_SET);
-        read(fd,data,len); //read message
+        fd.lseek(pos,SEEK_SET);
+        fd.read(data,len); //read message
         std::vector<uint32_t>add;
         hashtree tree;
         tree.hashpath(tnum/2,(tmax+1)/2,add);
@@ -464,20 +463,19 @@ class message :
             if(n > secondLevel-1)
             {
                 if((tmax/2)%2 == 1 && tmax > 3)
-                    lseek(fd,ttot-32,SEEK_SET);
+                    fd.lseek(ttot-32,SEEK_SET);
                 else
-                    lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
+                    fd.lseek(mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
             }else
             {
                 assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
-                lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
+                fd.lseek(mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
             }
 
             hash_s phash;
-            read(fd,phash.hash,32);            
+            fd.read(phash.hash,32);
             hashes.push_back(phash);
         }
-        close(fd);        
 
         //DEBUG only, confirm hash
         hash_t nhash;
@@ -946,8 +944,8 @@ class message :
         char filename[128];
         makefilename(filename,path,"msg");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0) {
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
             busy.erase(who); //FIXME, check if this is not a problem :-(
             mtx_.unlock();
             DLOG("%s open failed [len:%d]\n",filename,len);
@@ -957,11 +955,9 @@ class message :
             free(data);
             data=NULL;
         }
-        struct stat sb;
-        fstat(fd,&sb);
-        data=(uint8_t*)malloc(sb.st_size); //do not throw
-        read(fd,data,sb.st_size);
-        close(fd);
+        int size = fd.getSize();
+        data=(uint8_t*)malloc(size); //do not throw
+        fd.read(data, size);
         if(len==header_length) {
             len=*((uint32_t*)data)>>8;
             //if(hashtype()==MSGTYPE_MSG && !*((uint64_t*)sigh)){
@@ -974,7 +970,7 @@ class message :
         status|=MSGSTAT_DAT | MSGSTAT_SAV; //load() succeeded so massage is saved
         mtx_.unlock();
         DLOG("%04X LOAD %04X:%08X (len:%d) %s\n",who,svid,msid,len,filename);
-        return((uint32_t)sb.st_size);
+        return((uint32_t)size);
     }
 
     void unload(int16_t who) {
@@ -1017,7 +1013,7 @@ class message :
             ELOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
             assert(0);
         }
-        int fd=open(filename,O_WRONLY);
+        int fd = open(filename,O_WRONLY);
         if(fd<0) {
             ELOG("ERROR, saving mnum %d in %s\n",mnum,filename);
             return;
@@ -1025,6 +1021,7 @@ class message :
         lseek(fd,len+32,SEEK_SET);
         write(fd,&mnum,4);
         close(fd);
+
     }
 
     void makefilename(char* filename,uint32_t where,const char* suffix) {
@@ -1058,7 +1055,7 @@ class message :
             ELOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
             assert(0);
         }
-        int fd=open(filename,O_WRONLY|O_CREAT,0644);
+        int fd = open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
             ELOG("ERROR, saving %s\n",filename);
             return(0);
@@ -1132,7 +1129,7 @@ class message :
         char filename[128];
         makefilename(filename,path,"und");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
+        int fd = open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
         if(fd<0) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
             exit(-1);
@@ -1154,30 +1151,27 @@ class message :
         char filename[128];
         makefilename(filename,path,"und");
         //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0) {
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
             exit(-1);
         }
-        read(fd,csum,4*sizeof(uint64_t));
-        read(fd,&weight,sizeof(int64_t));
-        read(fd,&fee,sizeof(int64_t));
-        read(fd,msha,SHA256_DIGEST_LENGTH);
-        read(fd,&mtim,sizeof(int32_t));
+        fd.read(csum,4*sizeof(uint64_t));
+        fd.read(&weight,sizeof(int64_t));
+        fd.read(&fee,sizeof(int64_t));
+        fd.read(msha,SHA256_DIGEST_LENGTH);
+        fd.read(&mtim,sizeof(int32_t));
         for(;;) {
             uint32_t i;
             user_t u;
-            if(read(fd,&i,sizeof(uint32_t))!=sizeof(uint32_t)) {
-                close(fd);
+            if(fd.read(&i,sizeof(uint32_t))!=sizeof(uint32_t)) {
                 return(0);
             }
-            if(read(fd,&u,sizeof(user_t))!=sizeof(user_t)) {
-                close(fd);
+            if(fd.read(&u,sizeof(user_t))!=sizeof(user_t)) {
                 return(i);
             }
             undo[i]=u;
         }
-        close(fd);
         return 0;
     }
 

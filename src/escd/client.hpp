@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
+#include "../common/helper/blocks.h"
 
 #define NETSRV_SOCK_TIMEOUT 5
 #define NETSRV_SOCK_IDLE    5

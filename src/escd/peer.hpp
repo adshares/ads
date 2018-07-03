@@ -1014,8 +1014,8 @@ public:
             return;
         }
         for(uint32_t block=path+BLOCKSEC; block<=srvs_.now; block++) {
-            sprintf(filename,"blk/%03X/%05X/und/%04X.dat",block>>20,block&0xFFFFF,bank);
-            int uf=open(filename,O_RDONLY);
+            Helper::FileName::getUndo(filename, block, bank);
+            int uf = open(filename, O_RDONLY);
             if(uf<0) {
                 continue;
             }

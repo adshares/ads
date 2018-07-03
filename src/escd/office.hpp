@@ -10,6 +10,7 @@
 #include <boost/make_shared.hpp>
 #include "options.hpp"
 #include "server.hpp"
+#include "helper/blocks.h"
 
 
 class client;
@@ -312,8 +313,8 @@ class office {
         //uint64_t sv00=((uint64_t)opts_.svid)<<32;
         //mque.push_back(sv00); //add block message
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/log/time.bin",now>>20,now&0xFFFFF);
-        int fd=open(filename,O_RDWR|O_CREAT,0644);
+        Helper::FileName::getLogTimeBin(filename, now);
+        int fd = open(filename, O_RDWR|O_CREAT, 0644);
         if(fd<0) {
             DLOG("ERROR, failed to open log time file %s, fatal\n",filename);
             exit(-1);
@@ -344,8 +345,8 @@ class office {
             uint64_t svms=(*mi);
             uint32_t bank=svms>>32;
             uint32_t msid=svms&0xFFFFFFFF;
-            sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,bank,msid);
-            int fd=open(filename,O_RDONLY);
+            Helper::FileName::getLog(filename, now, bank, msid);
+            int fd = open(filename, O_RDONLY);
             if(fd<0) {
                 DLOG("OFFICE, failed to open log file %s\n",filename);
                 continue;
