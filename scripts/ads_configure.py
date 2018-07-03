@@ -270,12 +270,10 @@ def configure(data_dir, interface, identifiers, genesis_file):
     else:
         print("Configuring all nodes found in the genesis file.")
 
-    node_numerical_identifier = 0
+    node_numerical_identifier = 1
     local_peers = []
 
     for index, node_identifier in enumerate(genesis_data.node_identifiers()):
-
-        node_numerical_identifier += 1
 
         if identifiers and node_identifier not in chosen_identifiers:
             continue
@@ -313,6 +311,9 @@ def configure(data_dir, interface, identifiers, genesis_file):
 
             aconf.save()
             break
+
+        if len(chosen_identifiers) > 1:
+            node_numerical_identifier += 1
 
 
 if __name__ == '__main__':
