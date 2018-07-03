@@ -4726,16 +4726,17 @@ NEXTBANK:
             const char* plist = m_peerManager.getActualPeerList().c_str();
             int peerCount = m_peerManager.getPeersCount(true);
             int allpeerCount = m_peerManager.getPeersCount(false);
+            int tickets = ofip_get_tickets();
             if(missing_msgs_.size()) {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                     (int)wait_msgs_.size(),peerCount,allpeerCount, srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist,
                      (int)missing_msgs_.size(),missing_msgs_.begin()->first);
             } else {
-                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+                ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s]\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist);
             }
             if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
                 panic=true;
@@ -4966,6 +4967,7 @@ NEXTBANK:
     void ofip_readwrite();
     void ofip_readonly();
     bool ofip_isreadonly();
+    int ofip_get_tickets();
 
     //FIXME, move this to servers.hpp
     //std::set<uint16_t> last_svid_dbl; //list of double spend servers in last block

@@ -252,4 +252,7 @@ void server::ofip_readonly() {
 bool server::ofip_isreadonly() {
     return(ofip->readonly);
 }
+int server::ofip_get_tickets() {
+    return(ofip->get_tickets());
+}
 

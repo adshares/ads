@@ -1290,6 +1290,11 @@ class office {
         return(srv_.last_srvs_.nodes[node].pk); // use an old key !!!
     }
 
+    int get_tickets()
+    {
+      return clients_.size();
+    }
+
     uint16_t svid;
     hash_t pkey; // local copy for managing updates
     std::stack<gup_t> gup; // GET results
