@@ -42,7 +42,11 @@ if(NOT CMAKE_PROJECT_CONFIG)
 endif(NOT CMAKE_PROJECT_CONFIG)
 
 set(CONFIG_FILE "default_${CMAKE_PROJECT_CONFIG}.h.in")
-project(${CMAKE_PROJECT_CONFIG})
+if(CMAKE_PROJECT_NAME)
+	project(${CMAKE_PROJECT_NAME})
+else()
+	project(${CMAKE_PROJECT_CONFIG})
+endif()
 
 if(EXISTS ${CONFIG_FILE})
     message(FATAL_ERROR "Configuration file ${CONFIG_FILE} not exists")
