@@ -312,8 +312,7 @@ def configure(data_dir, interface, identifiers, genesis_file):
             aconf.save()
             break
 
-        if len(chosen_identifiers) > 1:
-            node_numerical_identifier += 1
+        node_numerical_identifier += 1
 
 
 if __name__ == '__main__':
