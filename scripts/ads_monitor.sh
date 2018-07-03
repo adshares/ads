@@ -6,41 +6,51 @@ date_msg()
     echo "$(date +'%F %T') | $(date --date=@$1 +'%F %T')  $2"
 }
 
+get_opt() {
+    line=`grep -i $2= $1/options.cfg | head -1`
+    if [[ ${line} =~ ^$2=(.+)$ ]]; then
+        echo ${BASH_REMATCH[1]}
+    else
+        >&2 echo "Cannot find options $2"
+        exit 1
+    fi
+}
+
+get_addr() {
+    get_opt $1 "addr"
+}
+
+get_port() {
+    get_opt $1 "port"
+}
+
+get_offi() {
+    get_opt $1 "offi"
+}
+
+get_svid() {
+    get_opt $1 "svid"
+}
+
 # Checks if the node is alive
 status() {
-    opt_file="$1/options.cfg"
-
-    line=`grep -i addr= ${opt_file} | head -1`
-    if [[ ${line} =~ ^addr=(.+)$ ]]; then
-        host=${BASH_REMATCH[1]}
-    else
+    if ! host=`get_addr $1`; then
         echo 0
-        >&2 echo "Cannot find node address"
         exit 1
     fi
-
-    line=`grep -i offi= ${opt_file} | head -1`
-    if [[ ${line} =~ ^offi=(.+)$ ]]; then
-        port=${BASH_REMATCH[1]}
-    else
+    if ! port=`get_offi $1`; then
         echo 0
-        >&2 echo "Cannot find node port"
         exit 1
     fi
-
-    line=`grep -i svid= ${opt_file} | head -1`
-    if [[ ${line} =~ ^svid=(.+)$ ]]; then
-        node_id=${BASH_REMATCH[1]}
-    else
+    if ! node_id=`get_svid $1`; then
         echo 0
-        >&2 echo "Cannot find node id"
         exit 1
     fi
 
     data=`echo '{"run":"get_block"}' | ads -H${host} -P${port} --work-dir=$1 2> /dev/null`
     if [[ ${data} =~ \"current_block_time\":\ \"([0-9]+)\".*\"previous_block_time\":\ \"([0-9]+)\" ]]; then
         if [ -n "$2" ]; then
-            date_msg ${BASH_REMATCH[1]} "<-  $(date --date=@${BASH_REMATCH[2]} +'%F %T')  ${node_id}"
+            date_msg ${BASH_REMATCH[2]} "->  $(date --date=@${BASH_REMATCH[1]} +'%F %T') | ${host}:${port} ${node_id}"
         else
             echo ${node_id}
         fi
@@ -150,7 +160,12 @@ peers() {
 
 # Number of currently open connections
 connections() {
-    log "OFFICE new ticket" "open" $1 $2
+    if ! offi=`get_offi $1`; then
+        echo 0
+        exit 1
+    fi
+
+    netstat -na | grep -P :${offi}.*[0-9\.]+:[0-9]+ | grep -v 0.0.0.0:* | grep -v TIME_WAIT | wc -l
 }
 
 # Display error message
@@ -270,7 +285,7 @@ case "$1" in
     tps)    command="tps ${stderr_path} ${verbose}" ;;
     txs)    command="txs ${stderr_path} ${verbose}" ;;
     peers)  command="peers ${stderr_path} ${verbose}" ;;
-    conns)  command="connections ${stderr_path} ${verbose}" ;;
+    conns)  command="connections ${working_dir} ${verbose}" ;;
     *)      show_error "Unsupported command \"$1\"" ;;
 esac
 
