@@ -3,6 +3,7 @@ set (UNITTEST_APP unittest)
 SET (SRC_LIST
     unittest.cpp
     blocks_helper_test.cpp
+    tokens_db_test.cpp
     )
 
 SET (HEADERS_LIST

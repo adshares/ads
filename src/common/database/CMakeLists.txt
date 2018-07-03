@@ -1,0 +1,11 @@
+SET (SOURCE
+    ${SOURCE}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tokendb.cpp
+    PARENT_SCOPE
+    )
+
+SET (HEADERS
+    ${HEADERS}
+    ${CMAKE_CURRENT_SOURCE_DIR}/tokendb.h
+    PARENT_SCOPE
+    )
