@@ -5,8 +5,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
+#include "../common/helper/blocks.h"
 
 #define NETSRV_SOCK_TIMEOUT 5
 #define NETSRV_SOCK_IDLE    5
@@ -42,8 +44,6 @@ class client : public boost::enable_shared_from_this<client> {
     boost::asio::ip::tcp::socket& socket() {
         return m_socket;
     }
-
-#include <sys/socket.h>
 
     void start() { //TODO consider providing a local user file pointer
 
@@ -126,12 +126,17 @@ class client : public boost::enable_shared_from_this<client> {
                     {
                         ELOG("ERROR exception in onExecute %s\n", e.what());
                     }
+                    catch (...)
+                    {
+                        ELOG("UNKNOWN ERROR exception in onExecute \n");
+                    }
+
                     m_offi.unlock_user(lockUserId);
                 }
                 else{
                     ErrorCodes::Code code = ErrorCodes::Code::eLockUserFailed;
                     ELOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
-                    ELOG("ERROR: %d\n", lockUserId);
+                    ELOG("ERROR: USER: %d\n", lockUserId);
                     boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
                 }
             }

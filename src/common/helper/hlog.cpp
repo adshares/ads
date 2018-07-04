@@ -7,15 +7,16 @@
 
 #include "command/errorcodes.h"
 #include "default.hpp"
+#include "blocks.h"
 
 namespace Helper {
 
-Hlog::Hlog() : total(0), data(nullptr), fd(-1) {
+Hlog::Hlog() : total(0), data(nullptr) {
 
 }
 
 Hlog::Hlog(char* buffer, uint32_t size)
-    : total(size), fd(-1) {
+    : total(size) {
     data = (char*)malloc(size);
     std::memcpy(data, buffer, size);
     SHA256_Init(&sha256);
@@ -41,25 +42,23 @@ Hlog& Hlog::operator=(Hlog hlog) {
 
 Hlog::Hlog(uint32_t path) :
     total(0),
-    data(NULL),
-    fd(-1) {
-    sprintf(filename,"blk/%03X/%05X/hlog.hlg",path>>20,path&0xFFFFF);
+    data(NULL) {
+    Helper::FileName::getName(filename, path, "hlog.hlg");
     SHA256_Init(&sha256);
 }
 
 Hlog::Hlog(boost::property_tree::ptree& pt,char* filename) : //log,filename
     total(0),
-    data(NULL),
-    fd(-1) {
+    data(NULL) {
     SHA256_Init(&sha256);
-    fd=open(filename,O_RDONLY);
-    if(fd<0) {
+    fd = std::make_shared<Helper::BlockFileReader>(filename);
+    if(!fd->isOpen()) {
         pt.put("error_read","true");
         return;
     }
     uint8_t type;
     boost::property_tree::ptree logs;
-    while(read(fd,&type,1)>0) {
+    while(fd->read(&type,1)>0) {
         boost::property_tree::ptree log;
         switch(type) {
         case(HLOG_USO):
@@ -105,10 +104,6 @@ Hlog::Hlog(boost::property_tree::ptree& pt,char* filename) : //log,filename
 
 
 Hlog::~Hlog() {
-    if(fd>=0) {
-        close(fd);
-        fd=-1;
-    }
     if(data!=NULL) {
         free(data);
         data=NULL;
@@ -174,17 +169,15 @@ void Hlog::printJson(boost::property_tree::ptree& pt) {
 }
 
 void Hlog::load() {
-    fd=open(filename,O_RDONLY);
-    if(fd<0) {
+    fd = std::make_shared<Helper::BlockFileReader>(filename);
+    if(!fd->isOpen()) {
         data=(char*)malloc(4);
         bzero(data,4);
         return;
     }
-    struct stat sb;
-    fstat(fd,&sb);
-    total=sb.st_size;
+    total=fd->getSize();
     data=(char*)malloc(4+total);
-    read(fd,data+4,total);
+    fd->read(data + 4,total);
     memcpy(data,&total,4);
 }
 
@@ -194,15 +187,15 @@ void Hlog::finish(hash_t &hash,int &l) {
 }
 
 bool Hlog::save(char* buf,int len) {
-    if(fd<0) {
-        fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
-        if(fd<0) {
-            return(false);
+    if (!m_save_file.isOpen()) {
+        m_save_file.open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0644, false);
+        if (!m_save_file.isOpen()) {
+            return false;
         }
     }
     SHA256_Update(&sha256,buf,len);
     total+=len;
-    return(write(fd,buf,len)==len);
+    return(m_save_file.write(buf,len)==len);
 }
 
 char* Hlog::txid(const uint64_t& ppi) {
@@ -226,7 +219,7 @@ void Hlog::read_uso(boost::property_tree::ptree& pt, char *buffer) {
 void Hlog::read_uso(boost::property_tree::ptree& pt) {
     blg_uso_t log;
     log.type=HLOG_USO;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_USO);
     pt.put("name","create_account_confirmed");
@@ -261,7 +254,7 @@ void Hlog::read_uok(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_uok(boost::property_tree::ptree& pt) {
     blg_uok_t log;
     log.type=HLOG_UOK;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_UOK);
     pt.put("name","create_account_late");
@@ -295,7 +288,7 @@ void Hlog::read_usr(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_usr(boost::property_tree::ptree& pt) {
     blg_usr_t log;
     log.type=HLOG_USR;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_USR);
     pt.put("name","create_account_failed");
@@ -328,7 +321,7 @@ void Hlog::read_bky(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_bky(boost::property_tree::ptree& pt) {
     blg_bky_t log;
     log.type=HLOG_BKY;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_BKY);
     pt.put("name","node_unlocked");
@@ -360,7 +353,7 @@ void Hlog::read_sbs(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_sbs(boost::property_tree::ptree& pt) {
     blg_sbs_t log;
     log.type=HLOG_SBS;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_SBS);
     pt.put("name","set_node_status");
@@ -394,7 +387,7 @@ void Hlog::read_ubs(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_ubs(boost::property_tree::ptree& pt) {
     blg_ubs_t log;
     log.type=HLOG_UBS;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_UBS);
     pt.put("name","unset_node_status");
@@ -428,7 +421,7 @@ void Hlog::read_bnk(boost::property_tree::ptree& pt, char *buffer) {
 void Hlog::read_bnk(boost::property_tree::ptree& pt) {
     blg_bnk_t log;
     log.type=HLOG_BNK;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_BNK);
     pt.put("name","create_node");
@@ -463,7 +456,7 @@ void Hlog::read_get(boost::property_tree::ptree& pt, char* buffer) {
 void Hlog::read_get(boost::property_tree::ptree& pt) {
     blg_get_t log;
     log.type=HLOG_GET;
-    read(fd,(char*)&log+1,sizeof(log)-1);
+    fd->read((char*)&log+1,sizeof(log)-1);
     SHA256_Update(&sha256,(char*)&log,sizeof(log));
     pt.put("type",HLOG_GET);
     pt.put("name","retrieve_funds");

@@ -10,6 +10,11 @@
     <UL>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper"><param name="Local" value="namespace_helper.html"><param name="ImageNumber" value="11"></OBJECT>
     </UL>
+  <LI><OBJECT type="text/sitemap"><param name="Name" value="Namespace Members"><param name="Local" value="namespacemembers.html"><param name="ImageNumber" value="11"></OBJECT>
+    <UL>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="All"><param name="Local" value="namespacemembers.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="Functions"><param name="Local" value="namespacemembers_func.html"><param name="ImageNumber" value="11"></OBJECT>
+    </UL>
   </UL>
 <LI><OBJECT type="text/sitemap"><param name="Name" value="Classes"><param name="Local" value="annotated.html"><param name="ImageNumber" value="1"></OBJECT>
   <UL>
@@ -90,6 +95,32 @@
         <LI><OBJECT type="text/sitemap"><param name="Name" value="readDataFromHeaderFile"><param name="Local" value="class_helper_1_1_block.html#a056d8f23197bda512692f694629f2354"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="updateLastHeader"><param name="Local" value="class_helper_1_1_block.html#aa1e98b7951171fa3d7c1c7d87e58236c"><param name="ImageNumber" value="11"></OBJECT>
         </UL>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html"><param name="ImageNumber" value="1"></OBJECT>
+        <UL>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html#aac4d414bf30e75c223f36cfe715238c9"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html#aeb3d5cc6114504501410f1e40e9a118f"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html#ae48879329bea727f941e5d0fd46e9481"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="~BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html#a9086fe813f907c35b188889a41088391"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="close"><param name="Local" value="class_helper_1_1_block_file_reader.html#a35877a461c247fd062cbb858d18e9ee1"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="getSize"><param name="Local" value="class_helper_1_1_block_file_reader.html#a51ca53fd024c8b507c61b8b6f01c8349"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="isOpen"><param name="Local" value="class_helper_1_1_block_file_reader.html#a6606e2657027d3a056aca407a1059604"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="lseek"><param name="Local" value="class_helper_1_1_block_file_reader.html#a928251ccb2e87353f41062eebfd8487f"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="openFile"><param name="Local" value="class_helper_1_1_block_file_reader.html#ad40bd336b87ec20b2a3248fe4ade4d02"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="openFromArch"><param name="Local" value="class_helper_1_1_block_file_reader.html#ad8ee7df622cf77e7cef7430b46cbcf4d"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="read"><param name="Local" value="class_helper_1_1_block_file_reader.html#a3790dd27f6c876da9a85ff063a2626bf"><param name="ImageNumber" value="11"></OBJECT>
+        </UL>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="FileWrapper"><param name="Local" value="class_helper_1_1_file_wrapper.html"><param name="ImageNumber" value="1"></OBJECT>
+        <UL>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="FileWrapper"><param name="Local" value="class_helper_1_1_file_wrapper.html#afc456567a15d1a5b38d24f63b5b7a059"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="FileWrapper"><param name="Local" value="class_helper_1_1_file_wrapper.html#a63f1f5d11db41d21162523eba3747277"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="~FileWrapper"><param name="Local" value="class_helper_1_1_file_wrapper.html#a830a381b52c3b2f0f85580a39eb932c1"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="isOpen"><param name="Local" value="class_helper_1_1_file_wrapper.html#a65c74894690daf967dac432ce952ee9e"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="open"><param name="Local" value="class_helper_1_1_file_wrapper.html#ad9d2cfedfaba0bd246db4cf21a259947"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="read"><param name="Local" value="class_helper_1_1_file_wrapper.html#aa35986f4a1ede14c2514fe61e059c114"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="remove"><param name="Local" value="class_helper_1_1_file_wrapper.html#a34d4c6c536b9d3410b767a6eb3dcfd7d"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="seek"><param name="Local" value="class_helper_1_1_file_wrapper.html#aa8e966179b38866194db06666fbe4afd"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="write"><param name="Local" value="class_helper_1_1_file_wrapper.html#a2d0fff70a957cb47a65d986345078c43"><param name="ImageNumber" value="11"></OBJECT>
+        </UL>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="HashDoubleVariant"><param name="Local" value="struct_helper_1_1_hash_double_variant.html"><param name="ImageNumber" value="1"></OBJECT>
         <UL>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="ha1"><param name="Local" value="struct_helper_1_1_hash_double_variant.html#a86b9bf6a8b5ccc8c01abe2eb0d22668e"><param name="ImageNumber" value="11"></OBJECT>
@@ -146,10 +177,17 @@
         <LI><OBJECT type="text/sitemap"><param name="Name" value="data"><param name="Local" value="class_helper_1_1_hlog.html#abc0f2b0bba02a4e24bd0a826b510d995"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="total"><param name="Local" value="class_helper_1_1_hlog.html#afec236c8d137189121920294237debbb"><param name="ImageNumber" value="11"></OBJECT>
         </UL>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="LibArchive"><param name="Local" value="class_helper_1_1_lib_archive.html"><param name="ImageNumber" value="1"></OBJECT>
+        <UL>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="LibArchive"><param name="Local" value="class_helper_1_1_lib_archive.html#a1f64861f69b88fc5bee80a002da8e679"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="createArch"><param name="Local" value="class_helper_1_1_lib_archive.html#ade2c935f8e99f91c07755a66823035a1"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="getFileHandle"><param name="Local" value="class_helper_1_1_lib_archive.html#a9e548b5f57d721d6152979a92a82f636"><param name="ImageNumber" value="11"></OBJECT>
+        </UL>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="Servers"><param name="Local" value="class_helper_1_1_servers.html"><param name="ImageNumber" value="1"></OBJECT>
         <UL>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="Servers"><param name="Local" value="class_helper_1_1_servers.html#a5e102ebd3f482812e4cf6ff14fef3fdc"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="Servers"><param name="Local" value="class_helper_1_1_servers.html#afcdc9ad05fb7e12ccfd0c56de632c664"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="~Servers"><param name="Local" value="class_helper_1_1_servers.html#a80faa5fb78175f2dd41d1e2759f19b88"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="getHeader"><param name="Local" value="class_helper_1_1_servers.html#a1e0d65bf328ce604ac60e706a5a3c957"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="getMsglHashTree"><param name="Local" value="class_helper_1_1_servers.html#ab2d326fcf9bd20695ce60588d79591a5"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="getNode"><param name="Local" value="class_helper_1_1_servers.html#a260e371f98aad281f762d50222382efb"><param name="ImageNumber" value="11"></OBJECT>
@@ -225,6 +263,7 @@
         <LI><OBJECT type="text/sitemap"><param name="Name" value="MsglistParser"><param name="Local" value="class_parser_1_1_msglist_parser.html#a046d7ab77c35a43bfa105a073ae81473"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="MsglistParser"><param name="Local" value="class_parser_1_1_msglist_parser.html#abd8874dc9377b715e514bc08b7be221a"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="MsglistParser"><param name="Local" value="class_parser_1_1_msglist_parser.html#a90ea1b82ab2aafd548f8c978eb9be19d"><param name="ImageNumber" value="11"></OBJECT>
+        <LI><OBJECT type="text/sitemap"><param name="Name" value="~MsglistParser"><param name="Local" value="class_parser_1_1_msglist_parser.html#a03301cddf061c55792e8db94cae557ae"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="begin"><param name="Local" value="class_parser_1_1_msglist_parser.html#ad8c1ac3b8f00a1d8669ba5a136801a77"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="end"><param name="Local" value="class_parser_1_1_msglist_parser.html#a36659361dc2f4a02670a884d0126bdbe"><param name="ImageNumber" value="11"></OBJECT>
         <LI><OBJECT type="text/sitemap"><param name="Name" value="get"><param name="Local" value="class_parser_1_1_msglist_parser.html#a3c0ade06f37df89f1b36825e9ebdb1f4"><param name="ImageNumber" value="11"></OBJECT>
@@ -1412,7 +1451,7 @@
       <LI><OBJECT type="text/sitemap"><param name="Name" value="addhash"><param name="Local" value="classhashtree.html#a339108506be22a9de0f7a30c5a60afb1"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="bits"><param name="Local" value="classhashtree.html#a9bca195efc159a37c8c8ec40e6c3154d"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="finish"><param name="Local" value="classhashtree.html#a4bb6f0bb418753feb03f7bc91279bb9e"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="hashpath"><param name="Local" value="classhashtree.html#aa6618cf53b7c7b396fd569484f8dc613"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="hashpath"><param name="Local" value="classhashtree.html#a50328ceb9a0f75c6e62cfb617b4c6072"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="hashpathrun"><param name="Local" value="classhashtree.html#afb89762d00728be7a4057ce1456bfc65"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="update"><param name="Local" value="classhashtree.html#a965bda31c4b1ed32a90f4f93157f52fa"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="hash_"><param name="Local" value="classhashtree.html#a22c70560eaed36694d633c6cb02ab59c"><param name="ImageNumber" value="11"></OBJECT>
@@ -2588,7 +2627,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="TransactionFailedInfo"><param name="Local" value="struct_transaction_failed_info.html"><param name="ImageNumber" value="1"></OBJECT>
       <UL>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="TransactionFailedInfo"><param name="Local" value="struct_transaction_failed_info.html#aa429cd481e9762639d69036046895f79"><param name="ImageNumber" value="11"></OBJECT>
-      <LI><OBJECT type="text/sitemap"><param name="Name" value="TransactionFailedInfo"><param name="Local" value="struct_transaction_failed_info.html#af565737a1d316889e292a9680d268a31"><param name="ImageNumber" value="11"></OBJECT>
+      <LI><OBJECT type="text/sitemap"><param name="Name" value="TransactionFailedInfo"><param name="Local" value="struct_transaction_failed_info.html#a057b14ce7a1f979531c3c099fa89c674"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="message_size"><param name="Local" value="struct_transaction_failed_info.html#ac368cee90ea43c1ccb5088029a4c4943"><param name="ImageNumber" value="11"></OBJECT>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="ttype"><param name="Local" value="struct_transaction_failed_info.html#a9c476f25a08ee9e8c74eed7e04e8506a"><param name="ImageNumber" value="11"></OBJECT>
       </UL>
@@ -2818,6 +2857,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::blg_uso_t"><param name="Local" value="struct_helper_1_1blg__uso__t.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::blg_usr_t"><param name="Local" value="struct_helper_1_1blg__usr__t.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::Block"><param name="Local" value="class_helper_1_1_block.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::BlockFileReader"><param name="Local" value="class_helper_1_1_block_file_reader.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="BroadcastFileHeader"><param name="Local" value="struct_broadcast_file_header.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="ChangeNodeKeyData"><param name="Local" value="struct_change_node_key_data.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="commandresponse"><param name="Local" value="structcommandresponse.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -2854,6 +2894,7 @@
       </UL>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="ErrorCodes"><param name="Local" value="class_error_codes.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="command::factory"><param name="Local" value="classcommand_1_1factory.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::FileWrapper"><param name="Local" value="class_helper_1_1_file_wrapper.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="get_t"><param name="Local" value="structget__t.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="GetAccountsData"><param name="Local" value="struct_get_accounts_data.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="GetAccountsInfo"><param name="Local" value="struct_get_accounts_info.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -2964,6 +3005,7 @@
       <UL>
       <LI><OBJECT type="text/sitemap"><param name="Name" value="NetworkClient"><param name="Local" value="class_network_client.html"><param name="ImageNumber" value="11"></OBJECT>
       </UL>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::LibArchive"><param name="Local" value="class_helper_1_1_lib_archive.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="log_s"><param name="Local" value="structlog__s.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="LogAccountData"><param name="Local" value="struct_log_account_data.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="LogAccountInfo"><param name="Local" value="struct_log_account_info.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -2992,8 +3034,8 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="SendManyData"><param name="Local" value="struct_send_many_data.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="SendManyInfo"><param name="Local" value="struct_send_many_info.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="server"><param name="Local" value="classserver.html"><param name="ImageNumber" value="11"></OBJECT>
-    <LI><OBJECT type="text/sitemap"><param name="Name" value="servers"><param name="Local" value="classservers.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::Servers"><param name="Local" value="class_helper_1_1_servers.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="servers"><param name="Local" value="classservers.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::ServersHeader"><param name="Local" value="struct_helper_1_1_servers_header.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="Helper::ServersNode"><param name="Local" value="struct_helper_1_1_servers_node.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="settings"><param name="Local" value="classsettings.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -3074,6 +3116,11 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="ascii.h"><param name="Local" value="ascii_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="block.cpp"><param name="Local" value="block_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="block.h"><param name="Local" value="block_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="blockfilereader.cpp"><param name="Local" value="blockfilereader_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="blockfilereader.h"><param name="Local" value="blockfilereader_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="blocks.cpp"><param name="Local" value="blocks_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="blocks.h"><param name="Local" value="blocks_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="blocks_helper_test.cpp"><param name="Local" value="blocks__helper__test_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="broadcastmsg.cpp"><param name="Local" value="broadcastmsg_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="broadcastmsg.h"><param name="Local" value="broadcastmsg_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="broadcastmsghandler.cpp"><param name="Local" value="broadcastmsghandler_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -3107,6 +3154,8 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="errorcodes.h"><param name="Local" value="errorcodes_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="factory.cpp"><param name="Local" value="factory_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="factory.h"><param name="Local" value="factory_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="filewrapper.cpp"><param name="Local" value="filewrapper_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="filewrapper.h"><param name="Local" value="filewrapper_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="getaccount.cpp"><param name="Local" value="getaccount_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="getaccount.h"><param name="Local" value="getaccount_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="getaccounthandler.cpp"><param name="Local" value="getaccounthandler_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -3167,6 +3216,8 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="inxprinter.h"><param name="Local" value="inxprinter_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="json.cpp"><param name="Local" value="json_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="json.h"><param name="Local" value="json_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="libarchive.cpp"><param name="Local" value="libarchive_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="libarchive.h"><param name="Local" value="libarchive_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="logaccount.cpp"><param name="Local" value="logaccount_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="logaccount.h"><param name="Local" value="logaccount_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="logaccounthandler.cpp"><param name="Local" value="logaccounthandler_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
@@ -3241,6 +3292,7 @@
     <LI><OBJECT type="text/sitemap"><param name="Name" value="txsname.h"><param name="Local" value="txsname_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="undoprinter.cpp"><param name="Local" value="undoprinter_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="undoprinter.h"><param name="Local" value="undoprinter_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
+    <LI><OBJECT type="text/sitemap"><param name="Name" value="unittest.cpp"><param name="Local" value="unittest_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="unsetaccountstatus.cpp"><param name="Local" value="unsetaccountstatus_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="unsetaccountstatus.h"><param name="Local" value="unsetaccountstatus_8h_source.html"><param name="ImageNumber" value="11"></OBJECT>
     <LI><OBJECT type="text/sitemap"><param name="Name" value="unsetaccountstatushandler.cpp"><param name="Local" value="unsetaccountstatushandler_8cpp_source.html"><param name="ImageNumber" value="11"></OBJECT>

@@ -8,6 +8,7 @@
 #include "options.hpp"
 #include "candidate.hpp"
 #include "helper/hlog.h"
+#include "helper/blocks.h"
 #include "network/peerclientmanager.h"
 
 class office;
@@ -369,19 +370,18 @@ class server {
 
     void del_msglog(uint32_t now,uint16_t svid,uint32_t msid) {
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
+        Helper::FileName::getLog(filename, now, svid, msid);
         unlink(filename);
     }
 
     void put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log) { //message log, by server
         char filename[64];
         int fd;
+        Helper::FileName::getLog(filename, now, svid, msid);
         if(msid) {
-            sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,msid);
-            fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
+            fd = open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
         } else {
-            sprintf(filename,"blk/%03X/%05X/log/%04X_%08X.log",now>>20,now&0xFFFFF,svid,0);
-            fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
+            fd = open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
         }
         if(fd<0) {
             ELOG("ERROR, failed to open log file %s\n",filename);
@@ -416,8 +416,8 @@ class server {
             int n;
             for(n=0; n<=rollback; n++) {
                 uint32_t npath=path+n*BLOCKSEC;
-                sprintf(filename,"blk/%03X/%05X/und/%04X.dat",npath>>20,npath&0xFFFFF,bank);
-                int nd=open(filename,O_RDONLY);
+                Helper::FileName::getUndo(filename, npath, bank);
+                int nd = open(filename, O_RDONLY);
                 if(nd<0) {
                     continue;
                 }
@@ -1021,7 +1021,7 @@ NEXTUSER:
         }
         txs_.lock();
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/delta.txt",LAST_block>>20,LAST_block&0xFFFFF);
+        Helper::FileName::getName(filename, LAST_block, "delta.txt");
         FILE *fp=fopen(filename,"w");
         char hash[64];
         //add new messages
@@ -2713,17 +2713,17 @@ NEXTUSER:
 
     void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos) {
         static uint32_t lpath=0;
-        static int fd=-1;
+        int fd=-1;
         static boost::mutex local_;
         boost::lock_guard<boost::mutex> lock(local_);
+        char filename[64];
         if(path!=lpath || fd<0) {
             if(fd>=0) {
                 close(fd);
             }
             lpath=path;
-            char filename[64];
-            sprintf(filename,"blk/%03X/%05X/bro.log",path>>20,path&0xFFFFF);
-            fd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644); //TODO maybe O_TRUNC not needed
+            Helper::FileName::getName(filename, path, "bro.log");
+            fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0644); //TODO maybe O_TRUNC not needed
             if(fd<0) {
                 DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
                 return;
@@ -2734,6 +2734,8 @@ NEXTUSER:
         write(fd,pkey,32);
         write(fd,&msid,sizeof(uint32_t));
         write(fd,&mpos,sizeof(uint32_t)); //FIXME, make this uint16_t
+
+        close(fd);
     }
 
     bool process_message(message_ptr msg) {
@@ -4369,8 +4371,15 @@ NEXTBANK:
             dbls_.unlock();
         }
         DLOG("NEW BLOCK created\n");
-        srvs_.clean_old(opts_.svid);
-        signlater(); // sign own removed messages
+#ifdef BLOCKS_COMPRESSED_SHIFT
+        boost::thread dbBackup_thread(boost::bind(Helper::db_backup, this->srvs_.now - BLOCKSEC, this->srvs_.nodes.size()));
+        dbBackup_thread.detach();
+
+        boost::thread archOldBlocks_thread(boost::bind(Helper::arch_old_blocks, this->srvs_.now - BLOCKSEC));
+        archOldBlocks_thread.detach();
+#endif
+
+//        srvs_.clean_old(opts_.svid);
     }
 
     //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)

@@ -1,0 +1,95 @@
+.TH "Helper::LibArchive" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::LibArchive \- Library to create and read archive with file index in header\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <libarchive\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBLibArchive\fP (const char *archPath)"
+.br
+.RI "\fI\fBLibArchive\fP - cstr\&. \fP"
+.ti -1c
+.RI "bool \fBcreateArch\fP (const char *directoryPath)"
+.br
+.RI "\fICreates archive from directory\&. \fP"
+.ti -1c
+.RI "bool \fBgetFileHandle\fP (const char *filepath, int *file_descriptor, uint64_t *offset, uint64_t *file_size)"
+.br
+.RI "\fIGets handle to file inside arch withour extracting\&. Function opens, but not close fd, remember to do this\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Library to create and read archive with file index in header\&. 
+.PP
+Definition at line 35 of file libarchive\&.h\&.
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "Helper::LibArchive::LibArchive (const char * archPath)"
+
+.PP
+\fBLibArchive\fP - cstr\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIarchPath\fP - path to archive file 
+.RE
+.PP
+
+.PP
+Definition at line 23 of file libarchive\&.cpp\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "bool Helper::LibArchive::createArch (const char * directoryPath)"
+
+.PP
+Creates archive from directory\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdirectoryPath\fP - directory to compress 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true if sucessfull created, otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 28 of file libarchive\&.cpp\&.
+.SS "bool Helper::LibArchive::getFileHandle (const char * filepath, int * file_descriptor, uint64_t * offset, uint64_t * file_size)"
+
+.PP
+Gets handle to file inside arch withour extracting\&. Function opens, but not close fd, remember to do this\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilepath\fP - path to file looking for\&. 
+.br
+\fIfile_descriptor\fP - [out] file descriptor (fd) 
+.br
+\fIoffset\fP - [out] file begin offset in archive 
+.br
+\fIfile_size\fP - [out] size of file 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true if success otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 143 of file libarchive\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

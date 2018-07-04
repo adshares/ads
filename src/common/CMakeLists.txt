@@ -22,7 +22,7 @@ add_subdirectory(parser)
 
 add_library(common ${SOURCE} ${HEADERS})
 
-find_package(Boost REQUIRED COMPONENTS thread system program_options filesystem)
+find_package(Boost REQUIRED COMPONENTS thread system program_options filesystem iostreams)
 include_directories(common ${Boost_INCLUDE_DIRS})
 link_directories(common ${Boost_LIBRARY_DIRS})
 target_link_libraries(common ${Boost_LIBRARIES})

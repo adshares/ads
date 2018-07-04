@@ -103,7 +103,7 @@ int main(int argc, char* argv[]) {
     std::signal(SIGUSR1,signal_handler);
     //std::signal(SIGUSR2,signal_handler);
 
-    auto workdir = settings::get_workdir(argc, argv);
+    auto workdir = settings::get_workdir(argc, argv, true);
     if(workdir != ".") {
         settings::change_working_dir(workdir);
     }

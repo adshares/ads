@@ -1,0 +1,45 @@
+.TH "Helper::FileWrapper" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::FileWrapper \- RAII File descriptor wrapper, allows to close and optionally remove file in destructor\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <filewrapper\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBFileWrapper\fP (const std::string filepath, int mask, bool removeOnClose=false)"
+.br
+.ti -1c
+.RI "bool \fBisOpen\fP ()"
+.br
+.ti -1c
+.RI "bool \fBremove\fP ()"
+.br
+.ti -1c
+.RI "bool \fBopen\fP (const char *filename, int mask=O_RDONLY, int mode=0644, bool removeOnClose=false)"
+.br
+.ti -1c
+.RI "bool \fBseek\fP (int position, int whence)"
+.br
+.ti -1c
+.RI "int \fBwrite\fP (void *buffer, unsigned int size)"
+.br
+.ti -1c
+.RI "int \fBread\fP (void *buffer, unsigned int size)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+RAII File descriptor wrapper, allows to close and optionally remove file in destructor\&. 
+.PP
+Definition at line 12 of file filewrapper\&.h\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

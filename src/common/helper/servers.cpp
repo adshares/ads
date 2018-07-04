@@ -10,7 +10,8 @@
 #include "parser/msglistparser.h"
 #include "helper/ascii.h"
 #include "helper/json.h"
-
+#include "helper/blocks.h"
+#include "helper/blockfilereader.h"
 
 namespace Helper {
 
@@ -22,6 +23,9 @@ Servers::Servers(const char* filePath)
     : m_filePath(filePath) {
 }
 
+Servers::~Servers(){
+}
+
 void Servers::load(const char* filePath) {
     if (filePath) {
         m_filePath = filePath;
@@ -31,15 +35,14 @@ void Servers::load(const char* filePath) {
         return;
     }
 
-    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
-    if (file.is_open()) {
+    Helper::BlockFileReader file(m_filePath.c_str());
+    if (file.isOpen()) {
         file.read((char*)&m_header, sizeof(m_header));
         for (unsigned int i=0; i<m_header.nodesCount; ++i) {
             ServersNode node;
             file.read((char*)&node, sizeof(node));
             m_nodes.push_back(node);
         }
-        file.close();
     }
 }
 
@@ -49,16 +52,16 @@ bool Servers::loadHeader() {
         if (!m_header.ttime) {
             sprintf(filePath, "blk/header.hdr");
         } else {
-            sprintf(filePath, "blk/%03X/%05X/header.hdr",m_header.ttime>>20, m_header.ttime&0xFFFFF);
+            Helper::FileName::getName(filePath, m_header.ttime, "header.hdr");
         }
         m_filePath = filePath;
     }
 
     uint32_t check = m_header.ttime;
-    std::ifstream file(m_filePath, std::ifstream::in | std::ifstream::binary);
-    if (file.is_open()) {
+
+    Helper::BlockFileReader file(m_filePath.c_str());
+    if (file.isOpen()) {
         file.read((char*)&m_header, sizeof(m_header));
-        file.close();
         if (check && check != m_header.ttime) {
             return false;
         }

@@ -49,6 +49,7 @@ class Servers {
 public:
     Servers();
     Servers(const char* filePath);
+    ~Servers();
 
     void load(const char* filePath = nullptr);
     bool loadHeader();

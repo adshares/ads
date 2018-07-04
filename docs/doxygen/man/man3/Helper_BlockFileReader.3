@@ -1,0 +1,193 @@
+.TH "Helper::BlockFileReader" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+Helper::BlockFileReader \- Class to read file directly from archive without extracting\&. Note that you can use it also for read regular file, just put as argument file without \&.arch extension\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.PP
+\fC#include <blockfilereader\&.h>\fP
+.SS "Public Member Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBBlockFileReader\fP (const char *filepath)"
+.br
+.RI "\fIset path to regular file, reader (depends on path) localize it in block or archive and will try to open \fP"
+.ti -1c
+.RI "\fBBlockFileReader\fP (const char *archPath, const char *filepath)"
+.br
+.RI "\fISet paths and open file from archive\&. \fP"
+.ti -1c
+.RI "\fB~BlockFileReader\fP ()"
+.br
+.RI "\fIdstr close file descriptor if exists\&. \fP"
+.ti -1c
+.RI "bool \fBopenFromArch\fP (const std::string filepath='')"
+.br
+.RI "\fISearch for file in archive and get handle to it\&. Function successful invoke allows to use manipulation functions like: open, read, lseek\&. \fP"
+.ti -1c
+.RI "bool \fBopenFile\fP ()"
+.br
+.RI "\fIopen regular file\&. \fP"
+.ti -1c
+.RI "int \fBread\fP (void *buffer, unsigned int size)"
+.br
+.RI "\fIRead data from file\&. \fP"
+.ti -1c
+.RI "bool \fBlseek\fP (int position, int whence)"
+.br
+.RI "\fISeek cursor in file\&. \fP"
+.ti -1c
+.RI "void \fBclose\fP ()"
+.br
+.RI "\fIclose file descriptor if exists \fP"
+.ti -1c
+.RI "bool \fBisOpen\fP ()"
+.br
+.RI "\fICheck is file successfuly open and assigned, ready to use\&. \fP"
+.ti -1c
+.RI "unsigned int \fBgetSize\fP ()"
+.br
+.RI "\fIReturn real size of file inside archive\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Class to read file directly from archive without extracting\&. Note that you can use it also for read regular file, just put as argument file without \&.arch extension\&. 
+.PP
+Definition at line 13 of file blockfilereader\&.h\&.
+.SH "Constructor & Destructor Documentation"
+.PP 
+.SS "Helper::BlockFileReader::BlockFileReader (const char * filepath)"
+
+.PP
+set path to regular file, reader (depends on path) localize it in block or archive and will try to open 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilepath\fP - full path to file in block (eg\&. blk/5AB/27000/servers\&.srv 
+.RE
+.PP
+
+.PP
+Definition at line 20 of file blockfilereader\&.cpp\&.
+.SS "Helper::BlockFileReader::BlockFileReader (const char * archPath, const char * filepath)"
+
+.PP
+Set paths and open file from archive\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIarchPath\fP - if has \&.arch extension then will be handled as archive otherwise as regular file 
+.br
+\fIfilepath\fP - path to file you're looking for\&. eg\&. server\&.srv 
+.RE
+.PP
+
+.PP
+Definition at line 46 of file blockfilereader\&.cpp\&.
+.SH "Member Function Documentation"
+.PP 
+.SS "unsigned int Helper::BlockFileReader::getSize ()"
+
+.PP
+Return real size of file inside archive\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+0 if failed otherwise positive value\&. 
+.RE
+.PP
+
+.PP
+Definition at line 154 of file blockfilereader\&.cpp\&.
+.SS "bool Helper::BlockFileReader::isOpen ()"
+
+.PP
+Check is file successfuly open and assigned, ready to use\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+true if open and ready, otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 149 of file blockfilereader\&.cpp\&.
+.SS "bool Helper::BlockFileReader::lseek (int position, int whence)"
+
+.PP
+Seek cursor in file\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIposition\fP - new position 
+.br
+\fIwhence\fP - SEEK_CUR, SEEK_SET, SEEK_END 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+status of unisdt lseek function invoke\&. 
+.RE
+.PP
+
+.PP
+Definition at line 122 of file blockfilereader\&.cpp\&.
+.SS "bool Helper::BlockFileReader::openFile ()"
+
+.PP
+open regular file\&. 
+.PP
+\fBReturns:\fP
+.RS 4
+true if success otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 57 of file blockfilereader\&.cpp\&.
+.SS "bool Helper::BlockFileReader::openFromArch (const std::string filepath = \fC''\fP)"
+
+.PP
+Search for file in archive and get handle to it\&. Function successful invoke allows to use manipulation functions like: open, read, lseek\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilepath\fP - new filepath, for already existing object 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true if success, otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 72 of file blockfilereader\&.cpp\&.
+.SS "int Helper::BlockFileReader::read (void * buffer, unsigned int size)"
+
+.PP
+Read data from file\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIbuffer\fP - data buffer 
+.br
+\fIsize\fP - size to read 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+status of unistd read function invoke\&. 
+.RE
+.PP
+
+.PP
+Definition at line 103 of file blockfilereader\&.cpp\&.
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for esc from the source code\&.

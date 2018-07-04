@@ -49,6 +49,8 @@ public:
     MsglistParser(uint32_t path);
     MsglistParser(const char* filepath);
 
+    ~MsglistParser();
+
     /**
      * @brief Load msglist.dat file.
      * @param filepath - [optional] file path

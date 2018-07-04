@@ -37,6 +37,7 @@
   <div id="navrow2" class="tabs2">
     <ul class="tablist">
       <li><a href="namespaces.html"><span>Namespace&#160;List</span></a></li>
+      <li><a href="namespacemembers.html"><span>Namespace&#160;Members</span></a></li>
     </ul>
   </div>
 </div><!-- top -->
@@ -73,11 +74,20 @@ Classes</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_block.html">Block</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_block_file_reader.html">BlockFileReader</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Class to read file directly from archive without extracting. Note that you can use it also for read regular file, just put as argument file without .arch extension.  <a href="class_helper_1_1_block_file_reader.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_file_wrapper.html">FileWrapper</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">RAII File descriptor wrapper, allows to close and optionally remove file in destructor.  <a href="class_helper_1_1_file_wrapper.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_helper_1_1_hash_double_variant.html">HashDoubleVariant</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct_helper_1_1_hash_single_variant.html">HashSingleVariant</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_hlog.html">Hlog</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_lib_archive.html">LibArchive</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Library to create and read archive with file index in header.  <a href="class_helper_1_1_lib_archive.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_helper_1_1_servers.html">Servers</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -112,6 +122,25 @@ std::string&#160;</td><td class="memItemRight" valign="bottom"><b>ed25519_key2te
 <tr class="memitem:a9cf87973e8aa0b9f604d16a243c177bb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9cf87973e8aa0b9f604d16a243c177bb"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>text2key</b> (const std::string &amp;key, std::string &amp;text)</td></tr>
 <tr class="separator:a9cf87973e8aa0b9f604d16a243c177bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adeaf8ff65ae14cc04afb486832d99225"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#adeaf8ff65ae14cc04afb486832d99225">arch_old_blocks</a> (uint32_t currentTime)</td></tr>
+<tr class="memdesc:adeaf8ff65ae14cc04afb486832d99225"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compress old blocks,.  <a href="#adeaf8ff65ae14cc04afb486832d99225">More...</a><br /></td></tr>
+<tr class="separator:adeaf8ff65ae14cc04afb486832d99225"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778">remove_block</a> (const char *blockPath)</td></tr>
+<tr class="memdesc:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes block from filesystem.  <a href="#acb5fcd5a7423d51cbd882faf0d4f3778">More...</a><br /></td></tr>
+<tr class="separator:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad6d58950a969675403f3b1692aa0657"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aad6d58950a969675403f3b1692aa0657"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#aad6d58950a969675403f3b1692aa0657">remove_file</a> (const char *filename)</td></tr>
+<tr class="memdesc:aad6d58950a969675403f3b1692aa0657"><td class="mdescLeft">&#160;</td><td class="mdescRight">removes file <br /></td></tr>
+<tr class="separator:aad6d58950a969675403f3b1692aa0657"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#a4d86bf45cfccf62e1aa0c6a4c7e452bf">is_file_not_compressed</a> (const char *filePath)</td></tr>
+<tr class="memdesc:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check is file exists in not compressed block.  <a href="#a4d86bf45cfccf62e1aa0c6a4c7e452bf">More...</a><br /></td></tr>
+<tr class="separator:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7a3f355428f0dec47bda4797eafc58d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae7a3f355428f0dec47bda4797eafc58d"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>get_users_count</b> (uint16_t bank)</td></tr>
+<tr class="separator:ae7a3f355428f0dec47bda4797eafc58d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1648b804f191b9f1e0cf63eed719fe72"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1648b804f191b9f1e0cf63eed719fe72"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>db_backup</b> (uint32_t block_path, uint16_t nodes)</td></tr>
+<tr class="separator:a1648b804f191b9f1e0cf63eed719fe72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa0cbbc337f06c9be182487a1a40367b1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa0cbbc337f06c9be182487a1a40367b1"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>crc16</b> (const uint8_t *data_p, uint8_t length)</td></tr>
 <tr class="separator:aa0cbbc337f06c9be182487a1a40367b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -196,13 +225,136 @@ const char *&#160;</td><td class="memItemRight" valign="bottom"><b>getTxnLogName
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
+<tr class="memitem:ade4a1d6de99df973f63b5da5b08b2d59"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ade4a1d6de99df973f63b5da5b08b2d59"></a>
+boost::mutex&#160;</td><td class="memItemRight" valign="bottom"><b>blocklock</b></td></tr>
+<tr class="separator:ade4a1d6de99df973f63b5da5b08b2d59"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace88ebede064259dd77608decfaa1b86"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ace88ebede064259dd77608decfaa1b86"></a>
+const int&#160;</td><td class="memItemRight" valign="bottom"><b>SIZE_OF_JUMP_FIELD</b> = sizeof(uint32_t)</td></tr>
+<tr class="separator:ace88ebede064259dd77608decfaa1b86"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0e46e0eefeaab331d4363d878c4d058b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0e46e0eefeaab331d4363d878c4d058b"></a>
+const char *const&#160;</td><td class="memItemRight" valign="bottom"><b>ARCH_EXTENSION</b> = &quot;.arch&quot;</td></tr>
+<tr class="separator:a0e46e0eefeaab331d4363d878c4d058b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0dda4aa811fd2e341b8aec4322563d67"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0dda4aa811fd2e341b8aec4322563d67"></a>
 class <a class="el" href="class_helper_1_1_servers.html">Helper::Servers</a>&#160;</td><td class="memItemRight" valign="bottom"><b>__attribute__</b></td></tr>
 <tr class="separator:a0dda4aa811fd2e341b8aec4322563d67"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>TODO: uncomment logs when new log mechanism done. </p>
-</div></div><!-- contents -->
+<p>Archive file format 218B <a href="file:header.hdr">file:header.hdr</a> 4B Jump position to servers.srv 4B Jump position to signatures.ok 4B Jump position to signatures.no 4B Jump position to hlog.hlg 4B Jump position to msglist.dat *** for each *.msg file 4B Jump to *.msg file </p><hr/>
+<p> <a href="file:servers.srv">file:servers.srv</a> <a href="file:signatures.ok">file:signatures.ok</a> <a href="file:signatures.no">file:signatures.no</a> <a href="file:hlog.hlg">file:hlog.hlg</a> <a href="file:msglist.dat">file:msglist.dat</a> *** for each *.msg file file:*.msg </p><hr/>
+ </div><h2 class="groupheader">Function Documentation</h2>
+<a class="anchor" id="adeaf8ff65ae14cc04afb486832d99225"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Helper::arch_old_blocks </td>
+          <td>(</td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>currentTime</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Compress old blocks,. </p>
+<dl class="section see"><dt>See also</dt><dd>BLOCKS_COMPRESSED_SHIFT . </dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">currentTime</td><td>- decimal current block start value </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00022">22</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+
+<p><div class="dynheader">
+Here is the call graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph.png" border="0" usemap="#namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph" alt=""/></div>
+<map name="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph" id="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph">
+<area shape="rect" id="node2" href="class_helper_1_1_lib_archive.html#ade2c935f8e99f91c07755a66823035a1" title="Creates archive from directory. " alt="" coords="226,5,355,47"/>
+<area shape="rect" id="node3" href="namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778" title="Removes block from filesystem. " alt="" coords="216,71,365,98"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="a4d86bf45cfccf62e1aa0c6a4c7e452bf"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool Helper::is_file_not_compressed </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>filePath</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check is file exists in not compressed block. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">filePath</td><td></td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>true if exists (not compressed yet), otherwise false. </dd></dl>
+
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00058">58</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespace_helper_a4d86bf45cfccf62e1aa0c6a4c7e452bf_icgraph.png" border="0" usemap="#namespace_helper_a4d86bf45cfccf62e1aa0c6a4c7e452bf_icgraph" alt=""/></div>
+<map name="namespace_helper_a4d86bf45cfccf62e1aa0c6a4c7e452bf_icgraph" id="namespace_helper_a4d86bf45cfccf62e1aa0c6a4c7e452bf_icgraph">
+<area shape="rect" id="node2" href="class_helper_1_1_block_file_reader.html#aeb3d5cc6114504501410f1e40e9a118f" title="set path to regular file, reader (depends on path) localize it in block or archive and will try to op..." alt="" coords="180,5,344,47"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="acb5fcd5a7423d51cbd882faf0d4f3778"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Helper::remove_block </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>blockPath</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Removes block from filesystem. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">blockPath</td><td>- path to block directory in filesystem </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00049">49</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph.png" border="0" usemap="#namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph" alt=""/></div>
+<map name="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph" id="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph">
+<area shape="rect" id="node2" href="namespace_helper.html#adeaf8ff65ae14cc04afb486832d99225" title="Compress old blocks,. " alt="" coords="203,5,365,32"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+</div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
 Generated by &#160;<a href="http://www.doxygen.org/index.html">
