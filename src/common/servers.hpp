@@ -926,6 +926,9 @@ class servers { // also a block
             if(nodes[i].status & SERVER_DBL ) {
                 continue;
             }
+            if(nodes[i].mtim < now - BLOCKDIV*BLOCKSEC) {
+                continue;
+            }
             svid_rank.push_back(i);
         }
         std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
