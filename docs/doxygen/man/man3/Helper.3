@@ -1,4 +1,4 @@
-.TH "Helper" 3 "Mon Jul 2 2018" "esc" \" -*- nroff -*-
+.TH "Helper" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -38,6 +38,14 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "class \fBBlock\fP"
 .br
 .ti -1c
+.RI "class \fBBlockFileReader\fP"
+.br
+.RI "\fIClass to read file directly from archive without extracting\&. Note that you can use it also for read regular file, just put as argument file without \&.arch extension\&. \fP"
+.ti -1c
+.RI "class \fBFileWrapper\fP"
+.br
+.RI "\fIRAII File descriptor wrapper, allows to close and optionally remove file in destructor\&. \fP"
+.ti -1c
 .RI "struct \fBHashDoubleVariant\fP"
 .br
 .ti -1c
@@ -46,6 +54,10 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .ti -1c
 .RI "class \fBHlog\fP"
 .br
+.ti -1c
+.RI "class \fBLibArchive\fP"
+.br
+.RI "\fILibrary to create and read archive with file index in header\&. \fP"
 .ti -1c
 .RI "class \fBServers\fP"
 .br
@@ -85,6 +97,28 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .br
 .ti -1c
 .RI "void \fBtext2key\fP (const std::string &key, std::string &text)"
+.br
+.ti -1c
+.RI "void \fBarch_old_blocks\fP (uint32_t currentTime)"
+.br
+.RI "\fICompress old blocks,\&. \fP"
+.ti -1c
+.RI "void \fBremove_block\fP (const char *blockPath)"
+.br
+.RI "\fIRemoves block from filesystem\&. \fP"
+.ti -1c
+.RI "void \fBremove_file\fP (const char *filename)"
+.br
+.RI "\fIremoves file \fP"
+.ti -1c
+.RI "bool \fBis_file_not_compressed\fP (const char *filePath)"
+.br
+.RI "\fICheck is file exists in not compressed block\&. \fP"
+.ti -1c
+.RI "uint32_t \fBget_users_count\fP (uint16_t bank)"
+.br
+.ti -1c
+.RI "void \fBdb_backup\fP (uint32_t block_path, uint16_t nodes)"
 .br
 .ti -1c
 .RI "uint16_t \fBcrc16\fP (const uint8_t *data_p, uint8_t length)"
@@ -172,12 +206,78 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 
 .in +1c
 .ti -1c
+.RI "boost::mutex \fBblocklock\fP"
+.br
+.ti -1c
+.RI "const int \fBSIZE_OF_JUMP_FIELD\fP = sizeof(uint32_t)"
+.br
+.ti -1c
+.RI "const char *const \fBARCH_EXTENSION\fP = '\&.arch'"
+.br
+.ti -1c
 .RI "class \fBHelper::Servers\fP \fB__attribute__\fP"
 .br
 .in -1c
 .SH "Detailed Description"
 .PP 
 TODO: uncomment logs when new log mechanism done\&. 
+
+Archive file format 218B file:header.hdr 4B Jump position to servers\&.srv 4B Jump position to signatures\&.ok 4B Jump position to signatures\&.no 4B Jump position to hlog\&.hlg 4B Jump position to msglist\&.dat *** for each *\&.msg file 4B Jump to *\&.msg file 
+.PP
+ file:servers.srv file:signatures.ok file:signatures.no file:hlog.hlg file:msglist.dat *** for each *\&.msg file file:*\&.msg 
+.PP
+ 
+.SH "Function Documentation"
+.PP 
+.SS "void Helper::arch_old_blocks (uint32_t currentTime)"
+
+.PP
+Compress old blocks,\&. 
+.PP
+\fBSee also:\fP
+.RS 4
+BLOCKS_COMPRESSED_SHIFT \&. 
+.RE
+.PP
+\fBParameters:\fP
+.RS 4
+\fIcurrentTime\fP - decimal current block start value 
+.RE
+.PP
+
+.PP
+Definition at line 22 of file blocks\&.cpp\&.
+.SS "bool Helper::is_file_not_compressed (const char * filePath)"
+
+.PP
+Check is file exists in not compressed block\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIfilePath\fP 
+.RE
+.PP
+\fBReturns:\fP
+.RS 4
+true if exists (not compressed yet), otherwise false\&. 
+.RE
+.PP
+
+.PP
+Definition at line 58 of file blocks\&.cpp\&.
+.SS "void Helper::remove_block (const char * blockPath)"
+
+.PP
+Removes block from filesystem\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIblockPath\fP - path to block directory in filesystem 
+.RE
+.PP
+
+.PP
+Definition at line 49 of file blocks\&.cpp\&.
 .SH "Author"
 .PP 
 Generated automatically by Doxygen for esc from the source code\&.

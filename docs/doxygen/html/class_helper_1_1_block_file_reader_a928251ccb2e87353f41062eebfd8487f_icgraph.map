@@ -1,0 +1,11 @@
+<map id="Helper::BlockFileReader::lseek" name="Helper::BlockFileReader::lseek">
+<area shape="rect" id="node2" href="$class_helper_1_1_block_file_reader.html#ad40bd336b87ec20b2a3248fe4ade4d02" title="open regular file. " alt="" coords="217,5,381,47"/>
+<area shape="rect" id="node4" href="$class_helper_1_1_block_file_reader.html#ad8ee7df622cf77e7cef7430b46cbcf4d" title="Search for file in archive and get handle to it. Function successful invoke allows to use manipulatio..." alt="" coords="217,71,381,112"/>
+<area shape="rect" id="node5" href="$class_helper_1_1_block_file_reader.html#a3790dd27f6c876da9a85ff063a2626bf" title="Read data from file. " alt="" coords="217,136,381,177"/>
+<area shape="rect" id="node9" href="$classservers.html#a42aef3b8185d8b39cf490eac427aca43" title="replaced by Parser::MsglistParser " alt="" coords="452,253,579,279"/>
+<area shape="rect" id="node3" href="$class_helper_1_1_block_file_reader.html#aeb3d5cc6114504501410f1e40e9a118f" title="set path to regular file, reader (depends on path) localize it in block or archive and will try to op..." alt="" coords="433,5,597,47"/>
+<area shape="rect" id="node6" href="$class_get_broadcast_msg_handler.html#af87a4e17feed555fb468a396d03c7d32" title="Execution event. It executes actual command and commit it to blockchain. " alt="" coords="429,71,601,112"/>
+<area shape="rect" id="node7" href="$class_parser_1_1_msglist_parser.html#a6687c6d3789c39b111cf7c0a8b277efd" title="Load msglist.dat file. " alt="" coords="441,136,589,177"/>
+<area shape="rect" id="node10" href="$classservers.html#a45f5d381d2a1bbe11643e783f9f99639" title="replaced by Parser::MsglistParser " alt="" coords="447,202,583,229"/>
+<area shape="rect" id="node8" href="$class_get_message_list.html#ad40f1aae0e4ae15ba97cd52dc01258b8" title="Get data from msglist file. " alt="" coords="649,143,876,170"/>
+</map>

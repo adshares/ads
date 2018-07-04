@@ -1,0 +1,6 @@
+<map id="Helper::BlockFileReader::BlockFileReader" name="Helper::BlockFileReader::BlockFileReader">
+<area shape="rect" id="node2" href="$namespace_helper.html#a4d86bf45cfccf62e1aa0c6a4c7e452bf" title="Check is file exists in not compressed block. " alt="" coords="236,5,363,47"/>
+<area shape="rect" id="node3" href="$class_helper_1_1_block_file_reader.html#ad40bd336b87ec20b2a3248fe4ade4d02" title="open regular file. " alt="" coords="217,71,381,112"/>
+<area shape="rect" id="node5" href="$class_helper_1_1_block_file_reader.html#ad8ee7df622cf77e7cef7430b46cbcf4d" title="Search for file in archive and get handle to it. Function successful invoke allows to use manipulatio..." alt="" coords="217,136,381,177"/>
+<area shape="rect" id="node4" href="$class_helper_1_1_block_file_reader.html#a928251ccb2e87353f41062eebfd8487f" title="Seek cursor in file. " alt="" coords="429,104,593,145"/>
+</map>
