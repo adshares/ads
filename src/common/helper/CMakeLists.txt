@@ -10,6 +10,10 @@ SET (SOURCE
     ${CMAKE_CURRENT_SOURCE_DIR}/vipkeys.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/block.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/blocks.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/filewrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchive.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/blockfilereader.cpp
     PARENT_SCOPE
     )
 
@@ -26,5 +30,9 @@ SET (HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/vipkeys.h
     ${CMAKE_CURRENT_SOURCE_DIR}/block.h
     ${CMAKE_CURRENT_SOURCE_DIR}/serversheader.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/blocks.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/filewrapper.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/libarchive.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/blockfilereader.h
     PARENT_SCOPE
     )

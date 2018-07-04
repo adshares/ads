@@ -4,6 +4,8 @@
 #include "ed25519/ed25519.h"
 #include "abstraction/interfaces.h"
 #include "helper/json.h"
+#include "helper/blocks.h"
+#include "helper/blockfilereader.h"
 
 GetAccounts::GetAccounts()
     : m_data{} {
@@ -28,7 +30,7 @@ void GetAccounts::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
 }
 
-void GetAccounts::setResponse(char*) {
+void GetAccounts::setResponse(char* /*response*/) {
 }
 
 int GetAccounts::getDataSize() {
@@ -152,18 +154,18 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
     ErrorCodes::Code errorCode = ErrorCodes::Code::eNone;
     uint32_t destBank = this->getDestBankId();
     char filename[64];
-    int fd, ud;
+    int fd;
+    std::shared_ptr<Helper::BlockFileReader> undo;
 
     sprintf(filename,"usr/%04X.dat", destBank);
     fd = open(filename,O_RDONLY);
     if (fd < 0) {
         errorCode = ErrorCodes::Code::eBankNotFound;
     } else {
-        sprintf(filename,"blk/%03X/%05X/und/%04X.dat",lastPath>>20,lastPath&0xFFFFF, destBank);
-        ud = open(filename,O_RDONLY);
-        if(ud < 0) {
+        Helper::FileName::getUndo(filename, lastPath, destBank);
+        undo = std::make_shared<Helper::BlockFileReader>(filename);
+        if(!undo->isOpen()) {
             errorCode = ErrorCodes::Code::eUndoNotFound;
-            close(fd);
         }
     }
 
@@ -176,12 +178,11 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
             user_t u;
             u.msid=0;
             read(fd,dp,sizeof(user_t));
-            read(ud,&u,sizeof(user_t));
+            undo->read(&u,sizeof(user_t));
             if(u.msid!=0) {
                 memcpy(dp,&u,sizeof(user_t));
             }
         }
-        close(ud);
         close(fd);
     }
     return errorCode;

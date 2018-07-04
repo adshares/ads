@@ -4,6 +4,9 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/lock_guard.hpp>
 #include "signatures.h"
+#include "helper/blockfilereader.h"
+
+#include "helper/blocks.h"
 
 extern boost::mutex siglock;
 
@@ -20,18 +23,19 @@ int Signatures::getNumOfSignaturesInFile(const char* fileName) const {
 }
 
 std::vector<Signature> Signatures::readSignatures(const char* fileName) {
-    std::ifstream file(fileName, std::ifstream::in | std::ifstream::binary);
-
+    Helper::BlockFileReader file(fileName);
     std::vector<Signature> signatures;
 
-    if (file.is_open()) {
-        const int numSignatures = getNumOfSignaturesInFile(fileName);
+    if (file.isOpen()) {
+        const int numSignatures = file.getSize() / sizeof(Signature);
         for(int i=0; i<numSignatures; ++i) {
             Signature sign;
-            file.read((char*)&sign, sizeof(sign));
-            signatures.push_back(sign);
+            if (file.read((char*)&sign, sizeof(sign)) > 0) {
+                signatures.push_back(sign);
+            } else {
+                break;
+            }
         }
-        file.close();
     }
 
     return signatures;
@@ -39,13 +43,13 @@ std::vector<Signature> Signatures::readSignatures(const char* fileName) {
 
 void Signatures::readSignaturesOk(uint32_t path) {
     char fileName[64];
-    sprintf(fileName,"blk/%03X/%05X/signatures.ok", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(fileName, path, "signatures.ok");
     m_signaturesOk = readSignatures(fileName);
 }
 
 void Signatures::readSignaturesNo(uint32_t path) {
     char fileName[64];
-    sprintf(fileName,"blk/%03X/%05X/signatures.no", path>>20, path&0xFFFFF);
+    Helper::FileName::getName(fileName, path, "signatures.no");
     m_signaturesNo = readSignatures(fileName);
 }
 

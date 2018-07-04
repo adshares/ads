@@ -43,35 +43,35 @@ class hashtree {
         return(c);
     }
 
-    int hashpath(uint32_t hashnum,uint32_t hashmax,std::vector<uint32_t>& add) {
-        uint32_t posnum=(hashnum<<1)-bits(hashnum);
-        uint32_t posmax=(hashmax<<1)-bits(hashmax);
+    void hashpath(uint32_t hashnum,uint32_t hashmax,std::vector<uint32_t>& add)
+    {	uint32_t posnum=(hashnum<<1)-bits(hashnum);
+        uint32_t posend=(hashmax<<1)-bits(hashmax);
+        uint32_t posfin=0;
         uint32_t diff=1;
-        for(; diff<posmax;) {
+        for(;diff<posend;){
             uint32_t posadd;
-            if(hashnum & 1) {
+            if(hashnum & 1){
                 posadd=posnum-diff;
-                posnum=posnum+1;
-            } else {
+                posnum=posnum+1;}
+            else{
                 posadd=posnum+diff;
-                posnum=posadd+1;
-            }
-            hashnum=hashnum>>1;
-            diff=(diff<<1)+1;
-            if(diff>=posmax) {
-                if(posadd>=posmax) {
-                    posadd=posmax-1;
-                }
-                if(posnum>posmax) {
-                    posnum=posmax;
-                }
-            }
-            if(posadd>=posmax) {
-            } else {
-                add.push_back(posadd);
-            }
-        }
-        return(posnum);
+                posnum=posadd+1;}
+            if(posadd<posend){
+                add.push_back(posadd);}
+            else{ // this can happen only once
+                if(posfin>0){
+                    add.push_back(posfin);}
+                posfin=0;
+                hashmax=0;}
+            if(hashmax & 1){
+                if(!posfin){
+                    posfin=posend-1;}
+                else{
+                    posfin++;}}
+            hashmax>>=1;
+            hashnum>>=1;
+            diff=(diff<<1)+1;}
+        //return(posnum);
     }
 
     void addhash(uint8_t* hash,const uint8_t* add) { //hash(a,b)==hash(b,a)
