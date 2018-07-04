@@ -16,7 +16,7 @@
 #define MIN_PEERS 8 /* keep at least 3 peers connected */
 #define MAX_PEERS 16 /* keep not more than 8 peers connected */
 #define VALIDATORS 16 /* number of validator threads */
-#define CLIENT_POOL 128	/* do not offer more threads that are used for network message validation */
+#define CLIENT_POOL 32	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #else
@@ -29,7 +29,7 @@
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
 #define VALIDATORS 16 /* number of validator threads */
-#define CLIENT_POOL 128	/* do not offer more threads that are used for network message validation */
+#define CLIENT_POOL 32	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
@@ -64,7 +64,7 @@
 #else
 #define SERVER_DNSA "seed.adshares.net"
 #endif
-#define MAXCLIENTS 128
+#define MAXCLIENTS 256
 
 #define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
