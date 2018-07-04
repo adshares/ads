@@ -378,114 +378,113 @@ class message :
 
     bool hash_tree_get(uint32_t tnum,std::vector<hash_s>& hashes,uint32_t& mnum)
     {
-        char filename[128];
-        assert(hashtype()==MSGTYPE_MSG);
-        makefilename(filename,path,"msg");
+      char filename[128];
+      assert(hashtype()==MSGTYPE_MSG);
+      makefilename(filename,path,"msg");
+      //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
+      int fd=open(filename,O_RDONLY);
+      if(fd<0){
+        DLOG("ERROR %s not found\n",filename);
+        return(false);}
+      uint32_t mlen;
+      read(fd,&mlen,4);
+      mlen>>=8;
+      if(!mlen){
+        DLOG("ERROR %s failed to read message length\n",filename);
+        close(fd);
+        return(false);}
+      hash_t mhash;
+      uint32_t ttot;
+      uint32_t tmax;
+      lseek(fd,mlen,SEEK_SET);
+      read(fd,mhash,32);
+      read(fd,&mnum,4);
+      read(fd,&ttot,4); // not needed
+      read(fd,&tmax,4);
+      //struct stat sb;
+      //fstat(fd,&sb);
+      //assert(sb.st_size==ttot);
+      if(!tmax){
+        DLOG("ERROR %s failed to read number of hashes\n",filename);
+        close(fd);
+        return(false);}
+      if(tnum>=tmax){
+        DLOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
+        close(fd);
+        return(false);}
+      uint32_t pos;
+      if(tnum%2){
+        uint32_t tmp[8+1+8+1];
+        lseek(fd,mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
+        read(fd,tmp,32+4+32+4);
+        pos=tmp[8];
+        if(tnum==tmax-1){
+          len=mlen-pos;}
+        else{
+          len=tmp[8+1+8]-pos;}
+        hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
+        DLOG("HASHTREE start %d + %d [max:%d htot:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,
+          (ttot-(mlen+32+4+4+4+(4+32)*tmax))/32,mlen,ttot,len);
+        hashes.push_back(*(hash_s*)(&tmp[0]));}
+      else{
+        uint32_t tmp[1+8+1+8];
+        lseek(fd,mlen+32+4+4+4+(4+32)*tnum,SEEK_SET);
+        read(fd,tmp,4+32+4+32);
+        pos=tmp[0];
+        hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
+        if(tnum==tmax-1){
+          len=mlen-pos;
+          DLOG("HASHTREE start %d [max:%d len:%d]\n",tnum,tmax,len);}
+        else{
+          len=tmp[1+8]-pos;
+          DLOG("HASHTREE start %d + %d [max:%d htot:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,
+            (ttot-(mlen+32+4+4+4+(4+32)*tmax))/32,mlen,ttot,len);
+          hashes.push_back(*(hash_s*)(&tmp[1+8+1]));}}
+      if(data!=NULL){ // assume there is no concurent access to this message
+        free(data);}
+      assert(len>0 && len<mlen);
+      data=(uint8_t*)std::malloc(len);
+      lseek(fd,pos,SEEK_SET);
+      read(fd,data,len); //read message
+      std::vector<uint32_t>add;
+      hashtree tree;
+      tree.hashpath(tnum/2,(tmax+1)/2,add);
+      uint32_t m=32*32; //just a large number
+      if(tmax%2){ //calculate hash missing in appended hashlist
+        uint32_t tm=tmax>>1;
+        m=(tm<<1)-tree.bits(tm);
+        DLOG("HASHTREE special %d\n",m);}
+      for(auto n : add){
+        DLOG("HASHTREE add %d\n",n);
+        if(n<m){
+          assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
+          lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);}
+        else if(n==m){
+          lseek(fd,mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);}
+        else{
+          assert(mlen+32+4+4+4+(4+32)*tmax+32*(n-1)<ttot);
+          lseek(fd,mlen+32+4+4+4+(4+32)*tmax+32*(n-1),SEEK_SET);}
+        hash_s phash;
+        read(fd,phash.hash,32);
+        hashes.push_back(phash);}
+      close(fd);
+      //DEBUG only, confirm hash
+      hash_t nhash;
+      tree.hashpathrun(nhash,hashes);
 
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
-        Helper::BlockFileReader fd(filename);
+      char hash[2*SHA256_DIGEST_LENGTH];
+      ed25519_key2text(hash,nhash,SHA256_DIGEST_LENGTH);
+      ELOG("nhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
+      ed25519_key2text(hash, mhash,SHA256_DIGEST_LENGTH);
+      ELOG("mhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
 
-        if(!fd.isOpen()) {
-            DLOG("ERROR %s not found\n",filename);
-            return(false);
-        }
-        uint32_t mlen;
-        fd.read(&mlen, 4);
-        mlen>>=8;
-        if(!mlen) {
-            DLOG("ERROR %s failed to read message length\n",filename);
-            return(false);
-        }
-        hash_t mhash;
-        uint32_t ttot;
-        uint32_t tmax;
-        fd.lseek(mlen, SEEK_SET);
 
-        fd.read(mhash,32);
-        fd.read(&mnum,4);
-        fd.read(&ttot,4); // not needed
-        fd.read(&tmax,4);
-        //struct stat sb;
-        //fstat(fd,&sb);
-        //assert(sb.st_size==ttot);
-        if(!tmax) {
-            DLOG("ERROR %s failed to read number of hashes\n",filename);
-            return(false);
-        }
-        if(tnum>=tmax) {
-            DLOG("ERROR %s pos too high (%d>=%d)\n",filename,tnum,tmax);
-            return(false);
-        }
-        uint32_t pos;
-        if(tnum%2) {
-            uint32_t tmp[8+1+8+1];
-            fd.lseek(mlen+32+4+4+4+(4+32)*tnum-32,SEEK_SET);
-            fd.read(tmp,32+4+32+4);
-            pos=tmp[8];
-            if(tnum==tmax-1) {
-                len=mlen-pos;
-            } else {
-                len=tmp[8+1+8]-pos;
-            }            
-            hashes.push_back(*(hash_s*)(&tmp[8+1])); //add message hash to hashes
-            DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum-1,tmax,mlen,ttot,len);            
-            hashes.push_back(*(hash_s*)(&tmp[0]));
-        } else {
-            uint32_t tmp[1+8+1+8];
-            fd.lseek(mlen+32+4+4+4+(4+32)*tnum,SEEK_SET);
-            fd.read(tmp,4+32+4+32);
-            pos=tmp[0];
-            hashes.push_back(*(hash_s*)(&tmp[1])); //add message hash to hashes
-            if(tnum==tmax-1) {
-                len=mlen-pos;
-                DLOG("HASHTREE start %d [max:%d len:%d]\n",tnum,tmax,len);
-            } else {
-                len=tmp[1+8]-pos;
-                DLOG("HASHTREE start %d + %d [max:%d mlen:%d ttot:%d len:%d]\n",tnum,tnum+1,tmax,mlen,ttot,len);
-                hashes.push_back(*(hash_s*)(&tmp[1+8+1]));
-            }
-        }
-        if(data!=NULL) { // assume there is no concurent access to this message
-            free(data);
-        }
-        assert(len>0 && len<mlen);
-        data=(uint8_t*)std::malloc(len);
-        fd.lseek(pos,SEEK_SET);
-        fd.read(data,len); //read message
-        std::vector<uint32_t>add;
-        hashtree tree;
-        tree.hashpath(tnum/2,(tmax+1)/2,add);
-
-        uint32_t secondLevel = (ttot -(mlen+32+4+4+4+(4+32)*tmax))/32;
-
-        for(auto n : add) {
-            DLOG("HASHTREE add %d\n",n);
-            if(n > secondLevel-1)
-            {
-                if((tmax/2)%2 == 1 && tmax > 3)
-                    fd.lseek(ttot-32,SEEK_SET);
-                else
-                    fd.lseek(mlen+32+4+4+4+(4+32)*tmax-32,SEEK_SET);
-            }else
-            {
-                assert(mlen+32+4+4+4+(4+32)*tmax+32*n<ttot);
-                fd.lseek(mlen+32+4+4+4+(4+32)*tmax+32*n,SEEK_SET);
-            }
-
-            hash_s phash;
-            fd.read(phash.hash,32);
-            hashes.push_back(phash);
-        }
-
-        //DEBUG only, confirm hash
-        hash_t nhash;
-        tree.hashpathrun(nhash,hashes);
-        if(memcmp(mhash,nhash,32)) {
-            DLOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
-            return(false);
-        }
-        return(true);
+      if(memcmp(mhash,nhash,32)){
+        DLOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
+        return(false);}
+      return(true);
     }
+
 
     void signnewtime(uint32_t ntime,ed25519_secret_key mysk,ed25519_public_key mypk,hash_t msha) {
         assert(data[0]==MSGTYPE_MSG);
