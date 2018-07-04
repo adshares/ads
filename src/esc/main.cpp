@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
     std::setbuf(stdout,NULL);
 #endif
 
-    auto workdir = settings::get_workdir(argc, argv);
+    auto workdir = settings::get_workdir(argc, argv, false);
     if(workdir != ".") {
         settings::change_working_dir(workdir);
     }

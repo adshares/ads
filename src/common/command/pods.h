@@ -521,10 +521,10 @@ struct TransactionAcceptedInfo {
 
 struct TransactionFailedInfo {
     TransactionFailedInfo() = default;
-    TransactionFailedInfo(int msgSize) : message_size(msgSize) {
+    TransactionFailedInfo(uint32_t msgSize) : message_size(msgSize) {
     }
     uint8_t ttype{TXSTYPE_NON};  ///< command type
-    uint32_t message_size;       ///< message size
+    uint32_t message_size{0};    ///< message size
 }__attribute__((packed));
 
 struct AccountStatusInfo {

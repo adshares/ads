@@ -19,6 +19,7 @@
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
+#define BLOCKS_COMPRESSED_SHIFT 16 /* shift from current block to archive old blocks */
 #else
 #define BLOCKSEC 512 /* block period in seconds (17min) */
 #define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */

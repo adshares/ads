@@ -2,7 +2,6 @@
 #include "command/getlog.h"
 #include "../office.hpp"
 #include "helper/hash.h"
-#include "helper/hlog.h"
 
 GetLogHandler::GetLogHandler(office& office, boost::asio::ip::tcp::socket& socket)
     : CommandHandler(office, socket) {

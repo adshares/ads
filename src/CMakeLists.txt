@@ -51,6 +51,7 @@ endif()
 
 message("** PROJECT CONFIG: " ${CMAKE_PROJECT_CONFIG} " **")
 configure_file(${CONFIG_FILE} ${CMAKE_SOURCE_DIR}/common/default.h)
+message("BUILD_TYPE: " ${CMAKE_BUILD_TYPE} )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_definitions(-DDEBUG)
@@ -69,4 +70,9 @@ add_subdirectory(common)
 add_subdirectory(esc)
 add_subdirectory(escd)
 add_subdirectory(tools)
+
+IF(${UNITTEST})
+    MESSAGE("\n\n***UNITTESTS ENABLED***\n\n\n")
+    add_subdirectory(unittest)
+ENDIF(${UNITTEST})
 

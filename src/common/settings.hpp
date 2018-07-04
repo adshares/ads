@@ -192,14 +192,14 @@ class settings {
             std::cerr << "Could not chdir to working directory\n";
             exit(-1);
         }
-        std::cout << "Working dir: " << workdir << "\n";
+        std::cerr << "Working dir: " << workdir << "\n";
     }
 
-    static std::string get_workdir(int ac, char *av[]) {
+    static std::string get_workdir(int ac, char *av[], bool server) {
       boost::program_options::options_description config;
 
       config.add_options()
-          ("work-dir,w", boost::program_options::value<std::string>()->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory");
+          ("work-dir,w", boost::program_options::value<std::string>()->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME) + (server ? "d" : "")),    "working directory");
 
       boost::program_options::options_description cmdline_options;
       cmdline_options.add(config);
