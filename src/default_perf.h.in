@@ -25,7 +25,7 @@
 #define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-#define VIP_MAX 31 /* maximum number of VIP servers */
+#define VIP_MAX 7 /* maximum number of VIP servers */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
 #define VALIDATORS 16 /* number of validator threads */
