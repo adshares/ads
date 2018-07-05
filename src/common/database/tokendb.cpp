@@ -275,6 +275,16 @@ bool TokenDB::is_exists_token(uint32_t user_id, uint32_t token_id)
     return false;
 }
 
+uint64_t TokenDB::get_balance(uint32_t user_id, uint32_t token_id)
+{
+    uint32_t index = get_user_token_record_id(user_id, token_id);
+    if (!index) return 0;
+    m_tokenDB.seekg(index, std::ios_base::beg);
+    Token token = {};
+    m_tokenDB.read((char*)&token, sizeof(Token));
+    return token.balance;
+}
+
 #ifdef DEBUG
 
 #include <stdio.h>

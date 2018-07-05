@@ -9,6 +9,8 @@
 
 const int kSizeOfToken = 20;
 
+const char* kDatabaseName = "token.db";
+
 //copy from tokendb.cpp
 struct TokenTst
 {
@@ -33,9 +35,8 @@ TokenTst token[5]{ {0, 1, 1000, 44},
 
 TEST(TokensTest, create_token_account)
 {
-    boost::filesystem::remove("token.db");
+    boost::filesystem::remove(kDatabaseName);
     boost::filesystem::remove("token_header.db");
-    uint32_t expected_header_jump[3] = {4, 24, 64};
 
     Database::TokenDB db;
 
@@ -44,100 +45,38 @@ TEST(TokensTest, create_token_account)
         EXPECT_TRUE(db.create_token(token[i].user_id, token[i].token_id, token[i].balance));
     }
 
-    struct stat st = {};
-    ::stat("token_header.db", &st);
-    EXPECT_EQ(st.st_size, 3*sizeof(uint32_t));
+    EXPECT_TRUE(boost::filesystem::exists(kDatabaseName));
 
-    std::ifstream file("token_header.db", std::ifstream::in | std::ifstream::binary);
-    if(file.is_open())
+    for (unsigned int i=0; i<5; ++i)
     {
-        for (unsigned int i=0; i<3; ++i)
-        {
-            int val = -1;
-            file.read((char*)&val, sizeof(uint32_t));
-            EXPECT_EQ(val, expected_header_jump[i]);
-        }
+        EXPECT_TRUE(db.is_exists_token(token[i].user_id, token[i].token_id));
+        EXPECT_EQ(db.get_balance(token[i].user_id, token[i].token_id), token[i].balance);
     }
-    file.close();
-
-    st = {};
-    ::stat("token.db", &st);
-    EXPECT_EQ(st.st_size, sizeof(token) + 4); // size of header
-
-    file.open("token.db", std::ifstream::in | std::ifstream::binary);
-    if(file.is_open())
-    {
-        uint32_t timestamp;
-        file.read((char*)&timestamp, sizeof(uint32_t));
-        for (unsigned int i=0; i<5; ++i)
-        {
-            TokenTst tok = {};
-            file.read((char*)&tok, sizeof(TokenTst));
-            EXPECT_EQ(token[i].user_id, tok.user_id);
-            EXPECT_EQ(token[i].token_id,tok.token_id);
-            EXPECT_EQ(token[i].balance, tok.balance);
-            EXPECT_EQ(token[i].next,    tok.next);
-        }
-
-    }
-    file.close();
 }
 
 TEST(TokensTest, add_tokens)
 {
-    {
-        Database::TokenDB db;
-        EXPECT_TRUE(db.add_tokens(0, 2, 900));
-        token[2].balance += 900;
-        EXPECT_TRUE(db.add_tokens(2, 4, 990));
-        token[3].balance += 990;
-    }
+    Database::TokenDB db;
+    EXPECT_TRUE(db.add_tokens(0, 2, 900));
+    token[2].balance += 900;
+    EXPECT_TRUE(db.add_tokens(2, 4, 990));
+    token[3].balance += 990;
 
-    std::ifstream file("token.db", std::ifstream::in | std::ifstream::binary);
-    if(file.is_open())
-    {
-        uint32_t timestamp;
-        file.read((char*)&timestamp, sizeof(uint32_t));
-        for (unsigned int i=0; i<5; ++i)
-        {
-            TokenTst tok = {};
-            file.read((char*)&tok, sizeof(TokenTst));
-            EXPECT_EQ(token[i].user_id, tok.user_id);
-            EXPECT_EQ(token[i].token_id,tok.token_id);
-            EXPECT_EQ(token[i].balance, tok.balance);
-            EXPECT_EQ(token[i].next,    tok.next);
-        }
-    }
-    file.close();
+    EXPECT_EQ(db.get_balance(token[2].user_id, token[2].token_id), token[2].balance);
+    EXPECT_EQ(db.get_balance(token[3].user_id, token[3].token_id), token[3].balance);
 }
 
 TEST(TokensTest, remove_tokens)
 
 {
-    {
-        Database::TokenDB db;
-        EXPECT_TRUE(db.remove_tokens(0, 1, 900));
-        token[0].balance -= 900;
-        EXPECT_TRUE(db.remove_tokens(1, 3, 123456678));
-        token[4].balance -= 123456678;
-    }
+    Database::TokenDB db;
+    EXPECT_TRUE(db.remove_tokens(0, 1, 900));
+    token[0].balance -= 900;
+    EXPECT_TRUE(db.remove_tokens(1, 3, 123456678));
+    token[4].balance -= 123456678;
 
-    std::ifstream file("token.db", std::ifstream::in | std::ifstream::binary);
-    if(file.is_open())
-    {
-        uint32_t timestamp;
-        file.read((char*)&timestamp, sizeof(uint32_t));
-        for (unsigned int i=0; i<5; ++i)
-        {
-            TokenTst tok = {};
-            file.read((char*)&tok, sizeof(TokenTst));
-            EXPECT_EQ(token[i].user_id, tok.user_id);
-            EXPECT_EQ(token[i].token_id,tok.token_id);
-            EXPECT_EQ(token[i].balance, tok.balance);
-            EXPECT_EQ(token[i].next,    tok.next);
-        }
-    }
-    file.close();
+    EXPECT_EQ(db.get_balance(token[0].user_id, token[0].token_id), token[0].balance);
+    EXPECT_EQ(db.get_balance(token[4].user_id, token[4].token_id), token[4].balance);
 }
 
 TEST(TokensTest, tokens_for_non_existing)
@@ -157,30 +96,16 @@ TEST(TokensTest, tokens_for_non_existing)
 
 TEST(TokensTest, move_tokens)
 {
-    {
-        Database::TokenDB db;
+    Database::TokenDB db;
 
-        EXPECT_TRUE(db.move_tokens(token[0].user_id, token[1].user_id, token[0].token_id, 55));
-        token[0].balance -= 55;
-        token[1].balance += 55;
-    }
+    EXPECT_TRUE(db.move_tokens(token[0].user_id, token[1].user_id, token[0].token_id, 55));
+    token[0].balance -= 55;
+    token[1].balance += 55;
 
-    std::ifstream file("token.db", std::ifstream::in | std::ifstream::binary);
-    if(file.is_open())
+    for (unsigned int i=0; i<2; ++i)
     {
-        uint32_t timestamp;
-        file.read((char*)&timestamp, sizeof(uint32_t));
-        for (unsigned int i=0; i<2; ++i)
-        {
-            TokenTst tok = {};
-            file.read((char*)&tok, sizeof(TokenTst));
-            EXPECT_EQ(token[i].user_id, tok.user_id);
-            EXPECT_EQ(token[i].token_id,tok.token_id);
-            EXPECT_EQ(token[i].balance, tok.balance);
-            EXPECT_EQ(token[i].next,    tok.next);
-        }
+        EXPECT_EQ(db.get_balance(token[i].user_id, token[i].token_id), token[i].balance);
     }
-    file.close();
 }
 
 TEST(TokensTest, move_tokens_non_existing)
@@ -188,6 +113,8 @@ TEST(TokensTest, move_tokens_non_existing)
     Database::TokenDB db;
     EXPECT_FALSE(db.move_tokens(1, 10, 1, 100));
     EXPECT_FALSE(db.move_tokens(10, 1, 1, 10));
+
+    EXPECT_FALSE(db.is_exists_token(10, 1));
 }
 
 TEST(TokensTest, move_tokens_oversize)

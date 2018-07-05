@@ -20,6 +20,7 @@ public:
     bool remove_token_account(uint32_t user_id, uint32_t token_id);
 
     bool is_exists_token(uint32_t user_id, uint32_t token_id);
+    uint64_t get_balance(uint32_t user_id, uint32_t token_id);
 #ifdef DEBUG
     void dump();
 #endif /*DEBUG*/
