@@ -17,9 +17,11 @@
 
 namespace Helper {
 
+
 boost::mutex blocklock;
 
 void arch_old_blocks(uint32_t currentTime) {
+#ifdef BLOCKS_COMPRESSED_SHIFT
     unsigned int blocksComprShift = (BLOCKS_COMPRESSED_SHIFT < BLOCKDIV) ? BLOCKDIV+1 : BLOCKS_COMPRESSED_SHIFT;
     currentTime -= ((blocksComprShift-1) * BLOCKSEC);
     char dirpath[16];
@@ -44,6 +46,7 @@ void arch_old_blocks(uint32_t currentTime) {
             return;
         }
     }
+#endif
 }
 
 void remove_block(const char* blockPath) {
