@@ -21,7 +21,7 @@
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #else
 #define BLOCKSEC 32 /* block period in seconds (17min) */
-#define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
+#define BLOCKDIV 4 /* number of blocks for dividend update (dividend period 12 days) */
 #define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
