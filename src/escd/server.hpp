@@ -2713,9 +2713,13 @@ NEXTUSER:
 
     void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos) {
         static uint32_t lpath=0;
-        int fd=-1;
+        static int fd=-1;
         static boost::mutex local_;
         boost::lock_guard<boost::mutex> lock(local_);
+        if(fd>=0 && !path) {
+          close(fd);
+          return;
+        }
         char filename[64];
         if(path!=lpath || fd<0) {
             if(fd>=0) {
@@ -2734,8 +2738,6 @@ NEXTUSER:
         write(fd,pkey,32);
         write(fd,&msid,sizeof(uint32_t));
         write(fd,&mpos,sizeof(uint32_t)); //FIXME, make this uint16_t
-
-        close(fd);
     }
 
     bool process_message(message_ptr msg) {
@@ -4339,6 +4341,10 @@ NEXTBANK:
         }
 //#endif
         srvs_.finish(); //FIXME, add locking
+
+        // close broadcast file
+        log_broadcast(0,nullptr,0,nullptr,nullptr,0,0);
+
         ELOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
         last_srvs_=srvs_; // consider not making copies of nodes
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
