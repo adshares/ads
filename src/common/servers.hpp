@@ -209,7 +209,7 @@ class servers { // also a block
     }
 
     void init_fast(uint16_t node_count, hash_t pk) {
-        std::cout << "init_fast" << node_count << std::endl;
+        std::cout << "init_fast " << node_count << std::endl;
         assert(nodes.size() == 0 || nodes[0].status == SERVER_FST);
         node nn;
         nn.status = SERVER_FST;
@@ -916,7 +916,7 @@ class servers { // also a block
             if(nodes[i].status & SERVER_DBL ) {
                 continue;
             }
-            if(nodes[i].mtim < now - BLOCKDIV*BLOCKSEC) {
+            if(nodes[i].mtim > 0 && nodes[i].mtim < now - BLOCKDIV*BLOCKSEC) {
                 continue;
             }
             svid_rank.push_back(i);
