@@ -24,9 +24,9 @@ add_subdirectory(database)
 add_library(common ${SOURCE} ${HEADERS})
 
 find_package(Boost REQUIRED COMPONENTS thread system program_options filesystem iostreams)
-include_directories(common ${Boost_INCLUDE_DIRS})
-link_directories(common ${Boost_LIBRARY_DIRS})
-target_link_libraries(common ${Boost_LIBRARIES})
+include_directories(common ${Boost_INCLUDE_DIRS} ${LMDB_INCLUDE_DIRS})
+link_directories(common ${Boost_LIBRARY_DIRS} ${LMDB_LIBRARIES})
+target_link_libraries(common ${Boost_LIBRARIES} lmdb)
 
 
 target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

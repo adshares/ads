@@ -17,26 +17,24 @@ struct TokenTst
     TokenTst(){
 
     }
-    TokenTst(uint32_t _userid, uint32_t _tokenid, uint64_t _balance, uint32_t _next)
-        : user_id(_userid), token_id(_tokenid), balance(_balance), next(_next)
+    TokenTst(uint32_t _userid, uint32_t _tokenid, uint64_t _balance)
+        : user_id(_userid), token_id(_tokenid), balance(_balance)
     {
     }
     uint32_t user_id;
     uint32_t token_id;
     uint64_t balance;
-    uint32_t next;
 }__attribute__((packed));
 
-TokenTst token[5]{ {0, 1, 1000, 44},
-                   {1, 1, 200, 84},
-                   {0, 2, 100, 0},
-                   {2, 4, 10, 0},
-                   {1, 3, 1234567890123456678, 0} };
+TokenTst token[5]{ {0, 1, 1000},
+                   {1, 1, 200},
+                   {0, 2, 100},
+                   {2, 4, 10},
+                   {1, 3, 1234567890123456678} };
 
 TEST(TokensTest, create_token_account)
 {
-    boost::filesystem::remove(kDatabaseName);
-    boost::filesystem::remove("token_header.db");
+    boost::filesystem::remove_all(kDatabaseName);
 
     Database::TokenDB db;
 
@@ -121,4 +119,10 @@ TEST(TokensTest, move_tokens_oversize)
 {
     Database::TokenDB db;
     EXPECT_FALSE(db.move_tokens(token[0].user_id, token[1].user_id, token[0].token_id, token[0].balance + 10));
+}
+
+TEST(TokensTest, dump)
+{
+    Database::TokenDB db;
+    db.dump();
 }
