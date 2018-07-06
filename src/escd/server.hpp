@@ -4334,9 +4334,6 @@ NEXTBANK:
 //#endif
         srvs_.finish(); //FIXME, add locking
 
-        // close broadcast file
-        log_broadcast(0,nullptr,0,nullptr,nullptr,0,0);
-
         ELOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
         last_srvs_=srvs_; // consider not making copies of nodes
         memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
