@@ -4484,7 +4484,9 @@ NEXTBANK:
             return(0);
         }
         // add location info. FIXME, set location to 0 before exit
-        line.append((char*)txs.data,txs.size);
+        if(line[0] != TXSTYPE_CON) { // do not send if server::update_connection_info
+          line.append((char*)txs.data,txs.size);
+        }
         int msid=++msid_; // can be atomic
         memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
         message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
@@ -4729,7 +4731,7 @@ NEXTBANK:
         while(1) {
             uint32_t now=time(NULL);
             //const char* plist=peers_list();
-            const char* plist = m_peerManager.getActualPeerList().c_str();
+            std::string plist = m_peerManager.getActualPeerList();
             int peerCount = m_peerManager.getPeersCount(true);
             int allpeerCount = m_peerManager.getPeersCount(false);
             int tickets = ofip_get_tickets();
@@ -4737,12 +4739,12 @@ NEXTBANK:
                 ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                      //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist,
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str(),
                      (int)missing_msgs_.size(),missing_msgs_.begin()->first);
             } else {
                 ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s]\n",
                      ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist);
+                     (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str());
             }
             if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
                 panic=true;
