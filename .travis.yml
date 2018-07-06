@@ -73,6 +73,10 @@ jobs:
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
     - stage: test
       script:
@@ -90,10 +94,6 @@ jobs:
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
-    - stage: test
-      script:
-        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
 
     - stage: quality
       script:
