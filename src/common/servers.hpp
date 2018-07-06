@@ -781,9 +781,9 @@ class servers { // also a block
         if(!msg && !header_get()){
             return(false);}
         char filename[64];
-        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
-        int fd=open(filename,O_RDONLY);
-        if(fd<0){
+        Helper::FileName::getName(filename, now, "msglist.dat");
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
             DLOG("ERROR %s not found\n",filename);
             return(false);}
         if((--mnum)%2){
@@ -792,13 +792,13 @@ class servers { // also a block
 #pragma pack()
             assert(sizeof(tmp)==32+2+4);
             //uint8_t tmp[32+2+4]; // do not read own hash
-            lseek(fd,4+32+(2+4+32)*(mnum)-32,SEEK_SET);
-            read(fd,(char*)&tmp,32+2+4); // do not read own hash
+            fd.lseek(4+32+(2+4+32)*(mnum)-32,SEEK_SET);
+            fd.read((char*)&tmp,32+2+4); // do not read own hash
             //if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
             if(tmp.svid!=svid || tmp.msid!=msid){
                 DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
                     tmp.svid,tmp.msid);
-                close(fd);
+                fd.close();
                 return(false);}
             DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
             //hashes.push_back(*(hash_s*)(&tmp[0]));
@@ -810,13 +810,13 @@ class servers { // also a block
 #pragma pack()
             assert(sizeof(tmp)==2+4+32+2+4+32);
             //uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
-            lseek(fd,4+32+(2+4+32)*(mnum),SEEK_SET);
-            read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
+            fd.lseek(4+32+(2+4+32)*(mnum),SEEK_SET);
+            fd.read((char*)&tmp,2+4+32+2+4+32); // do not read own hash
             //if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
             if(tmp.svid1!=svid || tmp.msid1!=msid){
                 DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
                     tmp.svid1,tmp.msid1);
-                close(fd);
+                fd.close();
                 return(false);}
             if(mnum<msg-1){
                 DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
@@ -825,8 +825,8 @@ class servers { // also a block
             else{
                 DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
         uint32_t htot;
-        lseek(fd,4+32+(2+4+32)*msg,SEEK_SET);
-        read(fd,&htot,4); //needed only for debugging
+        fd.lseek(4+32+(2+4+32)*msg,SEEK_SET);
+        fd.read(&htot,4); //needed only for debugging
         DLOG("HASHTREE htot %d\n",htot);
         std::vector<uint32_t>add;
         hashtree tree;
@@ -840,16 +840,16 @@ class servers { // also a block
             DLOG("HASHTREE add %d\n",n);
             if(n<m){
                 assert(n<htot);
-                lseek(fd,4+32+(2+4+32)*msg+4+32*n,SEEK_SET);}
+                fd.lseek(4+32+(2+4+32)*msg+4+32*n,SEEK_SET);}
             else if(n==m){
-                lseek(fd,4+32+(2+4+32)*msg-32,SEEK_SET);}
+                fd.lseek(4+32+(2+4+32)*msg-32,SEEK_SET);}
             else{
                 assert(n-1<htot);
-                lseek(fd,4+32+(2+4+32)*msg+4+32*(n-1),SEEK_SET);}
+                fd.lseek(4+32+(2+4+32)*msg+4+32*(n-1),SEEK_SET);}
             hash_s phash;
-            read(fd,phash.hash,32);
+            fd.read(phash.hash,32);
             hashes.push_back(phash);}
-        close(fd);
+        fd.close();
         //DEBUG only, confirm hash
             hash_t nhash;
             tree.hashpathrun(nhash,hashes);
