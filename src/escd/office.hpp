@@ -415,12 +415,11 @@ class office {
                 file_.lock();
                 srv_.break_silence(now,message,message_tnum);
                 file_.unlock();
-#else
+#endif
                 file_.lock();
                 // send connection info if outdated and no transactions
                 srv_.update_connection_info(message);
                 file_.unlock();
-#endif
                 continue;
             }
             assert(svid);
