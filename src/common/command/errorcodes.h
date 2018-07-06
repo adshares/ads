@@ -65,7 +65,8 @@ public:
         eFailedToReadBlockStart,
         eFailedToReadBlockAtStart,
         eNoBlockInSpecifiedRange,
-        eCouldNotReadCorrectVipKeys
+        eCouldNotReadCorrectVipKeys,
+        eNoNewBLocks
     };
 
 private:
@@ -125,7 +126,8 @@ private:
         { Code::eFailedToReadBlockStart, "Failed to read block start"},
         { Code::eFailedToReadBlockAtStart, "Failed to read block at start"},
         { Code::eNoBlockInSpecifiedRange, "Failed to read block in specified block range"},
-        { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"}
+        { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"},
+        { Code::eNoNewBLocks, "No new blocks to download"}
    };
 
 public:

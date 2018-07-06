@@ -145,8 +145,7 @@ void GetBlocksHandler::readBlockHeaders(
     uint32_t from,
     uint32_t to,
     header_t& header,
-    Helper::Block& block,
-    int vipTot) {
+    Helper::Block& block) {
 
     m_newviphash=false;
     for(block.getData().ttime=from; block.getData().ttime<=to; ) {
@@ -174,7 +173,7 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
         DLOG("ERROR, failed to read block start\n");
         return ErrorCodes::Code::eFailedToReadBlockStart;
     }
-    int vipTot = 0;
+//    int vipTot = 0;
     Block block;
     header_t header{};
 
@@ -196,8 +195,12 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
         }
 
         uint32_t length = m_firstVipKeys.getLength();
-        vipTot=length/(2+32);
-        DLOG("INFO, will send vip keys for start viphash %.64s [len:%d]\n", header.viphash, length);
+//        vipTot=length/(2+32);
+
+        char hash[65];
+        hash[64]='\0';
+        ed25519_key2text(hash, header.viphash, 32);
+        DLOG("INFO, will send vip keys for start viphash %.64s [len:%d]\n", hash, length);
     }
     else if(from < start) {
         DLOG("ERROR, failed to read block %08X before start %08X\n", from, start);
@@ -206,7 +209,7 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
     else {
         block.getData().ttime = from-BLOCKSEC;
         if(block.readDataFromHeaderFile()) {
-            vipTot=vipSize(block.getData().vipHash);
+//            vipTot=vipSize(block.getData().vipHash);
             header = block.getHeader();
         }
     }
@@ -220,7 +223,7 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
         DLOG("ERROR, no block between %08X and %08X\n", from, to);
     }
     else {
-        readBlockHeaders(from, to, header, block, vipTot);
+        readBlockHeaders(from, to, header, block);
         if(m_serversHeaders.size() > 0) {
             DLOG("Will send %lu blocks from %08X to %08X\n", m_serversHeaders.size(), from, block.getData().ttime);
             loadLastBlockSignatures(block.getData().ttime);
@@ -229,7 +232,11 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
             }
         }
         else {
-            DLOG("ERROR, failed to provide blocks from %08X to %08X\n", from, block.getData().ttime);
+            if(from > block.getData().ttime) {
+              return ErrorCodes::Code::eNoNewBLocks;
+            } else {
+              DLOG("ERROR, failed to provide blocks from %08X to %08X\n", from, block.getData().ttime);
+            }
         }
     }
 
