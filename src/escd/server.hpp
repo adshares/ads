@@ -2712,32 +2712,24 @@ NEXTUSER:
     }
 
     void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos) {
-        static uint32_t lpath=0;
-        static int fd=-1;
+        int fd=-1;
         static boost::mutex local_;
         boost::lock_guard<boost::mutex> lock(local_);
-        if(fd>=0 && !path) {
-          close(fd);
-          return;
-        }
         char filename[64];
-        if(path!=lpath || fd<0) {
-            if(fd>=0) {
-                close(fd);
-            }
-            lpath=path;
-            Helper::FileName::getName(filename, path, "bro.log");
-            fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0644); //TODO maybe O_TRUNC not needed
-            if(fd<0) {
-                DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
-                return;
-            }
+
+        Helper::FileName::getName(filename, path, "bro.log");
+        fd = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0644);
+        if(fd<0) {
+            DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
+            return;
         }
         write(fd,p,len);
         write(fd,hash,32);
         write(fd,pkey,32);
         write(fd,&msid,sizeof(uint32_t));
         write(fd,&mpos,sizeof(uint32_t)); //FIXME, make this uint16_t
+
+        close(fd);
     }
 
     bool process_message(message_ptr msg) {
