@@ -149,7 +149,6 @@ void GetBlocksHandler::readBlockHeaders(
     int vipTot) {
 
     m_newviphash=false;
-    uint32_t trystop=from+128;
     for(block.getData().ttime=from; block.getData().ttime<=to; ) {
         if(!block.readDataFromHeaderFile()) {
             break;
@@ -162,10 +161,6 @@ void GetBlocksHandler::readBlockHeaders(
         DLOG("INFO, adding block %08X\n", block.getData().ttime);
         m_serversHeaders.push_back(header);
         block.getData().ttime += BLOCKSEC;
-        //FIXME, user different stop criterion !!! do not stop if there are not enough signatures
-        if(block.getData().ttime>trystop && 2*block.getData().voteYes>=vipTot) {
-            break;
-        }
     }
     block.getData().ttime-=BLOCKSEC;
 }
