@@ -38,10 +38,11 @@ void arch_old_blocks(uint32_t currentTime) {
             // create archive from blk directory
             sprintf(filepath, "blk/%03X/%05X%s", currentTime>>20, currentTime&0xFFFFF, Helper::ARCH_EXTENSION);
             Helper::LibArchive arch(filepath);
-            if (!arch.createArch(dirpath)) {
+            if (arch.createArch(dirpath)) {
+                Helper::remove_block(dirpath);
+            } else {
                 std::cerr << "Error directory compressing "<<dirpath<<std::endl;
             }
-            Helper::remove_block(dirpath);
         } else {
             return;
         }

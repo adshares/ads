@@ -4372,9 +4372,10 @@ NEXTBANK:
 
         boost::thread archOldBlocks_thread(boost::bind(Helper::arch_old_blocks, this->srvs_.now - BLOCKSEC));
         archOldBlocks_thread.detach();
+#else
+        srvs_.clean_old(opts_.svid);
 #endif
-
-//        srvs_.clean_old(opts_.svid);
+        signlater(); // sign own removed messages
     }
 
     //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)
