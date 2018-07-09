@@ -114,7 +114,7 @@ void db_backup(uint32_t block_path, uint16_t nodes) {
 
         user_t u;
         Helper::FileName::getUndo(backupFilePath, block_path, bank);
-        strcat(backupFilePath, snapshot_postfix);
+        strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
 
         int current_snapshot = open(backupFilePath, O_WRONLY | O_CREAT, 0644);
         if (current_snapshot < 0) {
@@ -149,7 +149,7 @@ void db_backup(uint32_t block_path, uint16_t nodes) {
     for (uint16_t bank = 1; bank < nodes; ++bank)
     {
         Helper::FileName::getUndo(backupFilePath, block_path, bank);
-        strcat(backupFilePath, snapshot_postfix);
+        strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
         std::rename(backupFilePath,
                     std::string(backupFilePath).substr(0, Helper::FileName::kUndoNameFixedLength).c_str());
     }

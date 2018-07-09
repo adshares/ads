@@ -1186,7 +1186,7 @@ class servers { // also a block
     int header_get() {
         char filename[64];
         if(!now) {
-            sprintf(filename,"blk/header.hdr");
+            snprintf(filename,sizeof(filename),"blk/header.hdr");
         } else {
             Helper::FileName::getName(filename, now, "header.hdr");
         }
