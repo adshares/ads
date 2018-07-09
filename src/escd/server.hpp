@@ -886,7 +886,7 @@ NEXTUSER:
             boost::this_thread::sleep(boost::posix_time::seconds(1));
             RETURN_VAL_ON_SHUTDOWN(0);
         }
-        return 0;
+        // unreachable
     }
 
     uint32_t readmsid() {
