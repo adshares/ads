@@ -1164,7 +1164,7 @@ class message :
             uint32_t i;
             user_t u;
             if(fd.read(&i,sizeof(uint32_t))!=sizeof(uint32_t)) {
-                return(0);
+                break; //return(0);
             }
             if(fd.read(&u,sizeof(user_t))!=sizeof(user_t)) {
                 return(i);

@@ -183,8 +183,9 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
                 memcpy(dp,&u,sizeof(user_t));
             }
         }
-        close(fd);
     }
+    close(fd);
+
     return errorCode;
 }
 

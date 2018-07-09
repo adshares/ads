@@ -31,7 +31,7 @@ header_t Block::getHeader() {
 bool Block::readDataFromHeaderFile() {
     char fileName[64];
     if(!m_data.ttime) {
-        sprintf(fileName,"blk/header.hdr");
+        snprintf(fileName,sizeof(fileName),"blk/header.hdr");
     } else {
         Helper::FileName::getName(fileName, m_data.ttime, "header.hdr");
     }
