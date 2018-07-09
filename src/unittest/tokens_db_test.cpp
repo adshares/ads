@@ -52,6 +52,12 @@ TEST(TokensTest, create_token_account)
     }
 }
 
+TEST(TokensTest, create_duplicate)
+{
+    Database::TokenDB db;
+    EXPECT_FALSE(db.create_token(token[1].user_id, token[1].token_id, 2));
+}
+
 TEST(TokensTest, add_tokens)
 {
     Database::TokenDB db;
@@ -121,8 +127,26 @@ TEST(TokensTest, move_tokens_oversize)
     EXPECT_FALSE(db.move_tokens(token[0].user_id, token[1].user_id, token[0].token_id, token[0].balance + 10));
 }
 
-TEST(TokensTest, dump)
+//TEST(TokensTest, dump)
+//{
+//    Database::TokenDB db;
+//    db.dump();
+//}
+
+TEST(TokensTest, remove_token_account)
 {
     Database::TokenDB db;
-    db.dump();
+    EXPECT_TRUE(db.remove_token_account(token[0].user_id, token[0].token_id));
+    EXPECT_TRUE(db.remove_token_account(token[2].user_id, token[2].token_id));
+    EXPECT_TRUE(db.remove_token_account(token[4].user_id, token[4].token_id));
+
+    EXPECT_FALSE(db.remove_token_account(token[0].user_id, token[0].token_id));
+
+    EXPECT_FALSE(db.is_exists_token(token[0].user_id, token[0].token_id));
+    EXPECT_FALSE(db.is_exists_token(token[2].user_id, token[2].token_id));
+    EXPECT_FALSE(db.is_exists_token(token[4].user_id, token[4].token_id));
+
+    EXPECT_TRUE(db.is_exists_token(token[1].user_id, token[1].token_id));
+    EXPECT_TRUE(db.is_exists_token(token[3].user_id, token[3].token_id));
 }
+

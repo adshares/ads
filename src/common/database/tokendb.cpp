@@ -27,6 +27,7 @@ TokenDB::TokenDB() : m_environment(nullptr)
         mdb_env_set_mapsize(m_environment, kMapSize);
         if (mdb_env_open(m_environment, kDBFileName, 0, 0644) != 0)
         {
+            mdb_env_close(m_environment);
             m_environment = nullptr;
         }
     }
@@ -67,13 +68,13 @@ bool TokenDB::create_token(uint32_t user_id, uint32_t token_id, uint64_t balance
     key_data += token_id;
 
     uint64_t value_data = balance;
-    key.mv_size = sizeof(uint64_t);
+    key.mv_size = sizeof(key_data);
     key.mv_data = &key_data;
     value.mv_size = sizeof(value_data);
     value.mv_data = &value_data;
 
     int rv = 0;
-    if (!rv && (rv = mdb_put(txn, dbi, &key, &value, MDB_APPENDDUP)) != 0)
+    if (!rv && (rv = mdb_put(txn, dbi, &key, &value, MDB_NOOVERWRITE |  MDB_APPENDDUP)) != 0)
     {
 //        std::cerr << "Put error code:"<<rv<<std::endl;
         mdb_txn_abort(txn);
@@ -133,7 +134,7 @@ bool TokenDB::edit_tokens(EditType mod, uint32_t user_id, uint32_t token_id, uin
     }
 
     uint64_t key_data = user_id;
-    key_data = key_data << sizeof(uint32_t) * 8;
+    key_data = key_data << (sizeof(uint32_t) * 8);
     key_data += token_id;
 
     key.mv_size = sizeof(key_data);
@@ -171,7 +172,7 @@ bool TokenDB::edit_tokens(EditType mod, uint32_t user_id, uint32_t token_id, uin
             value_data -= newvalue;
         }
     }
-    value.mv_size = sizeof(uint64_t);
+    value.mv_size = sizeof(value_data);
     value.mv_data = &value_data;
 
     if (!rv && (rv = mdb_cursor_put(cursor, &key, &value, MDB_CURRENT)) != 0)
@@ -196,12 +197,52 @@ bool TokenDB::edit_tokens(EditType mod, uint32_t user_id, uint32_t token_id, uin
     return !rv;
 }
 
-bool TokenDB::remove_token_account(uint32_t, uint32_t )
+bool TokenDB::remove_token_account(uint32_t user_id, uint32_t token_id)
 {
     if (!m_environment) return false;
 
+    MDB_txn *txn;
+    MDB_dbi dbi;
+    MDB_val key, value;
 
-    return true;
+    if (mdb_txn_begin(m_environment, nullptr, 0, &txn) != 0)
+    {
+//        std::cerr << "Txn Begin error:"<< std::endl;
+        return false;
+    }
+
+    if (mdb_open(txn, nullptr, MDB_INTEGERKEY, &dbi) !=0 )
+    {
+//        std::cerr << "Mdb open error:"<< std::endl;
+        return false;
+    }
+
+    uint64_t key_data = 0;
+    key_data = user_id;
+    key_data <<= (sizeof(uint32_t) * 8);
+    key_data += token_id;
+
+    uint64_t value_data = 0;
+    key.mv_size = sizeof(key_data);
+    key.mv_data = &key_data;
+    value.mv_size = sizeof(value_data);
+    value.mv_data = &value_data;
+
+    int rv = 0;
+    if (!rv && (rv = mdb_del(txn, dbi, &key, &value)) != 0)
+    {
+//        std::cerr << "Put error code:"<<rv<<std::endl;
+        mdb_txn_abort(txn);
+    }
+
+    if (!rv)
+    {
+        rv = mdb_txn_commit(txn);
+    }
+
+    mdb_close(m_environment, dbi);
+
+    return !rv;
 }
 
 bool TokenDB::is_exists_token(uint32_t user_id, uint32_t token_id)
@@ -230,7 +271,7 @@ bool TokenDB::is_exists_token(uint32_t user_id, uint32_t token_id)
     key_data += token_id;
 
     uint64_t value_data;
-    key.mv_size = sizeof(uint64_t);
+    key.mv_size = sizeof(key_data);
     key.mv_data = &key_data;
     value.mv_size = sizeof(value_data);
     value.mv_data = &value_data;
@@ -273,7 +314,7 @@ uint64_t TokenDB::get_balance(uint32_t user_id, uint32_t token_id)
     key_data += token_id;
 
     uint64_t value_data;
-    key.mv_size = sizeof(uint64_t);
+    key.mv_size = sizeof(key_data);
     key.mv_data = &key_data;
     value.mv_size = sizeof(value_data);
     value.mv_data = &value_data;
@@ -325,9 +366,7 @@ void TokenDB::dump()
         std::cout << (fullkey>>32) <<" "<<(uint32_t)fullkey<<" "<<*(uint64_t*)value.mv_data<<std::endl;
     }
 
-    mdb_cursor_put(cursor, &key, &value, MDB_CURRENT);
     mdb_txn_abort(txn);
-    mdb_cursor_close(cursor);
     mdb_close(m_environment, dbi);
     std::cout<< "****** DB DUMP END ***" << std::endl;
 }
