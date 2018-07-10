@@ -11,10 +11,15 @@
 using namespace std;
 
 
-ErrorCodes::Code talk(NetworkClient& netClient, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
+ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
     if(!netClient.reconnect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
         return ErrorCodes::Code::eConnectServerError;
+    }
+
+    if(sts.drun && command->getCommandType() == CommandType::eModifying) {
+      respHandler.onDryRun(std::move(command));
+      return ErrorCodes::Code::eNone;
     }
 
     if(command->send(netClient) ) {
@@ -64,7 +69,7 @@ int main(int argc, char* argv[]) {
             auto command = run_json(sts, line);
 
             if(command) {
-                responseError = talk(netClient, respHandler, std::move(command));
+                responseError = talk(netClient, sts, respHandler, std::move(command));
             }
             else {
                 responseError = ErrorCodes::Code::eCommandParseError;
