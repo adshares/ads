@@ -1160,9 +1160,8 @@ NEXTUSER:
 
                     if(tm->second->svid==opts_.svid)
                     {
-                      extern bool finish;
                       ELOG("ERROR: trying to remove own invalid message, FATAL, MUST RESUBMIT (TODO!)\n");
-                      finish=true;
+                      SHUTDOWN();
                     }
 
                     continue;
@@ -1176,9 +1175,10 @@ NEXTUSER:
                         message_ptr msg=tm->second;
                         bad_insert(tm->second);
                         //remove_message(tm->second);
-                        txs_msgs_.erase(tm);
                         if(msg->svid==opts_.svid) {
                             sign_msgs_.push_front(msg);
+                        } else {
+                            txs_msgs_.erase(tm);
                         }
                     } else {
                         ELOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
@@ -1196,9 +1196,10 @@ NEXTUSER:
                         message_ptr msg=tm->second;
                         bad_insert(tm->second);
                         //remove_message(tm->second);
-                        txs_msgs_.erase(tm);
                         if(msg->svid==opts_.svid) {
                             sign_msgs_.push_front(msg);
+                        } else {
+                            txs_msgs_.erase(tm);
                         }
                     } else {
                         ELOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
@@ -1281,27 +1282,32 @@ NEXTUSER:
         DLOG("LAST_block_final finished\n");
     }
 
-    void signlater()
-    { if(!sign_msgs_.empty()){ // sign again messages that failed to be accepted by the network on time
-        uint32_t ntime=time(NULL);
-        uint32_t msid=srvs_.nodes[opts_.svid].msid;
-        hash_t msha;
-        memcpy(msha,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
-        for(auto mp=sign_msgs_.begin();mp!=sign_msgs_.end();mp++){
-          msid++;
-          assert(msid==(*mp)->msid);
-          (*mp)->load(opts_.svid);
-          (*mp)->signnewtime(ntime,skey,pkey,msha); //FIXME, insert_user lacks data !
-          (*mp)->status &= ~MSGSTAT_BAD;
-          memcpy(msha,(*mp)->sigh,sizeof(hash_t));
-          (*mp)->save();
-          (*mp)->unload(opts_.svid);
-          check_.lock(); //maybe not needed if no validators
-          check_msgs_.push_back((*mp));
-          check_.unlock();
-          ntime++;}
-        sign_msgs_.clear();
-      }
+    void signlater() {
+        if (!sign_msgs_.empty()) { // sign again messages that failed to be accepted by the network on time
+            uint32_t ntime = time(NULL);
+            uint32_t msid = srvs_.nodes[opts_.svid].msid;
+            hash_t msha;
+            memcpy(msha, srvs_.nodes[opts_.svid].msha, sizeof(hash_t));
+            //for(auto mp=sign_msgs_.begin();mp!=sign_msgs_.end();mp++)
+            for (auto mp = txs_msgs_.find(sign_msgs_.front()->hash.num); mp != txs_msgs_.end(); mp++) {
+                if (opts_.svid != mp->second->svid) {
+                    break;
+                }
+                msid++;
+                assert(msid == mp->second->msid);
+                mp->second->load(opts_.svid);
+                mp->second->signnewtime(ntime, skey, pkey, msha);
+                mp->second->status &= ~MSGSTAT_BAD;
+                memcpy(msha, mp->second->sigh, sizeof(hash_t));
+                mp->second->save();
+                mp->second->unload(opts_.svid);
+                check_.lock(); //maybe not needed if no validators
+                check_msgs_.push_back(mp->second);
+                check_.unlock();
+                ntime++;
+            }
+            sign_msgs_.clear();
+        }
     }
 
     void count_votes(uint32_t now,hash_s& cand) {
@@ -5016,7 +5022,7 @@ NEXTBANK:
     std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates, TODO should be map of message_ptr
     message_queue wait_msgs_;
     message_queue check_msgs_;
-    message_queue sign_msgs_;
+    message_queue sign_msgs_; //TODO, could be just a pointer to first message, since all later (own) messages in txs_msgs_ must be signed again
     std::map<hash_s,message_ptr,hash_cmp> bad_msgs_;
     message_map missing_msgs_; //TODO, start using this, these are messages we still wait for
     message_map txs_msgs_; //_TXS messages (transactions)
