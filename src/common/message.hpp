@@ -277,6 +277,7 @@ class message :
                 continue;
             }
             user_t ou;
+            ou.msid=0;
             lseek(fd,user*sizeof(user_t),SEEK_SET);
             read(fd,&ou,sizeof(user_t));
             close(fd);
