@@ -87,14 +87,15 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     uint32_t    to_from=0;
     uint8_t     to_info[32]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     uint8_t     to_pkey[32];
-    uint8_t     to_sign[64];    
+    uint8_t     to_confirm[64];
+    uint8_t     to_signature[64];
     std::string txn_type{};
     uint32_t    now=time(NULL);
     uint32_t    to_block=now-(now%BLOCKSEC)-BLOCKSEC;
     boost::property_tree::ptree pt;
 
     std::stringstream ss(line);
-    sts.send_again = false;
+    sts.signature_provided = false;
 
     try {
         boost::property_tree::read_json(ss,pt);
@@ -104,11 +105,19 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         return nullptr;
     }
 
-    boost::optional<std::string> json_sign=pt.get_optional<std::string>("signature");
-    if(json_sign && !parse_key(to_sign,json_sign,64)) {
+    boost::optional<std::string> json_signature=pt.get_optional<std::string>("signature");
+    if(json_signature) {
+        if(parse_key(to_signature,json_signature,64)) {
+            sts.signature_provided = true;
+        } else {
+            return nullptr;
+        }
+    }
+    boost::optional<std::string> json_confirm=pt.get_optional<std::string>("confirm");
+    if(json_confirm && !parse_key(to_confirm,json_confirm,64)) {
         return nullptr;
     }
-    boost::optional<std::string> json_pkey=pt.get_optional<std::string>("pkey");
+    boost::optional<std::string> json_pkey=pt.get_optional<std::string>("public_key");
     if(json_pkey && !parse_key(to_pkey,json_pkey,32)) {
         return nullptr;
     }
@@ -243,13 +252,12 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
                 free(data);
                 return nullptr;
             }
-            sts.send_again = true;
             command = command::factory::makeCommand(*data);
             command->setData((char*)data);
             free(data);
-            return command;
+        } else {
+          return nullptr;
         }
-        return nullptr;
     }
     else if(!run.compare(txsname[TXSTYPE_BRO])) {
         boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
@@ -309,7 +317,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         command = std::make_unique<RetrieveFunds>(sts.bank, sts.user, sts.msid, now, to_bank, to_user);
     }
     else if(!run.compare(txsname[TXSTYPE_KEY])) {
-        command = std::make_unique<SetAccountKey>(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign);
+        command = std::make_unique<SetAccountKey>(sts.bank, sts.user, sts.msid, now, to_pkey, to_confirm);
     }
     else if(!run.compare(txsname[TXSTYPE_BKY])) {
         command = std::make_unique<ChangeNodeKey>(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey);
@@ -357,7 +365,11 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     }
 
     if(command) {
-        command->sign(sts.ha.data(), sts.sk, sts.pk);
+        if(sts.signature_provided) {
+          memcpy(command->getSignature(), to_signature, command->getSignatureSize());
+        } else {
+          command->sign(sts.ha.data(), sts.sk, sts.pk);
+        }
     }
 
     if(!run.compare(txsname[TXSTYPE_KEY]) && command) {

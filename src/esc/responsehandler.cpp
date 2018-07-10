@@ -64,24 +64,31 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     m_pt.put("current_block_time", now);
     m_pt.put("previous_block_time", now - BLOCKSEC);
 
-    std::stringstream tx_data, full_data;
-    full_data.write((char*)txs->getData(), txs->getDataSize());
-    full_data.write((char*)txs->getAdditionalData(), txs->getAdditionalDataSize());
-    full_data.write((char*)txs->getSignature(), txs->getSignatureSize());
-    Helper::ed25519_key2text(tx_data, (uint8_t*)full_data.str().c_str(), txs->getDataSize() + txs->getAdditionalDataSize() + txs->getSignatureSize());
-    m_pt.put("tx.data",tx_data.str());
-    m_logpt.put("tx.data",tx_data.str());
+    std::stringstream tx_hex, sign_hex, tx_data;
+    tx_data.write((char*)txs->getData(), txs->getDataSize());
+    tx_data.write((char*)txs->getAdditionalData(), txs->getAdditionalDataSize());
+    //tx_data.write((char*)txs->getSignature(), txs->getSignatureSize());
+    Helper::ed25519_key2text(tx_hex, (uint8_t*)tx_data.str().c_str(), txs->getDataSize() + txs->getAdditionalDataSize());
+    Helper::ed25519_key2text(sign_hex, (uint8_t*)txs->getSignature(), txs->getSignatureSize());
+    m_pt.put("tx.data",tx_hex.str());
+    m_logpt.put("tx.data",tx_hex.str());
+
+    if(!m_sts.without_secret) {
+      m_pt.put("tx.signature",sign_hex.str());
+      m_logpt.put("tx.signature",sign_hex.str());
+    }
 
     int type = txs->getType();
 
     if(type != TXSTYPE_INF && type != TXSTYPE_BLG && type != TXSTYPE_NDS && type != TXSTYPE_MGS && type != TXSTYPE_MSG && type != TXSTYPE_SIG && type != TXSTYPE_VIP && type != TXSTYPE_BLK) {
-        m_pt.put("tx.account_msid", m_sts.msid);
-        m_logpt.put("tx.account_msid",m_sts.msid);
+       if(!m_sts.signature_provided) {
+          m_pt.put("tx.account_msid", m_sts.msid);
+          m_logpt.put("tx.account_msid",m_sts.msid);
 
-        std::stringstream tx_user_hashin;
-        Helper::ed25519_key2text(tx_user_hashin, m_sts.ha.data(), SHA256_DIGEST_LENGTH);
+          std::stringstream tx_user_hashin;
+          Helper::ed25519_key2text(tx_user_hashin, m_sts.ha.data(), SHA256_DIGEST_LENGTH);
 
-        if(!m_sts.send_again) {
+
           m_pt.put("tx.account_hashin", tx_user_hashin.str());
           m_logpt.put("tx.account_hashin", tx_user_hashin.str());
 
