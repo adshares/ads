@@ -44,7 +44,7 @@ class settings {
     bool olog;
     bool drun;
     bool signature_provided = false;
-    bool without_secret = false;
+    bool without_secret = true;
     ed25519_secret_key sk;
     ed25519_public_key pk;	// calculated
 //	ed25519_secret_key sn;
@@ -214,8 +214,6 @@ class settings {
 
     void get(int ac, char *av[]) {
         try {
-            char pktext[2*32+1];
-            pktext[2*32]='\0';
             boost::program_options::options_description generic("Generic options");
             generic.add_options()
             ("work-dir,w", boost::program_options::value<std::string>(&workdir)->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory")
@@ -256,40 +254,6 @@ class settings {
             if(vm.count("version")) {
                 print_version();
                 exit(0);
-            }
-
-            if(vm.count("bank") || vm.count("address")) {
-                std::string line;
-                if (vm.count("secret")) {
-                    line = vm["secret"].as<std::string>();
-                } else if(!vm.count("dry-run") || !vm["dry-run"].as<bool>()){
-                    std::cerr << "ENTER passphrase or private key\n";
-                    std::getline(std::cin,line);
-                    boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
-                    if(line.empty()) {
-                        std::cerr << "ERROR, failed to read passphrase\n";
-                        exit(1);
-                    }
-                }
-                if(line.empty()) {
-                    // dry run without key
-                    without_secret = true;
-                } else {
-                    if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
-                        skey = line;
-                        ed25519_text2key(sk,skey.c_str(),32);
-                        ed25519_publickey(sk,pk);
-                        ed25519_key2text(pktext,pk,32);
-                    } else {
-                        SHA256_CTX sha256;
-                        SHA256_Init(&sha256);
-                        SHA256_Update(&sha256,line.c_str(),line.length());
-                        SHA256_Final(sk,&sha256);
-                        ed25519_publickey(sk,pk);
-                        ed25519_key2text(pktext,pk,32);
-                    }
-                    std::cerr << "Public key: " << std::string(pktext) << std::endl;
-                }
             }
 
             if(vm.count("port")) {
@@ -355,9 +319,6 @@ class settings {
                 if(vm.count("user")) {
                     std::cerr << "WARNING: last hash missing!" << std::endl;
                 }
-            }
-            if(without_secret) {
-              std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
             }
         }
 

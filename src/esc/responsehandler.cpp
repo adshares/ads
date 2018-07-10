@@ -73,7 +73,7 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
     m_pt.put("tx.data",tx_hex.str());
     m_logpt.put("tx.data",tx_hex.str());
 
-    if(!m_sts.without_secret) {
+    if(!m_sts.without_secret || m_sts.signature_provided) {
       m_pt.put("tx.signature",sign_hex.str());
       m_logpt.put("tx.signature",sign_hex.str());
     }
