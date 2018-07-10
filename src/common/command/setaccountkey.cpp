@@ -127,7 +127,7 @@ void SetAccountKey::saveResponse(settings& sts)
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!sts.send_again && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 

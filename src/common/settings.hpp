@@ -43,7 +43,8 @@ class settings {
     bool nice;
     bool olog;
     bool drun;
-    bool send_again = false;
+    bool signature_provided = false;
+    bool without_secret = false;
     ed25519_secret_key sk;
     ed25519_public_key pk;	// calculated
 //	ed25519_secret_key sn;
@@ -261,7 +262,7 @@ class settings {
                 std::string line;
                 if (vm.count("secret")) {
                     line = vm["secret"].as<std::string>();
-                } else {
+                } else if(!vm.count("dry-run") || !vm["dry-run"].as<bool>()){
                     std::cerr << "ENTER passphrase or private key\n";
                     std::getline(std::cin,line);
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
@@ -270,20 +271,25 @@ class settings {
                         exit(1);
                     }
                 }
-                if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
-                    skey = line;
-                    ed25519_text2key(sk,skey.c_str(),32);
-                    ed25519_publickey(sk,pk);
-                    ed25519_key2text(pktext,pk,32);
+                if(line.empty()) {
+                    // dry run without key
+                    without_secret = true;
                 } else {
-                    SHA256_CTX sha256;
-                    SHA256_Init(&sha256);
-                    SHA256_Update(&sha256,line.c_str(),line.length());
-                    SHA256_Final(sk,&sha256);
-                    ed25519_publickey(sk,pk);
-                    ed25519_key2text(pktext,pk,32);
+                    if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
+                        skey = line;
+                        ed25519_text2key(sk,skey.c_str(),32);
+                        ed25519_publickey(sk,pk);
+                        ed25519_key2text(pktext,pk,32);
+                    } else {
+                        SHA256_CTX sha256;
+                        SHA256_Init(&sha256);
+                        SHA256_Update(&sha256,line.c_str(),line.length());
+                        SHA256_Final(sk,&sha256);
+                        ed25519_publickey(sk,pk);
+                        ed25519_key2text(pktext,pk,32);
+                    }
+                    std::cerr << "Public key: " << std::string(pktext) << std::endl;
                 }
-                std::cerr << "Public key: " << std::string(pktext) << std::endl;
             }
 
             if(vm.count("port")) {
@@ -336,8 +342,8 @@ class settings {
             if (vm.count("olog")) {
                 std::cerr << "LogOutput: " << vm["olog"].as<bool>() << std::endl;
             }
-            if (vm.count("drun")) {
-                std::cerr << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;
+            if (vm.count("dry-run")) {
+                std::cerr << "Dry Run  : " << vm["dry-run"].as<bool>() << std::endl;
             }
             if (vm.count("hash")) {
                 if(hash.length()!=64) {
@@ -349,6 +355,9 @@ class settings {
                 if(vm.count("user")) {
                     std::cerr << "WARNING: last hash missing!" << std::endl;
                 }
+            }
+            if(without_secret) {
+              std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
             }
         }
 
