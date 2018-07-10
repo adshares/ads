@@ -242,7 +242,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         }
         command = std::make_unique<GetMessage>(sts.bank, sts.user, to_block, to_bank, to_node_msid, now);
     }
-    else if(!run.compare("send_again")) {
+    else if(!run.compare("send_again") || !run.compare("send_raw")) {
         boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
         if(json_data) {
             std::string data_str=json_data.get();
