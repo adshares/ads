@@ -11,6 +11,14 @@ ResponseHandler::ResponseHandler(settings& sts)
     :m_sts(sts) {
 }
 
+void ResponseHandler::onDryRun(std::unique_ptr<IBlockCommand> command) {
+    m_pt.clear();
+    initLogs(command);
+    boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
+    m_sts.msid++;
+    Helper::create256signhash(command->getSignature(), command->getSignatureSize(), m_sts.ha, m_sts.ha);
+}
+
 void ResponseHandler::onExecute(std::unique_ptr<IBlockCommand> command) {
     m_pt.clear();
     initLogs(command);
@@ -73,15 +81,17 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
         std::stringstream tx_user_hashin;
         Helper::ed25519_key2text(tx_user_hashin, m_sts.ha.data(), SHA256_DIGEST_LENGTH);
 
-        m_pt.put("tx.account_hashin", tx_user_hashin.str());
-        m_logpt.put("tx.account_hashin", tx_user_hashin.str());
+        if(!m_sts.send_again) {
+          m_pt.put("tx.account_hashin", tx_user_hashin.str());
+          m_logpt.put("tx.account_hashin", tx_user_hashin.str());
 
-        std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
-        Helper::create256signhash(txs->getSignature(), txs->getSignatureSize(), m_sts.ha, hashout);
+          std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
+          Helper::create256signhash(txs->getSignature(), txs->getSignatureSize(), m_sts.ha, hashout);
 
-        std::stringstream tx_user_hashout;
-        Helper::ed25519_key2text(tx_user_hashout, hashout.data(), SHA256_DIGEST_LENGTH);
-        m_pt.put("tx.account_hashout",  std::move(tx_user_hashout.str()));
+          std::stringstream tx_user_hashout;
+          Helper::ed25519_key2text(tx_user_hashout, hashout.data(), SHA256_DIGEST_LENGTH);
+          m_pt.put("tx.account_hashout",  std::move(tx_user_hashout.str()));
+        }
         //FIXME calculate deduction and fee
         m_pt.put("tx.deduct", print_amount(txs->getDeduct()+txs->getFee()));
         m_pt.put("tx.fee", print_amount(txs->getFee()));

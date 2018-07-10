@@ -94,6 +94,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     boost::property_tree::ptree pt;
 
     std::stringstream ss(line);
+    sts.send_again = false;
 
     try {
         boost::property_tree::read_json(ss,pt);
@@ -233,12 +234,16 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_data) {
             std::string data_str=json_data.get();
             int len=data_str.length()/2;
+            if(len < 1) {
+                return nullptr;
+            }
             uint8_t *data=(uint8_t*)malloc(len+1);
             data[len]='\0';
             if(!parse_key(data,json_data,len)) {
                 free(data);
                 return nullptr;
             }
+            sts.send_again = true;
             command = command::factory::makeCommand(*data);
             command->setData((char*)data);
             free(data);
