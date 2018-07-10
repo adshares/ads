@@ -113,6 +113,10 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
             return nullptr;
         }
     }
+    boost::optional<uint32_t> json_time=pt.get_optional<uint32_t>("time");
+    if(json_time) {
+        now=json_time.get();
+    }
     boost::optional<std::string> json_confirm=pt.get_optional<std::string>("confirm");
     if(json_confirm && !parse_key(to_confirm,json_confirm,64)) {
         return nullptr;

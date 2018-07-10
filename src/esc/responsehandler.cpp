@@ -77,6 +77,8 @@ void ResponseHandler::initLogs(std::unique_ptr<IBlockCommand>& txs) {
       m_pt.put("tx.signature",sign_hex.str());
       m_logpt.put("tx.signature",sign_hex.str());
     }
+    m_pt.put("tx.time",txs->getTime());
+    m_logpt.put("tx.time",txs->getTime());
 
     int type = txs->getType();
 
