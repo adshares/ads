@@ -81,7 +81,7 @@ jobs:
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
-        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent"
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent,@vip_key,@function"
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
