@@ -114,41 +114,9 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         }
     }
 
-    if(sts.without_secret && !sts.signature_provided && (sts.bank || !sts.addr.empty())) {
-        std::string line;
-        if (!sts.skey.empty()) {
-            line = sts.skey;
-        } else if(!sts.drun){
-            std::cerr << "ENTER passphrase or private key\n";
-            std::getline(std::cin,line);
-            boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
-            if(line.empty()) {
-                std::cerr << "ERROR, failed to read passphrase\n";
-                exit(1);
-            }
-        }
-        if(line.empty()) {
-
-        } else {
-            char pktext[2*32+1];
-            pktext[2*32]='\0';
-            if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
-                sts.skey = line;
-                ed25519_text2key(sts.sk,sts.skey.c_str(),32);
-                ed25519_publickey(sts.sk,sts.pk);
-                ed25519_key2text(pktext,sts.pk,32);
-            } else {
-                SHA256_CTX sha256;
-                SHA256_Init(&sha256);
-                SHA256_Update(&sha256,line.c_str(),line.length());
-                SHA256_Final(sts.sk,&sha256);
-                ed25519_publickey(sts.sk,sts.pk);
-                ed25519_key2text(pktext,sts.pk,32);
-                sts.skey = std::string(pktext);
-            }
-            std::cerr << "Public key: " << std::string(pktext) << std::endl;
-            sts.without_secret = false;
-        }
+    if(!sts.drun && sts.without_secret && !sts.signature_provided) {
+      std::cerr << "No secret and no signature provided. Abort." << std::endl;
+      return nullptr;
     }
 
     if(sts.drun && sts.without_secret) {

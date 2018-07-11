@@ -232,7 +232,7 @@ class settings {
             ("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
             ("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
             ("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
-            ("secret,s", boost::program_options::value<std::string>(&skey),         "passphrase or private key [64chars in hex format / 32bytes]")
+            ("secret,s", boost::program_options::value<std::string>(&skey)->implicit_value("-"),         "passphrase or private key [64chars in hex format / 32bytes]")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -254,6 +254,37 @@ class settings {
             if(vm.count("version")) {
                 print_version();
                 exit(0);
+            }
+
+            if(vm.count("secret")) {
+                std::string line;
+                line = vm["secret"].as<std::string>();
+                if (line == "-") {
+                    std::cerr << "ENTER passphrase or private key\n";
+                    std::getline(std::cin,line);
+                    boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
+                    if(line.empty()) {
+                        std::cerr << "ERROR, failed to read passphrase\n";
+                        exit(1);
+                    }
+                }
+                char pktext[2*32+1];
+                pktext[2*32]='\0';
+                if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
+                    skey = line;
+                    ed25519_text2key(sk,skey.c_str(),32);
+                    ed25519_publickey(sk,pk);
+                    ed25519_key2text(pktext,pk,32);
+                } else {
+                    SHA256_CTX sha256;
+                    SHA256_Init(&sha256);
+                    SHA256_Update(&sha256,line.c_str(),line.length());
+                    SHA256_Final(sk,&sha256);
+                    ed25519_publickey(sk,pk);
+                    ed25519_key2text(pktext,pk,32);
+                }
+                std::cerr << "Public key: " << std::string(pktext) << std::endl;
+                without_secret = false;
             }
 
             if(vm.count("port")) {

@@ -12,15 +12,15 @@ using namespace std;
 
 
 ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
+    if(sts.drun && command->getCommandType() == CommandType::eModifying) {
+      respHandler.onDryRun(std::move(command));
+      return ErrorCodes::Code::eNone;
+    }
+
     if(!netClient.reconnect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
         throw std::exception();
 //        return ErrorCodes::Code::eConnectServerError;
-    }
-
-    if(sts.drun && command->getCommandType() == CommandType::eModifying) {
-      respHandler.onDryRun(std::move(command));
-      return ErrorCodes::Code::eNone;
     }
 
     if(command->send(netClient) ) {
