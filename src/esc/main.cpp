@@ -14,7 +14,8 @@ using namespace std;
 ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
     if(!netClient.reconnect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
-        return ErrorCodes::Code::eConnectServerError;
+        throw std::exception();
+//        return ErrorCodes::Code::eConnectServerError;
     }
 
     if(sts.drun && command->getCommandType() == CommandType::eModifying) {
@@ -26,7 +27,8 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
         respHandler.onExecute(std::move(command));
     } else {
         ELOG("ERROR reading global info talk\n");
-        return ErrorCodes::Code::eConnectServerError;
+        throw std::exception();
+//        return ErrorCodes::Code::eConnectServerError;
     }
 
     return ErrorCodes::Code::eNone;
