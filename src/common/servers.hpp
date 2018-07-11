@@ -1398,6 +1398,7 @@ class servers { // also a block
                     vno=num+1;
                 }
             }
+            header_put();
         }
     }
     bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok)
