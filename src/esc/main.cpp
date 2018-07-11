@@ -28,7 +28,7 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
     } else {
         ELOG("ERROR reading global info talk\n");
         throw std::exception();
-//        return ErrorCodes::Code::eConnectServerError;
+        return ErrorCodes::Code::eConnectServerError;
     }
 
     return ErrorCodes::Code::eNone;
