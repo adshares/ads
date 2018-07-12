@@ -2,7 +2,7 @@
 language: cpp
 
 # Allows use container-based infrastructure
-sudo: false
+sudo: required
 
 cache:
   directories:
