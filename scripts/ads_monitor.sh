@@ -47,7 +47,7 @@ status() {
         exit 1
     fi
 
-    data=`echo '{"run":"get_block"}' | ads -H${host} -P${port} --work-dir=$1 2> /dev/null`
+    data=`echo '{"run":"get_block"}' | ads -H${host} -P${port} --work-dir=$1 --secret=123 2> /dev/null`
     if [[ ${data} =~ \"current_block_time\":\ \"([0-9]+)\".*\"previous_block_time\":\ \"([0-9]+)\" ]]; then
         if [ -n "$2" ]; then
             date_msg ${BASH_REMATCH[2]} "->  $(date --date=@${BASH_REMATCH[1]} +'%F %T') | ${host}:${port} ${node_id}"
@@ -92,7 +92,7 @@ tps() {
                 fi
 
                 if [ -n "$2" ]; then
-                    date_msg ${actual_time} "0x${actual_clock: -2}  $txs"
+                    date_msg ${actual_time} "0x${actual_clock: -3}  $txs"
                 else
                     echo ${txs}
                 fi
@@ -115,7 +115,7 @@ clock() {
         val=${BASH_REMATCH[3]}
 
         if [ -n "$3" ]; then
-            date_msg ${time} "0x${clock: -2}  ${val}"
+            date_msg ${time} "0x${clock: -3}  ${val}"
         else
             echo ${val}
         fi
