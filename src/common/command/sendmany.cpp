@@ -287,7 +287,7 @@ void SendMany::txnToJson(boost::property_tree::ptree& ptree) {
             txn.put(TAG::AMOUNT, print_amount(it.amount));
             txns.push_back(std::make_pair("", txn));
         }
-        ptree.add_child("transactions", txns);
+        ptree.add_child("wires", txns);
     }
 
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
