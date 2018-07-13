@@ -91,7 +91,7 @@ private:
         { Code::eAmountBelowZero, "Amount below zero" },
         { Code::eUserBadTarget, "Bad target user" },
         { Code::eNodeBadTarget, "Bad target node" },
-        { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
+        { Code::eTimeInFuture, "Can't perform operation, inserted time value is in future" },
         { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
         { Code::eNoBroadcastFile, "No broadcast file to send" },
         { Code::eNoMessageListFile, "No message list file" },

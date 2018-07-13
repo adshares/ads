@@ -19,16 +19,14 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
 
     if(!netClient.reconnect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
-        throw std::exception();
-//        return ErrorCodes::Code::eConnectServerError;
+        return ErrorCodes::Code::eConnectServerError;
     }
 
     if(command->send(netClient) ) {
         respHandler.onExecute(std::move(command));
     } else {
         ELOG("ERROR reading global info talk\n");
-        throw std::exception();
-        return ErrorCodes::Code::eConnectServerError;
+        return command->m_responseError ? command->m_responseError : ErrorCodes::Code::eConnectServerError;
     }
 
     return ErrorCodes::Code::eNone;
@@ -80,13 +78,14 @@ int main(int argc, char* argv[]) {
             if(responseError)
             {
                 boost::property_tree::ptree pt;
-                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(responseError));
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
 
         }
     } catch (std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
+        Helper::printErrorJson("Unknown error eccoured", sts.nice);
     }
 
     return 0;

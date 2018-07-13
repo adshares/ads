@@ -158,7 +158,7 @@ void GetBlocksHandler::readBlockHeaders(
         }
         header = block.getHeader();
         int vipTot=vipSize(block.getData().vipHash);
-        if(block.getData().voteYes<vipTot/2) {
+        if(block.getData().voteYes<=vipTot/2) {
             DLOG("INFO, to few (%d < %d/2) votes for block %08X", block.getData().voteYes, vipTot, block.getData().ttime);
             break;
         }
@@ -238,9 +238,10 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
         }
         else {
             if(from > block.getData().ttime) {
-              return ErrorCodes::Code::eNoNewBLocks;
+              //return ErrorCodes::Code::eNoNewBLocks;
             } else {
               DLOG("ERROR, failed to provide blocks from %08X to %08X\n", from, block.getData().ttime);
+              return ErrorCodes::Code::eNoBlockInSpecifiedRange;
             }
         }
     }
