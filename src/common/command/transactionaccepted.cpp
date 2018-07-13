@@ -109,5 +109,5 @@ void TransactionAccepted::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.ttime);
     ptree.put(TAG::DST_NODE, m_data.bbank);
     ptree.put(TAG::DST_USER, m_data.buser);
-    ptree.put(TAG::PKEY, m_data.publicKey);
+    ptree.put(TAG::PKEY, ed25519_key2text(m_data.publicKey, sizeof(m_data.publicKey)));
 }

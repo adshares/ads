@@ -108,6 +108,5 @@ void TransactionFailed::toJson(boost::property_tree::ptree& /*ptree*/) {
 void TransactionFailed::txnToJson(boost::property_tree::ptree& ptree) {
     using namespace Helper;
     ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
-    ptree.put(TAG::MSG_LEN, m_data.message_size);
 }
 
