@@ -175,7 +175,7 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
             if (command) {
                 boost::property_tree::ptree txn;
                 command->setData((char*)data_ptr);
-                int size = command->getDataSize()  + command->getAdditionalDataSize() + command->getSignatureSize();
+                int size = command->getBlockMessageSize();
 
                 txn.put("id", Helper::print_msg_id(m_responseMsg->svid, m_responseMsg->msid, mpos++));
                 command->txnToJson(txn);
