@@ -78,11 +78,11 @@ tps() {
 
             if [ -z "$actual_txs" ]; then
                 actual_time=${BASH_REMATCH[1]}
-                actual_clock="0x${BASH_REMATCH[2]}"
+                actual_clock="0x000${BASH_REMATCH[2]}"
                 actual_txs=${BASH_REMATCH[3]}
             else
                 last_time=${BASH_REMATCH[1]}
-                last_clock="0x${BASH_REMATCH[2]}"
+                last_clock="0x000${BASH_REMATCH[2]}"
                 last_txs=${BASH_REMATCH[3]}
 
                 if [ $(( $actual_clock )) -ge "0" ] && [ $(( $last_clock )) -lt "0" ]; then
@@ -111,7 +111,7 @@ clock() {
     if [[ ${line} =~ ${regex} ]]; then
 
         time=${BASH_REMATCH[1]}
-        clock=${BASH_REMATCH[2]}
+        clock="0x000${BASH_REMATCH[2]}"
         val=${BASH_REMATCH[3]}
 
         if [ -n "$3" ]; then
@@ -160,12 +160,13 @@ peers() {
 
 # Number of currently open connections
 connections() {
-    if ! offi=`get_offi $1`; then
-        echo 0
-        exit 1
-    fi
+    clock "ticket" $1 $2
+    #if ! offi=`get_offi $1`; then
+    #    echo 0
+    #    exit 1
+    #fi
 
-    netstat -na | grep -P :${offi}.*[0-9\.]+:[0-9]+ | grep -v 0.0.0.0:* | grep -v TIME_WAIT | wc -l
+    #netstat -na | grep -P :${offi}.*[0-9\.]+:[0-9]+ | grep -v 0.0.0.0:* | grep -v TIME_WAIT | wc -l
 }
 
 # Display error message
@@ -285,7 +286,8 @@ case "$1" in
     tps)    command="tps ${stderr_path} ${verbose}" ;;
     txs)    command="txs ${stderr_path} ${verbose}" ;;
     peers)  command="peers ${stderr_path} ${verbose}" ;;
-    conns)  command="connections ${working_dir} ${verbose}" ;;
+    #conns)  command="connections ${working_dir} ${verbose}" ;;
+    conns)  command="connections ${stderr_path} ${verbose}" ;;
     *)      show_error "Unsupported command \"$1\"" ;;
 esac
 
