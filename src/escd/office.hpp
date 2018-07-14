@@ -544,7 +544,7 @@ class office {
         //file_.lock(); //FIXME, could use read only access without lock
         int fd=open(ofifilename,O_RDONLY);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s\n",ofifilename);
+            ELOG("ERROR, office failed to open account file %s\n",ofifilename);
             return(false);
         }
 

@@ -403,7 +403,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, put_user failed to open account file %s, fatal\n",filename);
             exit(-1);
         }
         lseek(fd,uid*sizeof(user_t),SEEK_SET);
@@ -420,7 +420,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, get_user failed to open account file %s, fatal\n",filename);
             return;
         }
         lseek(fd,uid*sizeof(user_t),SEEK_SET);
@@ -528,7 +528,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, check_nodehash failed to open account file %s, fatal\n",filename);
             exit(-1);
         }
         uint64_t csum[4]= {0,0,0,0};
