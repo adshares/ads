@@ -88,5 +88,7 @@ int main(int argc, char* argv[]) {
         Helper::printErrorJson("Unknown error eccoured", sts.nice);
     }
 
+    netClient.disConnect();
+
     return 0;
 }
