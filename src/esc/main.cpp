@@ -17,7 +17,7 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
       return ErrorCodes::Code::eNone;
     }
 
-    if(!netClient.reconnect()) {
+    if(!netClient.connect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
         return ErrorCodes::Code::eConnectServerError;
     }
