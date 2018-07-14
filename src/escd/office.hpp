@@ -620,7 +620,7 @@ class office {
         nuser=users++;
         mklogfile(svid,nuser);
         srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
-        ELOG("CREATING new account %d\n",nuser);
+        DLOG("CREATING new account %d\n",nuser);
         file_.lock();
         //deposit.push_back(0);
         //ustatus.push_back(0);
