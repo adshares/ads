@@ -60,7 +60,7 @@
 #else
 #define SERVER_DNSA "seed.adshares.net"
 #endif
-#define MAXCLIENTS 128
+#define MAXCLIENTS 2048
 
 #define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 
