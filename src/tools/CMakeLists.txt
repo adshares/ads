@@ -16,6 +16,7 @@ SET (SRC_LIST
     vipprinter.cpp
     inxprinter.cpp
     logprinter.cpp
+    archprinter.cpp
     ../../external/ed25519/ed25519.c
     )
 
@@ -32,6 +33,7 @@ SET (HEADERS_LIST
     vipprinter.h
     inxprinter.h
     logprinter.h
+    archprinter.h
     )
 
 
