@@ -103,6 +103,11 @@ bool GetMessage::send(INetworkClient& netClient) {
         return true;
     }
 
+    if (!netClient.readData((int32_t*)&m_responseBlock, sizeof(uint32_t))) {
+        ELOG("GetMessage reading message block\n");
+        return false;
+    }
+
     // msgTypeLength contains type (1B) and length (3B)
     uint32_t msgTypeLength = 0;
     if (!netClient.readData((int32_t*)&msgTypeLength, sizeof(msgTypeLength))) {
@@ -157,6 +162,13 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     } else {
         m_responseMsg->read_head();
+
+        char blockhex[9];
+        blockhex[8]='\0';
+        sprintf(blockhex,"%08X",m_responseBlock);
+
+        ptree.put("block_id", blockhex);
+        ptree.put("message_id",Helper::print_msg_pack_id(m_responseMsg->svid, m_responseMsg->msid));
         ptree.put("node", m_responseMsg->svid);
         ptree.put("node_msid", m_responseMsg->msid);
         ptree.put("time", m_responseMsg->now);

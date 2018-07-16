@@ -167,6 +167,36 @@ class settings {
         return(true);
     }
 
+    bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
+        char *endptr;
+        if(str_txid.length()!=12) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
+            return(false);
+        }
+        if(str_txid[4]!=':') {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad format (required NNNN:MMMMMMMM)\n",str_txid.c_str());
+            return(false);
+        }
+        str_txid[4]='\0';
+
+        errno=0;
+        to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
+        if(errno || endptr==str_txid.c_str()) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",str_txid.c_str());
+            perror("ERROR: strtol");
+            return(false);
+        }
+        errno=0;
+        node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
+        if(errno || endptr==str_txid.c_str()+5) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",str_txid.c_str());
+            perror("ERROR: strtol");
+            return(false);
+        }
+
+        return(true);
+    }
+
     static void print_version() {
         std::string version = PROJECT_VERSION;
         std::cerr << "Version ";

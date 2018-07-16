@@ -49,6 +49,7 @@ bool parse_amount(int64_t& amount,std::string str_amount);
 char* print_amount(int64_t amount);
 const std::string print_address(uint16_t node, uint32_t user, int32_t _suffix = -1);
 const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix = -1);
+const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id);
 char* mydate(uint32_t now);
 int check_csum(user_t& u,uint16_t peer,uint32_t uid);
 void printErrorJson(const char* errorMsg, bool pretty);
