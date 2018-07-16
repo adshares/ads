@@ -1,4 +1,6 @@
 #include "server.hpp"
+#include "office.hpp"
+#include "options.hpp"
 
 server::server(options& opts) :
     do_sync(1),
@@ -4791,20 +4793,17 @@ uint32_t server::srvs_now() {
     return(srvs_.now);
 }
 
-servers& server::getBlockInPorgress()
-{
+servers& server::getBlockInPorgress() {
     //TODO probably synchronization needed
     return srvs_;
 }
 
-servers& server::getLastClosedBlock()
-{
+servers& server::getLastClosedBlock() {
     //TODO probably synchronization needed
     return last_srvs_;
 }
 
-uint16_t server::getRandomNodeIndx()
-{
+uint16_t server::getRandomNodeIndx() {
     uint16_t res = 0;
     if(srvs_.nodes.size() > 0)
     {
@@ -4816,13 +4815,11 @@ uint16_t server::getRandomNodeIndx()
     return res;
 }
 
-uint16_t server::getMaxNodeIndx()
-{
+uint16_t server::getMaxNodeIndx() {
     return srvs_.nodes.size()-1;
 }
 
-bool server::getNode(uint16_t nodeId, node& nodeInfo)
-{
+bool server::getNode(uint16_t nodeId, node& nodeInfo) {
     try{
         nodeInfo    = srvs_.nodes.at(nodeId);
         return true;
@@ -4832,4 +4829,63 @@ bool server::getNode(uint16_t nodeId, node& nodeInfo)
     }
 
     return false;
+}
+
+void server::ofip_update_block(uint32_t period_start,uint32_t now, message_map& commit_msgs, uint32_t newdiv) {
+    ofip->update_block(period_start,now,commit_msgs,newdiv);
+}
+
+void server::ofip_process_log(uint32_t now) {
+    ofip->process_log(now);
+}
+
+void server::ofip_init(uint32_t myusers) {
+    ofip->init(myusers);
+}
+
+void server::ofip_start() {
+    ofip->start();
+}
+
+bool server::ofip_get_msg(uint32_t msid, std::string& line) {
+    return(ofip->get_msg(msid,line));
+}
+
+void server::ofip_del_msg(uint32_t msid) {
+    ofip->del_msg(msid);
+}
+
+void server::ofip_gup_push(gup_t& g) {
+    ofip->gup.push(g);
+}
+
+void server::ofip_add_remote_deposit(uint32_t user, int64_t weight) {
+    ofip->add_remote_deposit(user, weight);
+}
+
+uint32_t server::ofip_add_remote_user(uint16_t abank, uint32_t auser, uint8_t* pkey) {
+    return ofip->add_remote_user(abank, auser, pkey);
+}
+
+void server::ofip_delete_user(uint32_t auser) {
+    ofip->delete_user(auser);
+}
+
+void server::ofip_change_pkey(uint8_t* pkey) {
+    memcpy(ofip->pkey, pkey, 32);
+}
+
+void server::ofip_readwrite() {
+    DLOG("OFFICE SET READWRITE\n");
+    std::cout << "OFFICE SET READWRITE\n";
+    ofip->readonly=false;
+}
+
+void server::ofip_readonly() {
+    DLOG("OFFICE SET READONLY\n");
+    ofip->readonly=true;
+}
+
+bool server::ofip_isreadonly() {
+    return(ofip->readonly);
 }

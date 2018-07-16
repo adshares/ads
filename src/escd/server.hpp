@@ -5,7 +5,6 @@
 #include <fcntl.h>
 #include <algorithm>
 #include "servers.hpp"
-#include "options.hpp"
 #include "candidate.hpp"
 #include "helper/hlog.h"
 #include "helper/blocks.h"
@@ -13,6 +12,7 @@
 
 class office;
 class peer;
+class options;
 
 typedef std::shared_ptr<peer> peer_ptr;
 
@@ -68,7 +68,7 @@ class server {
     void cnd_validate(message_ptr msg); //FIXME, check timing !!!
     void blk_validate(message_ptr msg); // WARNING, this is executed by peer io_service
     void missing_sent_remove(uint16_t svid); //TODO change name to missing_know_send_remove()
-    void validator(void);
+    void validator();
     uint64_t make_ppi(uint16_t tmpos, uint32_t omsid,uint32_t amsid,uint16_t abank,uint16_t bbank);
     uint16_t ppi_abank(const uint64_t& ppi);
     uint16_t ppi_bbank(const uint64_t& ppi);

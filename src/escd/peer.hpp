@@ -5,6 +5,7 @@
 #include <boost/smart_ptr.hpp>
 #include <pthread.h>
 #include "server.hpp"
+#include "options.hpp"
 #include "helper/socket.h"
 #include "network/peerclient.h"
 #include "network/peerclientmanager.h"

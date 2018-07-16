@@ -1,10 +1,10 @@
 set(DAEMON_NAME ${PROJECT_NAME}d)
 
 set(SOURCED
-   office.hpp
    peer.hpp
    client.hpp   
    options.hpp
+   office.cpp
    server.cpp
    main.cpp
    ../../external/ed25519/ed25519.c
@@ -12,6 +12,7 @@ set(SOURCED
 
 set(HEADERSD
     server.hpp
+    office.hpp
 )
 
 include_directories("../../external")
