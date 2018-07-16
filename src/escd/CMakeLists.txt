@@ -5,12 +5,13 @@ set(SOURCED
    peer.hpp
    client.hpp   
    options.hpp
-   server.hpp
+   server.cpp
    main.cpp
    ../../external/ed25519/ed25519.c
 )
 
 set(HEADERSD
+    server.hpp
 )
 
 include_directories("../../external")
