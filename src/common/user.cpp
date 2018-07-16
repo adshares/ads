@@ -250,6 +250,16 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_node_msid) {
             to_node_msid=json_node_msid.get();
         }
+
+        boost::optional<std::string> json_txid=pt.get_optional<std::string>("message_id");
+        if(json_txid && !sts.parse_msgid(to_bank,to_node_msid,json_txid.get())) {
+            return nullptr;
+        }
+
+        boost::optional<std::string> json_block=pt.get_optional<std::string>("block");
+        if(!json_block) {
+            to_block=0;
+        }
         command = std::make_unique<GetMessage>(sts.bank, sts.user, to_block, to_bank, to_node_msid, now);
     }
     else if(!run.compare("send_again") || !run.compare("send_raw")) {
