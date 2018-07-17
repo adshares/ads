@@ -169,7 +169,7 @@ class settings {
 
     bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
         char *endptr;
-        if(str_txid.length()!=12) {
+        if(str_txid.length()!=13) {
             fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
             return(false);
         }
