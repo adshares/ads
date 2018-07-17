@@ -24,12 +24,10 @@ class server {
     void stop();
     void recyclemsid(uint32_t lastpath);
     void del_msglog(uint32_t now,uint16_t svid,uint32_t msid);
-    void put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log); //message log, by server
-
-    //update_nodehash is similar
-    int undo_bank(bool commit); //will undo database changes and check if the database is consistant
+    void put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log);
+    int undo_bank(bool commit);
     void load_banks();
-    uint64_t need_bank(uint16_t bank); //FIXME, return 0 if not at this stage
+    uint64_t need_bank(uint16_t bank);
     void have_bank(uint64_t hnum);
     void load_chain();
     void msgl_process(servers& header,uint8_t* data);
@@ -38,18 +36,14 @@ class server {
     void add_headers(std::vector<servers>& peer_headers);
     int fast_sync(bool done,header_t& head,node_t* nods,svsi_t* svsi);
     uint32_t readmsid();
-
-    //FIXME, move this to servers.hpp
     void writemsid();
-    void clean_last_svid_msgs(std::map<uint16_t,message_ptr>& map);// remove !!!
+    void clean_last_svid_msgs(std::map<uint16_t,message_ptr>& map);
     void message_shash(uint8_t* mhash,message_map& map);
     void LAST_block_msgs();
     void LAST_block_final(hash_s& cand);
     void signlater();
     void count_votes(uint32_t now,hash_s& cand);
     void add_electors(header_t& head,svsi_t* peer_svsi);
-
-    //FIXME, using blk_msgs_ as elector set is unsafe, VIP nodes should be used
     void prepare_poll();
     message_ptr message_svidmsid(uint16_t svid,uint32_t msid);
     std::string print_missing_verbose();
@@ -61,28 +55,28 @@ class server {
     void bad_insert(message_ptr msg);
     void bad_recover(message_ptr msg);
     int message_insert(message_ptr msg);
-    int dbl_insert(message_ptr msg); // WARNING !!! it deletes old message data if len==message::header_length
-    int cnd_insert(message_ptr msg); // WARNING !!! it deletes old message data if len==message::header_length
-    int blk_insert(message_ptr msg); // WARNING !!! it deletes old message data if len==message::header_length
-    int txs_insert(message_ptr msg); // WARNING !!! it deletes old message data if len==message::header_length
-    void cnd_validate(message_ptr msg); //FIXME, check timing !!!
-    void blk_validate(message_ptr msg); // WARNING, this is executed by peer io_service
-    void missing_sent_remove(uint16_t svid); //TODO change name to missing_know_send_remove()
+    int dbl_insert(message_ptr msg);
+    int cnd_insert(message_ptr msg);
+    int blk_insert(message_ptr msg);
+    int txs_insert(message_ptr msg);
+    void cnd_validate(message_ptr msg);
+    void blk_validate(message_ptr msg);
+    void missing_sent_remove(uint16_t svid);
     void validator();
     uint64_t make_ppi(uint16_t tmpos, uint32_t omsid,uint32_t amsid,uint16_t abank,uint16_t bbank);
     uint16_t ppi_abank(const uint64_t& ppi);
     uint16_t ppi_bbank(const uint64_t& ppi);
     uint64_t ppi_txid(const uint64_t& ppi);
-    bool undo_message(message_ptr msg);//FIXME, this is single threaded, remove locks
+    bool undo_message(message_ptr msg);
     void log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos);
     bool process_message(message_ptr msg);
     int open_bank(uint16_t svid);
     uint8_t bitcount(std::vector<uint8_t>& bitvotes,uint8_t min);
-    void commit_block(std::set<uint16_t>& update);//assume single thread
+    void commit_block(std::set<uint16_t>& update);
     int64_t dividend(user_t& u);
     int64_t dividend(user_t& u,int64_t& fee);
-    void commit_dividends(std::set<uint16_t>& update, uint64_t &myput_fee); //assume single thread, TODO change later
-    void commit_deposit(std::set<uint16_t>& update, uint64_t &myput_fee); //assume single thread, TODO change later !!!
+    void commit_dividends(std::set<uint16_t>& update, uint64_t &myput_fee);
+    void commit_deposit(std::set<uint16_t>& update, uint64_t &myput_fee);
     void commit_bankfee(uint64_t myput_fee);
     bool accept_message();
     void update_list(std::vector<uint64_t>& txs, std::vector<uint64_t>& dbl, std::vector<uint64_t>& blk, uint16_t peer_svid);
@@ -99,7 +93,7 @@ class server {
     bool known_elector(uint16_t svid);
     void write_header();
     void clock();
-    bool break_silence(uint32_t now,std::string& message,uint32_t& tnum);// will be obsolete if we start tolerating empty blocks
+    bool break_silence(uint32_t now,std::string& message,uint32_t& tnum);
     void missing_msgs_erase(message_ptr& msg);
     void missing_msgs_insert(message_ptr& msg);
     int check_msgs_size();

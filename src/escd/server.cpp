@@ -769,7 +769,6 @@ void server::load_chain() {
     m_peerManager.deliverToAll(put_msg);
 }
 
-//void put_msglist(uint32_t now,message_map& map)
 void server::msgl_process(servers& header,uint8_t* data) {
     missing_.lock(); // consider changing this to missing_lock
     if(get_msglist!=header.now) {
@@ -4157,7 +4156,6 @@ void server::commit_bankfee(uint64_t myput_fee) {
     put_msglog(srvs_.now,0,0,log);
 }
 
-//bool accept_message(uint32_t lastmsid)
 bool server::accept_message() {
     //FIXME, add check for vulnerable time
     dbls_.lock();
