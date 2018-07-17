@@ -23,7 +23,7 @@
 #else
 #define BLOCKSEC 512 /* block period in seconds (17min) */
 #define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
-#define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
+#define MAX_UNDO 128 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
 #define VIP_MAX 31 /* maximum number of VIP servers */
