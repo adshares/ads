@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include "default.hpp"
+#include "settings.hpp"
 
 template <class T>
 std::ostream& operator<<(std::ostream& os, const std::vector<T>& v) {
