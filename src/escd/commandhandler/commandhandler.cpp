@@ -51,8 +51,8 @@ void CommandHandler::performCommonValidation(IBlockCommand& command) {
     auto startedTime = time(NULL);
     int32_t diff = command.getTime() - startedTime;
 
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
+    if(diff>3) {
+        DLOG("ERROR: time in the future (%d>3s)\n", diff);
         throw ErrorCodes::Code::eTimeInFuture;
     }
 
