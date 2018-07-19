@@ -1,0 +1,207 @@
+{
+    "config": {
+        "start_time": "1531995412"
+    },
+    "nodes": [
+		{
+            "public_key": "73A5C92FA5142599B1C9863B43E026AFEFA6B57AEE8D189241C7F50C90BA5122",
+            "accounts": [
+                {
+                    "_address": "0001-00000000-9B6F",
+                    "balance": "3538792.72173913038",
+                    "public_key": "A9C0D972D8AAB73805EC4A28291E052E3B5FAFE0ADC9D724917054E5E2690363"
+                }
+            ]
+        },
+        {
+            "public_key": "FC4CA38301AC2080ADA2BC08C4A94405E546B659BD2EB559C1520A55586336CD",
+            "accounts": [
+                {
+                    "_address": "0002-00000000-75BD",
+                    "balance": "3370278.78260869560",
+                    "public_key": "3A9F69FEDCB0694123899C1EA7E14256CAD7B4A2C86311FC6B5ED4027404A282"
+                }
+            ]
+        },
+        {
+            "public_key": "5138AA57FAF5F7F2E67BDCA14F3CC377CD4C681B3F8B5A41DDDD590BD36C3125",
+            "accounts": [
+                {
+                    "_address": "0003-00000000-DFEC",
+                    "balance": "3201764.84347826082",
+                    "public_key": "9D46567A482F8F6AA567804EF2274F6ACEB370D8F7461C3A0DF4CE2C0DF432EB"
+                }
+            ]
+        },
+        {
+            "public_key": "BB6D774EA23DFB4D6510F04EFFA79FCA281C046CB39143B101CB451D0919AFA9",
+            "accounts": [
+                {
+                    "_address": "0004-00000000-B838",
+                    "balance": "3033250.90434782604",
+                    "public_key": "6B541CA4AA9B7117AC4D2DB61E487C4CBB52D59554C5E20CCB19767C1DCA5212"
+                }
+            ]
+        },
+        {
+            "public_key": "BCEEFF93B281A5FB95B3F05922DC3D9B4BDE91FC8116C340068F778CA16F2564",
+            "accounts": [
+                {
+                    "_address": "0005-00000000-1269",
+                    "balance": "2864736.96521739126",
+                    "public_key": "07187918DEC935E75D00B967B8AC8FF350168ED27A9A6ADFE78A7141B60F0313"
+                }
+            ]
+        },
+        {
+            "public_key": "3A1969E7A8F418537CBCBEDB8FDC8E4C5B4D78C4D73970B9E2739055FF4E883E",
+            "accounts": [
+                {
+                    "_address": "0006-00000000-FCBB",
+                    "balance": "2696223.02608695648",
+                    "public_key": "3D31EE87281BAA57A387F492256C045CDBED68B242648E8C77992D38A757504B"
+                }
+            ]
+        },
+        {
+            "public_key": "64938E054C70E26F37E56474B20E78691ACE89A441018041FDFFAC2B224BE55C",
+            "accounts": [
+                {
+                    "_address": "0007-00000000-56EA",
+                    "balance": "2527709.08695652170",
+                    "public_key": "8F1ADAF51EBBB24964FFA9688973D3257322C8B7CEE9731E4476885FD50F05B2"
+                }
+            ]
+        },
+        {
+            "public_key": "DE5C6E34A1E694E5B5FA497CD488685FFBED0CCA3A840094AB0631EBD250ADC0",
+            "accounts": [
+                {
+                    "_address": "0008-00000000-3313",
+                    "balance": "2359195.14782608692",
+                    "public_key": "427152D9357E8C8829C04C5259F203A4DB88A226DE4A9D77A8A57871898F390C
+                }
+            ]
+        },
+        {
+            "public_key": "1C726BFC7B795B71B6FEBB084157DE14C60379C80EFC903CC8783C733C2AD3D4",
+            "accounts": [
+                {
+                    "_address": "0009-00000000-9942",
+                    "balance": "2190681.20869565214",
+                    "public_key": "EFE862FA47E4BF2FA8A7F93F86734382998E7129594BC9A1E9C813A95099DD3E"
+                }
+            ]
+        },
+        {
+            "public_key": "3D22D7095007382ADD6F9530100F3F5FC42E82FE79FC69726B3F95E57C558C3F",
+            "accounts": [
+                {
+                    "_address": "000A-00000000-7790",
+                    "balance": "2022167.26956521736",
+                    "public_key": "CAF999CC65FAEB4EFA70BB71D270978A084260BA3460B2C09F3540D3E0507C42"
+                }
+            ]
+        },
+        {
+            "public_key": "0D2AF8139E9BB7C0A0A80EEB1A37A9F444B814B00D0DF23960BE919F1CC3FF0E",
+            "accounts": [
+                {
+                    "_address": "000B-00000000-DDC1",
+                    "balance": "1853653.33043478258",
+                    "public_key": "6C5AE570406AFB081AC385A541524DA2D6D5BFE4DF559CD875DC3D47F0F40EE6"
+                }
+            ]
+        },
+        {
+            "public_key": "D42C1FCF2A0E9EE57ADCE93F10F033000AC2691FFC76E14CF88C28932AC6ED99",
+            "accounts": [
+                {
+                    "_address": "000C-00000000-BA15",
+                    "balance": "1685139.39130434780",
+                    "public_key": "27EF57BD83D19896DFA345B6934859B05085025614BC12D300F8B3159C49D60A"
+                }
+            ]
+        },
+        {
+            "public_key": "079F0B36180C3750C72D784F91A9EB8416E535893547D777E4C0C7A5E90D428F",
+            "accounts": [
+                {
+                    "_address": "000D-00000000-1044",
+                    "balance": "1516625.45217391302",
+                    "public_key": "A9E4CBB898BE4440A600580551CFA2F0C26A56708B8B70B9B7E8D72FC6B55BBA"
+                }
+            ]
+        },
+        {
+            "public_key": "3B290107659C370BA8F60F1EA5A53A5F540551CEDB219127CFECA832E6860A09",
+            "accounts": [
+                {
+                    "_address": "000E-00000000-FE96",
+                    "balance": "1348111.51304347824",
+                    "public_key": "9F8668234581306F434D6A0CEE2D6D1464D776ACA1F5BCAB60D0C010A6DC473F"
+                }
+            ]
+        },
+        {
+            "public_key": "2DEA0AC8FE9CBACCB369D08D2F9F083BAE7F62BFAC103FCFEDB71C43500E8CC8",
+            "accounts": [
+                {
+                    "_address": "000F-00000000-54C7",
+                    "balance": "1179597.57391304346",
+                    "public_key": "37608742FA3B76181AFF55A45F7FF9ED9F52D1E7ED3520454796CE444EBDF45A"
+                }
+            ]
+        },
+        {
+            "public_key": "D7F0A15F85B81F4B076FB3A0D9BCF19FA3E18FB0CC0D19D771F1306568CDF6DF",
+            "accounts": [
+                {
+                    "_address": "0010-00000000-3564",
+                    "balance": "1011083.63478260868",
+                    "public_key": "A121DCBCA479A540C215FA59028594202519DF45D29BCB09927D95664B056E27"
+                }
+            ]
+        },
+        {
+            "public_key": "5532A85D227C45B81C8E52C3EE05221965EB69F6F75DF5E9BB142F6FE4C50A24",
+            "accounts": [
+                {
+                    "_address": "0011-00000000-9F35",
+                    "balance": "842569.69565217390",
+                    "public_key": "6054B6FA4A4A4F632A94621745158243B1200DF4C35A1A672AAAE98758148E07"
+                }
+            ]
+        },
+        {
+            "public_key": "9EA9E4D51C0F105CED871B8FE847DAF2C541E29DD89FE33527BE2B0EDB701BC0",
+            "accounts": [
+                {
+                    "_address": "0012-00000000-71E7",
+                    "balance": "674055.75652173912",
+                    "public_key": "C2E5AB080D8EE85761ABA75EC046FA21EE84C1BBBAB2F03DAD60D06B94FE2090"
+                }
+            ]
+        },
+        {
+            "public_key": "50F6C24AC6D1583948F1A4E721CE06B12F441641E775B45713D5C52DF6CEDF0C",
+            "accounts": [
+                {
+                    "_address": "0013-00000000-DBB6",
+                    "balance": "505541.81739130434",
+                    "public_key": "2D917BA71FF10822C6EA9FF32E5252F03C7B5712F5A7491DCC234755A43327B0"
+                }
+            ]
+        },
+        {
+            "public_key": "5DE0DD1FA563C3FBDEC9802E681968261C9734D9029F7F7EA9A15251337E34CC",
+            "accounts": [
+                {
+                    "_address": "0014-00000000-BC62",
+                    "balance": "337027.87826086956",
+                    "public_key": "F8F6EFA2E94AF54AFBC4710BB8ABB15CB40384794E3C143A46FB1537D97D9419"
+                }
+            ]
+        }
+    ]
+}
