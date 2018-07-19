@@ -20,6 +20,10 @@ NetworkClient::NetworkClient(const std::string& address, const std::string& port
 NetworkClient::~NetworkClient() {
 }
 
+bool NetworkClient::isConnected() {
+    return m_connected;
+}
+
 bool NetworkClient::connect() {
     if(!m_connected) {
         try {

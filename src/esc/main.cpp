@@ -17,9 +17,27 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
       return ErrorCodes::Code::eNone;
     }
 
-    if(!netClient.connect()) {
-        ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
-        return ErrorCodes::Code::eConnectServerError;
+    if(!netClient.isConnected()) {
+        if(!netClient.connect()) {
+            ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
+            return ErrorCodes::Code::eConnectServerError;
+        }
+        int32_t version = CLIENT_PROTOCOL_VERSION;
+        int32_t node_version;
+#ifdef DEBUG
+        version = -version;
+#endif
+        netClient.sendData(reinterpret_cast<unsigned char*>(&version), sizeof(version));
+
+        if(!netClient.readData(&node_version, sizeof(node_version))) {
+            return ErrorCodes::Code::eConnectServerError;
+        }
+
+        uint8_t version_error;
+        if(!netClient.readData(&version_error, 1) || version_error) {
+            ELOG("Version mismatch client(%d) != node(%d)\n", version, node_version);
+            return ErrorCodes::Code::eProtocolMismatch;
+        }
     }
 
     if(command->send(netClient) ) {

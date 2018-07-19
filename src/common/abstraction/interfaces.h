@@ -21,6 +21,8 @@ class INetworkClient {
     virtual bool reconnect()    = 0;
     /** \brief Disconnect to server. */
     virtual bool disConnect()   = 0;
+    /** \brief Check if connected to server. */
+    virtual bool isConnected()                          = 0;
     /** \brief Send data using pointer to bufor and size. */
     virtual bool sendData(uint8_t* buff, int size)      = 0;
     /** \brief Send data using vector data. */
