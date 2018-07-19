@@ -384,7 +384,7 @@ class servers { // also a block
         SHA256_Final(u.hash,&sha256);
     }
 
-    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t node,uint16_t user) {
+    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t node,uint32_t user) {
         memset(&u,0,sizeof(user_t));
         u.msid=1; // always >0 to help identify holes in delta files
         u.time=when;

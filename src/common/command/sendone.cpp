@@ -10,7 +10,7 @@ SendOne::SendOne()
 }
 
 SendOne::SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank,
-                 uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)
+                 uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)
     : m_data(abank, auser, amsid, bbank, buser, tmass, time, tinfo) {
     m_responseError = ErrorCodes::Code::eNone;
 }
