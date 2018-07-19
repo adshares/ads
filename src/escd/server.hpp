@@ -4470,7 +4470,7 @@ NEXTBANK:
           return(0);
         }
 
-        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,settings::get_version(16).c_str());
         user_t u0;
         int fd=open_bank(opts_.svid);
         read(fd,&u0,sizeof(user_t));
@@ -4846,7 +4846,7 @@ NEXTBANK:
     {
       // send connection info if node address changed and periodically at least once per dividend period (nodes inactive for dividend period are removed from vip list)
       if(opts_.svid && msid_ == last_srvs_.nodes[opts_.svid].msid && (srvs_.nodes[opts_.svid].ipv4 != opts_.ipv4 || srvs_.nodes[opts_.svid].port != (opts_.port&0xFFFF) || srvs_.nodes[opts_.svid].mtim < srvs_.now - BLOCKDIV*BLOCKSEC/2)) {
-        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+        usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,settings::get_version(16).c_str());
         message.append((char*)txs.data,txs.size);
       }
     }
@@ -4866,7 +4866,7 @@ NEXTBANK:
             DLOG("SILENCE, sending void message due to silence\n");
 //#ifdef DEBUG
             if(rand()%2) {
-                usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+                usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,settings::get_version(16).c_str());
                 message.append((char*)txs.data,txs.size);
             } else {
                 usertxs txs((uint32_t)(rand()%32));

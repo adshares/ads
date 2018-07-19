@@ -494,12 +494,14 @@ struct GetTransactionResponse {
 /* inform peers about location */
 struct ConnectedInfo {
     ConnectedInfo() = default;
-    ConnectedInfo(uint16_t port_, uint32_t ip_address_) : port(port_), ip_address(ip_address_) {
+    ConnectedInfo(uint16_t port_, uint32_t ip_address_, const char * version_) : port(port_), ip_address(ip_address_) {
+        memcpy(version, version_, sizeof(version));
     }
 
     uint8_t ttype{TXSTYPE_CON}; ///< command type
     uint16_t port{0};           ///< port number
     uint32_t ip_address{0};     ///< ip address
+    char version[16];           ///< node soft version
 }__attribute__((packed));
 
 struct TransactionAcceptedInfo {

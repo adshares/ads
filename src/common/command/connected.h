@@ -8,7 +8,7 @@
 class Connected : public BlockCommand {
     public:
         Connected();
-        Connected(uint16_t port, uint32_t ip_address);
+        Connected(uint16_t port, uint32_t ip_address, std::string version);
 
         /** \brief Return TXSTYPE_CON as type . */
         virtual int  getType()                                      override;
