@@ -206,10 +206,22 @@ class settings {
     }
 
     static void print_version() {
-        std::string version = PROJECT_VERSION;
-        std::cerr << "Version ";
-        if(version.empty()) {
-          std::cerr << GIT_BRANCH << " @ " << GIT_COMMIT_HASH << "\n";
+        std::cerr << "Version " << get_version() << std::endl;
+    }
+
+    static std::string get_version(uint max_length=0) {
+        std::stringstream ss;
+        if(strlen(PROJECT_VERSION) == 0) {
+          ss << GIT_BRANCH << "@" << GIT_COMMIT_HASH;
+        } else {
+          ss << PROJECT_VERSION;
+        }
+#ifdef DEBUG
+        ss << "x";
+#endif
+        std::string version = ss.str();
+        if(max_length && version.length() > max_length) {
+            return version.substr(version.length() - max_length);
         } else {
           std::cerr << PROJECT_VERSION << "\n";
         }
