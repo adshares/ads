@@ -128,7 +128,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
             std::cerr << "Sender given but no signature provided. Abort." << std::endl;
             return nullptr;
         }
-        if(!sts.parse_acnt(sts_bank, sts_user, json_sender.value())) {
+        if(!sts.parse_acnt(sts_bank, sts_user, *json_sender)) {
             std::cerr << "Invalid sender. Abort." << std::endl;
             return nullptr;
         }
