@@ -44,7 +44,7 @@ boost::recursive_mutex flog; //to compile LOG()
 using namespace Helper;
 
 
-FILE* stdlog=stderr; //to compile LOG()
+FILE* stdlog=nullptr; //to compile LOG()
 
 bool parse_user(uint32_t& to_user,std::string str_user) {
     char *endptr;
