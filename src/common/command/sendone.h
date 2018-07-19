@@ -8,7 +8,7 @@
 class SendOne : public BlockCommand {
     public:
         SendOne();
-        SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
+        SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
 
         /** \brief Return TXSTYPE_PUT as type . */
         virtual int  getType()                                      override;
