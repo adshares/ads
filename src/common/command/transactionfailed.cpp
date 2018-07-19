@@ -12,9 +12,6 @@ TransactionFailed::TransactionFailed(uint8_t messageSize[3])
     : m_data{} {
     m_responseError = ErrorCodes::Code::eNone;
     memcpy(&m_data.message_size, messageSize, 3);
-    if (m_data.message_size < 4) {
-        m_data.message_size = 4;
-    }
 }
 
 unsigned char* TransactionFailed::getData() {
@@ -35,7 +32,9 @@ void TransactionFailed::setResponse(char* response) {
 }
 
 int TransactionFailed::getDataSize() {
-    return m_data.message_size;
+    uint32_t message_size;
+    memcpy(&message_size, &m_data.message_size, 3);
+    return message_size;
 }
 
 int TransactionFailed::getResponseSize() {
