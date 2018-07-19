@@ -66,9 +66,6 @@ bool GetMessageList::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) 
 }
 
 void GetMessageList::saveResponse(settings& /*sts*/) {
-    if (m_responseMessageList.empty()) {
-        m_responseError = ErrorCodes::Code::eBadLength;
-    }
 }
 
 uint32_t GetMessageList::getUserId() {
