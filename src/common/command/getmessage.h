@@ -100,6 +100,7 @@ class GetMessage : public BlockCommand {
         GetMessageData          m_data;
         commandresponse         m_response;
         message_ptr             m_responseMsg;
+        uint32_t                m_responseBlock;
 };
 
 #endif // GETMESSAGE_H

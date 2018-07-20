@@ -93,6 +93,7 @@ class office {
     bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog);
     uint8_t* node_pkey(uint16_t node);
 
+    int get_tickets();
     uint16_t svid;
     hash_t pkey; // local copy for managing updates
     std::stack<gup_t> gup; // GET results

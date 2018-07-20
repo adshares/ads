@@ -93,6 +93,7 @@ class server {
     bool known_elector(uint16_t svid);
     void write_header();
     void clock();
+    void update_connection_info(std::string& message);
     bool break_silence(uint32_t now,std::string& message,uint32_t& tnum);
     void missing_msgs_erase(message_ptr& msg);
     void missing_msgs_insert(message_ptr& msg);
@@ -117,6 +118,7 @@ class server {
     void ofip_readwrite();
     void ofip_readonly();
     bool ofip_isreadonly();
+    int ofip_get_tickets();
 
     //FIXME, move this to servers.hpp
     //std::set<uint16_t> last_svid_dbl; //list of double spend servers in last block
@@ -165,7 +167,7 @@ class server {
     std::map<hash_s,candidate_ptr,hash_cmp> candidates_; // list of candidates, TODO should be map of message_ptr
     message_queue wait_msgs_;
     message_queue check_msgs_;
-    message_queue sign_msgs_;
+    message_queue sign_msgs_; //TODO, could be just a pointer to first message, since all later (own) messages in txs_msgs_ must be signed again
     std::map<hash_s,message_ptr,hash_cmp> bad_msgs_;
     message_map missing_msgs_; //TODO, start using this, these are messages we still wait for
     message_map txs_msgs_; //_TXS messages (transactions)

@@ -250,8 +250,20 @@ void PeerConnectManager::connect(std::string peer_address, unsigned short port, 
     in_addr   addr;
     if(inet_aton(peer_address.c_str(), &addr) != 0 ){
         connect(addr, port, svid);
+    } else {
+        boost::asio::ip::tcp::resolver              resolver(m_ioService);
+        boost::asio::ip::tcp::resolver::query       query(peer_address.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        if(iterator != end)
+        {
+            connect(iterator->endpoint().address().to_string(), port, svid);
+        }
     }
 }
+
 
 void PeerConnectManager::connectPeersFromConfig(int& connNeeded)
 {    

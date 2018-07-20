@@ -20,8 +20,7 @@ class settings {
         ha{{
             0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
             0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}},
-
-    port(0),
+         port(0),
          bank(0),
          user(0),
          msid(0),
@@ -44,6 +43,8 @@ class settings {
     bool nice;
     bool olog;
     bool drun;
+    bool signature_provided = false;
+    bool without_secret = true;
     ed25519_secret_key sk;
     ed25519_public_key pk;	// calculated
 //	ed25519_secret_key sn;
@@ -166,6 +167,36 @@ class settings {
         return(true);
     }
 
+    bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
+        char *endptr;
+        if(str_txid.length()!=12) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
+            return(false);
+        }
+        if(str_txid[4]!=':') {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad format (required NNNN:MMMMMMMM)\n",str_txid.c_str());
+            return(false);
+        }
+        str_txid[4]='\0';
+
+        errno=0;
+        to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
+        if(errno || endptr==str_txid.c_str()) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",str_txid.c_str());
+            perror("ERROR: strtol");
+            return(false);
+        }
+        errno=0;
+        node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
+        if(errno || endptr==str_txid.c_str()+5) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",str_txid.c_str());
+            perror("ERROR: strtol");
+            return(false);
+        }
+
+        return(true);
+    }
+
     static void print_version() {
         std::string version = PROJECT_VERSION;
         std::cerr << "Version ";
@@ -213,8 +244,6 @@ class settings {
 
     void get(int ac, char *av[]) {
         try {
-            char pktext[2*32+1];
-            pktext[2*32]='\0';
             boost::program_options::options_description generic("Generic options");
             generic.add_options()
             ("work-dir,w", boost::program_options::value<std::string>(&workdir)->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory")
@@ -233,7 +262,7 @@ class settings {
             ("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
             ("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
             ("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
-            ("secret,s", boost::program_options::value<std::string>(&skey),         "passphrase or private key [64chars in hex format / 32bytes]")
+            ("secret,s", boost::program_options::value<std::string>(&skey)->implicit_value("-"),         "passphrase or private key [64chars in hex format / 32bytes]")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -257,11 +286,10 @@ class settings {
                 exit(0);
             }
 
-            if(vm.count("bank") || vm.count("address")) {
+            if(vm.count("secret")) {
                 std::string line;
-                if (vm.count("secret")) {
-                    line = vm["secret"].as<std::string>();
-                } else {
+                line = vm["secret"].as<std::string>();
+                if (line == "-") {
                     std::cerr << "ENTER passphrase or private key\n";
                     std::getline(std::cin,line);
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
@@ -270,6 +298,8 @@ class settings {
                         exit(1);
                     }
                 }
+                char pktext[2*32+1];
+                pktext[2*32]='\0';
                 if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
                     skey = line;
                     ed25519_text2key(sk,skey.c_str(),32);
@@ -284,6 +314,7 @@ class settings {
                     ed25519_key2text(pktext,pk,32);
                 }
                 std::cerr << "Public key: " << std::string(pktext) << std::endl;
+                without_secret = false;
             }
 
             if(vm.count("port")) {
@@ -336,8 +367,8 @@ class settings {
             if (vm.count("olog")) {
                 std::cerr << "LogOutput: " << vm["olog"].as<bool>() << std::endl;
             }
-            if (vm.count("drun")) {
-                std::cerr << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;
+            if (vm.count("dry-run")) {
+                std::cerr << "Dry Run  : " << vm["dry-run"].as<bool>() << std::endl;
             }
             if (vm.count("hash")) {
                 if(hash.length()!=64) {

@@ -865,7 +865,7 @@ int server::fast_sync(bool done,header_t& head,node_t* nods,svsi_t* svsi) {
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         RETURN_VAL_ON_SHUTDOWN(0);
     }
-    return 0;
+    // unreachable
 }
 
 uint32_t server::readmsid() {
@@ -1139,9 +1139,8 @@ void server::LAST_block_final(hash_s& cand) {
 
                 if(tm->second->svid==opts_.svid)
                 {
-                  extern bool finish;
                   ELOG("ERROR: trying to remove own invalid message, FATAL, MUST RESUBMIT (TODO!)\n");
-                  finish=true;
+                  SHUTDOWN();
                 }
 
                 continue;
@@ -1155,9 +1154,10 @@ void server::LAST_block_final(hash_s& cand) {
                     message_ptr msg=tm->second;
                     bad_insert(tm->second);
                     //remove_message(tm->second);
-                    txs_msgs_.erase(tm);
                     if(msg->svid==opts_.svid) {
                         sign_msgs_.push_front(msg);
+                    } else {
+                        txs_msgs_.erase(tm);
                     }
                 } else {
                     ELOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
@@ -1178,6 +1178,8 @@ void server::LAST_block_final(hash_s& cand) {
                     txs_msgs_.erase(tm);
                     if(msg->svid==opts_.svid) {
                         sign_msgs_.push_front(msg);
+                    } else {
+                        txs_msgs_.erase(tm);
                     }
                 } else {
                     ELOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
@@ -1261,26 +1263,32 @@ void server::LAST_block_final(hash_s& cand) {
 }
 
 void server::signlater()
-{ if(!sign_msgs_.empty()){ // sign again messages that failed to be accepted by the network on time
-    uint32_t ntime=time(NULL);
-    uint32_t msid=srvs_.nodes[opts_.svid].msid;
-    hash_t msha;
-    memcpy(msha,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
-    for(auto mp=sign_msgs_.begin();mp!=sign_msgs_.end();mp++){
-      msid++;
-      assert(msid==(*mp)->msid);
-      (*mp)->load(opts_.svid);
-      (*mp)->signnewtime(ntime,skey,pkey,msha); //FIXME, insert_user lacks data !
-      (*mp)->status &= ~MSGSTAT_BAD;
-      memcpy(msha,(*mp)->sigh,sizeof(hash_t));
-      (*mp)->save();
-      (*mp)->unload(opts_.svid);
-      check_.lock(); //maybe not needed if no validators
-      check_msgs_.push_back((*mp));
-      check_.unlock();
-      ntime++;}
-    sign_msgs_.clear();
-  }
+{
+    if (!sign_msgs_.empty()) { // sign again messages that failed to be accepted by the network on time
+        uint32_t ntime = time(NULL);
+        uint32_t msid = srvs_.nodes[opts_.svid].msid;
+        hash_t msha;
+        memcpy(msha, srvs_.nodes[opts_.svid].msha, sizeof(hash_t));
+        //for(auto mp=sign_msgs_.begin();mp!=sign_msgs_.end();mp++)
+        for (auto mp = txs_msgs_.find(sign_msgs_.front()->hash.num); mp != txs_msgs_.end(); mp++) {
+            if (opts_.svid != mp->second->svid) {
+                break;
+            }
+            msid++;
+            assert(msid == mp->second->msid);
+            mp->second->load(opts_.svid);
+            mp->second->signnewtime(ntime, skey, pkey, msha);
+            mp->second->status &= ~MSGSTAT_BAD;
+            memcpy(msha, mp->second->sigh, sizeof(hash_t));
+            mp->second->save();
+            mp->second->unload(opts_.svid);
+            check_.lock(); //maybe not needed if no validators
+            check_msgs_.push_back(mp->second);
+            check_.unlock();
+            ntime++;
+        }
+        sign_msgs_.clear();
+    }
 }
 
 void server::count_votes(uint32_t now,hash_s& cand) {
@@ -2607,22 +2615,15 @@ bool server::undo_message(message_ptr msg) { //FIXME, this is single threaded, r
 }
 
 void server::log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* pkey,uint32_t msid,uint32_t mpos) {
-    static uint32_t lpath=0;
     int fd=-1;
     static boost::mutex local_;
     boost::lock_guard<boost::mutex> lock(local_);
     char filename[64];
-    if(path!=lpath || fd<0) {
-        if(fd>=0) {
-            close(fd);
-        }
-        lpath=path;
-        Helper::FileName::getName(filename, path, "bro.log");
-        fd = open(filename, O_WRONLY|O_CREAT|O_TRUNC, 0644); //TODO maybe O_TRUNC not needed
-        if(fd<0) {
-            DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
-            return;
-        }
+    Helper::FileName::getName(filename, path, "bro.log");
+    fd = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0644);
+    if(fd<0) {
+        DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
+        return;
     }
     write(fd,p,len);
     write(fd,hash,32);
@@ -4271,9 +4272,10 @@ void server::finish_block() {
 
     boost::thread archOldBlocks_thread(boost::bind(Helper::arch_old_blocks, this->srvs_.now - BLOCKSEC));
     archOldBlocks_thread.detach();
+#else
+    srvs_.clean_old(opts_.svid);
 #endif
-
-//        srvs_.clean_old(opts_.svid);
+    signlater(); // sign own removed messages
 }
 
 //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)
@@ -4372,7 +4374,9 @@ uint32_t server::write_message(std::string line) { // assume single threaded
         return(0);
     }
     // add location info. FIXME, set location to 0 before exit
-    line.append((char*)txs.data,txs.size);
+    if(line[0] != TXSTYPE_CON) { // do not send if server::update_connection_info
+        line.append((char*)txs.data,txs.size);
+    }
     int msid=++msid_; // can be atomic
     memcpy(msha_,srvs_.nodes[opts_.svid].msha,sizeof(hash_t));
     message_ptr msg(new message(MSGTYPE_MSG,(uint8_t*)line.c_str(),(int)line.length(),opts_.svid,msid,skey,pkey,msha_));
@@ -4617,19 +4621,22 @@ void server::clock() {
     while(1) {
         uint32_t now=time(NULL);
         //const char* plist=peers_list();
-        const char* plist = m_peerManager.getActualPeerList().c_str();
+        std::string plist = m_peerManager.getActualPeerList();
         int peerCount = m_peerManager.getPeersCount(true);
         int allpeerCount = m_peerManager.getPeersCount(false);
+        int tickets = ofip_get_tickets();
         if(missing_msgs_.size()) {
-            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                  //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
-                 (int)wait_msgs_.size(),peerCount,allpeerCount, srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist,
+
+                 (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str(),
                  (int)missing_msgs_.size(),missing_msgs_.begin()->first);
         } else {
-            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X msg:%u txs:%lu) [%s]\n",
+            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s]\n",
                  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
-                 (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,srvs_.msg,srvs_.txs,plist);
+
+                 (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str());
         }
         if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
             panic=true;
@@ -4729,6 +4736,15 @@ void server::clock() {
         boost::this_thread::sleep(boost::posix_time::seconds(1));
         RETURN_ON_SHUTDOWN();
     }
+}
+
+void server::update_connection_info(std::string& message)
+{
+  // send connection info if node address changed and periodically at least once per dividend period (nodes inactive for dividend period are removed from vip list)
+  if(opts_.svid && msid_ == last_srvs_.nodes[opts_.svid].msid && (srvs_.nodes[opts_.svid].ipv4 != opts_.ipv4 || srvs_.nodes[opts_.svid].port != (opts_.port&0xFFFF) || srvs_.nodes[opts_.svid].mtim < srvs_.now - BLOCKDIV*BLOCKSEC/2)) {
+    usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,0);
+    message.append((char*)txs.data,txs.size);
+  }
 }
 
 bool server::break_silence(uint32_t now,std::string& message,uint32_t& tnum) { // will be obsolete if we start tolerating empty blocks
@@ -4886,4 +4902,8 @@ void server::ofip_readonly() {
 
 bool server::ofip_isreadonly() {
     return(ofip->readonly);
+}
+
+int server::ofip_get_tickets() {
+    return(ofip->get_tickets());
 }

@@ -50,7 +50,7 @@ bool Servers::loadHeader() {
     if (m_filePath.empty()) {
         char filePath[64];
         if (!m_header.ttime) {
-            sprintf(filePath, "blk/header.hdr");
+            snprintf(filePath, sizeof(filePath), "blk/header.hdr");
         } else {
             Helper::FileName::getName(filePath, m_header.ttime, "header.hdr");
         }

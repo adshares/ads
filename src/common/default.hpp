@@ -206,6 +206,7 @@ typedef struct hash_cmp {
 #define RETURN_ON_SHUTDOWN() {extern bool finish;if(finish){return;}}
 #define SHUTDOWN_AND_RETURN_VAL(val) {std::raise(SIGQUIT);return(val);}
 #define SHUTDOWN_AND_RETURN() {std::raise(SIGQUIT);return;}
+#define SHUTDOWN() {std::raise(SIGQUIT);}
 #define RESTART_AND_RETURN() {std::raise(SIGUSR1);return;}
 #ifndef ELOG
 #define ELOG(...) {extern boost::recursive_mutex flog;extern FILE* stdlog;flog.lock();uint32_t logtime=time(NULL);fprintf(stderr, "[%u] ", logtime);fprintf(stderr,__VA_ARGS__);fprintf(stdlog,"%08X ",logtime);fprintf(stdlog,__VA_ARGS__);flog.unlock();}

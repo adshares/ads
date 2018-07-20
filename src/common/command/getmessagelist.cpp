@@ -169,20 +169,13 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         ed25519_key2text(hash, m_responseTxnHash,32);
         ptree.put("msghash",hash);
         hashtree htree;
-        boost::property_tree::ptree msghashes;
+        boost::property_tree::ptree messages;
         for (auto &it : m_responseMessageList) {
             boost::property_tree::ptree msghash;
-
-            char nodehex[5];
-            nodehex[4]='\0';
-            sprintf(nodehex,"%04X", it.node_id);
-            msghash.put("node", nodehex);
-
-            msghash.put("node_msid", it.node_msid);
             ed25519_key2text(hash, it.hash,32);
-            msghash.put("hash", hash);
+            msghash.put_value(Helper::print_msg_pack_id(it.node_id, it.node_msid));
             htree.update(it.hash);
-            msghashes.push_back(std::make_pair("",msghash));
+            messages.push_back(std::make_pair("",msghash));
         }
         uint8_t fullHash[SHA256_DIGEST_LENGTH];
         htree.finish(fullHash);
@@ -194,7 +187,7 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         } else {
             ptree.put("confirmed","yes");
         }
-        ptree.add_child("messages",msghashes);
+        ptree.add_child("messages",messages);
     }
 }
 

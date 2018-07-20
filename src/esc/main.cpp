@@ -11,8 +11,13 @@
 using namespace std;
 
 
-ErrorCodes::Code talk(NetworkClient& netClient, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
-    if(!netClient.reconnect()) {
+ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
+    if(sts.drun && command->getCommandType() == CommandType::eModifying) {
+      respHandler.onDryRun(std::move(command));
+      return ErrorCodes::Code::eNone;
+    }
+
+    if(!netClient.connect()) {
         ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
         return ErrorCodes::Code::eConnectServerError;
     }
@@ -21,7 +26,7 @@ ErrorCodes::Code talk(NetworkClient& netClient, ResponseHandler& respHandler, st
         respHandler.onExecute(std::move(command));
     } else {
         ELOG("ERROR reading global info talk\n");
-        return ErrorCodes::Code::eConnectServerError;
+        return command->m_responseError ? command->m_responseError : ErrorCodes::Code::eConnectServerError;
     }
 
     return ErrorCodes::Code::eNone;
@@ -64,7 +69,7 @@ int main(int argc, char* argv[]) {
             auto command = run_json(sts, line);
 
             if(command) {
-                responseError = talk(netClient, respHandler, std::move(command));
+                responseError = talk(netClient, sts, respHandler, std::move(command));
             }
             else {
                 responseError = ErrorCodes::Code::eCommandParseError;
@@ -73,14 +78,17 @@ int main(int argc, char* argv[]) {
             if(responseError)
             {
                 boost::property_tree::ptree pt;
-                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(responseError));
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
 
         }
     } catch (std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
+        Helper::printErrorJson("Unknown error eccoured", sts.nice);
     }
+
+    netClient.disConnect();
 
     return 0;
 }
