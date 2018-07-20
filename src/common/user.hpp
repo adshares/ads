@@ -44,7 +44,7 @@ class usertxs;
 
 typedef boost::shared_ptr<usertxs> usertxs_ptr;
 //used in  main.cpp
-std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line);
+std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, std::string& json_run);
 
 class usertxs {
   public:

@@ -84,7 +84,7 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0) {
     }
 }
 
-std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) {
+std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, std::string& json_run) {
     uint16_t    to_bank=0;
     uint32_t    to_user=0;
     int64_t     to_mass=0;
@@ -113,6 +113,9 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         return nullptr;
     }
 
+    std::string run=pt.get<std::string>("run");
+    json_run = run;
+
     boost::optional<std::string> json_signature=pt.get_optional<std::string>("signature");
     if(json_signature) {
         if(parse_key(to_signature,json_signature,64)) {
@@ -134,12 +137,12 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         }
     }
 
-    if(!sts.drun && sts.without_secret && !sts.signature_provided) {
+    if(json_run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
       std::cerr << "No secret and no signature provided. Abort." << std::endl;
       return nullptr;
     }
 
-    if(sts.drun && sts.without_secret) {
+    if(json_run != "decode_raw" && sts.drun && sts.without_secret) {
       std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
     }
 
@@ -189,7 +192,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         txn_type = json_type.get();
     }
 
-    std::string run=pt.get<std::string>("run");
+
     std::unique_ptr<IBlockCommand> command;
 
     if(!run.compare("get_me")) {
@@ -282,7 +285,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         }
         command = std::make_unique<GetMessage>(sts_bank, sts_user, to_block, to_bank, to_node_msid, now);
     }
-    else if(!run.compare("send_again") || !run.compare("send_raw")) {
+    else if(!run.compare("send_again") || !run.compare("send_raw") || !run.compare("decode_raw")) {
         boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
         if(json_data) {
             std::string data_str=json_data.get();
@@ -412,7 +415,11 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(sts.signature_provided) {
           memcpy(command->getSignature(), to_signature, command->getSignatureSize());
         } else {
-          command->sign(sts.ha.data(), sts.sk, sts.pk);
+            if(json_run == "decode_raw") {
+                bzero(command->getSignature(), command->getSignatureSize());
+            } else {
+                command->sign(sts.ha.data(), sts.sk, sts.pk);
+            }
         }
     }
 
