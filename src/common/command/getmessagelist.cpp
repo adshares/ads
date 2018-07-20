@@ -165,6 +165,7 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         hash[64]='\0';
         ed25519_key2text(hash, m_responseTxnHash,32);
         ptree.put("msghash",hash);
+        ptree.put("message_count",m_responseMessageList.size());
         hashtree htree;
         boost::property_tree::ptree messages;
         for (auto &it : m_responseMessageList) {
@@ -177,6 +178,7 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         uint8_t fullHash[SHA256_DIGEST_LENGTH];
         htree.finish(fullHash);
 
+
         if(memcmp(m_responseTxnHash, fullHash, SHA256_DIGEST_LENGTH)) {
             ed25519_key2text(hash, fullHash, SHA256_DIGEST_LENGTH);
             ptree.put("msghash_calculated",hash);
@@ -184,7 +186,9 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         } else {
             ptree.put("confirmed","yes");
         }
-        ptree.add_child("messages",messages);
+        if(m_responseMessageList.size() > 0) {
+            ptree.add_child("messages",messages);
+        }
     }
 }
 
