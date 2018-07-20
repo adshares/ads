@@ -221,7 +221,7 @@ void GetBroadcastMsg::printBlg(GetBroadcastResponse& block, std::string& message
 
     //tx_id
     char tx_id[64];
-    sprintf(tx_id,"%04X%08X%04X", block.info.src_node, block.data.msid, block.data.mpos);
+    sprintf(tx_id,"%04X:%08X:%04X", block.info.src_node, block.data.msid, block.data.mpos);
     blogentry.put("node_msid", block.data.msid);
     blogentry.put("node_mpos", block.data.mpos);
     blogentry.put("id",tx_id);
