@@ -67,10 +67,17 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            auto command = run_json(sts, line);
+            std::string json_run;
+            auto command = run_json(sts, line, json_run);
 
             if(command) {
-                responseError = talk(netClient, sts, respHandler, std::move(command));
+                if(json_run == "decode_raw") {
+                    boost::property_tree::ptree pt;
+                    command->txnToJson(pt);
+                    boost::property_tree::write_json(std::cout, pt, sts.nice);
+                } else {
+                    responseError = talk(netClient, sts, respHandler, std::move(command));
+                }
             }
             else {
                 responseError = ErrorCodes::Code::eCommandParseError;
