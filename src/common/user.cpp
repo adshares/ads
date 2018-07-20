@@ -68,6 +68,10 @@ bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len) {
         fprintf(stderr,"ERROR: parse_key(%s) bad string length (required %d)\n",str_key.c_str(),2*len);
         return(false);
     }
+    if(str_key.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) {
+        fprintf(stderr,"ERROR: parse_key(%s) bad string format\n",str_key.c_str());
+        return(false);
+    }
     ed25519_text2key(to_key,str_key.c_str(),len);
     return(true);
 }
