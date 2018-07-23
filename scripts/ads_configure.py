@@ -339,7 +339,7 @@ if __name__ == '__main__':
     parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
-    parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
+    parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
     args = parser.parse_args()
