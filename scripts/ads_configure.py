@@ -264,46 +264,46 @@ def get_public_key(private_key):
     return match.group(1)
 
 
-def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, priv_key=None):
+def configure(config):
     """
     Configure nodes and their first account
 
     :return:
     """
 
-    genesis_data = GenesisFile(genesis_uri)
+    genesis_data = GenesisFile(config['genesis_uri'])
 
     nodes_to_process = []
 
-    if priv_key:
-        pub_key = get_public_key(priv_key)
+    if config['priv_key']:
+        pub_key = get_public_key(config['priv_key'])
         genesis_node_index = genesis_data.node_identifier_from_public_key(pub_key)
 
         # Check if private key matches public key in the chosen identifier
-        if genesis_node_index and identifiers and '{0:04x}'.format(genesis_node_index) != identifiers:
-            print("Invalid private key for node: {0}".format(identifiers))
+        if genesis_node_index and config['identifiers'] and '{0:04x}'.format(genesis_node_index) != config['identifiers']:
+            print("Invalid private key for node: {0}".format(config['identifiers']))
             sys.exit(1)
 
         if genesis_node_index:
-            if not identifiers:
-                identifiers = '{0:04x}'.format(genesis_node_index)
-            nodes_to_process = [(identifiers, genesis_data.nodes[genesis_node_index])]
-            print("Configuring nodes: {0}".format(identifiers))
+            if not config['identifiers']:
+                config['identifiers'] = '{0:04x}'.format(genesis_node_index)
+            nodes_to_process = [(config['identifiers'], genesis_data.nodes[genesis_node_index])]
+            print("Configuring nodes: {0}".format(config['identifiers']))
         else:
             # New node (not in genesis)
-            nodes_to_process = [(identifiers, {'_secret': priv_key, 'accounts': []})]
-            print("Configuring new node: {0}".format(identifiers))
+            nodes_to_process = [(config['identifiers'], {'_secret': config['priv_key'], 'accounts': []})]
+            print("Configuring new node: {0}".format(config['identifiers']))
 
     else:
         genesis_identifiers = genesis_data.node_identifiers()
-        if identifiers:
+        if config['identifiers']:
             # Chosen identifiers only
-            chosen_identifiers = set(identifiers.split(',')).intersection(set(genesis_identifiers))
+            chosen_identifiers = set(config['identifiers'].split(',')).intersection(set(genesis_identifiers))
             for index, node_identifier in enumerate(genesis_identifiers):
                 if node_identifier in chosen_identifiers:
                     nodes_to_process.append((node_identifier, genesis_data.nodes[index]))
             if nodes_to_process:
-                print("Configuring nodes: {0}".format(identifiers))
+                print("Configuring nodes: {0}".format(config['identifiers']))
         else:
             # All nodes
             for index, node_identifier in enumerate(genesis_identifiers):
@@ -315,8 +315,8 @@ def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, p
         print("No nodes to configure.")
         sys.exit(1)
 
-    local_env = {'data_dir': data_dir, 'node_interface': interface}
-    node_numerical_identifier = 1
+    local_env = {'data_dir': config['data_dir'], 'node_interface': config['interface']}
+    port_offset = 0
     local_peers = []
 
     for node_identifier, node in nodes_to_process:
@@ -324,8 +324,8 @@ def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, p
         nconf = NodeConfig(local_env)
 
         nconf.svid = node_identifier
-        nconf.port = 6509 + node_numerical_identifier      # default port: 6510
-        nconf.offi = 6509 + node_numerical_identifier + 1  # default port: 6511
+        nconf.port = config['port'] + port_offset      # default port: 6510
+        nconf.offi = config['office_port'] + port_offset  # default port: 6511
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -334,7 +334,7 @@ def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, p
         nconf.private_key_file = node['_secret']
         nconf.save(genesis_data)
 
-        if create_user_dirs:
+        if config['create_user_dirs']:
             for account in node['accounts']:
 
                 a_id = '{0}.{1}'.format(node_identifier, account['_address'][5:13])
@@ -350,7 +350,7 @@ def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, p
                 aconf.save()
                 break
 
-        node_numerical_identifier += 2
+        port_offset += 2
 
 
 if __name__ == '__main__':
@@ -367,7 +367,18 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
     parser.add_argument('--user-dirs', action='store_true', help='Create account directories.')
+    parser.add_argument('--port', default=6510, type=int, help='Node port')
+    parser.add_argument('--client-port', default=6511, type=int, help='Node port')
 
     args = parser.parse_args()
 
-    configure(args.data_dir, args.interface, args.node, args.genesis, args.user_dirs, args.private_key)
+    config = {'data_dir': args.data_dir,
+              'interface': args.interface,
+              'identifiers': args.node,
+              'genesis_uri': args.genesis,
+              'create_user_dirs': args.user_dirs,
+              'priv_key': args.private_key,
+              'port': args.port,
+              'office_port': args.client_port}
+
+    configure(config)
