@@ -7,7 +7,6 @@ import re
 import socket
 import sys
 from copy import copy
-from shutil import copyfile
 from os.path import expanduser
 
 try:
@@ -136,7 +135,7 @@ class NodeConfig(object):
         # TODO: validation? logging?
         self.accounts.append(account_dict)
 
-    def save(self, genesis_filepath):
+    def save(self, genesis):
         """
         Save settings to file.
         """
@@ -157,7 +156,7 @@ class NodeConfig(object):
         with open(os.path.join(directory, 'key', 'key.txt'), 'w') as f:
             f.write(self.private_key_file)
 
-        copyfile(genesis_filepath, os.path.join(directory, 'genesis.json'))
+        genesis.save(os.path.join(directory, 'genesis.json'))
 
         filepath = os.path.join(directory, 'options.cfg')
 
@@ -218,6 +217,10 @@ class GenesisFile(object):
 
         return ids
 
+    def save(self, filepath):
+        with open(filepath, 'w') as f:
+            json.dump(self.genesis, f)
+
 
 def validate_platform():
     """
@@ -264,7 +267,7 @@ def get_my_ip(remote_ip="8.8.8.8", remote_port=53):
     return my_ip
 
 
-def configure(data_dir, interface, identifiers, genesis_file):
+def configure(data_dir, interface, identifiers, genesis_uri):
     """
     Configure nodes and their first account
 
@@ -272,7 +275,7 @@ def configure(data_dir, interface, identifiers, genesis_file):
     """
     local_env = {'data_dir': data_dir, 'node_interface': interface}
 
-    genesis_data = GenesisFile(genesis_file)
+    genesis_data = GenesisFile(genesis_uri)
 
     if identifiers:
         chosen_identifiers = set(identifiers.split(',')).intersection(set(genesis_data.node_identifiers()))
@@ -305,7 +308,7 @@ def configure(data_dir, interface, identifiers, genesis_file):
 
         nconf.signature = node['_sign']
 
-        nconf.save(genesis_file)
+        nconf.save(genesis_data)
 
         for account in node['accounts']:
 
