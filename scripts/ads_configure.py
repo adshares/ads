@@ -54,7 +54,7 @@ class AccountConfig(object):
         """
         self.id = identifier
 
-        self.port = 9001
+        self.port = 6511
         self.node_addr = loc_env['node_interface']
         self.address = None
         self.private_key = None
@@ -106,8 +106,8 @@ class NodeConfig(object):
         :param loc_env: Local node environment (ip, node identifier, etc.)
         """
         self.svid = 0
-        self.port = 8001
-        self.offi = 9001
+        self.port = 6510
+        self.offi = 6511
         self.addr = loc_env['node_interface']
 
         self.accounts = []
@@ -281,8 +281,8 @@ def configure(data_dir, interface, identifiers, genesis_file):
         nconf = NodeConfig(local_env)
 
         nconf.svid = node_identifier
-        nconf.port = 8000 + node_numerical_identifier
-        nconf.offi = 9000 + node_numerical_identifier
+        nconf.port = 6509 + node_numerical_identifier      # default port: 6510
+        nconf.offi = 6509 + node_numerical_identifier + 1  # default port: 6511
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -312,7 +312,7 @@ def configure(data_dir, interface, identifiers, genesis_file):
             aconf.save()
             break
 
-        node_numerical_identifier += 1
+        node_numerical_identifier += 2
 
 
 if __name__ == '__main__':
