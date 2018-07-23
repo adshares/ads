@@ -40,7 +40,8 @@ void GetBroadcastMsgHandler::onExecute() {
 
         Helper::BlockFileReader broadcastFile(filename);
         if (!broadcastFile.isOpen()) {
-            errorCode = ErrorCodes::Code::eNoBroadcastFile;
+            size = 0;
+            //errorCode = ErrorCodes::Code::eNoBroadcastFile;
         } else {
             size = broadcastFile.getSize();
             int remainData = (size > MAX_BLG_SIZE) ? MAX_BLG_SIZE : size;
