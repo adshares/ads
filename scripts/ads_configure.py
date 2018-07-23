@@ -5,6 +5,7 @@ import json
 import os
 import re
 import socket
+import subprocess
 import sys
 from copy import copy
 from os.path import expanduser
@@ -201,6 +202,11 @@ class GenesisFile(object):
 
         return ids
 
+    def node_identifier_from_public_key(self, pub_key):
+        for index, node in enumerate(self.nodes):
+            if node['public_key'] == pub_key:
+                return index
+
     def save(self, filepath):
         with open(filepath, 'w') as f:
             json.dump(self.genesis, f)
@@ -251,29 +257,69 @@ def get_my_ip(remote_ip="8.8.8.8", remote_port=53):
     return my_ip
 
 
-def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs):
+def get_public_key(private_key):
+    proc = subprocess.Popen(['ads', '-s'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, errors = proc.communicate(private_key)
+    match = re.search('Public key: (.*?)\s', errors)
+    return match.group(1)
+
+
+def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs, priv_key=None):
     """
     Configure nodes and their first account
 
     :return:
     """
-    local_env = {'data_dir': data_dir, 'node_interface': interface}
 
     genesis_data = GenesisFile(genesis_uri)
 
-    if identifiers:
-        chosen_identifiers = set(identifiers.split(',')).intersection(set(genesis_data.node_identifiers()))
-        print("Configuring nodes: {0}".format(identifiers))
-    else:
-        print("Configuring all nodes found in the genesis file.")
+    nodes_to_process = []
 
+    if priv_key:
+        pub_key = get_public_key(priv_key)
+        genesis_node_index = genesis_data.node_identifier_from_public_key(pub_key)
+
+        # Check if private key matches public key in the chosen identifier
+        if genesis_node_index and identifiers and '{0:04x}'.format(genesis_node_index) != identifiers:
+            print("Invalid private key for node: {0}".format(identifiers))
+            sys.exit(1)
+
+        if genesis_node_index:
+            if not identifiers:
+                identifiers = '{0:04x}'.format(genesis_node_index)
+            nodes_to_process = [(identifiers, genesis_data.nodes[genesis_node_index])]
+            print("Configuring nodes: {0}".format(identifiers))
+        else:
+            # New node (not in genesis)
+            nodes_to_process = [(identifiers, {'_secret': priv_key, 'accounts': []})]
+            print("Configuring new node: {0}".format(identifiers))
+
+    else:
+        genesis_identifiers = genesis_data.node_identifiers()
+        if identifiers:
+            # Chosen identifiers only
+            chosen_identifiers = set(identifiers.split(',')).intersection(set(genesis_identifiers))
+            for index, node_identifier in enumerate(genesis_identifiers):
+                if node_identifier in chosen_identifiers:
+                    nodes_to_process.append((node_identifier, genesis_data.nodes[index]))
+            if nodes_to_process:
+                print("Configuring nodes: {0}".format(identifiers))
+        else:
+            # All nodes
+            for index, node_identifier in enumerate(genesis_identifiers):
+                nodes_to_process.append((node_identifier, genesis_data.nodes[index]))
+            if nodes_to_process:
+                print("Configuring all nodes found in the genesis file.")
+
+    if not nodes_to_process:
+        print("No nodes to configure.")
+        sys.exit(1)
+
+    local_env = {'data_dir': data_dir, 'node_interface': interface}
     node_numerical_identifier = 1
     local_peers = []
 
-    for index, node_identifier in enumerate(genesis_data.node_identifiers()):
-
-        if identifiers and node_identifier not in chosen_identifiers:
-            continue
+    for node_identifier, node in nodes_to_process:
 
         nconf = NodeConfig(local_env)
 
@@ -285,13 +331,7 @@ def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs):
         # Add yourself as peer
         local_peers.append('{0}:{1}'.format(nconf.addr, nconf.port))
 
-        node = genesis_data.nodes[index]
-
-        nconf.public_key_file = node['public_key']
         nconf.private_key_file = node['_secret']
-
-        nconf.signature = node['_sign']
-
         nconf.save(genesis_data)
 
         if create_user_dirs:
@@ -319,8 +359,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Configure ADS nodes.')
 
-    parser.add_argument('node', help='Node number')
-    parser.add_argument('--private-key', help='Private key for the node')
+    parser.add_argument('--node', default=None, help='Node number')
+    parser.add_argument('--private-key', default=None, help='Private key for the node')
     parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
@@ -330,4 +370,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    configure(args.data_dir, args.interface, args.node, args.genesis, args.user_dirs)
+    configure(args.data_dir, args.interface, args.node, args.genesis, args.user_dirs, args.private_key)
