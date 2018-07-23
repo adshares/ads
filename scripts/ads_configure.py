@@ -331,13 +331,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Configure ADS nodes.')
 
-    parser.add_argument('genesis',
+    parser.add_argument('node-number', help='Node number')
+    parser.add_argument('--private-key', help='Private key for the node')
+    parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
-    parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
     parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
 
     args = parser.parse_args()
 
-    configure(args.data_dir, args.interface, args.identifiers, args.genesis)
+    configure(args.data_dir, args.interface, args.node_number, args.genesis)
