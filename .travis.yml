@@ -33,7 +33,7 @@ before_install:
   - export TEST_DIR=$HOME/adshares/ads-tests
   - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-20x20-rf.json
   - export BIN_DIR=$HOME/ads/bin
-  - export DATA_DIR=$HOME/ads_data
+  - export DATA_DIR=$HOME/.adsd
   - export ADS_CONF="./scripts/ads_configure.py --data-dir=$DATA_DIR --interface=127.0.0.1 $GENESIS_FILE"
   - export ADS_START="./scripts/ads_ctl.py --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
