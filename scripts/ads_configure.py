@@ -167,7 +167,12 @@ class GenesisFile(object):
             with open(genesis_file, 'r') as f:
                 self.genesis = json.load(f)
 
-        self.nodes = self.genesis['nodes']
+        self._genesis_dict()
+
+    def _genesis_dict(self):
+        self.nodes = {}
+        for node in self.genesis['nodes']:
+            self.nodes[self.node_identifier(node)] = node
 
     def node_count(self):
         """
@@ -187,25 +192,21 @@ class GenesisFile(object):
         node_config = self.nodes[node_number]
         return node_config['_secret'], node_config['public_key'], node_config['_sign']
 
-    def node_identifiers(self):
+    def node_identifier(self, node):
         """
         Get node identifiers from the first account identifier associated with this node.
 
         :return: List of identifiers.
         """
-        ids = []
-        for node in self.nodes:
-            for account in node['accounts']:
-                addr = account["_address"]
-                if re.search('-0{8}-', addr):
-                    ids.append(addr[:4])
-
-        return ids
+        for account in node['accounts']:
+            addr = account["_address"]
+            if re.search('-0{8}-', addr):
+                return addr[:4]
 
     def node_identifier_from_public_key(self, pub_key):
-        for index, node in enumerate(self.nodes):
-            if node['public_key'] == pub_key:
-                return index
+        for node_id in self.nodes.keys():
+            if self.nodes[node_id]['public_key'] == pub_key:
+                return node_id
 
     def save(self, filepath):
         with open(filepath, 'w') as f:
@@ -264,6 +265,50 @@ def get_public_key(private_key):
     return match.group(1)
 
 
+def prepare_node_configuration(identifiers, genesis_data, private_key=False):
+
+    nodes_to_process = []
+
+    if private_key:
+        pub_key = get_public_key(private_key)
+        node_ident_genesis = genesis_data.node_identifier_from_public_key(pub_key)
+        node_identifier = identifiers[0]  # Only one value
+
+        if node_ident_genesis:
+            # Check if private key matches public key in the chosen identifier
+            if node_identifier and '{0:04x}'.format(node_ident_genesis) != node_identifier:
+                print("Invalid private key for node: {0}".format(node_identifier))
+                sys.exit(1)
+
+            if not node_identifier:
+                node_identifier = '{0:04x}'.format(node_ident_genesis)
+
+            node = genesis_data.nodes[node_ident_genesis]
+            node['_nid'] = node_identifier
+
+            print("Configuring nodes: {0}".format(node_identifier))
+        else:
+            # New node (not in genesis)
+            node = {'_nid': node_identifier, '_secret': private_key, 'accounts': []}
+            print("Configuring new node: {0}".format(node_identifier))
+
+        nodes_to_process = [node]
+
+    else:
+        for k in genesis_data.nodes.keys():
+            if identifiers and k not in identifiers:
+                continue
+
+            node = genesis_data.nodes[k]
+            node['_nid'] = k
+            nodes_to_process.append(node)
+
+        if nodes_to_process:
+            print("Configuring nodes: {0}".format(identifiers))
+
+    return nodes_to_process
+
+
 def configure(config):
     """
     Configure nodes and their first account
@@ -271,61 +316,26 @@ def configure(config):
     :return:
     """
 
-    genesis_data = GenesisFile(config['genesis_uri'])
-
-    nodes_to_process = []
-
-    if config['priv_key']:
-        pub_key = get_public_key(config['priv_key'])
-        genesis_node_index = genesis_data.node_identifier_from_public_key(pub_key)
-
-        # Check if private key matches public key in the chosen identifier
-        if genesis_node_index and config['identifiers'] and '{0:04x}'.format(genesis_node_index) != config['identifiers']:
-            print("Invalid private key for node: {0}".format(config['identifiers']))
-            sys.exit(1)
-
-        if genesis_node_index:
-            if not config['identifiers']:
-                config['identifiers'] = '{0:04x}'.format(genesis_node_index)
-            nodes_to_process = [(config['identifiers'], genesis_data.nodes[genesis_node_index])]
-            print("Configuring nodes: {0}".format(config['identifiers']))
-        else:
-            # New node (not in genesis)
-            nodes_to_process = [(config['identifiers'], {'_secret': config['priv_key'], 'accounts': []})]
-            print("Configuring new node: {0}".format(config['identifiers']))
-
-    else:
-        genesis_identifiers = genesis_data.node_identifiers()
-        if config['identifiers']:
-            # Chosen identifiers only
-            chosen_identifiers = set(config['identifiers'].split(',')).intersection(set(genesis_identifiers))
-            for index, node_identifier in enumerate(genesis_identifiers):
-                if node_identifier in chosen_identifiers:
-                    nodes_to_process.append((node_identifier, genesis_data.nodes[index]))
-            if nodes_to_process:
-                print("Configuring nodes: {0}".format(config['identifiers']))
-        else:
-            # All nodes
-            for index, node_identifier in enumerate(genesis_identifiers):
-                nodes_to_process.append((node_identifier, genesis_data.nodes[index]))
-            if nodes_to_process:
-                print("Configuring all nodes found in the genesis file.")
+    genesis_data = GenesisFile(config.genesis)
+    if config.node:
+        config.node = config.node.split(',')
+    nodes_to_process = prepare_node_configuration(config.node, genesis_data, config.private_key)
 
     if not nodes_to_process:
         print("No nodes to configure.")
         sys.exit(1)
 
-    local_env = {'data_dir': config['data_dir'], 'node_interface': config['interface']}
+    local_env = {'data_dir': config.data_dir, 'node_interface': config.interface}
     port_offset = 0
     local_peers = []
 
-    for node_identifier, node in nodes_to_process:
+    for node in nodes_to_process:
 
         nconf = NodeConfig(local_env)
 
-        nconf.svid = node_identifier
-        nconf.port = config['port'] + port_offset      # default port: 6510
-        nconf.offi = config['office_port'] + port_offset  # default port: 6511
+        nconf.svid = node['_nid']
+        nconf.port = config.port + port_offset      # default port: 6510
+        nconf.offi = config.client_port + port_offset  # default port: 6511
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -334,10 +344,10 @@ def configure(config):
         nconf.private_key_file = node['_secret']
         nconf.save(genesis_data)
 
-        if config['create_user_dirs']:
+        if config.user_dirs:
             for account in node['accounts']:
 
-                a_id = '{0}.{1}'.format(node_identifier, account['_address'][5:13])
+                a_id = '{0}.{1}'.format(node['_nid'], account['_address'][5:13])
 
                 aconf = AccountConfig(a_id, local_env)
 
@@ -372,13 +382,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    config = {'data_dir': args.data_dir,
-              'interface': args.interface,
-              'identifiers': args.node,
-              'genesis_uri': args.genesis,
-              'create_user_dirs': args.user_dirs,
-              'priv_key': args.private_key,
-              'port': args.port,
-              'office_port': args.client_port}
-
-    configure(config)
+    configure(args)
