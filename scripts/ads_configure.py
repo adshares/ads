@@ -10,6 +10,11 @@ from copy import copy
 from shutil import copyfile
 from os.path import expanduser
 
+try:
+    from urllib2 import urlopen
+except ImportError:
+    from urllib.request import urlopen
+
 
 class AccountAddressError(Exception):
     pass
@@ -168,10 +173,15 @@ class GenesisFile(object):
         """
         Read the file in.
 
-        :param genesis_file: Genesis filepath
+        :param genesis_file: Genesis filepath or URL
         """
-        with open(genesis_file, 'r') as f:
-            self.genesis = json.load(f)
+
+        if genesis_file.startswith('http'):
+            with urlopen(genesis_file) as f:
+                self.genesis = json.loads(f.read())
+        else:
+            with open(genesis_file, 'r') as f:
+                self.genesis = json.load(f)
 
         self.nodes = self.genesis['nodes']
 
@@ -321,7 +331,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Configure ADS nodes.')
 
-    parser.add_argument('genesis', default=None, help='Genesis file')
+    parser.add_argument('genesis',
+                        default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
+                        help='Genesis filepath or url')
     parser.add_argument('--identifiers', help='Configure only these specific node identifiers.')
     parser.add_argument('--data-dir', default='{0}/ads_data'.format(expanduser('~')), help='Writeable directory with node and accounts configurations.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
