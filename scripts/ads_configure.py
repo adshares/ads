@@ -267,7 +267,7 @@ def get_my_ip(remote_ip="8.8.8.8", remote_port=53):
     return my_ip
 
 
-def configure(data_dir, interface, identifiers, genesis_uri):
+def configure(data_dir, interface, identifiers, genesis_uri, create_user_dirs):
     """
     Configure nodes and their first account
 
@@ -310,20 +310,21 @@ def configure(data_dir, interface, identifiers, genesis_uri):
 
         nconf.save(genesis_data)
 
-        for account in node['accounts']:
+        if create_user_dirs:
+            for account in node['accounts']:
 
-            a_id = '{0}.{1}'.format(node_identifier, account['_address'][5:13])
+                a_id = '{0}.{1}'.format(node_identifier, account['_address'][5:13])
 
-            aconf = AccountConfig(a_id, local_env)
+                aconf = AccountConfig(a_id, local_env)
 
-            aconf.port = nconf.offi
-            aconf.address = account['_address']
-            aconf.public_key = account['public_key']
-            aconf.private_key = account['_secret']
-            aconf.signature = account['_sign']
+                aconf.port = nconf.offi
+                aconf.address = account['_address']
+                aconf.public_key = account['public_key']
+                aconf.private_key = account['_secret']
+                aconf.signature = account['_sign']
 
-            aconf.save()
-            break
+                aconf.save()
+                break
 
         node_numerical_identifier += 2
 
@@ -341,7 +342,8 @@ if __name__ == '__main__':
                         help='Genesis filepath or url')
     parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
+    parser.add_argument('--user-dirs', action='store_true', help='Create account directories.')
 
     args = parser.parse_args()
 
-    configure(args.data_dir, args.interface, args.node, args.genesis)
+    configure(args.data_dir, args.interface, args.node, args.genesis, args.user_dirs)
