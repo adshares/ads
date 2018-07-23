@@ -177,8 +177,8 @@ class GenesisFile(object):
         """
 
         if genesis_file.startswith('http'):
-            with urlopen(genesis_file) as f:
-                self.genesis = json.loads(f.read())
+            genesis_response = urlopen(genesis_file)
+            self.genesis = json.loads(genesis_response.read())
         else:
             with open(genesis_file, 'r') as f:
                 self.genesis = json.load(f)
