@@ -285,18 +285,24 @@ void GetTransaction::toJson(boost::property_tree::ptree& ptree) {
         char tx_id[64];
         sprintf(tx_id,"%04X:%08X:%04X",m_responseHeader.node,m_responseHeader.msid,m_responseHeader.tnum);
         ptree.put("network_tx.id",&tx_id[0]);
-        ptree.put("network_tx.block_id",m_responseHeader.path);
-        ptree.put("network_tx.node_id",m_responseHeader.node);
+        ptree.put("network_tx.block_time",m_responseHeader.path);
+
+        char blockhex[9];
+        blockhex[8]='\0';
+        sprintf(blockhex,"%08X", m_responseHeader.path);
+        ptree.put("network_tx.block_id", blockhex);
+
+        ptree.put("network_tx.node",m_responseHeader.node);
         ptree.put("network_tx.node_msid",m_responseHeader.msid);
-        ptree.put("network_tx.position",m_responseHeader.tnum);
-        ptree.put("network_tx.len",m_responseHeader.len);
-        ptree.put("network_tx.hash_path_len",m_responseHeader.hnum);
+        ptree.put("network_tx.node_mpos",m_responseHeader.tnum);
+        ptree.put("network_tx.size",m_responseHeader.len);
+        ptree.put("network_tx.hashpath_size",m_responseHeader.hnum);
         std::stringstream full_data, tx_data;
         full_data.write((char*)m_responseTxn->getData(), m_responseTxn->getDataSize());
         full_data.write((char*)m_responseTxn->getAdditionalData(), m_responseTxn->getAdditionalDataSize());
         full_data.write((char*)m_responseTxn->getSignature(), m_responseTxn->getSignatureSize());
         Helper::ed25519_key2text(tx_data, (uint8_t*)full_data.str().c_str(), m_responseTxn->getDataSize() + m_responseTxn->getAdditionalDataSize() + m_responseTxn->getSignatureSize());
-        ptree.put("network_tx.hexstring", tx_data.str());
+        ptree.put("network_tx.data", tx_data.str());
         boost::property_tree::ptree hashpath;
         for(int i=0; i<m_responseHeader.hnum; i++) {
             char hashtext[65];
