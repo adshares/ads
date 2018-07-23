@@ -109,6 +109,10 @@ public:
      */
     virtual void setNewUser(uint32_t userId, uint8_t userPkey[]);
 
+    /** \brief Get public key from additional data. */
+    virtual unsigned char*          getPublicKey();
+    virtual void                    setPublicKey(uint8_t user_pkey[SHA256_DIGEST_LENGTH]);
+
 private:
 
     CreateAccountData   m_data;

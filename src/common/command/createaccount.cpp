@@ -156,6 +156,14 @@ int CreateAccount::getAdditionalDataSize() {
     return sizeof(m_newAccount);
 }
 
+unsigned char* CreateAccount::getPublicKey() {
+    return reinterpret_cast<unsigned char*>(&m_newAccount.user_pkey);
+}
+
+void CreateAccount::setPublicKey(uint8_t user_pkey[SHA256_DIGEST_LENGTH]) {
+    memcpy(m_newAccount.user_pkey, user_pkey, SHA256_DIGEST_LENGTH);
+}
+
 uint32_t CreateAccount::getDestBankId() {
     return m_data.info.dst_node;
 }
