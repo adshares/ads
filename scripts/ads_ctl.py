@@ -49,8 +49,10 @@ def start_node(nconf_path, genesis_time, init=False):
     if init:
         cmd += ['--init=true']
 
-    stdout = open(os.path.join(nconf_path, 'stdout'), 'w')
-    stderr = open(os.path.join(nconf_path, 'stderr'), 'w')
+    node_name = os.path.basename(nconf_path)
+
+    stdout = open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'w')
+    stderr = open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'w')
 
     proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
 
