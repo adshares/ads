@@ -15,10 +15,6 @@ except ImportError:
     from urllib.request import urlopen
 
 
-class AccountAddressError(Exception):
-    pass
-
-
 def save_config(filepath, settings):
     """
     Save config in ADS format:
@@ -65,22 +61,10 @@ class AccountConfig(object):
 
         self.node_env = loc_env
 
-    def validate_address(self):
-        """
-        Checks if address is correct.
-
-        :return:
-        """
-        # TODO: checksum verification
-        return re.match('[0-9a-fA-F]{4}-[0-9a-fA-F]{8}-[0-9a-fA-FX]{4}', self.address)
-
     def save(self):
         """
         Save settings to file.
         """
-
-        if not self.validate_address():
-            raise AccountAddressError("Account address is not correct.")
 
         options = {'port': self.port,
                    'host': self.node_addr,
