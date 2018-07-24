@@ -1,25 +1,21 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
-import argparse
-import hashlib
-import json
 import os
-import shutil
-import signal
 import subprocess
-import sys
-import time
 from glob import glob
+import argparse
+import shutil
+import json
+import time
+import signal
+import sys
+import hashlib
+import psutil
 from os.path import expanduser
+
 
 DAEMON_BIN_NAME = 'adsd'
 CLIENT_BIN_NAME = 'ads'
-
-
-def get_daemon_pid(data_dir):
-    pid = subprocess.check_output(['pgrep', '-f', '{0}.*--work-dir={1}'.format(DAEMON_BIN_NAME, data_dir)])
-    return pid
 
 
 def start_node(nconf_path, genesis_time, init=False):
@@ -53,13 +49,20 @@ def start_node(nconf_path, genesis_time, init=False):
     if init:
         cmd += ['--init=true']
 
-    stdout = open(os.path.join(nconf_path, '{0}.log'.format(DAEMON_BIN_NAME)), 'w')
-    stderr = open(os.path.join(nconf_path, '{0}.error.log'.format(DAEMON_BIN_NAME)), 'w')
+    node_name = os.path.basename(nconf_path)
+
+    stdout = open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'w')
+    stderr = open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'w')
 
     proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
 
     try:
         os.kill(proc.pid, 0)
+
+        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+        with open(pidfile, 'w') as f:
+            f.write(str(proc.pid))
+
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
@@ -68,22 +71,61 @@ def start_node(nconf_path, genesis_time, init=False):
     print("ADS node {0} started.".format(nconf_path))
 
 
-def action_signal(data_dir, chosen_signal, name):
+def stop_node(nconf_path):
     """
     Stop the node by sending a SIGKILL to the process. Process ID is read from the pid file.
 
-    :param data_dir: Path to directory holding the pid file.
+    :param nconf_path: Path to directory holding the pid file.
     :return:
     """
-    pid = get_daemon_pid(data_dir)
-    if not pid:
-        print("Daemon not running.")
-    else:
+
+    pid_filepath = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
+    try:
+        with open(pid_filepath, 'r') as f:
+            pid = int(f.read())
+
         try:
-            os.kill(pid, chosen_signal)
-            print("ADS node {0} {1} successful.".format(data_dir, name))
+            os.kill(pid, signal.SIGKILL)
+            os.remove(pid_filepath)
+            print("ADS node {0} stopped.".format(nconf_path))
+
         except OSError:
-            print("ADS node {0} {1} failed.".format(data_dir, name))
+            print("ADS node {0} not killed for node config.".format(nconf_path))
+
+    except IOError:
+        print("Pid file not found")
+
+
+def stop_all():
+    """
+    Kill all process matching the daemon binary name.
+    From: https://stackoverflow.com/a/2241047
+
+    :return:
+    """
+
+    name = DAEMON_BIN_NAME
+
+    for p in psutil.process_iter():
+        name_, exe, cmdline = "", "", []
+        try:
+            name_ = p.name()
+            cmdline = p.cmdline()
+            exe = p.exe()
+        except (psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+        except psutil.NoSuchProcess:
+            continue
+        if name == name_ or (cmdline and './{0}'.format(name) in cmdline) or os.path.basename(exe) == name:
+            print("Found process {0}: ".format(p.pid))
+            print(name_, cmdline, exe)
+
+            try:
+                os.kill(p.pid, signal.SIGKILL)
+                print("Killed process {0}".format(p.pid))
+            except OSError:
+                print("Process {0} not killed".format(p.pid))
+                sys.exit(1)
 
 
 def state(nconf_path):
@@ -126,19 +168,15 @@ def read_nconf(options_filepath):
     with open(options_filepath, 'r') as f:
         options = f.readlines()
 
-    port = None
-    host = None
-
     for opt in options:
         key, value = opt.split('=')
-
         if key == 'offi':
-            port = value.strip()
+            port = value.trim()
         elif key == 'addr':
-            host = value.strip()
+            host = value.trim()
 
-        if port and host:
-            return port, host
+    if port and host:
+        return host, port
 
 
 def investigate_node(nconf):
@@ -159,12 +197,10 @@ def investigate_node(nconf):
         print(e)
         return False
 
-    output = '[' + output.replace("}\n{", "},\n{") + ']'
     json_out = json.loads(output)
 
-    for json_msg in json_out:
-        if 'current_block_time' and 'previous_block_time' in json_msg.keys():
-            return True
+    if 'current_block_time' and 'previous_block_time' in json_out.keys():
+        return True
 
     return False
 
@@ -264,11 +300,8 @@ def stop_action(data_dir):
     """
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
-        action_signal(args.data_dir, signal.SIGTERM, 'stop')
-
-    for nconf in sorted(glob(data_dir + '/node*')):
-        print(nconf)
-        action_signal(args.data_dir, signal.SIGKILL, 'forced stop')
+        stop_node(nconf)
+    stop_all()
 
 
 def nodes_action(data_dir):
