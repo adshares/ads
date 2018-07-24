@@ -4,19 +4,14 @@ import getpass
 import json
 import os
 import re
-import shutil
-import signal
 import socket
 import subprocess
 import sys
-import time
 
 try:
     from urllib2 import urlopen
 except ImportError:
     from urllib.request import urlopen
-
-DAEMON_BIN_NAME = 'adsd'
 
 
 def save_config(filepath, settings):
@@ -206,26 +201,21 @@ def get_nodeid_from_genesis(genesis_data, private_key):
     return genesis_data.node_identifier_from_public_key(pub_key)
 
 
-def action_signal(data_dir, chosen_signal, name):
-    """
-    Stop the node by sending a SIGKILL to the process. Process ID is read from the pid file.
+if __name__ == '__main__':
 
-    :param data_dir: Path to directory holding the pid file.
-    :return:
-    """
-    pid = get_daemon_pid(data_dir)
-    if not pid:
-        print("Daemon not running.")
-    else:
-        try:
-            os.kill(pid, chosen_signal)
-            print("ADS node {0} {1} successful.".format(data_dir, name))
-        except OSError:
-            print("ADS node {0} {1} failed.".format(data_dir, name))
+    validate_platform()
 
+    genesis_data = GenesisFile(
+        'https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json')
 
-def action_configure(args):
-    
+    # Support for sudo
+    datapath = os.path.join(os.path.expanduser("~" + os.environ["USER"]), ".adsd")
+
+    parser = argparse.ArgumentParser(description='Tools for ADS nodes.')
+    parser.add_argument('--data-dir', default=datapath, help='Writeable working directory.')
+
+    args = parser.parse_args()
+
     args.private_key = getpass.getpass("Node's private key: ")
     print "Default values are in []. Press enter to choose them."
 
@@ -243,90 +233,3 @@ def action_configure(args):
         args.interface = get_my_ip()
 
     configure(args, genesis_data, node_ident_genesis)
-
-
-def get_daemon_pid(data_dir):
-    pid = subprocess.check_output(['pgrep', '-f', '{0}.*--work-dir={1}'.format(DAEMON_BIN_NAME, data_dir)])
-    return pid
-
-
-def action_start(data_dir):
-    """
-    Start a background node process. Modifies the local genesis file by setting the `genesis_time`.
-    On success, creates a pid file with the process number.
-
-    :param args.data_dir: Path to node configuration directory.
-    :param genesis_time: Genesis time of the network.
-    :param init: Set it to true, if this is the first node of the network.
-    :return:
-    """
-
-    genesis_path = os.path.join(data_dir, 'genesis.json')
-
-    cmd = [
-        DAEMON_BIN_NAME,
-        '--genesis={0}'.format(genesis_path),
-        '--work-dir={0}'.format(data_dir)
-    ]
-
-    stdout = open(os.path.join(data_dir, '{0}.log'.format(DAEMON_BIN_NAME)), 'w')
-    stderr = open(os.path.join(data_dir, '{0}.error.log'.format(DAEMON_BIN_NAME)), 'w')
-
-    proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
-
-    try:
-        os.kill(proc.pid, 0)
-        print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
-    except OSError:
-        print("Server not started.")
-        sys.exit(1)
-
-    print("ADS node {0} started.".format(data_dir))
-
-
-def action_clean(data_dir):
-    """
-    Remove and recreate the whole ADS data directory.
-
-    :param data_dir: Directory to clean up.
-    :return:
-    """
-    if os.path.exists(data_dir):
-        shutil.rmtree(data_dir)
-        os.mkdir(data_dir)
-        print("ADS node configuration removed.")
-    else:
-        print("{0} doesn't exist".format(data_dir))
-
-
-if __name__ == '__main__':
-
-    validate_platform()
-    
-    genesis_data = GenesisFile(
-        'https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json')
-
-    # Support for sudo
-    default_datapath = os.path.join(os.path.expanduser("~" + os.environ["USER"]), ".adsd")
-
-    parser = argparse.ArgumentParser(description='Tools for ADS nodes.')
-    parser.add_argument('action', choices=['start', 'stop', 'configure', 'clean', 'restart'])
-    parser.add_argument('-f', '--force-stop', action='store_true')
-    parser.add_argument('--data-dir', default=default_datapath, help='Writeable working directory.')
-
-    args = parser.parse_args()
-
-    if args.action == 'start':
-        action_start(args.data_dir)
-    elif args.action == 'stop':
-        if args.force_stop:
-            action_signal(args.data_dir, signal.SIGKILL, 'forced stop')
-        else:
-            action_signal(args.data_dir, signal.SIGTERM, 'stop')
-    elif args.action == 'restart':
-        action_signal(args.data_dir, signal.SIGUSR1, 'restart')
-    elif args.action == 'clean':
-        action_signal(args.data_dir, signal.SIGKILL, 'forced stop for cleaning')
-        action_clean(args.data_dir)
-    elif args.action == 'configure':
-        action_configure(args)
