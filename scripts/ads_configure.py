@@ -218,7 +218,7 @@ class GenesisFile(object):
             json.dump(self.genesis, f)
 
 
-def validate_platform():
+def validate_platform(verbose=False):
     """
     Check if you can run ADS. Currently supported only on 64 bit Linux.
 
@@ -241,7 +241,8 @@ def validate_platform():
         print("Can't detect the architecture. I need a *nix system to do that.")
         sys.exit(1)
 
-    print("Detected: {0} {1}".format(sys.platform, os.uname()[4]))
+    if verbose:
+        print("Detected: {0} {1}".format(sys.platform, os.uname()[4]))
 
 
 def get_my_ip(remote_ip="8.8.8.8", remote_port=53):
