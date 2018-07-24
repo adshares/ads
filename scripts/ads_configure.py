@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import print_function
-
 import argparse
 import json
 import getpass
@@ -57,7 +56,7 @@ class AccountConfig(object):
         """
         self.id = identifier
 
-        self.port = 9001
+        self.port = 6511
         self.node_addr = loc_env['node_interface']
         self.address = None
         self.private_key = None
@@ -97,8 +96,8 @@ class NodeConfig(object):
         :param loc_env: Local node environment (ip, node identifier, etc.)
         """
         self.svid = 0
-        self.port = 8001
-        self.offi = 9001
+        self.port = 6510
+        self.offi = 6511
         self.addr = loc_env['node_interface']
 
         self.accounts = []
@@ -331,6 +330,9 @@ def configure(config):
     if config.node:
         config.node = config.node.split(',')
 
+    if config.ask_private_key:
+        config.private_key = getpass.getpass("Node's private key:")
+
     nodes_to_process = prepare_node_configuration(config.node, genesis_data, config.private_key)
 
     if not nodes_to_process:
@@ -346,8 +348,8 @@ def configure(config):
         nconf = NodeConfig(local_env)
 
         nconf.svid = node['_nid']
-        nconf.port = config.port + port_offset      # default port: 8001
-        nconf.offi = config.client_port + port_offset  # default port: 9001
+        nconf.port = config.port + port_offset      # default port: 6510
+        nconf.offi = config.client_port + port_offset  # default port: 6511
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -372,7 +374,7 @@ def configure(config):
                 aconf.save()
                 break
 
-        port_offset += 1
+        port_offset += 2
 
 
 if __name__ == '__main__':
@@ -383,15 +385,20 @@ if __name__ == '__main__':
 
     parser.add_argument('--node', default=None, help='Node number')
     parser.add_argument('--private-key', default=None, help='Private key for the node')
+    parser.add_argument('-P', '--ask-private-key', action='store_true', help='Ask for private key')
     parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
     parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
     parser.add_argument('--user-dirs', action='store_true', help='Create account directories.')
-    parser.add_argument('--port', default=8001, type=int, help='Node port')
-    parser.add_argument('--client-port', default=9001, type=int, help='Node port')
+    parser.add_argument('--port', default=6510, type=int, help='Node port')
+    parser.add_argument('--client-port', default=6511, type=int, help='Node port')
 
     args = parser.parse_args()
+
+    if args.ask_private_key and args.private_key:
+        print("Options --private-key and --ask-private-key (-P) can't be combined. Choose one.")
+        sys.exit(1)
 
     configure(args)
