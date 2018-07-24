@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import argparse
-import getpass
 import json
 import os
 import re
@@ -331,9 +330,6 @@ def configure(config):
     if config.node:
         config.node = config.node.split(',')
 
-    if config.ask_private_key:
-        config.private_key = getpass.getpass("Node's private key:")
-
     nodes_to_process = prepare_node_configuration(config.node, genesis_data, config.private_key)
 
     if not nodes_to_process:
@@ -386,7 +382,6 @@ if __name__ == '__main__':
 
     parser.add_argument('--node', default=None, help='Node number')
     parser.add_argument('--private-key', default=None, help='Private key for the node')
-    parser.add_argument('-P', '--ask-private-key', action='store_true', help='Ask for private key')
     parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
@@ -397,9 +392,5 @@ if __name__ == '__main__':
     parser.add_argument('--client-port', default=9001, type=int, help='Node port')
 
     args = parser.parse_args()
-
-    if args.ask_private_key and args.private_key:
-        print("Options --private-key and --ask-private-key (-P) can't be combined. Choose one.")
-        sys.exit(1)
 
     configure(args)
