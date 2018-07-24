@@ -173,7 +173,7 @@ def read_nconf(options_filepath):
         if key == 'offi':
             port = value.trim()
         elif key == 'addr':
-            host = value.trime()
+            host = value.trim()
 
     if port and host:
         return host, port

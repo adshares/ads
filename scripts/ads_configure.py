@@ -2,6 +2,7 @@
 from __future__ import print_function
 import argparse
 import json
+import getpass
 import os
 import re
 import socket
@@ -278,12 +279,12 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
     if private_key:
         pub_key = get_public_key(private_key)
         node_ident_genesis = genesis_data.node_identifier_from_public_key(pub_key)
-        node_identifier = identifiers[0]  # Only one value
 
         if node_ident_genesis:
+            print("Found matching public key in genesis.")
             # Check if private key matches public key in the chosen identifier
-            if node_identifier and node_ident_genesis != node_identifier:
-                print("Invalid private key for node: {0}".format(node_identifier))
+            if identifiers and node_ident_genesis != identifiers[0]:
+                print("Invalid private key for node: {0}".format(identifiers[0]))
                 sys.exit(1)
 
             # Node id taken from matching public key
@@ -292,14 +293,19 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
 
             print("Configuring nodes: {0}".format(node_ident_genesis))
         else:
+            print("No matching public key found in genesis file.")
             # New node (not in genesis)
-            node = {'_nid': node_identifier, '_secret': private_key, 'accounts': []}
-            print("Configuring new node: {0}".format(node_identifier))
+            if not identifiers:
+                print("No node number provided to set up new node. Did you forget --node?")
+                sys.exit(1)
+
+            node = {'_nid': identifiers[0], '_secret': private_key, 'accounts': []}
+            print("Configuring new node: {0}".format(identifiers[0]))
 
         nodes_to_process = [node]
 
     else:
-        for k in genesis_data.nodes.keys():
+        for k in sorted(genesis_data.nodes.keys()):
             if identifiers and k not in identifiers:
                 continue
 
@@ -308,7 +314,7 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
             nodes_to_process.append(node)
 
         if nodes_to_process:
-            print("Configuring nodes: {0}".format(identifiers))
+            print("Configuring nodes: {0}".format([node['_nid'] for node in nodes_to_process]))
 
     return nodes_to_process
 
@@ -323,6 +329,10 @@ def configure(config):
     genesis_data = GenesisFile(config.genesis)
     if config.node:
         config.node = config.node.split(',')
+
+    if config.ask_private_key:
+        config.private_key = getpass.getpass("Node's private key:")
+
     nodes_to_process = prepare_node_configuration(config.node, genesis_data, config.private_key)
 
     if not nodes_to_process:
@@ -375,6 +385,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--node', default=None, help='Node number')
     parser.add_argument('--private-key', default=None, help='Private key for the node')
+    parser.add_argument('-P', '--ask-private-key', action='store_true', help='Ask for private key')
     parser.add_argument('--genesis',
                         default='https://raw.githubusercontent.com/adshares/ads-tests/master/qa/config/genesis/genesis-20x20-rf.json',
                         help='Genesis filepath or url')
@@ -385,5 +396,9 @@ if __name__ == '__main__':
     parser.add_argument('--client-port', default=6511, type=int, help='Node port')
 
     args = parser.parse_args()
+
+    if args.ask_private_key and args.private_key:
+        print("Options --private-key and --ask-private-key (-P) can't be combined. Choose one.")
+        sys.exit(1)
 
     configure(args)
