@@ -56,7 +56,7 @@ class AccountConfig(object):
         """
         self.id = identifier
 
-        self.port = 6511
+        self.port = 9001
         self.node_addr = loc_env['node_interface']
         self.address = None
         self.private_key = None
@@ -96,8 +96,8 @@ class NodeConfig(object):
         :param loc_env: Local node environment (ip, node identifier, etc.)
         """
         self.svid = 0
-        self.port = 6510
-        self.offi = 6511
+        self.port = 8001
+        self.offi = 9001
         self.addr = loc_env['node_interface']
 
         self.accounts = []
@@ -348,8 +348,8 @@ def configure(config):
         nconf = NodeConfig(local_env)
 
         nconf.svid = node['_nid']
-        nconf.port = config.port + port_offset      # default port: 6510
-        nconf.offi = config.client_port + port_offset  # default port: 6511
+        nconf.port = config.port + port_offset      # default port: 8001
+        nconf.offi = config.client_port + port_offset  # default port: 9001
         nconf.peers = copy(local_peers)
 
         # Add yourself as peer
@@ -374,7 +374,7 @@ def configure(config):
                 aconf.save()
                 break
 
-        port_offset += 2
+        port_offset += 1
 
 
 if __name__ == '__main__':
@@ -392,8 +392,8 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', default='{0}/.adsd'.format(expanduser('~')), help='Writeable working directory.')
     parser.add_argument('--interface', default=get_my_ip(), help='Interface this node is bound to.')
     parser.add_argument('--user-dirs', action='store_true', help='Create account directories.')
-    parser.add_argument('--port', default=6510, type=int, help='Node port')
-    parser.add_argument('--client-port', default=6511, type=int, help='Node port')
+    parser.add_argument('--port', default=8001, type=int, help='Node port')
+    parser.add_argument('--client-port', default=9001, type=int, help='Node port')
 
     args = parser.parse_args()
 
