@@ -164,6 +164,47 @@ def state(nconf_path):
         print("# Node is DOWN! (supposed pid: {0}".format(pid))
 
 
+def read_nconf(options_filepath):
+    with open(options_filepath, 'r') as f:
+        options = f.readlines()
+
+    for opt in options:
+        key, value = opt.split('=')
+        if key == 'offi':
+            port = value.trim()
+        elif key == 'addr':
+            host = value.trime()
+
+    if port and host:
+        return host, port
+
+
+def investigate_node(nconf):
+
+    options = read_nconf(nconf)
+    if not options:
+        print("Invalid options")
+        sys.exit(1)
+
+    try:
+        cmd = 'echo \'{"run":"get_me"}\''
+        cmd += ' | {0} --work-dir=. --secret=123 -P{1} -H{2}'.format(CLIENT_BIN_NAME, options[0], options[1])
+
+        with open(os.devnull, 'w') as devnull:
+            output = subprocess.check_output(cmd, stderr=devnull, shell=True)
+
+    except subprocess.CalledProcessError as e:
+        print(e)
+        return False
+
+    json_out = json.loads(output)
+
+    if 'current_block_time' and 'previous_block_time' in json_out.keys():
+        return True
+
+    return False
+
+
 def investigate(uconf_path, silent=False):
     """
     Check the node status by sending it a message from a local account.
@@ -308,13 +349,27 @@ def wait_action(data_dir, timeout=300):
             print("ADS start timeout")
             sys.exit(1)
 
-        for uconf in sorted(glob(data_dir + '/user*.00000000')):
-            if investigate(uconf, False):
-                started = True
-                break
-            else:
-                print("Waiting for adsd")
-                time.sleep(1)
+        user_dirs = glob(data_dir + '/user*.00000000')
+
+        if user_dirs:
+            for uconf in sorted(user_dirs):
+                if investigate(uconf, False):
+                    started = True
+                    break
+                else:
+                    print("Waiting for adsd")
+                    time.sleep(1)
+        else:
+            node_options = glob(data_dir + '/node*/options.cfg')
+            if not node_options:
+                node_options = [os.path.join(data_dir, 'options.cfg')]
+            for nconf in sorted(node_options):
+                if investigate_node(nconf):
+                    started = True
+                    break
+                else:
+                    print("Waiting for adsd")
+                    time.sleep(1)
 
     print("ADS started")
 
