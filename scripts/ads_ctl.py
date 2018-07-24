@@ -50,10 +50,8 @@ def start_node(nconf_path, genesis_time, init=False):
     if init:
         cmd += ['--init=true']
 
-    node_name = os.path.basename(nconf_path)
-
-    stdout = open(os.path.join(nconf_path, '{0}.log'.format(node_name)), 'w')
-    stderr = open(os.path.join(nconf_path, '{0}.error.log'.format(node_name)), 'w')
+    stdout = open(os.path.join(nconf_path, '{0}.log'.format(DAEMON_BIN_NAME)), 'w')
+    stderr = open(os.path.join(nconf_path, '{0}.error.log'.format(DAEMON_BIN_NAME)), 'w')
 
     proc = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
 
