@@ -171,8 +171,13 @@ class GenesisFile(object):
 
     def _genesis_dict(self):
         self.nodes = {}
-        for node in self.genesis['nodes']:
-            self.nodes[self.node_identifier(node)] = node
+        for index, node in enumerate(self.genesis['nodes']):
+
+            node_ident = self.node_identifier_from_accounts(node)
+            if not node_ident:
+                node_ident = '{0:04x}'.format(index)
+
+            self.nodes[node_ident] = node
 
     def node_count(self):
         """
@@ -192,7 +197,7 @@ class GenesisFile(object):
         node_config = self.nodes[node_number]
         return node_config['_secret'], node_config['public_key'], node_config['_sign']
 
-    def node_identifier(self, node):
+    def node_identifier_from_accounts(self, node):
         """
         Get node identifiers from the first account identifier associated with this node.
 
@@ -276,17 +281,15 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
 
         if node_ident_genesis:
             # Check if private key matches public key in the chosen identifier
-            if node_identifier and '{0:04x}'.format(node_ident_genesis) != node_identifier:
+            if node_identifier and node_ident_genesis != node_identifier:
                 print("Invalid private key for node: {0}".format(node_identifier))
                 sys.exit(1)
 
-            if not node_identifier:
-                node_identifier = '{0:04x}'.format(node_ident_genesis)
-
+            # Node id taken from matching public key
             node = genesis_data.nodes[node_ident_genesis]
-            node['_nid'] = node_identifier
+            node['_nid'] = node_ident_genesis
 
-            print("Configuring nodes: {0}".format(node_identifier))
+            print("Configuring nodes: {0}".format(node_ident_genesis))
         else:
             # New node (not in genesis)
             node = {'_nid': node_identifier, '_secret': private_key, 'accounts': []}
