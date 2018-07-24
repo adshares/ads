@@ -170,13 +170,14 @@ def read_nconf(options_filepath):
 
     for opt in options:
         key, value = opt.split('=')
-        if key == 'offi':
-            port = value.trim()
-        elif key == 'addr':
-            host = value.trim()
 
-    if port and host:
-        return host, port
+        if key == 'offi':
+            port = value.strip()
+        elif key == 'addr':
+            host = value.strip()
+
+        if port and host:
+            return host, port
 
 
 def investigate_node(nconf):
