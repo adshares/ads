@@ -2,6 +2,7 @@
 from __future__ import print_function
 import argparse
 import json
+import getpass
 import os
 import re
 import socket
@@ -278,12 +279,12 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
     if private_key:
         pub_key = get_public_key(private_key)
         node_ident_genesis = genesis_data.node_identifier_from_public_key(pub_key)
-        node_identifier = identifiers[0]  # Only one value
 
         if node_ident_genesis:
+            print("Found matching public key in genesis.")
             # Check if private key matches public key in the chosen identifier
-            if node_identifier and node_ident_genesis != node_identifier:
-                print("Invalid private key for node: {0}".format(node_identifier))
+            if identifiers and node_ident_genesis != identifiers[0]:
+                print("Invalid private key for node: {0}".format(identifiers[0]))
                 sys.exit(1)
 
             # Node id taken from matching public key
@@ -292,14 +293,19 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
 
             print("Configuring nodes: {0}".format(node_ident_genesis))
         else:
+            print("No matching public key found in genesis file.")
             # New node (not in genesis)
-            node = {'_nid': node_identifier, '_secret': private_key, 'accounts': []}
-            print("Configuring new node: {0}".format(node_identifier))
+            if not identifiers:
+                print("No node number provided to set up new node. Did you forget --node?")
+                sys.exit(1)
+
+            node = {'_nid': identifiers[0], '_secret': private_key, 'accounts': []}
+            print("Configuring new node: {0}".format(identifiers[0]))
 
         nodes_to_process = [node]
 
     else:
-        for k in genesis_data.nodes.keys():
+        for k in sorted(genesis_data.nodes.keys()):
             if identifiers and k not in identifiers:
                 continue
 
@@ -308,7 +314,7 @@ def prepare_node_configuration(identifiers, genesis_data, private_key=False):
             nodes_to_process.append(node)
 
         if nodes_to_process:
-            print("Configuring nodes: {0}".format(identifiers))
+            print("Configuring nodes: {0}".format([node['_nid'] for node in nodes_to_process]))
 
     return nodes_to_process
 
