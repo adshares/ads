@@ -34,7 +34,7 @@ before_install:
   - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-20x20-rf.json
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/.adsd
-  - export ADS_DEV=$HOME/adshares/dev
+  - export ADS_DEV=
   - export ADS_CONF=".$ADS_DEV/scripts/ads_configure.py --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
   - export ADS_START=".$ADS_DEV/scripts/ads_ctl.py --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
@@ -48,7 +48,7 @@ install:
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # DEV
-  - git clone https://github.com/adshares/devops.git $ADS_DEV
+#  - git clone https://github.com/adshares/devops.git $ADS_DEV
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
