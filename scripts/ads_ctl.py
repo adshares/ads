@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import os
-import subprocess
-from glob import glob
+
 import argparse
-import shutil
-import json
-import time
-import signal
-import sys
 import hashlib
-import psutil
+import json
+import os
+import shutil
+import signal
+import subprocess
+import sys
+import time
+from glob import glob
 from os.path import expanduser
 
+import psutil
 
 DAEMON_BIN_NAME = 'adsd'
 CLIENT_BIN_NAME = 'ads'
