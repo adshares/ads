@@ -159,8 +159,8 @@ void GetBroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
         ptree.put("block_time_hex", blockhex);
         ptree.put("block_time", m_header.path);
         ptree.put("broadcast_count", m_response.size());
-        ptree.put("log_file", (m_loadedFromLocal) ? "archive" : "new");
         if(m_response.size() > 0) {
+            ptree.put("log_file", (m_loadedFromLocal) ? "archive" : "new");
             boost::property_tree::ptree blockTree;
             for (auto &it : m_response) {
                 printBlg(it.first, it.second, blockTree);

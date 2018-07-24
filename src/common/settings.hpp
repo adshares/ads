@@ -223,7 +223,7 @@ class settings {
         if(max_length && version.length() > max_length) {
             return version.substr(version.length() - max_length);
         } else {
-          std::cerr << PROJECT_VERSION << "\n";
+            return version;
         }
     }
 
