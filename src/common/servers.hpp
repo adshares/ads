@@ -259,7 +259,7 @@ class servers { // also a block
                     if (num == 1) {
                         it->status |= SERVER_VIP;
                     }
-                    it->users = 1;
+
                     // create the first user
                     user_t u;
                     init_user(u, num, 0, stw, it->pk, now, num, 0);
@@ -267,6 +267,7 @@ class servers { // also a block
                     //update_nodehash(num);
                     memcpy(it->hash, u.csum, SHA256_DIGEST_LENGTH);
                     it->weight = u.weight;
+                    it->users = 1;
                     init_node_hash(*it);
                 } else {
                     bzero(it->hash, SHA256_DIGEST_LENGTH);
@@ -289,7 +290,8 @@ class servers { // also a block
         assert(num > 0);
         //vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
         vtot = 1;
-        finish();
+        //finish();
+        update_vipstatus();
         write_start();
         now = 0;
         put();
