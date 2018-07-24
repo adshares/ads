@@ -168,6 +168,9 @@ def read_nconf(options_filepath):
     with open(options_filepath, 'r') as f:
         options = f.readlines()
 
+    port = None
+    host = None
+
     for opt in options:
         key, value = opt.split('=')
 
@@ -177,7 +180,7 @@ def read_nconf(options_filepath):
             host = value.strip()
 
         if port and host:
-            return host, port
+            return port, host
 
 
 def investigate_node(nconf):
@@ -198,10 +201,12 @@ def investigate_node(nconf):
         print(e)
         return False
 
+    output = '[' + output.replace("}\n{", "},\n{") + ']'
     json_out = json.loads(output)
 
-    if 'current_block_time' and 'previous_block_time' in json_out.keys():
-        return True
+    for json_msg in json_out:
+        if 'current_block_time' and 'previous_block_time' in json_msg.keys():
+            return True
 
     return False
 
