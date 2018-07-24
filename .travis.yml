@@ -72,6 +72,7 @@ jobs:
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - echo '{"run":"get_me"}' | ads -w $DATA_DIR -P6511 -H127.0.0.1 -A0001-00000000-9B6F -sBB3425F914CA9F661CA6F3B908E07092B5AFB7F2FDAE2E94EDE12C83207CA743
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @transfer"
     - stage: test
       script:
