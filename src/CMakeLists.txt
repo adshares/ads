@@ -51,7 +51,11 @@ else()
 	project(${CMAKE_PROJECT_CONFIG} VERSION ${VERSION})
 endif()
 
-message("** PROJECT ${PROJECT_NAME} @ ${PROJECT_VERSION} : " ${CMAKE_BUILD_TYPE} " **")
+if(NOT VERSION)
+    set(VERSION "${GIT_BRANCH}@${GIT_COMMIT_HASH}")
+endif()
+
+message("** PROJECT ${PROJECT_NAME} ${VERSION} : " ${CMAKE_BUILD_TYPE} " **")
 
 if(NOT EXISTS ${CONFIG_FILE})
     message(FATAL_ERROR "Configuration file ${CONFIG_FILE} not exists")
