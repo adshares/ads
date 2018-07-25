@@ -13,10 +13,13 @@ import time
 from glob import glob
 from os.path import expanduser
 
-import psutil
-
 DAEMON_BIN_NAME = 'adsd'
 CLIENT_BIN_NAME = 'ads'
+
+
+def get_daemon_pid(data_dir):
+    pid = subprocess.check_output(['pgrep', '-f', '{0}.*--work-dir={1}'.format(DAEMON_BIN_NAME, data_dir)])
+    return pid
 
 
 def start_node(nconf_path, genesis_time, init=False):
@@ -57,11 +60,6 @@ def start_node(nconf_path, genesis_time, init=False):
 
     try:
         os.kill(proc.pid, 0)
-
-        pidfile = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
-        with open(pidfile, 'w') as f:
-            f.write(str(proc.pid))
-
         print("Process started: ", time.strftime("%Z - %Y/%m/%d, %H:%M:%S", time.localtime(time.time())))
     except OSError:
         print("Server not started.")
@@ -70,61 +68,22 @@ def start_node(nconf_path, genesis_time, init=False):
     print("ADS node {0} started.".format(nconf_path))
 
 
-def stop_node(nconf_path):
+def action_signal(data_dir, chosen_signal, name):
     """
     Stop the node by sending a SIGKILL to the process. Process ID is read from the pid file.
 
-    :param nconf_path: Path to directory holding the pid file.
+    :param data_dir: Path to directory holding the pid file.
     :return:
     """
-
-    pid_filepath = os.path.join(nconf_path, '{0}.pid'.format(DAEMON_BIN_NAME))
-    try:
-        with open(pid_filepath, 'r') as f:
-            pid = int(f.read())
-
+    pid = get_daemon_pid(data_dir)
+    if not pid:
+        print("Daemon not running.")
+    else:
         try:
-            os.kill(pid, signal.SIGKILL)
-            os.remove(pid_filepath)
-            print("ADS node {0} stopped.".format(nconf_path))
-
+            os.kill(pid, chosen_signal)
+            print("ADS node {0} {1} successful.".format(data_dir, name))
         except OSError:
-            print("ADS node {0} not killed for node config.".format(nconf_path))
-
-    except IOError:
-        print("Pid file not found")
-
-
-def stop_all():
-    """
-    Kill all process matching the daemon binary name.
-    From: https://stackoverflow.com/a/2241047
-
-    :return:
-    """
-
-    name = DAEMON_BIN_NAME
-
-    for p in psutil.process_iter():
-        name_, exe, cmdline = "", "", []
-        try:
-            name_ = p.name()
-            cmdline = p.cmdline()
-            exe = p.exe()
-        except (psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-        except psutil.NoSuchProcess:
-            continue
-        if name == name_ or (cmdline and './{0}'.format(name) in cmdline) or os.path.basename(exe) == name:
-            print("Found process {0}: ".format(p.pid))
-            print(name_, cmdline, exe)
-
-            try:
-                os.kill(p.pid, signal.SIGKILL)
-                print("Killed process {0}".format(p.pid))
-            except OSError:
-                print("Process {0} not killed".format(p.pid))
-                sys.exit(1)
+            print("ADS node {0} {1} failed.".format(data_dir, name))
 
 
 def state(nconf_path):
@@ -305,8 +264,11 @@ def stop_action(data_dir):
     """
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
-        stop_node(nconf)
-    stop_all()
+        action_signal(args.data_dir, signal.SIGTERM, 'stop')
+
+    for nconf in sorted(glob(data_dir + '/node*')):
+        print(nconf)
+        action_signal(args.data_dir, signal.SIGKILL, 'forced stop')
 
 
 def nodes_action(data_dir):
