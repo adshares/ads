@@ -1,0 +1,17 @@
+Source: ads
+Section: utils
+Priority: optional
+Maintainer: Maciej Pilarczyk <m.pilarczyk@outlook.com>
+Build-Depends: debhelper (>= 10), libboost-all-dev, libssl-dev, build-essential, make, cmake
+Standards-Version: 4.1.2
+Homepage: https://github.com/adshares/ads
+
+Package: ads
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}, openssl (>= 1.0)
+Description: Adshares Node Server
+ ADS (based on Enterprise Service Chain) (adsd) is a block chain based software
+ tool facilitating high volumes of simple transactions that, in most cases, send
+ tokens between accounts as in other crypto currencies. The name is derived
+ from the concept of the Enterprise Service Bus in which a crypto currency is
+ used as the protocol of communication.
