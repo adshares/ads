@@ -8,6 +8,7 @@ if(EXISTS "${CMAKE_ROOT}/Modules/CPack.cmake")
     		set(CPACK_SYSTEM_NAME "amd64")
     	endif ()
     endif ()
+    set(PROJECT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/..")
 
     # == Basic information ==
     set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
@@ -18,27 +19,60 @@ if(EXISTS "${CMAKE_ROOT}/Modules/CPack.cmake")
     set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
     set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_PACKAGE_DESCRIPTION "ADS Node Server")
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ADS Node Server
- Adshares Enterprise Service Chain (adsd) is a block chain based software tool
- facilitating high volumes of simple transactions that, in most cases, send
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Adshares Node Server
+ ADS (based on Enterprise Service Chain) (adsd) is a block chain based software
+ tool facilitating high volumes of simple transactions that, in most cases, send
  tokens between accounts as in other crypto currencies. The name is derived
  from the concept of the Enterprise Service Bus in which a crypto currency is
  used as the protocol of communication.")
     set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CPACK_SYSTEM_NAME}")
 
     # == Package config ==
-    SET(CPACK_SET_DESTDIR "on")
     set(CPACK_GENERATOR "DEB")
-    set(CPACK_INSTALLED_DIRECTORIES "${CMAKE_CURRENT_LIST_DIR}/../scripts;${CMAKE_INSTALL_PREFIX}/bin")
-    #set(CPACK_RESOURCE_FILE_LICENSE "../LICENSE")
-    set(CPACK_RESOURCE_FILE_README "../README.md")
     set(CPACK_STRIP_FILES 1)
+
+    # Create changelog
+    execute_process(
+      COMMAND
+        bash
+        "-c" "gzip -n -9 < ${PROJECT_DIR}/CHANGELOG.md  > ${CMAKE_BINARY_DIR}/changelog.gz"
+      WORKING_DIRECTORY ${PROJECT_DIR}
+      RESULT_VARIABLE _result
+    )
+
+    # Create copyright
+    execute_process(
+      COMMAND
+        bash
+        "-c" "echo 'Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Adshares ADS
+Source: https://github.com/adshares/ads
+
+Files: *
+Copyright: Copyright 2018 Adshares <tech@adshares.pl>' > ${CMAKE_BINARY_DIR}/copyright"
+      WORKING_DIRECTORY ${PROJECT_DIR}
+      RESULT_VARIABLE _result
+    )
+
+    # --- bin files ----
+    install(FILES
+        "${PROJECT_DIR}/scripts/ads_monitor"
+        DESTINATION "bin")
+
+    # --- dock files ---
+    install(FILES
+        "${PROJECT_DIR}/README.md"
+        "${CMAKE_BINARY_DIR}/changelog.gz"
+        "${CMAKE_BINARY_DIR}/copyright"
+        DESTINATION "share/doc/${CPACK_PACKAGE_NAME}")
+
 
     # == DEB package config ==
     SET(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
     set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "${CPACK_SYSTEM_NAME}")
     set(CPACK_DEBIAN_PACKAGE_SECTION "utils")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "openssl (>= 1.0)")
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS "on")
 
     #SET(CPACK_COMPONENTS_ALL Libraries ApplicationData)
 
