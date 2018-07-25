@@ -18,8 +18,11 @@ CLIENT_BIN_NAME = 'ads'
 
 
 def get_daemon_pid(data_dir):
-    pid = subprocess.check_output(['pgrep', '-f', '{0}.*--work-dir={1}'.format(DAEMON_BIN_NAME, data_dir)])
-    return int(pid)
+    try:
+        pid = subprocess.check_output(['pgrep', '-f', '{0}.*--work-dir={1}'.format(DAEMON_BIN_NAME, data_dir)])
+        return int(pid)
+    except subprocess.CalledProcessError:
+        return None
 
 
 def start_node(nconf_path, genesis_time, init=False):
