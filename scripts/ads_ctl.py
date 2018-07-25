@@ -267,11 +267,13 @@ def stop_action(data_dir):
     """
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
-        action_signal(args.data_dir, signal.SIGTERM, 'stop')
+        action_signal(nconf, signal.SIGTERM, 'stop')
+
+    time.sleep(1)
 
     for nconf in sorted(glob(data_dir + '/node*')):
         print(nconf)
-        action_signal(args.data_dir, signal.SIGKILL, 'forced stop')
+        action_signal(nconf, signal.SIGKILL, 'forced stop')
 
 
 def nodes_action(data_dir):
