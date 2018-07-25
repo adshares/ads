@@ -219,9 +219,9 @@ def action_signal(data_dir, chosen_signal, name):
     else:
         try:
             os.kill(pid, chosen_signal)
-            print("ADS node {0} {1} successful.".format(data_dir, name))
+            print("ADS node {0} {1} was successful.".format(data_dir, name))
         except OSError:
-            print("ADS node {0} {1} failed.".format(data_dir, name))
+            print("ADS node {0} {1} has failed.".format(data_dir, name))
 
 
 def action_configure(args):
