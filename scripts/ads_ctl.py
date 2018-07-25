@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 from glob import glob
-from os.path import expanduser
 
 DAEMON_BIN_NAME = 'adsd'
 CLIENT_BIN_NAME = 'ads'
@@ -348,10 +347,13 @@ def wait_action(data_dir, timeout=300):
 
 if __name__ == '__main__':
 
+    # Support for sudo
+    default_datapath = os.path.join(os.path.expanduser("~" + os.environ["USER"]), ".adsd")
+
     parser = argparse.ArgumentParser(description='Start ADS nodes.')
     parser.add_argument('action', choices=['start', 'stop', 'clean', 'nodes', 'network', 'wait'])
     parser.add_argument('-i', '--init', action='store_true', help='Initialize the first network node.')
-    parser.add_argument('--data-dir', default=expanduser('~/.adsd'), help='Writeable working directory.')
+    parser.add_argument('--data-dir', default=default_datapath, help='Writeable working directory.')
     parser.add_argument('-w', '--wait', action='store_true', help='Wait and make sure the daemon is working.')
     parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
 
