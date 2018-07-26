@@ -35,8 +35,8 @@ before_install:
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/.adsd
   - export ADS_DEV=$HOME/adshares/ads-dev-tools
-  - export ADS_CONF=".$ADS_DEV/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
-  - export ADS_START=".$ADS_DEV/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
+  - export ADS_CONF="$ADS_DEV/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
+  - export ADS_START="$ADS_DEV/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
@@ -47,7 +47,7 @@ install:
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # DEV
   - git clone https://github.com/adshares/ads-dev-tools.git $ADS_DEV
-  - ./home/travis/adshares/ads-dev-tools/scripts/ads_compile
+  - /home/travis/adshares/ads-dev-tools/scripts/ads_compile
   - ls -al $ADS_DEV
   - ls -al $ADS_DEV/scripts
   # COMMON
@@ -64,7 +64,7 @@ jobs:
     - stage: compile
       script:
         - mkdir build
-        - .$ADS_DEV/scripts/ads_compile -d -o build src
+        - $ADS_DEV/scripts/ads_compile -d -o build src
         - mkdir -p $BIN_DIR
         - cp build/esc/ads $BIN_DIR
         - cp build/escd/adsd $BIN_DIR
