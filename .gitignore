@@ -16,3 +16,4 @@ _test_remote_network.py
 .cproject
 .settings
 .DS_Store
+src/version
