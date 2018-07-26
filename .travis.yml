@@ -47,9 +47,6 @@ install:
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # DEV
   - git clone https://github.com/adshares/ads-dev-tools.git $ADS_DEV
-  - /home/travis/adshares/ads-dev-tools/scripts/ads_compile
-  - ls -al $ADS_DEV
-  - ls -al $ADS_DEV/scripts
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
@@ -103,7 +100,7 @@ jobs:
       script:
         # compile
         - mkdir build
-        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
+        - build-wrapper-linux-x86-64 --out-dir bw_output $ADS_DEV/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
         - export PATH="build/esc:build/escd:$PATH"
         # tests
         #- ./scripts/ads_configure --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
