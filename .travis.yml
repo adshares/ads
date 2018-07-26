@@ -33,19 +33,20 @@ before_install:
   - export TEST_DIR=$HOME/adshares/ads-tests
   - export GENESIS_FILE=$TEST_DIR/qa/config/genesis/genesis-20x20-rf.json
   - export BIN_DIR=$HOME/ads/bin
-  - export DATA_DIR=$HOME/ads_data
-  - export ADS_CONF="./scripts/ads_configure.py --data-dir=$DATA_DIR --interface=127.0.0.1 $GENESIS_FILE"
-  - export ADS_START="./scripts/ads_ctl.py --data-dir=$DATA_DIR --init --wait --debug start"
+  - export DATA_DIR=$HOME/.adsd
+  - export ADS_DEV=$HOME/adshares/ads-dev-tools
+  - export ADS_CONF="$ADS_DEV/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
+  - export ADS_START="$ADS_DEV/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
   # C++14
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
-  # PIP
-  - sudo pip install psutil
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
+  # DEV
+  - git clone https://github.com/adshares/ads-dev-tools.git $ADS_DEV
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
@@ -60,7 +61,7 @@ jobs:
     - stage: compile
       script:
         - mkdir build
-        - ./scripts/ads_compile.sh -d -o build src
+        - $ADS_DEV/scripts/ads_compile -d -o build src
         - mkdir -p $BIN_DIR
         - cp build/esc/ads $BIN_DIR
         - cp build/escd/adsd $BIN_DIR
@@ -99,10 +100,10 @@ jobs:
       script:
         # compile
         - mkdir build
-        - build-wrapper-linux-x86-64 --out-dir bw_output ./scripts/ads_compile.sh -d -o build -c "-DCODE_COVERAGE=1" src
+        - build-wrapper-linux-x86-64 --out-dir bw_output $ADS_DEV/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
         - export PATH="build/esc:build/escd:$PATH"
         # tests
-        #- ./scripts/ads_configure.py --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
+        #- ./scripts/ads_configure --data_dir=$DATA_DIR --client=$TRAVIS_BUILD_DIR/build/esc/esc --daemon=$TRAVIS_BUILD_DIR/build/escd/escd --interface=127.0.0.1 $GENESIS_FILE
         #- $ADS_START && cd $TEST_DIR
         #- mvn clean test $TESTS_ARGS
         #Sonar Qube
