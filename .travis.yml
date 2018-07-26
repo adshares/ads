@@ -47,6 +47,8 @@ install:
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # DEV
   - git clone https://github.com/adshares/ads-dev-tools.git $ADS_DEV
+  - ls -al $ADS_DEV
+  - ls -al $ADS_DEV/scripts
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
