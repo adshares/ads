@@ -19,12 +19,12 @@ void CreateAccountHandler::onExecute() {
 
     uint32_t newUser = 0;
     if (m_command->getDestBankId() == m_offi.svid) {
-        newUser = m_offi.add_user(m_command->getBankId(), m_usera.pkey, m_command->getTime(), m_command->getUserId());
+        newUser = m_offi.add_user(m_command->getBankId(), m_command->getPublicKey(), m_command->getTime(), m_command->getUserId());
         if(!newUser) {
             errorCode = ErrorCodes::Code::eCreateAccountFail;
             DLOG("ERROR: failed to create account\n");
         } else {
-            m_command->setNewUser(newUser, m_usera.pkey);
+            m_command->setNewUser(newUser, m_command->getPublicKey());
         }
     }
 
@@ -39,7 +39,7 @@ void CreateAccountHandler::onExecute() {
             log_t tlog;
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
-            tlog.node   = m_command->getBankId();
+            tlog.node   = m_command->getDestBankId();
             tlog.user   = newUser;
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;
@@ -75,6 +75,7 @@ void CreateAccountHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
             response.emplace_back(boost::asio::buffer(&msid, sizeof(msid)));
             response.emplace_back(boost::asio::buffer(&mpos, sizeof(mpos)));
+            response.emplace_back(boost::asio::buffer(&newUser, sizeof(newUser)));
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {

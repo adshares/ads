@@ -3111,11 +3111,11 @@ NEXTUSER:
                     usr_t usr;
                     usr.auser=utxs.auser;
                     usr.bbank=utxs.bbank;
-                    memcpy(usr.pkey,usera->pkey,32);
+                    memcpy(usr.pkey,utxs.npkey(p),32);
                     uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                     txs_usr[ppb]=usr;
                     if(utxs.bbank==opts_.svid) { //respond to account creation request
-                        ofip_add_remote_user(utxs.abank,utxs.auser,usera->pkey);
+                        ofip_add_remote_user(utxs.abank,utxs.auser,usr.pkey);
                     }
                 }
 
