@@ -25,29 +25,15 @@ endif()
 
 if(NOT SRC_VERSION)
     execute_process(
-      COMMAND git rev-parse --abbrev-ref HEAD
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-      OUTPUT_VARIABLE GIT_BRANCH
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    # Get the latest abbreviated commit hash of the working branch
-    execute_process(
-      COMMAND git log -1 --format=%h
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-      OUTPUT_VARIABLE GIT_COMMIT_HASH
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-
-    execute_process(
-      COMMAND git describe --tag --exact-match ${GIT_COMMIT_HASH}
+      COMMAND git describe --tags
       WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
       OUTPUT_VARIABLE GIT_PROJECT_VERSION
       OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-
-    string(REGEX REPLACE "^v([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" SRC_VERSION "${GIT_PROJECT_VERSION}")
+    string(REGEX REPLACE "^v(.*)$" "\\1" SRC_VERSION "${GIT_PROJECT_VERSION}")
 endif()
+
+string(REGEX REPLACE "^([0-9]+\\.[0-9]+\\.[0-9]+).*" "\\1" PROJECT_VERSION "${SRC_VERSION}")
 
 if(NOT CMAKE_PROJECT_CONFIG)
     set(CMAKE_PROJECT_CONFIG "ads")
@@ -55,16 +41,12 @@ endif(NOT CMAKE_PROJECT_CONFIG)
 
 set(CONFIG_FILE "${CMAKE_CURRENT_SOURCE_DIR}/default_${CMAKE_PROJECT_CONFIG}.h.in")
 if(CMAKE_PROJECT_NAME)
-	project(${CMAKE_PROJECT_NAME} VERSION ${SRC_VERSION})
+	project(${CMAKE_PROJECT_NAME} VERSION ${PROJECT_VERSION})
 else()
-	project(${CMAKE_PROJECT_CONFIG} VERSION ${SRC_VERSION})
+	project(${CMAKE_PROJECT_CONFIG} VERSION ${PROJECT_VERSION})
 endif()
 
-if(NOT PROJECT_VERSION)
-    set(PROJECT_VERSION "${GIT_BRANCH}@${GIT_COMMIT_HASH}")
-endif()
-
-message("** PROJECT ${PROJECT_NAME} ${PROJECT_VERSION} : " ${CMAKE_BUILD_TYPE} " **")
+message("** PROJECT ${PROJECT_NAME} ${SRC_VERSION} : " ${CMAKE_BUILD_TYPE} " **")
 
 if(NOT EXISTS ${CONFIG_FILE})
     message(FATAL_ERROR "Configuration file ${CONFIG_FILE} not exists")
