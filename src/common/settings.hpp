@@ -100,32 +100,35 @@ class settings {
         str_acnt[4]='\0';
         str_acnt[13]='\0';
         errno=0;
-        to_bank=(uint16_t)strtol(str_acnt.c_str(),&endptr,16);
-        if(errno || endptr==str_acnt.c_str()) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",str_acnt.c_str());
+
+        char acnt[19];
+        memcpy(acnt, str_acnt.c_str(), sizeof(acnt));
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        to_user=(uint32_t)strtoll(str_acnt.c_str()+5,&endptr,16);
-        if(errno || endptr==str_acnt.c_str()+5) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",str_acnt.c_str());
+        to_user=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+13) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",acnt+5);
             perror("ERROR: strtol");
             return(false);
         }
-        if(!strncmp("XXXX",str_acnt.c_str()+14,4)) {
+        if(!strncmp("XXXX",acnt+14,4)) {
             return(true);
         }
         errno=0;
-        to_csum=(uint16_t)strtol(str_acnt.c_str()+14,&endptr,16);
-        if(errno || endptr==str_acnt.c_str()+14) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",str_acnt.c_str());
+        to_csum=(uint16_t)strtol(acnt+14,&endptr,16);
+        if(errno || endptr!=acnt+18) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",acnt+14);
             perror("ERROR: strtol");
             return(false);
         }
         to_crc16=crc_acnt(to_bank,to_user);
         if(to_csum!=to_crc16) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",str_acnt.c_str(),to_crc16);
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",acnt,to_crc16);
             return(false);
         }
         return(true);
@@ -143,24 +146,28 @@ class settings {
         }
         str_txid[4]='\0';
         str_txid[13]='\0';
+
+        char acnt[19];
+        memcpy(acnt, str_txid.c_str(), sizeof(acnt));
+
         errno=0;
-        to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
-        if(errno || endptr==str_txid.c_str()) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",str_txid.c_str());
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
-        if(errno || endptr==str_txid.c_str()+5) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",str_txid.c_str());
+        node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+5+8) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",acnt+5);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        node_mpos=(uint16_t)strtol(str_txid.c_str()+14,&endptr,16);
-        if(errno || endptr==str_txid.c_str()+14) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",str_txid.c_str());
+        node_mpos=(uint16_t)strtol(acnt+14,&endptr,16);
+        if(errno || endptr!=acnt+14+4) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",acnt+14);
             perror("ERROR: strtol");
             return(false);
         }
@@ -169,7 +176,7 @@ class settings {
 
     bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
         char *endptr;
-        if(str_txid.length()!=12) {
+        if(str_txid.length()!=13) {
             fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
             return(false);
         }
@@ -178,18 +185,19 @@ class settings {
             return(false);
         }
         str_txid[4]='\0';
-
+        char acnt[14];
+        memcpy(acnt, str_txid.c_str(), sizeof(acnt));
         errno=0;
-        to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
-        if(errno || endptr==str_txid.c_str()) {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",str_txid.c_str());
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
-        if(errno || endptr==str_txid.c_str()+5) {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",str_txid.c_str());
+        node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+5+8) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",acnt+5);
             perror("ERROR: strtol");
             return(false);
         }
@@ -198,12 +206,24 @@ class settings {
     }
 
     static void print_version() {
-        std::string version = PROJECT_VERSION;
-        std::cerr << "Version ";
-        if(version.empty()) {
-          std::cerr << GIT_BRANCH << " @ " << GIT_COMMIT_HASH << "\n";
+        std::cerr << "Version " << get_version() << std::endl;
+    }
+
+    static std::string get_version(uint max_length=0) {
+        std::stringstream ss;
+        if(strlen(PROJECT_VERSION) == 0) {
+          ss << GIT_BRANCH << "@" << GIT_COMMIT_HASH;
         } else {
-          std::cerr << PROJECT_VERSION << "\n";
+          ss << PROJECT_VERSION;
+        }
+#ifdef DEBUG
+        ss << "x";
+#endif
+        std::string version = ss.str();
+        if(max_length && version.length() > max_length) {
+            return version.substr(version.length() - max_length);
+        } else {
+            return version;
         }
     }
 

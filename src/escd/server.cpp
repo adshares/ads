@@ -157,10 +157,16 @@ void server::start() {
             msid_=0;
             ELOG("START from a fresh database\n");
             last_srvs_.init(now-BLOCKSEC);
+            bank_fee.resize(last_srvs_.nodes.size());
             srvs_=last_srvs_;
             memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
+            message_map empty;
+            srvs_.msg=0;
+            srvs_.msgl_put(empty,NULL);
+            finish_block();
+            write_header();
+            srvs_.now -= BLOCKSEC;
             period_start=srvs_.nextblock(); //changes now!
-            bank_fee.resize(last_srvs_.nodes.size());
         }
         if(!do_fast) { //always sync on do_fast
             do_sync=0;

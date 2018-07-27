@@ -124,6 +124,8 @@ bool GetBroadcastMsg::send(INetworkClient& netClient) {
         return false;
     }
 
+    ELOG("size %ud %08X\n", m_header.fileSize, m_data.info.block);
+
     unsigned char *readBuffer = new unsigned char[m_header.fileSize];
     if (!netClient.readData(readBuffer, m_header.fileSize)) {
         ELOG("GetBroadcastMsg reading error\n");
@@ -151,18 +153,21 @@ void GetBroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
     if (m_responseError) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     } else {
-        boost::property_tree::ptree blockTree;
-        for (auto &it : m_response) {
-            printBlg(it.first, it.second, blockTree);
-        }
-        ptree.put("log_file", (m_loadedFromLocal) ? "archive" : "new");
-
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X", getBlockTime());
+        sprintf(blockhex,"%08X", m_header.path);
         ptree.put("block_time_hex", blockhex);
-        ptree.put("block_time", getBlockTime());
-        ptree.add_child("broadcast", blockTree);
+        ptree.put("block_time", m_header.path);
+        ptree.put("broadcast_count", m_response.size());
+        if(m_response.size() > 0) {
+            ptree.put("log_file", (m_loadedFromLocal) ? "archive" : "new");
+            boost::property_tree::ptree blockTree;
+            for (auto &it : m_response) {
+                printBlg(it.first, it.second, blockTree);
+            }
+
+            ptree.add_child("broadcast", blockTree);
+        }
     }
 }
 
@@ -221,7 +226,7 @@ void GetBroadcastMsg::printBlg(GetBroadcastResponse& block, std::string& message
 
     //tx_id
     char tx_id[64];
-    sprintf(tx_id,"%04X%08X%04X", block.info.src_node, block.data.msid, block.data.mpos);
+    sprintf(tx_id,"%04X:%08X:%04X", block.info.src_node, block.data.msid, block.data.mpos);
     blogentry.put("node_msid", block.data.msid);
     blogentry.put("node_mpos", block.data.mpos);
     blogentry.put("id",tx_id);
@@ -272,7 +277,7 @@ bool GetBroadcastMsg::loadFromLocalPath() {
 }
 
 void GetBroadcastMsg::saveCopy(unsigned char *dataBuffer, int size) {
-    uint32_t blockTime = this->getBlockTime();
+    uint32_t blockTime = m_header.path;
     if (!blockTime || m_response.empty() || size <= 0) {
         return;
     }

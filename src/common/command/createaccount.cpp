@@ -28,10 +28,6 @@ unsigned char* CreateAccount::getResponse() {
 
 void CreateAccount::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
-    char *data_ptr = data + getDataSize();
-    setAdditionalData(data_ptr);
-    data_ptr += getAdditionalDataSize();
-    std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
 }
 
 void CreateAccount::setResponse(char* response) {

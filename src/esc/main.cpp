@@ -26,6 +26,7 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
         respHandler.onExecute(std::move(command));
     } else {
         ELOG("ERROR reading global info talk\n");
+        netClient.disConnect();
         return command->m_responseError ? command->m_responseError : ErrorCodes::Code::eConnectServerError;
     }
 
