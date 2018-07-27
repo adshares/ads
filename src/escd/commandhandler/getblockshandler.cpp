@@ -156,12 +156,14 @@ void GetBlocksHandler::readBlockHeaders(
             m_newviphash=true;
             to=block.getData().ttime;
         }
-        header = block.getHeader();
-        int vipTot=vipSize(block.getData().vipHash);
+
+        // block is validated against previous block viphash!
+        int vipTot=vipSize(header.viphash);
         if(block.getData().voteYes<=vipTot/2) {
             DLOG("INFO, to few (%d < %d/2) votes for block %08X", block.getData().voteYes, vipTot, block.getData().ttime);
             break;
         }
+        header = block.getHeader();
         DLOG("INFO, adding block %08X\n", block.getData().ttime);
         m_serversHeaders.push_back(header);
         block.getData().ttime += BLOCKSEC;
