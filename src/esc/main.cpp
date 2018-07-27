@@ -30,12 +30,14 @@ ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& r
         netClient.sendData(reinterpret_cast<unsigned char*>(&version), sizeof(version));
 
         if(!netClient.readData(&node_version, sizeof(node_version))) {
+            netClient.disConnect();
             return ErrorCodes::Code::eConnectServerError;
         }
 
         uint8_t version_error;
         if(!netClient.readData(&version_error, 1) || version_error) {
             ELOG("Version mismatch client(%d) != node(%d)\n", version, node_version);
+            netClient.disConnect();
             return ErrorCodes::Code::eProtocolMismatch;
         }
     }

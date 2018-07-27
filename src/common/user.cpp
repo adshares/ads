@@ -333,7 +333,13 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(!to_bank) {
             to_bank=sts.bank;
         }
+        if(json_pkey && ed25519_sign_open((uint8_t*)nullptr, 0, to_pkey , to_confirm) == -1) {
+            return nullptr;
+        }
         command = std::make_unique<CreateAccount>(sts.bank, sts.user, sts.msid, to_bank, now);
+
+        CreateAccount* keycommand = dynamic_cast<CreateAccount*>(command.get());
+        keycommand->setPublicKey(json_pkey ? to_pkey : sts.pk);
     }
     else if(!run.compare(txsname[TXSTYPE_BNK])) {
         command = std::make_unique<CreateNode>(sts.bank, sts.user, sts.msid, now);
