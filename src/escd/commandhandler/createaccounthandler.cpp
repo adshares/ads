@@ -39,7 +39,7 @@ void CreateAccountHandler::onExecute() {
             log_t tlog;
             tlog.time   = time(NULL);
             tlog.type   = m_command->getType();
-            tlog.node   = m_command->getBankId();
+            tlog.node   = m_command->getDestBankId();
             tlog.user   = newUser;
             tlog.umid   = m_command->getUserMessageId();
             tlog.nmid   = msid;

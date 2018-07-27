@@ -371,8 +371,11 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         }
         if(ulog.node > 0) {
             logentry.put("node",ulog.node);
-            logentry.put("account",ulog.user);
-            logentry.put("address",acnt);
+            // create_account on remote node sets node, but created address is unknown
+            if(txst != TXSTYPE_USR || ulog.node == bank) {
+                logentry.put("account",ulog.user);
+                logentry.put("address",acnt);
+            }
         }
         if(!ulog.nmid) {
             char blockhex[9];
