@@ -66,8 +66,6 @@ void CreateAccountHandler::onExecute() {
         }
     }
 
-    m_usera.user = newUser;
-
     try {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));

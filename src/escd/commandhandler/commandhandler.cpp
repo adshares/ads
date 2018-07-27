@@ -97,6 +97,8 @@ CommandHandler::CommitResult CommandHandler::commitChanges(IBlockCommand& comman
     m_usera.msid++;
     m_usera.time = command.getTime();
     m_usera.lpath = lpath;
+    m_usera.node = 0;
+    m_usera.user = 0;
 
     Helper::create256signhash(command.getSignature(), command.getSignatureSize(), m_usera.hash, m_usera.hash);
 
