@@ -185,13 +185,13 @@ void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
         Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
         Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
         // only for account created in the same node
-        if (m_response.usera.user) {
+        if (m_response.new_user) {
             char nAccountAddress[19]="";
-            uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.usera.user);
-            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.usera.user, suffix);
+            uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.new_user);
+            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.new_user, suffix);
             ptree.put("new_account.address", nAccountAddress);
             ptree.put("new_account.node", this->getBankId());
-            ptree.put("new_account.id", m_response.usera.user);
+            ptree.put("new_account.id", m_response.new_user);
         }
     } else {
         if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {

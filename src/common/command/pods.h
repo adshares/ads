@@ -17,6 +17,14 @@ struct commandresponse {
     uint32_t    mpos;
 } __attribute__((packed));
 
+/** \brief Struct data for all command which are changed blockchain data */
+struct createaccountresponse {
+    user_t      usera;
+    uint32_t    msid;
+    uint32_t    mpos;
+    uint32_t    new_user;
+} __attribute__((packed));
+
 struct tInfo {
     int64_t weight;
     int64_t deduct;

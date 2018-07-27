@@ -116,7 +116,7 @@ public:
 private:
 
     CreateAccountData   m_data;
-    commandresponse     m_response;
+    createaccountresponse     m_response;
     NewAccountData      m_newAccount;
 };
 

@@ -75,6 +75,7 @@ void CreateAccountHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&m_usera, sizeof(m_usera)));
             response.emplace_back(boost::asio::buffer(&msid, sizeof(msid)));
             response.emplace_back(boost::asio::buffer(&mpos, sizeof(mpos)));
+            response.emplace_back(boost::asio::buffer(&newUser, sizeof(newUser)));
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
