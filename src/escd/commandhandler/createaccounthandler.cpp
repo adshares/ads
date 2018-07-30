@@ -78,7 +78,7 @@ void CreateAccountHandler::onExecute() {
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
 }
 

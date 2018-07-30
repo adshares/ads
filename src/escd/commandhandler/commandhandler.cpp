@@ -83,9 +83,9 @@ void CommandHandler::validateModifyingCommand(IBlockCommand& command) {
         throw ErrorCodes::Code::eFeeBelowZero;
     }
 
-    if(command.getDeduct()+command.getFee()+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
+    if(command.getDeduct()+command.getFee()+(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             command.getDeduct(), command.getFee(), (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
+             command.getDeduct(), command.getFee(), (uint64_t)(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         throw ErrorCodes::Code::eLowBalance;
     }
 }
