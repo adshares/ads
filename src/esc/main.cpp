@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
         }
     } catch (std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
-        Helper::printErrorJson("Unknown error eccoured", sts.nice);
+        Helper::printErrorJson("Unknown error occured", sts.nice);
     }
 
     netClient.disConnect();

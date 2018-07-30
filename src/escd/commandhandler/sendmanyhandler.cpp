@@ -25,6 +25,10 @@ void SendManyHandler::onExecute() {
             errorCode = ErrorCodes::Code::eUserBadTarget;
             break;
         }
+        if(it.amount <= 0) {
+            errorCode = ErrorCodes::Code::eAmountNotPositive;
+            break;
+        }
     }
 
     uint32_t msid, mpos;
