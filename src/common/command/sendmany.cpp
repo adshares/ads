@@ -240,7 +240,7 @@ void SendMany::checkForDuplicates() {
         }
         if (it.amount <= 0) {
             ELOG("ERROR: only positive transactions allowed in MPT\n");
-            throw ErrorCodes::Code::eAmountZero;
+            throw ErrorCodes::Code::eAmountNotPositive;
         }
     }
 }
