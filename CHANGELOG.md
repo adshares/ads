@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Node stops after incorrect `send_many` request  - #134
 - Fee checking
+- Internal transactions numbers
 
 ## [0.0.4] - 2018-07-27
 ### Changed

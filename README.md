@@ -117,7 +117,7 @@ This work is licensed under the Creative Commons Attribution-NoDerivatives 4.0
 
 ## More info
 
-- [PHP ADS Client](https://github.com/adshares/php-ads-client)
+- [PHP ADS Client](https://github.com/adshares/ads-cphp-lient)
 - [ADS Tests](https://github.com/adshares/ads-tests)
 - [Releases PPA](https://launchpad.net/~adshares/+archive/ubuntu/releases)
 - [Snapshots PPA](https://launchpad.net/~adshares/+archive/ubuntu/snapshots)
