@@ -4849,13 +4849,15 @@ NEXTBANK:
         }
     }
 
-    void update_connection_info(std::string& message)
+    bool update_connection_info(std::string& message)
     {
       // send connection info if node address changed and periodically at least once per dividend period (nodes inactive for dividend period are removed from vip list)
       if(opts_.svid && msid_ == last_srvs_.nodes[opts_.svid].msid && (srvs_.nodes[opts_.svid].ipv4 != opts_.ipv4 || srvs_.nodes[opts_.svid].port != (opts_.port&0xFFFF) || srvs_.nodes[opts_.svid].mtim < srvs_.now - BLOCKDIV*BLOCKSEC/2)) {
         usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,settings::get_version(16).c_str());
         message.append((char*)txs.data,txs.size);
+        return true;
       }
+      return false;
     }
 
     bool break_silence(uint32_t now,std::string& message,uint32_t& tnum) { // will be obsolete if we start tolerating empty blocks
