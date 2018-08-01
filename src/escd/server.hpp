@@ -4200,14 +4200,51 @@ NEXTBANK:
         assert((char*)&u.rpath<(char*)&u.csum);
         std::map<uint64_t,log_t> log;
 
+#ifdef SHARED_PROFIT
+        std::vector<uint16_t> sharing_nodes;
+        std::vector<uint16_t> svid_rank;
+        for(uint16_t i=1; i<max_svid; i++) {
+            svid_rank.push_back(i);
+        }
+        std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
+            return(this->bank_fee[i]>this->srvs_.bank_fee[j]);
+        });
+        if(svid_rank.size() > SHARED_PROFIT_NODES) {
+            svid_rank.resize(SHARED_PROFIT_NODES);
+        }
+
+        int64_t bank_fee_share = 0;
+        for(auto& i : svid_rank) {
+            bank_fee_share += bank_fee[i];
+            if(srvs_.nodes[i].status & SERVER_DBL ) {
+                continue;
+            }
+            if(srvs_.nodes[i].mtim > 0 && srvs_.nodes[i].mtim < srvs_.now - BLOCKDIV*BLOCKSEC) {
+                continue;
+            }
+            sharing_nodes.push_back(i);
+        }
+
+        if(bank_fee_share < 0) {
+            bank_fee_share = 0;
+        }
+        bank_fee_share = SHARED_PROFIT(bank_fee_share / sharing_nodes.size());
+#endif
+
         for(uint16_t svid=1; svid<max_svid; svid++) {
             int fd=open_bank(svid);
-            //char filename[64];
-            //sprintf(filename,"usr/%04X.dat",svid);
-            //int fd=open(filename,O_RDWR,0644);
-            //if(fd<0){
-            //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
-            //  exit(-1);}
+
+            int64_t net_fee_share = 0;
+#ifdef SHARED_PROFIT
+            if(std::find(svid_rank.begin(), svid_rank.end(), svid) != svid_rank.end()) {
+                net_fee_share = -SHARED_PROFIT(bank_fee[svid]);
+                if(std::find(sharing_nodes.begin(), sharing_nodes.end(), svid) != sharing_nodes.end()) {
+                    net_fee_share += bank_fee_share;
+                }
+                bank_fee[svid] += net_fee_share;
+            }
+#endif
+
             read(fd,&u,sizeof(user_t));
             std::map<uint32_t,user_t> undo;
             undo.emplace(0,u);
@@ -4223,6 +4260,8 @@ NEXTBANK:
                     mydiv_fee+=BANK_PROFIT(fee);
                 }
             }
+
+
             int64_t buser_fee=BANK_USER_FEE(srvs_.nodes[svid].users);
             int64_t profit=bank_fee[svid]-buser_fee;
             DLOG("PROFIT %04X %016lX (%lX+%lX-%lX)\n",svid,profit,profit-BANK_PROFIT(fee)-buser_fee,BANK_PROFIT(fee),buser_fee);
@@ -4251,8 +4290,8 @@ NEXTBANK:
                 alog.time=time(NULL);
                 alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
                 alog.node=svid;
-                alog.user=0;
-                alog.umid=0;
+                alog.user=(net_fee_share >> 32) & 0xFFFFFFFF;
+                alog.umid=(net_fee_share & 0xFFFFFFFF);
                 alog.nmid=0;
                 alog.mpos=srvs_.now;
                 alog.weight=bfee;

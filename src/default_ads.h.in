@@ -92,6 +92,9 @@
 
 #define BANK_MAX          (0xffff)  // Max number of banks. svid must be lower
 
+#define SHARED_PROFIT(x)        ((x)/2)     /* 50% of bank profits are divided equally between nodes with highest profit to reduce inequality */
+#define SHARED_PROFIT_NODES     100         /* Limit profit shareing to the first N nodes */
+
 #define MESSAGE_TOO_LONG 0x800000 /* 8MB */
 #define MESSAGE_LEN_OK   0x10000
 #define MESSAGE_TNUM_OK  0x1000

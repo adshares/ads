@@ -301,6 +301,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     int64_t usr;
                     int64_t get;
                     int64_t put;
+                    int64_t shared = ((uint64_t)ulog.user << 32) | ulog.umid;
                     memcpy(&div,ulog.info+ 0,8);
                     memcpy(&usr,ulog.info+ 8,8);
                     memcpy(&get,ulog.info+16,8);
@@ -309,7 +310,8 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     logentry.put("profit_div",print_amount(div));
                     logentry.put("profit_usr",print_amount(usr));
                     logentry.put("profit_get",print_amount(get));
-                    logentry.put("profit",print_amount(div+usr+get+put));
+                    logentry.put("profit_shared",print_amount(shared));
+                    logentry.put("profit",print_amount(div+usr+get+put+shared));
                     logentry.put("fee",print_amount(ulog.weight));
                 }
                 logtree.push_back(std::make_pair("",logentry));
