@@ -4207,7 +4207,7 @@ NEXTBANK:
             svid_rank.push_back(i);
         }
         std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
-            return(this->bank_fee[i]>this->srvs_.bank_fee[j]);
+            return(this->bank_fee[i]>this->bank_fee[j]);
         });
         if(svid_rank.size() > SHARED_PROFIT_NODES) {
             svid_rank.resize(SHARED_PROFIT_NODES);
