@@ -157,6 +157,6 @@ void SetAccountKey::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::MSGID, m_data.amsid);
     ptree.put(TAG::TIME, m_data.ttime);
     ptree.put(TAG::PKEY, ed25519_key2text(m_data.pubkey, sizeof(m_data.pubkey)));
-    ptree.put(TAG::PKEY_SIGN, ed25519_key2text(m_data.pubkeysign, sizeof(m_data.pubkeysign)));
+    // pubkeysign is not available on network
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }

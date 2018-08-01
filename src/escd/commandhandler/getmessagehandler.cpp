@@ -40,7 +40,7 @@ void GetMessageHandler::onExecute() {
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception&) {
-        DLOG("ERROR responding to client %08X\n",m_usera.user);
+        DLOG("ERROR responding to client %08X\n",m_command->getUserId());
     }
 }
 

@@ -413,12 +413,16 @@ class office {
             if(message.empty()) {
 #ifdef DEBUG
                 file_.lock();
-                srv_.break_silence(now,message,message_tnum);
+                if(srv_.break_silence(now,message,message_tnum)) {
+                    message_tnum++;
+                }
                 file_.unlock();
 #endif
                 file_.lock();
                 // send connection info if outdated and no transactions
-                srv_.update_connection_info(message);
+                if(srv_.update_connection_info(message)) {
+                    message_tnum++;
+                }
                 file_.unlock();
                 continue;
             }

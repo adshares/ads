@@ -143,6 +143,9 @@ uint32_t SendMany::getTime() {
 }
 
 int64_t SendMany::getFee() {
+    // TODO: CommandHandler::validateModifyingCommand is called before onInit so m_transactions could be not initialized
+    initTransactionVector();
+
     uint64_t fee = 0;
     for (auto &it : m_transactions) {
         fee+=TXS_MPT_FEE(it.amount);
@@ -157,6 +160,9 @@ int64_t SendMany::getFee() {
 }
 
 int64_t SendMany::getDeduct() {
+    // TODO: CommandHandler::validateModifyingCommand is called before onInit so m_transactions could be not initialized
+    initTransactionVector();
+
     int64_t deduct = 0;
     for (auto &it : m_transactions) {
         deduct += it.amount;
@@ -217,6 +223,9 @@ void SendMany::fillAdditionalData() {
 }
 
 void SendMany::initTransactionVector() {
+    if(m_transactions.size() > 0) {
+        return;
+    }
     int size = this->getAdditionalDataSize();
     if (m_additionalData && size > 0) {
         SendAmountTxnRecord txn_record;
@@ -230,6 +239,7 @@ void SendMany::initTransactionVector() {
 }
 
 void SendMany::checkForDuplicates() {
+    initTransactionVector();
     std::set<std::pair<uint16_t, uint32_t>> checkForDuplicate;
     for (auto &it : m_transactions) {
         uint16_t node = it.dest_node;
@@ -238,14 +248,15 @@ void SendMany::checkForDuplicates() {
             ELOG("ERROR: duplicate target: %04X:%08X\n", node, user);
             throw ErrorCodes::Code::eDuplicatedTarget;
         }
-        if (it.amount < 0) {
-            ELOG("ERROR: only positive non-zero transactions allowed in MPT\n");
-            throw ErrorCodes::Code::eAmountBelowZero;
+        if (it.amount <= 0) {
+            ELOG("ERROR: only positive transactions allowed in MPT\n");
+            throw ErrorCodes::Code::eAmountNotPositive;
         }
     }
 }
 
 std::vector<SendAmountTxnRecord> SendMany::getTransactionsVector() {
+    initTransactionVector();
     return m_transactions;
 }
 
