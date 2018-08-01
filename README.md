@@ -30,26 +30,30 @@ ADS Blockchain is a fork of [Enterprise Service Chain](https://github.com/Enterp
 To setup the master node, you will need to provide a node number and secret key. 
 Usually you will also need to specify a host name. 
 
-### Install binaries from official PPA
+1. Install binaries from official PPA
 
+	```
 	sudo add-apt-repository ppa:adshares/releases
 	sudo apt-get update
 	sudo apt-get install ads ads-tools
-
+	```
     
-### Configure and start the node
+2. Configure and start the node
 
-Configuration tool will ask you about the node number, a seckret key and a host name.
+	Configuration tool will ask you about the node number, a seckret key and a host name.
 	 
+	```
 	ads-serivce configure
 	ads-serivce start
+	```
 
+3. Check the node status
 
-### Check the node status
-
+	```
 	ads-monitor status -v
-
-If that works, you should see current time, block time and node number.
+	```
+	
+	If that works, you should see current time, block time and node number.
 	
 
 ### Connecting to the node
