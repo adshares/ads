@@ -128,7 +128,7 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
 }
 
 void ChangeNodeKey::saveResponse(settings& sts) {
-    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !sts.signature_provided && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
