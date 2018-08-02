@@ -45,7 +45,7 @@ class office {
     bool get_user(user_t& u,uint16_t cbank,uint32_t cuser);
     uint32_t add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey);
     uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser);
-    void set_user(uint32_t user, const user_t& nu, int64_t deduct);
+    void set_user(uint32_t user, user_t& nu, int64_t deduct);
     void delete_user(uint32_t user);
     void add_remote_deposit(uint32_t buser,int64_t tmass);
     void add_deposit(uint32_t buser,int64_t tmass);
