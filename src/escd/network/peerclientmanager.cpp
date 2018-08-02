@@ -233,9 +233,10 @@ void PeerConnectManager::connect(boost::asio::ip::tcp::endpoint endpoint, uint16
     auto port = endpoint.port();
 
     in_addr   inaddr;
-    if(inet_aton(addr.c_str(), &inaddr) == 0){
+    if(inet_aton(addr.c_str(), &inaddr) != 0){
         connect(inaddr, port, svid);
     }
+
 }
 
 void PeerConnectManager::connect(node& nodeInfo, uint16_t svid)
@@ -378,11 +379,11 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
             connectPeersFromConfig(neededPeers);
         }
 
-        connectPeersFromServerFile(neededPeers);
-
         if(!m_opts.init){
             connectPeersFromDNS(neededPeers);
-        }        
+        }
+
+        connectPeersFromServerFile(neededPeers);
     }    
 
     timerNextTick(m_timeout);
