@@ -4223,6 +4223,9 @@ NEXTBANK:
                 continue;
             }
             sharing_nodes.push_back(i);
+            if(srvs_.nodes[i].status & SERVER_VIP ) {
+                sharing_nodes.push_back(i);
+            }
         }
 
         if(bank_fee_share < 0) {
@@ -4238,11 +4241,9 @@ NEXTBANK:
 #ifdef SHARED_PROFIT
             if(std::find(svid_rank.begin(), svid_rank.end(), svid) != svid_rank.end()) {
                 net_fee_share = -SHARED_PROFIT(bank_fee[svid]);
-                if(std::find(sharing_nodes.begin(), sharing_nodes.end(), svid) != sharing_nodes.end()) {
-                    net_fee_share += bank_fee_share;
-                }
-                bank_fee[svid] += net_fee_share;
             }
+            net_fee_share += bank_fee_share * std::count(sharing_nodes.begin(), sharing_nodes.end(), svid);
+            bank_fee[svid] += net_fee_share;
 #endif
 
             read(fd,&u,sizeof(user_t));

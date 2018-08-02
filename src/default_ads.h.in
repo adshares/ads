@@ -22,6 +22,7 @@
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 128 /* shift from current block to archive old blocks */
+#define SHARED_PROFIT_NODES     10         /* Limit profit sharing to the first N nodes (+vips) */
 #else
 #define BLOCKSEC 512 /* block period in seconds (17min) */
 #define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
@@ -36,6 +37,7 @@
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 4096 /* shift from current block to archive old blocks */
+#define SHARED_PROFIT_NODES     100         /* Limit profit sharing to the first N nodes (+vips) */
 #endif
 
 #define TOTALMASS 3875820600000000000L /* total balance (target) */
@@ -46,7 +48,7 @@
 #define SYNC_WAIT 8 /* wait before another attempt to download servers */
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
 #define MAX_USER_QUEUE 10000L /* maximum number of accounts in create_account queue ("blacklist") */
-#define MIN_LOG_SIZE (4L*1024L*1024L) /* 4MB; when this log size is reached try purging */
+#define MIN_LOG_SIZE (128L*1024L) /* 128KB x 134M ~ size:16GB; when this log size is reached try purging */
 #define MAX_LOG_AGE (16384L*BLOCKSEC) /* 90 days; purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 10L*1024L*1024L /* 10 MB; blog size larger than this will not be submitted to clients */
 
@@ -92,8 +94,7 @@
 
 #define BANK_MAX          (0xffff)  // Max number of banks. svid must be lower
 
-#define SHARED_PROFIT(x)        ((x)/2)     /* 50% of bank profits are divided equally between nodes with highest profit to reduce inequality */
-#define SHARED_PROFIT_NODES     100         /* Limit profit shareing to the first N nodes */
+#define SHARED_PROFIT(x)  (((x)/5)*2)     /* 40% of bank profits are divided equally between nodes with highest profit and vips to support decentralization */
 
 #define MESSAGE_TOO_LONG 0x800000 /* 8MB */
 #define MESSAGE_LEN_OK   0x10000
