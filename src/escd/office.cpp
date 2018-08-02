@@ -604,7 +604,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t ause
     return(nuser);
 }
 
-void office::set_user(uint32_t user, const user_t& nu, int64_t deduct) {
+void office::set_user(uint32_t user, user_t& nu, int64_t deduct) {
     assert(user<users); // is this safe ???
     user_t ou;
     file_.lock();
@@ -625,6 +625,10 @@ void office::set_user(uint32_t user, const user_t& nu, int64_t deduct) {
     lseek(offifd_, -sizeof(user_t), SEEK_CUR);
     write(offifd_, &ou, sizeof(user_t)); // fix this !!!
     file_.unlock();
+
+    //update fields used for printing 'account' in client
+    nu.weight = ou.weight;
+    nu.stat = ou.stat;
 }
 
 void office::delete_user(uint32_t user) {
