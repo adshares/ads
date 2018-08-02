@@ -55,6 +55,7 @@ void GetBlocksHandler::sendBlockHeaders() {
     const uint32_t numOfHeaders = m_serversHeaders.size();
     boost::asio::write(m_socket, boost::asio::buffer(&numOfHeaders, sizeof(numOfHeaders)));
     boost::asio::write(m_socket, boost::asio::buffer(m_serversHeaders));
+    boost::asio::write(m_socket, boost::asio::buffer(&m_newviphash , sizeof(m_newviphash)));
 }
 
 void GetBlocksHandler::sendLastBlockSignatures() {
@@ -159,7 +160,7 @@ void GetBlocksHandler::readBlockHeaders(
         // block is validated against previous block viphash!
         int vipTot=vipSize(header.viphash);
         if(block.getData().voteYes<=vipTot/2) {
-            DLOG("INFO, to few (%d < %d/2) votes for block %08X", block.getData().voteYes, vipTot, block.getData().ttime);
+            DLOG("INFO, too few (%d <= %d/2) votes for block %08X\n", block.getData().voteYes, vipTot, block.getData().ttime);
             break;
         }
         header = block.getHeader();
@@ -196,7 +197,7 @@ ErrorCodes::Code GetBlocksHandler::prepareResponse() {
         header = block.getHeader();
 
         if(!prepareFirstVipKeys(block.getData().vipHash)) {
-            DLOG("ERROR, vip keys for start viphash %.64s will not be sent", block.getData().vipHash);
+            DLOG("ERROR, vip keys for start viphash %.64s will not be sent\n", block.getData().vipHash);
             return ErrorCodes::Code::eCouldNotReadCorrectVipKeys;
         }
 

@@ -142,6 +142,11 @@ bool GetBlocks::receiveHeaders(INetworkClient& netClient) {
         m_receivedHeaders.push_back(sh);
     }
 
+    if(!netClient.readData((char*)&m_newviphash, sizeof(m_newviphash))) {
+        ELOG("GetBlocks ERROR reading newviphash flag\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -443,6 +448,10 @@ void GetBlocks::toJson(boost::property_tree::ptree& ptree) {
                 blockChild.push_back(std::make_pair("", blockElement));
             }
             ptree.put_child("blocks", blockChild);
+        }
+
+        if(m_newviphash) {
+            ptree.put("warning", "some blocks may not have been updated due to new nodes - rerun command");
         }
     }
     else {

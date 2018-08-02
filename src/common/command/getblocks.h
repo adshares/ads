@@ -115,6 +115,7 @@ class GetBlocks : public BlockCommand {
         Block m_block;
         GetBlocksData m_data;
         uint32_t m_numOfBlocks{};
+        bool m_newviphash=false;
         commandresponse m_response;
 };
 
