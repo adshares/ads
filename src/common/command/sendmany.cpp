@@ -193,9 +193,9 @@ void SendMany::checkForDuplicates() {
             ELOG("ERROR: duplicate target: %04X:%08X\n", node, user);
             throw ErrorCodes::Code::eDuplicatedTarget;
         }
-        if (it.amount < 0) {
-            ELOG("ERROR: only positive non-zero transactions allowed in MPT\n");
-            throw ErrorCodes::Code::eAmountBelowZero;
+        if (it.amount <= 0) {
+            ELOG("ERROR: only positive transactions allowed in MPT\n");
+            throw ErrorCodes::Code::eAmountNotPositive;
         }
     }
 }
