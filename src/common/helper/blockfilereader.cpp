@@ -133,6 +133,7 @@ bool BlockFileReader::lseek(int position, int whence)
         break;
     case SEEK_SET:
         offset = position + m_seek;
+        break;
     default:
         break;
     }
