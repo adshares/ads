@@ -123,3 +123,7 @@ void Connected::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::IP_ADDRESS, ip_address.str());
     ptree.put(TAG::NODE_VERSION, verStr);
 }
+
+std::string Connected::usageHelperToString() {
+    return std::string("");
+}

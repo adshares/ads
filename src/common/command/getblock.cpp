@@ -225,3 +225,10 @@ void GetBlock::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string GetBlock::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_block\",[\"block\":<block_time as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_block\",\"block\":\"5B217880\"}" << "\n";
+    return ss.str();
+}

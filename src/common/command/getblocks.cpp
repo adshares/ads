@@ -477,3 +477,10 @@ uint32_t GetBlocks::getBlockNumberFrom() {
 uint32_t GetBlocks::getBlockNumberTo() {
     return m_data.info.to;
 }
+
+std::string GetBlocks::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_blocks\",[\"from\":<from_timestamp>],[\"to\":<to_timestamp>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_blocks\",\"from\":\"1491210824\",\"to\":\"1491211048\"}" << "\n";
+    return ss.str();
+}

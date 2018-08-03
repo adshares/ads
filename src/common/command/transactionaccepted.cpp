@@ -111,3 +111,7 @@ void TransactionAccepted::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::DST_USER, m_data.buser);
     ptree.put(TAG::PKEY, ed25519_key2text(m_data.publicKey, sizeof(m_data.publicKey)));
 }
+
+std::string  TransactionAccepted::usageHelperToString() {
+    return std::string("");
+}

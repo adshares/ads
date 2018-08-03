@@ -155,3 +155,10 @@ uint32_t RetrieveFunds::getDestBankId() {
 uint32_t RetrieveFunds::getDestUserId() {
     return m_data.info.buser;
 }
+
+std::string RetrieveFunds::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"retrieve_funds\",\"address\":<user_account_id>}" << "\n";
+    ss << "Example: " << "{\"run\":\"retrieve_funds\",\"address\":\"0001-00000000-XXXX\"}" << "\n";
+    return ss.str();
+}

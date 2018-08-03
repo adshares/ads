@@ -93,6 +93,7 @@ class GetBlocks : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
         uint32_t getBlockNumberFrom();
         uint32_t getBlockNumberTo();
