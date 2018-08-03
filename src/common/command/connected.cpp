@@ -11,8 +11,8 @@ Connected::Connected()
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-Connected::Connected(uint16_t port, uint32_t ip_address)
-    : m_data(port, ip_address) {
+Connected::Connected(uint16_t port, uint32_t ip_address, std::string version)
+    : m_data(port, ip_address, version.c_str()) {
     m_responseError = ErrorCodes::Code::eNone;
 }
 
@@ -108,8 +108,18 @@ void Connected::txnToJson(boost::property_tree::ptree& ptree) {
     ip_address << (m_data.ip_address & 0xFF) << "."
       << ((m_data.ip_address >> 8) & 0xFF) << "."
       << ((m_data.ip_address >> 16) & 0xFF) << "." << (m_data.ip_address >> 24);
+
+    char verStr[17];
+    uint i=0;
+    while (i < sizeof(verStr)-1 && isprint(m_data.version[i]))
+    {
+        verStr[i] = m_data.version[i];
+        i++;
+    }
+    verStr[i] = '\0';
     using namespace Helper;
     ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
     ptree.put(TAG::PORT, m_data.port);
     ptree.put(TAG::IP_ADDRESS, ip_address.str());
+    ptree.put(TAG::NODE_VERSION, verStr);
 }
