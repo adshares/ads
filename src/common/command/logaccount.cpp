@@ -173,3 +173,10 @@ void LogAccount::setAdditionalData(char* data) {
 int LogAccount::getAdditionalDataSize() {
     return sizeof(m_userData);
 }
+
+std::string LogAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"log_account\"}" << "\n";
+    ss << "Example: " << "{\"run\":\"log_account\"}" << "\n";
+    return ss.str();
+}

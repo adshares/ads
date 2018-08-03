@@ -160,3 +160,10 @@ uint32_t UnsetAccountStatus::getDestUserId() {
 uint16_t UnsetAccountStatus::getStatus() {
     return m_data.info.status;
 }
+
+std::string  UnsetAccountStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"unset_account_status\",\"address\":<destination_account_id>,\"status\":<bits_to_unset>}" << "\n";
+    ss << "Example: " << "{\"run\":\"unset_account_status\",\"address\":\"0001-00000000-XXXX\",\"status\":\"10\"}" << "\n";
+    return ss.str();
+}

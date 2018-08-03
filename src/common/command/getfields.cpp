@@ -113,3 +113,10 @@ void GetFields::toJson(boost::property_tree::ptree& ptree) {
 
 void GetFields::txnToJson(boost::property_tree::ptree& /*ptree*/) {
 }
+
+std::string GetFields::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_fields\",\"type\":<transaction type>}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_fields\",\"type\":\"create_account\"}" << "\n";
+    return ss.str();
+}

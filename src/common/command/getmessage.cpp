@@ -216,3 +216,10 @@ void GetMessage::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::NODE_MSGID, m_data.info.node_msgid);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string GetMessage::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_message\",\"message_id\":<message_id>,[\"block\":<block_id as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_message\",\"message_id\":\"0001:0000000E\",\"block\":\"5B0573C0\"}" << "\n";
+    return ss.str();
+}

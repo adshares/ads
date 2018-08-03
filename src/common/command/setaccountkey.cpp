@@ -160,3 +160,10 @@ void SetAccountKey::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::PKEY_SIGN, ed25519_key2text(m_data.pubkeysign, sizeof(m_data.pubkeysign)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string SetAccountKey::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"change_account_key\",\"public_key\":<public_key>,\"confirm\":<signature_to_confirm>}" << "\n";
+    ss << "Example: " << "{\"run\":\"change_account_key\",\"public_key\":\"2D1FC97FA56B785E0FDAE5752DE613BAD7FBBB5EBBB46DAEE5DBFA822F976B63\",\"confirm\":\"D050CCFC88086A13BC6633BF8267523E2E51607EE01D60AF40A3A1AA12E6F078B6AD9231335D774AE37E7CCF48401B7D9D7D1D68FB3BBB22508685BB31368905\"}" << "\n";
+    return ss.str();
+}
