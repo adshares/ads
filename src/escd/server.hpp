@@ -3411,7 +3411,8 @@ NEXTUSER:
         //local_deposit.clear();
         local_dsu.clear();
 
-        int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE(msg->len);
+        int64_t message_fee=MESSAGE_FEE(msg->len);
+        int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-message_fee;
         bank_fee[msg->svid]+=profit;
         msg->save_undo(undo,ousers,csum,weight,profit,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim);
         srvs_.nodes[msg->svid].weight+=weight;
@@ -3432,6 +3433,7 @@ NEXTUSER:
             local_fee=BANK_PROFIT(local_fee);
             lodiv_fee=BANK_PROFIT(lodiv_fee);
             myput_fee=BANK_PROFIT(myput_fee);
+
             log_t alog;
             alog.time=now;
             alog.type=TXSTYPE_FEE|0x8000; //incoming
@@ -3440,11 +3442,11 @@ NEXTUSER:
             alog.umid=0;
             alog.nmid=msg->msid;
             alog.mpos=0;
-            alog.weight=profit;
+            alog.weight=profit+message_fee;
             memcpy(alog.info,&local_fee,sizeof(int64_t));
             memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
-            memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
-            bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
+            memcpy(alog.info+2*sizeof(int64_t),&message_fee,sizeof(int64_t));
+            memcpy(alog.info+3*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
             log[0]=alog;
         }
 
