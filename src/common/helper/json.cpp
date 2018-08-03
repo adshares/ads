@@ -13,6 +13,7 @@
 #include "ascii.h"
 #include "txsname.h"
 #include "command/errorcodes.h"
+#include "command/factory.h"
 
 namespace Helper {
 
@@ -495,6 +496,26 @@ NEXT:
         ;
     }
     close(fd);
+}
+
+void print_all_commands_help()
+{
+    std::cerr<<"Possible commands listing"<<std::endl<<std::endl;;
+
+    std::unique_ptr<IBlockCommand> command;
+    for (uint8_t id = 0; id < TXSTYPE_MAX; ++id)
+    {
+        command = command::factory::makeCommand(id);
+        if (command)
+        {
+            std::string command_help = command->usageHelperToString();
+            if (!command_help.empty())
+            {
+                std::cout<<"Command: " << getTxnName(id) << std::endl;
+                std::cout << command_help << std::endl;
+            }
+        }
+    }
 }
 
 }

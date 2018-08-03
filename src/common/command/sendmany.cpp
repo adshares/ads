@@ -247,3 +247,11 @@ void SendMany::txnToJson(boost::property_tree::ptree& ptree) {
 
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string SendMany::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"send_many\",\"wires\":{<destination_user_address_1>:<amount_1>,<destination_user_address_n>:<amount_n>}}" << "\n";
+    ss << "Example: " << "{\"run\":\"send_many\",\"wires\":{\"0002-00000000-XXXX\":20000.0,\"0003-00000000-XXXX\":0.003}}" << "\n";
+    return ss.str();
+}
+

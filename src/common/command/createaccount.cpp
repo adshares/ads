@@ -209,3 +209,10 @@ void CreateAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::DST_NODE, m_data.info.dst_node);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string CreateAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"create_account\",[\"node\":<node id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"create_account\",\"node\":\"2\"}" << "\n";
+    return ss.str();
+}

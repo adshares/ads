@@ -155,3 +155,10 @@ uint32_t SetNodeStatus::getDestBankId() {
 uint32_t SetNodeStatus::getStatus() {
     return m_data.info.status;
 }
+
+std::string SetNodeStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"set_node_status\",\"node\":<node id>,\"status\":<bits_to_set>}" << "\n";
+    ss << "Example: " << "{\"run\":\"set_node_status\",\"node\":\"1\",\"status\":\"8\"}" << "\n";
+    return ss.str();
+}

@@ -189,3 +189,10 @@ void SendOne::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::MSG, Helper::ed25519_key2text(m_data.info.ntinfo, sizeof(m_data.info.ntinfo)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string SendOne::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"send_one\",\"address\":<destination_account_id>,\"amount\":<sending_amount>, [\"message\":\"message_in_hex\"]}" << "\n";
+    ss << "Example: " << "{\"run\":\"send_one\",\"address\":\"0003-00000000-XXXX\",\"amount\":2.1,\"message\":\"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F\"}" << "\n";
+    return ss.str();
+}

@@ -193,3 +193,10 @@ void ChangeNodeKey::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.node_new_key, sizeof(m_data.node_new_key)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string ChangeNodeKey::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"change_node_key\",\"public_key\":<public_key>,[\"node\":<node_id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"change_node_key\",\"public_key\":\"2D1FC97FA56B785E0FDAE5752DE613BAD7FBBB5EBBB46DAEE5DBFA822F976B63\",\"node\":\"2\"}" << "\n";
+    return ss.str();
+}
