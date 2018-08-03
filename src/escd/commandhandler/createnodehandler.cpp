@@ -38,7 +38,7 @@ void CreateNodeHandler::onExecute() {
         m_offi.put_ulog(m_command->getUserId(), tlog);
 
 #ifdef DEBUG
-    DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_usera.node, m_usera.user, res.msid, res.mpos);
+    DLOG("SENDING new user info %04X:%08X @ msg %08X:%08X\n", m_command->getBankId(), m_command->getUserId(), res.msid, res.mpos);
 #endif
     }
 
@@ -54,7 +54,7 @@ void CreateNodeHandler::onExecute() {
         boost::asio::write(m_socket, response);
 
     } catch (std::exception& e) {
-        ELOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        ELOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
 }
 
