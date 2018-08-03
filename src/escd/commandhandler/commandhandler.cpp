@@ -27,7 +27,7 @@ void CommandHandler::sendErrorToClient(ErrorCodes::Code error) {
         boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
     }
     catch(std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
+        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
     }
 }
 
