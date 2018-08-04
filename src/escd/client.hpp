@@ -28,7 +28,8 @@ class client : public boost::enable_shared_from_this<client> {
         : m_socket(io_service),
           m_offi(offi),
           m_addr(""),
-          m_port(""),      
+          m_port(""),
+          m_timeout(io_service),
           m_commandService(m_offi, m_socket) {
 #ifdef DEBUG
         DLOG("OFFICER ready %04X\n",m_offi.svid);
@@ -55,6 +56,17 @@ class client : public boost::enable_shared_from_this<client> {
 
         Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
         Helper::setSocketNoDelay(m_socket, true);
+
+
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
+        m_timeout.async_wait([&](boost::system::error_code const &ec) {
+            if (ec == boost::asio::error::operation_aborted)
+                return;
+
+            m_socket.close();
+            m_offi.leave(shared_from_this());
+            ELOG("CLIENT: timeout\n");
+        });
 
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_version,sizeof(m_version)),
                                 boost::bind(&client::handle_read_version, shared_from_this(), boost::asio::placeholders::error));
@@ -85,7 +97,7 @@ class client : public boost::enable_shared_from_this<client> {
             m_offi.leave(shared_from_this());
             return;
         }
-
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -105,6 +117,7 @@ class client : public boost::enable_shared_from_this<client> {
 
         m_command = command::factory::makeCommand(m_type);
 
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
         if(m_command) {
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
                                     boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
@@ -121,6 +134,7 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading txs data: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
         boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getAdditionalData(), m_command->getAdditionalDataSize()),
                                 boost::bind(&client::handle_read_signature_txs, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -130,6 +144,7 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading txs extended data: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
         boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getSignature(), m_command->getSignatureSize()),
                                 boost::bind(&client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -177,6 +192,7 @@ class client : public boost::enable_shared_from_this<client> {
             //@TODO: lock , unlock in RAII object.
         }
 
+        m_timeout.expires_from_now(boost::posix_time::seconds(NETSRV_SOCK_TIMEOUT));
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
 //        m_offi.leave(shared_from_this());
@@ -190,8 +206,11 @@ private:
 
     char                              m_type{TXSTYPE_NON};
     int32_t                           m_version{0};
+    boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
+
+
 };
 
 #endif // CLIENT_HPP
