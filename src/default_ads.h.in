@@ -47,7 +47,7 @@
 #define MAX_CHECKQUE 8 /*maximum check queue size for emidiate message requests*/
 #define MAX_USER_QUEUE 0x10000 /* maximum number of accounts in create_account queue ("blacklist") */
 #define MIN_LOG_SIZE (4096+2048) /* when this log size is reached try purging */
-#define MAX_LOG_AGE (0x800*BLOCKSEC) /* purge first 4096 bytes if older than this age */
+#define MAX_LOG_AGE (BLOCKSEC) /* purge first 4096 bytes if older than this age */
 #define MAX_BLG_SIZE 0x8FFFFFF0L /* blog size larger than this will not be submitted to clients */
 
 #define AMOUNT_DECIMALS 11

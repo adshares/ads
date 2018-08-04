@@ -101,7 +101,7 @@ class client : public boost::enable_shared_from_this<client> {
             m_offi.leave(shared_from_this());
             return;
         }
-        update_timeout();
+
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -121,7 +121,6 @@ class client : public boost::enable_shared_from_this<client> {
 
         m_command = command::factory::makeCommand(m_type);
 
-        update_timeout();
         if(m_command) {
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
                                     boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
@@ -138,7 +137,7 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading txs data: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
-        update_timeout();
+
         boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getAdditionalData(), m_command->getAdditionalDataSize()),
                                 boost::bind(&client::handle_read_signature_txs, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -148,7 +147,7 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading txs extended data: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
-        update_timeout();
+
         boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getSignature(), m_command->getSignatureSize()),
                                 boost::bind(&client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -159,6 +158,8 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading signature txs: %s\n", error.message().c_str());                        
             m_offi.leave(shared_from_this());
         }
+
+        update_timeout();
 
         if(m_command)
         {
@@ -196,7 +197,7 @@ class client : public boost::enable_shared_from_this<client> {
             //@TODO: lock , unlock in RAII object.
         }
 
-        update_timeout();
+
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
 //        m_offi.leave(shared_from_this());
