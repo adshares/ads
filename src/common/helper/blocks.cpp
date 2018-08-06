@@ -29,17 +29,18 @@ void arch_old_blocks(uint32_t currentTime) {
     for (int i=0; i<50; ++i) {
         currentTime -= BLOCKSEC;
         Helper::FileName::getBlk(dirpath, currentTime);
-        if (boost::filesystem::exists(dirpath)) {
-            // do not compress und/* files
-            boost::filesystem::path und_dir(dirpath);
-            und_dir += "/und";
-            boost::filesystem::remove_all(und_dir);
-
+        char header_file_path[64];
+        Helper::FileName::getName(header_file_path, currentTime, "header.hdr");
+        if (boost::filesystem::exists(dirpath) && boost::filesystem::exists(header_file_path)) {
             // create archive from blk directory
             sprintf(filepath, "blk/%03X/%05X%s", currentTime>>20, currentTime&0xFFFFF, Helper::ARCH_EXTENSION);
             Helper::LibArchive arch(filepath);
             if (arch.createArch(dirpath)) {
-                Helper::remove_block(dirpath);
+                if (is_snapshot_directory(currentTime)) {
+                    Helper::remove_block_exclude(dirpath, "und");
+                } else {
+                    Helper::remove_block(dirpath);
+                }
             } else {
                 std::cerr << "Error directory compressing "<<dirpath<<std::endl;
             }
@@ -50,9 +51,25 @@ void arch_old_blocks(uint32_t currentTime) {
 #endif
 }
 
-void remove_block(const char* blockPath) {
-    boost::lock_guard<boost::mutex> lock(blocklock);
+void remove_block(const char* blockPath)
+{
     boost::filesystem::remove_all(blockPath);
+}
+
+void remove_block_exclude(const char* blockPath, const char* excludeDir) {
+    boost::lock_guard<boost::mutex> lock(blocklock);
+    boost::filesystem::path blockpath(blockPath);
+    boost::filesystem::path exclude_dir{blockpath / excludeDir};
+    boost::filesystem::directory_iterator end_dir, dir(blockpath);
+
+    while (dir != end_dir)
+    {
+        if (dir->path() != exclude_dir)
+        {
+            boost::filesystem::remove_all(dir->path());
+        }
+        ++dir;
+    }
 }
 
 void remove_file(const char* filename) {
@@ -61,6 +78,13 @@ void remove_file(const char* filename) {
 
 bool is_file_not_compressed(const char* filePath) {
     return boost::filesystem::exists(boost::filesystem::path(filePath));
+}
+
+inline bool is_snapshot_directory(uint32_t blockTime) {
+    if ((blockTime/BLOCKSEC)%BLOCKDIV == 0) {
+        return true;
+    }
+    return false;
 }
 
 uint32_t get_users_count(uint16_t bank) {
@@ -75,7 +99,7 @@ void db_backup(uint32_t block_path, uint16_t nodes) {
     // used to temporary name for snapshot, resolve names colision between sparse local und/* file and currently creating db snapshot.
     const char* const snapshot_postfix = "tmp";
 
-    if ((block_path/BLOCKSEC)%BLOCKDIV) {
+    if (!is_snapshot_directory(block_path)) {
         return;
     }
 
