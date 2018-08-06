@@ -68,7 +68,7 @@ class client : public boost::enable_shared_from_this<client> {
 #endif
 
         Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
-//        Helper::setSocketNoDelay(m_socket, true);
+        Helper::setSocketNoDelay(m_socket, true);
 
 
         update_timeout();
