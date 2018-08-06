@@ -2765,36 +2765,37 @@ bool server::process_message(message_ptr msg) {
             return(false);
         }
         if((*p==TXSTYPE_USR && utxs.abank==utxs.bbank) || *p==TXSTYPE_UOK) { // check lock first
-            char* lpkey;
+            char* npkey;
+            uint32_t nuser;
             if(*p==TXSTYPE_USR) {
-                luser=utxs.nuser(p);
-                lpkey=utxs.npkey(p);
+                nuser=utxs.nuser(p);
+                npkey=utxs.npkey(p);
             } else { //UOK
-                luser=utxs.auser;
-                lpkey=utxs.upkey(p);
+                nuser=utxs.auser;
+                npkey=utxs.upkey(p);
             }
-            if(luser>users) {
-                DLOG("ERROR: bad target user id %08X\n",luser);
+            if(nuser>users) {
+                DLOG("ERROR: bad target user id %08X\n",nuser);
                 close(fd);
                 return(false);
             }
-            if(luser<users) { //1. check if overwriting was legal
-                auto lu=changes.find(luser); // get user
+            if(nuser<users) { //1. check if overwriting was legal
+                auto lu=changes.find(nuser); // get user
                 if(lu==changes.end()) {
                     user_t u;
                     bzero(&u, sizeof(user_t));
-                    lseek(fd,luser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
+                    lseek(fd,nuser*sizeof(user_t),SEEK_SET); // should return '0s' for new user, ok for xor4
                     read(fd,&u,sizeof(user_t));
-                    changes[luser]=u;
-                    undo[luser]=u;
-                    usera=&changes[luser];
+                    changes[nuser]=u;
+                    undo[nuser]=u;
+                    usera=&changes[nuser];
                 } else { // there should be no previous transaction on this user !!!
                     usera=&lu->second;
                 }
                 int64_t delta=usera->weight;
                 if(!(usera->stat&USER_STAT_DELETED)) {
                     ELOG("ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
-                         utxs.bbank,luser,usera->weight);
+                         utxs.bbank,nuser,usera->weight);
                     close(fd);
                     return(false);
                 }
@@ -2804,17 +2805,17 @@ bool server::process_message(message_ptr msg) {
                 user_t u;
                 bzero(&u,sizeof(user_t));
                 users++;
-                changes[luser]=u;
-                usera=&changes[luser];
+                changes[nuser]=u;
+                usera=&changes[nuser];
             }
             srvs_.xor4(csum,usera->csum);
             if(*p==TXSTYPE_USR) {
-                srvs_.init_user(*usera,msg->svid,luser,USER_MIN_MASS,(uint8_t*)lpkey,utxs.ttime,utxs.abank,utxs.auser);
+                srvs_.init_user(*usera,msg->svid,nuser,USER_MIN_MASS,(uint8_t*)npkey,utxs.ttime,utxs.abank,utxs.auser);
             } else {
-                srvs_.init_user(*usera,msg->svid,luser,0,(uint8_t*)lpkey,utxs.ttime,utxs.bbank,utxs.buser);
+                srvs_.init_user(*usera,msg->svid,nuser,0,(uint8_t*)npkey,utxs.ttime,utxs.bbank,utxs.buser);
             }
             srvs_.xor4(csum,usera->csum);
-            srvs_.put_user(*usera,msg->svid,luser);
+            srvs_.put_user(*usera,msg->svid,nuser);
             if(*p==TXSTYPE_USR) {
                 weight+=USER_MIN_MASS;
             } else { //*p==TXSTYPE_UOK
@@ -2822,7 +2823,7 @@ bool server::process_message(message_ptr msg) {
                 uok.auser=utxs.auser;
                 uok.bbank=utxs.bbank;
                 uok.buser=utxs.buser;
-                memcpy(uok.pkey,lpkey,32);
+                memcpy(uok.pkey,npkey,32);
                 uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,msg->svid); //not utxs.bbank
                 txs_uok[ppb]=uok;
                 p+=utxs.size;

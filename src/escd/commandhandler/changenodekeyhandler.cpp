@@ -41,8 +41,8 @@ void ChangeNodeKeyHandler::onExecute() {
         m_usera.msid++;
         m_usera.time=m_command->getTime();
         m_usera.lpath=lpath;
-        m_usera.node = m_command->getBankId();
-        m_usera.user = m_command->getUserId();
+        m_usera.node = 0;
+        m_usera.user = 0;
 
         Helper::create256signhash(m_command->getSignature(), m_command->getSignatureSize(), m_usera.hash, m_usera.hash);
 
