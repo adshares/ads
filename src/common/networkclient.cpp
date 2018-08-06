@@ -41,7 +41,7 @@ bool NetworkClient::connect() {
                 if(m_socket) {
                     m_socket->connect(*connectpoint++, error);
                     Helper::setSocketTimeout(m_socket, NETCL_SOCK_TIMEOUT, NETCL_SOCK_IDLE, NETCL_SOCK_MAXTRY);
-                    Helper::setSocketNoDelay(m_socket, true);
+//                    Helper::setSocketNoDelay(m_socket, true);
                 }
             }
 
