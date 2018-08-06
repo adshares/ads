@@ -4199,22 +4199,24 @@ NEXTBANK:
         assert((char*)&u.rpath<(char*)&u.weight);
         assert((char*)&u.rpath<(char*)&u.csum);
         std::map<uint64_t,log_t> log;
-
 #ifdef SHARED_PROFIT
+        std::vector<uint16_t> receiving_nodes;
         std::vector<uint16_t> sharing_nodes;
-        std::vector<uint16_t> svid_rank;
         for(uint16_t i=1; i<max_svid; i++) {
-            svid_rank.push_back(i);
+            sharing_nodes.push_back(i);
+            if(srvs_.nodes[i].status & SERVER_VIP ) {
+                receiving_nodes.push_back(i);
+            }
         }
-        std::stable_sort(svid_rank.begin(),svid_rank.end(),[this](const uint16_t& i,const uint16_t& j) {
+        std::stable_sort(sharing_nodes.begin(),sharing_nodes.end(),[this](const uint16_t& i,const uint16_t& j) {
             return(this->bank_fee[i]>this->bank_fee[j]);
         });
-        if(svid_rank.size() > SHARED_PROFIT_NODES) {
-            svid_rank.resize(SHARED_PROFIT_NODES);
+        if(sharing_nodes.size() > SHARED_PROFIT_NODES) {
+            sharing_nodes.resize(SHARED_PROFIT_NODES);
         }
 
         int64_t bank_fee_share = 0;
-        for(auto& i : svid_rank) {
+        for(auto& i : sharing_nodes) {
             bank_fee_share += bank_fee[i];
             if(srvs_.nodes[i].status & SERVER_DBL ) {
                 continue;
@@ -4222,16 +4224,13 @@ NEXTBANK:
             if(srvs_.nodes[i].mtim > 0 && srvs_.nodes[i].mtim < srvs_.now - BLOCKDIV*BLOCKSEC) {
                 continue;
             }
-            sharing_nodes.push_back(i);
-            if(srvs_.nodes[i].status & SERVER_VIP ) {
-                sharing_nodes.push_back(i);
-            }
+            receiving_nodes.push_back(i);
         }
 
         if(bank_fee_share < 0) {
             bank_fee_share = 0;
         }
-        bank_fee_share = SHARED_PROFIT(bank_fee_share / sharing_nodes.size());
+        bank_fee_share = SHARED_PROFIT(bank_fee_share / receiving_nodes.size());
 #endif
 
         for(uint16_t svid=1; svid<max_svid; svid++) {
@@ -4239,10 +4238,10 @@ NEXTBANK:
 
             int64_t net_fee_share = 0;
 #ifdef SHARED_PROFIT
-            if(std::find(svid_rank.begin(), svid_rank.end(), svid) != svid_rank.end()) {
+            if(std::find(sharing_nodes.begin(), sharing_nodes.end(), svid) != sharing_nodes.end()) {
                 net_fee_share = -SHARED_PROFIT(bank_fee[svid]);
             }
-            net_fee_share += bank_fee_share * std::count(sharing_nodes.begin(), sharing_nodes.end(), svid);
+            net_fee_share += bank_fee_share * std::count(receiving_nodes.begin(), receiving_nodes.end(), svid);
             bank_fee[svid] += net_fee_share;
 #endif
 
