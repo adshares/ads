@@ -19,7 +19,7 @@ void CreateAccountHandler::onExecute() {
 
     uint32_t newUser = 0;
     if (m_command->getDestBankId() == m_offi.svid) {
-        newUser = m_offi.add_user(m_command->getBankId(), m_command->getPublicKey(), m_command->getTime(), m_command->getUserId());
+        newUser = m_offi.add_user(m_command->getBankId(), m_command->getPublicKey(), m_command->getTime());
         if(!newUser) {
             errorCode = ErrorCodes::Code::eCreateAccountFail;
             DLOG("ERROR: failed to create account\n");
