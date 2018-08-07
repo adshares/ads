@@ -73,6 +73,7 @@ void remove_block_exclude(const char* blockPath, const char* excludeDir) {
 }
 
 void remove_file(const char* filename) {
+    boost::lock_guard<boost::mutex> lock(blocklock);
     boost::filesystem::remove(filename);
 }
 
