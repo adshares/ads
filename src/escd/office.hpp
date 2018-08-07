@@ -127,8 +127,8 @@ class office {
     std::stack<dep_t> rdep; // users with remote deposits
     std::deque<uint64_t> mque; // list of message to process log
     std::deque<uint32_t> deleted_users; // list of accounts to reuse ... this list could be limited (swapped)
-    boost::thread* ioth_;
-    boost::thread* clock_thread;
+    boost::thread ioth_;
+    boost::thread clock_thread;
     std::set<uint32_t> users_lock;
     boost::mutex file_; //LOCK: server::
     boost::mutex log_; //FIXME, maybe no need for this lock, lock too long

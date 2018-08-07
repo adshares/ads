@@ -15,9 +15,7 @@ office::office(options& opts,server& srv) :
     offifd_(-1),
     message_sent(0),
     message_tnum(0),
-    next_io_service_(0),
-    ioth_(NULL),
-    clock_thread(NULL)
+    next_io_service_(0)
 {
     svid=opts_.svid;
     try {
@@ -78,17 +76,17 @@ void office::iorun() {
 void office::stop() { // send and empty txs queue
     run=false;
     io_service_.stop();
-    if(ioth_!=NULL) {
-        ioth_->join();
+    if(ioth_.joinable()) {
+        ioth_.join();
         for(int i=0; i<CLIENT_POOL; i++) {
             io_services_[i]->stop();
         }
     }
     threadpool.interrupt_all();
     threadpool.join_all();
-    if(clock_thread!=NULL) {
-        clock_thread->interrupt();
-        clock_thread->join();
+    if(clock_thread.joinable()) {
+        clock_thread.interrupt();
+        clock_thread.join();
     }
     DLOG("Office shutdown completed\n");
 }
@@ -168,8 +166,8 @@ void office::start() {
             threadpool.create_thread(boost::bind(&office::iorun_client, this, i));
         }
 
-        ioth_           = new boost::thread(boost::bind(&office::iorun, this));
-        clock_thread    = new boost::thread(boost::bind(&office::clock, this));
+        ioth_        = boost::thread(&office::iorun, this);
+        clock_thread = boost::thread(&office::clock, this);
     } catch (std::exception& e) {
         DLOG("Office.Start error: %s\n",e.what());
     }
