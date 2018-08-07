@@ -393,7 +393,7 @@ class office {
             uint32_t now=time(NULL);
 //FIXME, do not submit messages in vulnerable time (from blockend-margin to new block confirmation)
             //TODO, clear hanging clients
-            boost::this_thread::sleep(boost::posix_time::seconds(2));
+            boost::this_thread::sleep(boost::posix_time::milliseconds(200));
             if(block_ready) {
                 DLOG("OFFICE, process last block %08X\n",block_ready-BLOCKSEC);
                 if(div_ready) {
