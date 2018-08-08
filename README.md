@@ -14,8 +14,8 @@
 
 <br>
 
-ADS Blockchain is a fork of the [Enterprise Service Chain](https://github.com/EnterpriseServiceChain/esc). ESC is a block chain based software tool facilitating high
- volumes of simple transactions that, in most cases, send tokens between accounts as in other crypto currencies. The name is derived from the concept of the Enterprise Service Bus in which a crypto currency is used as the protocol of communication.
+The ADS Blockchain is a fork of the Enterprise Service Chain ([ESC](https://github.com/EnterpriseServiceChain/esc)), a blockchain software technology capable of facilitating high volumes of simple transactions which, similarly to other cryptocurrencies, allows sending tokens between user accounts.
+ESC derives its name from the concept of the Enterprise Service Bus, where a cryptocurrency is used as the communication protocol.
 
 [![Quality Status](https://sonarcloud.io/api/project_badges/measure?project=adshares-ads&metric=alert_status)](https://sonarcloud.io/dashboard?id=adshares-ads)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=adshares-ads&metric=reliability_rating)](https://sonarcloud.io/dashboard?id=adshares-ads)
