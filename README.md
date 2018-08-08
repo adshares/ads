@@ -40,11 +40,11 @@ Usually you will also need to specify a host name.
     
 2. Configure and start the node
 
-	Configuration tool will ask you about the node number, a seckret key and a host name.
+	Configuration tool will ask you about the node number, a secret key and a host name.
 	 
 	```
-	ads-serivce configure
-	ads-serivce start
+	ads-service configure
+	ads-service start
 	```
 
 3. Check the node status
