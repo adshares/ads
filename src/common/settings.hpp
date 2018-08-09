@@ -10,6 +10,7 @@
 #include "ed25519/ed25519.h"
 #include "default.hpp"
 #include "helper/ascii.h"
+#include "helper/json.h"
 
 using namespace Helper;
 
@@ -20,8 +21,7 @@ class settings {
         ha{{
             0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,
             0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff}},
-
-    port(0),
+         port(0),
          bank(0),
          user(0),
          msid(0),
@@ -44,6 +44,8 @@ class settings {
     bool nice;
     bool olog;
     bool drun;
+    bool signature_provided = false;
+    bool without_secret = true;
     ed25519_secret_key sk;
     ed25519_public_key pk;	// calculated
 //	ed25519_secret_key sn;
@@ -99,32 +101,35 @@ class settings {
         str_acnt[4]='\0';
         str_acnt[13]='\0';
         errno=0;
-        to_bank=(uint16_t)strtol(str_acnt.c_str(),&endptr,16);
-        if(errno || endptr==str_acnt.c_str()) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",str_acnt.c_str());
+
+        char acnt[19];
+        memcpy(acnt, str_acnt.c_str(), sizeof(acnt));
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        to_user=(uint32_t)strtoll(str_acnt.c_str()+5,&endptr,16);
-        if(errno || endptr==str_acnt.c_str()+5) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",str_acnt.c_str());
+        to_user=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+13) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",acnt+5);
             perror("ERROR: strtol");
             return(false);
         }
-        if(!strncmp("XXXX",str_acnt.c_str()+14,4)) {
+        if(!strncmp("XXXX",acnt+14,4)) {
             return(true);
         }
         errno=0;
-        to_csum=(uint16_t)strtol(str_acnt.c_str()+14,&endptr,16);
-        if(errno || endptr==str_acnt.c_str()+14) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",str_acnt.c_str());
+        to_csum=(uint16_t)strtol(acnt+14,&endptr,16);
+        if(errno || endptr!=acnt+18) {
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",acnt+14);
             perror("ERROR: strtol");
             return(false);
         }
         to_crc16=crc_acnt(to_bank,to_user);
         if(to_csum!=to_crc16) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",str_acnt.c_str(),to_crc16);
+            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",acnt,to_crc16);
             return(false);
         }
         return(true);
@@ -142,37 +147,84 @@ class settings {
         }
         str_txid[4]='\0';
         str_txid[13]='\0';
+
+        char acnt[19];
+        memcpy(acnt, str_txid.c_str(), sizeof(acnt));
+
         errno=0;
-        to_bank=(uint16_t)strtol(str_txid.c_str(),&endptr,16);
-        if(errno || endptr==str_txid.c_str()) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",str_txid.c_str());
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        node_msid=(uint32_t)strtoll(str_txid.c_str()+5,&endptr,16);
-        if(errno || endptr==str_txid.c_str()+5) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",str_txid.c_str());
+        node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+5+8) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",acnt+5);
             perror("ERROR: strtol");
             return(false);
         }
         errno=0;
-        node_mpos=(uint16_t)strtol(str_txid.c_str()+14,&endptr,16);
-        if(errno || endptr==str_txid.c_str()+14) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",str_txid.c_str());
+        node_mpos=(uint16_t)strtol(acnt+14,&endptr,16);
+        if(errno || endptr!=acnt+14+4) {
+            fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",acnt+14);
             perror("ERROR: strtol");
             return(false);
         }
         return(true);
     }
 
+    bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
+        char *endptr;
+        if(str_txid.length()!=13) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
+            return(false);
+        }
+        if(str_txid[4]!=':') {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad format (required NNNN:MMMMMMMM)\n",str_txid.c_str());
+            return(false);
+        }
+        str_txid[4]='\0';
+        char acnt[14];
+        memcpy(acnt, str_txid.c_str(), sizeof(acnt));
+        errno=0;
+        to_bank=(uint16_t)strtol(acnt,&endptr,16);
+        if(errno || endptr!=acnt+4) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",acnt);
+            perror("ERROR: strtol");
+            return(false);
+        }
+        errno=0;
+        node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
+        if(errno || endptr!=acnt+5+8) {
+            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",acnt+5);
+            perror("ERROR: strtol");
+            return(false);
+        }
+
+        return(true);
+    }
+
     static void print_version() {
-        std::string version = PROJECT_VERSION;
-        std::cerr << "Version ";
-        if(version.empty()) {
-          std::cerr << GIT_BRANCH << " @ " << GIT_COMMIT_HASH << "\n";
+        std::cerr << "Version " << get_version() << std::endl;
+    }
+
+    static std::string get_version(uint max_length=0) {
+        std::stringstream ss;
+        if(strlen(PROJECT_VERSION) == 0) {
+          ss << GIT_BRANCH << "@" << GIT_COMMIT_HASH;
         } else {
-          std::cerr << PROJECT_VERSION << "\n";
+          ss << PROJECT_VERSION;
+        }
+#ifdef DEBUG
+        ss << "x";
+#endif
+        std::string version = ss.str();
+        if(max_length && version.length() > max_length) {
+            return version.substr(version.length() - max_length);
+        } else {
+            return version;
         }
     }
 
@@ -213,8 +265,6 @@ class settings {
 
     void get(int ac, char *av[]) {
         try {
-            char pktext[2*32+1];
-            pktext[2*32]='\0';
             boost::program_options::options_description generic("Generic options");
             generic.add_options()
             ("work-dir,w", boost::program_options::value<std::string>(&workdir)->default_value(std::string("$HOME/.") + std::string(PROJECT_NAME)),    "working directory")
@@ -233,20 +283,37 @@ class settings {
             ("olog,o", boost::program_options::value<bool>(&olog)->default_value(true),			"record submitted transactions in log file")
             ("dry-run,d", boost::program_options::value<bool>(&drun)->default_value(false),			"dry run (do not submit to network)")
             ("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
-            ("secret,s", boost::program_options::value<std::string>(&skey),         "passphrase or private key [64chars in hex format / 32bytes]")
+            ("secret,s", boost::program_options::value<std::string>(&skey)->implicit_value("-"),         "passphrase or private key [64chars in hex format / 32bytes]")
             ;
+            std::string positional_help;
+            boost::program_options::options_description positionals("Positional options");
+            positionals.add_options()("pos_help", boost::program_options::value<std::string>(&positional_help), "Print all possible commands");
+
+            boost::program_options::positional_options_description positional_options;
+            positional_options.add("pos_help", -1);
+
             boost::program_options::options_description cmdline_options;
-            cmdline_options.add(generic).add(config);
+            cmdline_options.add(generic).add(config).add(positionals);
             boost::program_options::options_description config_file_options;
             config_file_options.add(config);
             boost::program_options::variables_map vm;
-            store(boost::program_options::command_line_parser(ac, av).options(cmdline_options).run(), vm);
+            store(boost::program_options::command_line_parser(ac, av).options(cmdline_options).positional(positional_options).run(), vm);
             std::ifstream ifs("settings.cfg");
             store(parse_config_file(ifs, config_file_options), vm);
             notify(vm);
+            if (!positional_help.empty()) {
+                if (positional_help == "help") {
+                    Helper::print_all_commands_help();
+                    exit(0);
+                }
+                // else go to help
+                vm.insert(std::make_pair("help", boost::program_options::variable_value()));
+            }
             if(vm.count("help")) {
-                std::cerr << "Usage: " << PROJECT_NAME << " [settings]\n";
-                std::cerr << generic << "\n";
+                std::cerr << "Usage: \t" << PROJECT_NAME << " [settings]\n";
+                std::cerr <<  "\t"<< PROJECT_NAME <<" [help]\t\t print all possible commands "<< "\n";
+                std::cerr << generic;
+
                 std::cerr << config << "\n";
 
                 print_version();
@@ -257,11 +324,10 @@ class settings {
                 exit(0);
             }
 
-            if(vm.count("bank") || vm.count("address")) {
+            if(vm.count("secret")) {
                 std::string line;
-                if (vm.count("secret")) {
-                    line = vm["secret"].as<std::string>();
-                } else {
+                line = vm["secret"].as<std::string>();
+                if (line == "-") {
                     std::cerr << "ENTER passphrase or private key\n";
                     std::getline(std::cin,line);
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
@@ -270,6 +336,8 @@ class settings {
                         exit(1);
                     }
                 }
+                char pktext[2*32+1];
+                pktext[2*32]='\0';
                 if(line.length() == 64 && line.find_first_not_of("0123456789abcdefABCDEF") == std::string::npos) {
                     skey = line;
                     ed25519_text2key(sk,skey.c_str(),32);
@@ -284,6 +352,7 @@ class settings {
                     ed25519_key2text(pktext,pk,32);
                 }
                 std::cerr << "Public key: " << std::string(pktext) << std::endl;
+                without_secret = false;
             }
 
             if(vm.count("port")) {
@@ -336,8 +405,8 @@ class settings {
             if (vm.count("olog")) {
                 std::cerr << "LogOutput: " << vm["olog"].as<bool>() << std::endl;
             }
-            if (vm.count("drun")) {
-                std::cerr << "Dry Run  : " << vm["drun"].as<bool>() << std::endl;
+            if (vm.count("dry-run")) {
+                std::cerr << "Dry Run  : " << vm["dry-run"].as<bool>() << std::endl;
             }
             if (vm.count("hash")) {
                 if(hash.length()!=64) {

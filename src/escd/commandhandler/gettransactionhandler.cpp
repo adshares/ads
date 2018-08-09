@@ -30,11 +30,16 @@ void GetTransactionHandler::onExecute() {
     } else if (!msg->hash_tree_get(m_command->getPosition(), hashes, mnum)) {
         errorCode = ErrorCodes::Code::eFailToReadTxnInfo;
     } else  {
-        Helper::Servers servers;
-        servers.setNow(msg->path);
-        if (!servers.getMsglHashTree(msg->svid, msg->msid, mnum, hashes)) {
+        //Helper::Servers servers;
+        //servers.setNow(msg->path);
+        servers srvs_;
+        srvs_.now=msg->path;
+        //if (!servers.getMsglHashTree(msg->svid, msg->msid, mnum, hashes)) {
+        if(!srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes))
+        {
             errorCode = ErrorCodes::Code::eFailToGetHashTree;
-        } else {
+        }
+        else {
             res.path=msg->path;
             res.msid=msg->msid;
             res.node=msg->svid;
@@ -56,7 +61,7 @@ void GetTransactionHandler::onExecute() {
         }
         boost::asio::write(m_socket, response);
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
 }
 

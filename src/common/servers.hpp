@@ -209,7 +209,7 @@ class servers { // also a block
     }
 
     void init_fast(uint16_t node_count, hash_t pk) {
-        std::cout << "init_fast" << node_count << std::endl;
+        std::cout << "init_fast " << node_count << std::endl;
         assert(nodes.size() == 0 || nodes[0].status == SERVER_FST);
         node nn;
         nn.status = SERVER_FST;
@@ -259,7 +259,7 @@ class servers { // also a block
                     if (num == 1) {
                         it->status |= SERVER_VIP;
                     }
-                    it->users = 1;
+
                     // create the first user
                     user_t u;
                     init_user(u, num, 0, stw, it->pk, now, num, 0);
@@ -267,6 +267,7 @@ class servers { // also a block
                     //update_nodehash(num);
                     memcpy(it->hash, u.csum, SHA256_DIGEST_LENGTH);
                     it->weight = u.weight;
+                    it->users = 1;
                     init_node_hash(*it);
                 } else {
                     bzero(it->hash, SHA256_DIGEST_LENGTH);
@@ -289,7 +290,8 @@ class servers { // also a block
         assert(num > 0);
         //vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
         vtot = 1;
-        finish();
+        //finish();
+        update_vipstatus();
         write_start();
         now = 0;
         put();
@@ -384,12 +386,13 @@ class servers { // also a block
         SHA256_Final(u.hash,&sha256);
     }
 
-    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t node,uint16_t user) {
+    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t /*node*/,uint32_t /*user*/) {
         memset(&u,0,sizeof(user_t));
         u.msid=1; // always >0 to help identify holes in delta files
         u.time=when;
-        u.node=node;
-        u.user=user;
+        //do not create a local paired account
+        u.node=0;
+        u.user=0;
         u.lpath=when;
         u.rpath=when; //-START_AGE;
         u.weight=weight;
@@ -403,7 +406,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, put_user failed to open account file %s, fatal\n",filename);
             exit(-1);
         }
         lseek(fd,uid*sizeof(user_t),SEEK_SET);
@@ -420,7 +423,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, get_user failed to open account file %s, fatal\n",filename);
             return;
         }
         lseek(fd,uid*sizeof(user_t),SEEK_SET);
@@ -528,7 +531,7 @@ class servers { // also a block
         sprintf(filename,"usr/%04X.dat",peer);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
-            ELOG("ERROR, failed to open account file %s, fatal\n",filename);
+            ELOG("ERROR, check_nodehash failed to open account file %s, fatal\n",filename);
             exit(-1);
         }
         uint64_t csum[4]= {0,0,0,0};
@@ -775,112 +778,102 @@ class servers { // also a block
         return(1);
     }
     //! replaced by Parser::MsglistParser
-//    bool msgl_hash_tree_get(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes) {
-//        if(!mnum) {
-//            //refuse to provide hashpath without svid-msid index (mnum)
-//            return(false);
-//        }
-//        if(!msg && !header_get()) {
-//            return(false);
-//        }
-//        char filename[64];
-//        sprintf(filename,"blk/%03X/%05X/msglist.dat",now>>20,now&0xFFFFF);
-//        int fd=open(filename,O_RDONLY);
-//        if(fd<0) {
-//            DLOG("ERROR %s not found\n",filename);
-//            return(false);
-//        }
-//        if((--mnum)%2) {
-//#pragma pack(1)
-//            struct {
-//                hash_s ha;
-//                uint16_t svid;
-//                uint32_t msid;
-//            } tmp;
-//#pragma pack()
-//            assert(sizeof(tmp)==32+2+4);
-//            //uint8_t tmp[32+2+4]; // do not read own hash
-//            lseek(fd,4+32+(2+4+32)*(mnum)-32,SEEK_SET);
-//            read(fd,(char*)&tmp,32+2+4); // do not read own hash
-//            //if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
-//            if(tmp.svid!=svid || tmp.msid!=msid) {
-//                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-//                     tmp.svid,tmp.msid);
-//                close(fd);
-//                return(false);
-//            }
-//            DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
-//            //hashes.push_back(*(hash_s*)(&tmp[0]));
-//            hashes.push_back(tmp.ha);
-//        } else {
-//#pragma pack(1)
-//            struct {
-//                uint16_t svid1;
-//                uint32_t msid1;
-//                hash_s ha1;
-//                uint16_t svid2;
-//                uint32_t msid2;
-//                hash_s ha2;
-//            }
-//            tmp;
-//#pragma pack()
-//            assert(sizeof(tmp)==2+4+32+2+4+32);
-//            //uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
-//            lseek(fd,4+32+(2+4+32)*(mnum),SEEK_SET);
-//            read(fd,(char*)&tmp,2+4+32+2+4+32); // do not read own hash
-//            //if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
-//            if(tmp.svid1!=svid || tmp.msid1!=msid) {
-//                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
-//                     tmp.svid1,tmp.msid1);
-//                close(fd);
-//                return(false);
-//            }
-//            if(mnum<msg-1) {
-//                DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
-//                //hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));
-//                hashes.push_back(tmp.ha2);
-//            } else {
-//                DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);
-//            }
-//        }
-//        uint32_t htot;
-//        lseek(fd,4+32+(2+4+32)*msg,SEEK_SET);
-//        read(fd,&htot,4); //needed only for debugging
-//        std::vector<uint32_t>add;
-//        hashtree tree;
-//        tree.hashpath(mnum/2,(msg+1)/2,add);
-//        for(auto n : add) {
-//            DLOG("HASHTREE add %d\n",n);
-//            assert(n<htot);
-//            lseek(fd,4+32+(2+4+32)*msg+4+32*n,SEEK_SET);
-//            hash_s phash;
-//            read(fd,phash.hash,32);
-//            hashes.push_back(phash);
-//        }
-//        close(fd);
-//        //DEBUG only, confirm hash
-//        hash_t nhash;
-//        tree.hashpathrun(nhash,hashes);
-//        if(memcmp(msghash,nhash,32)) {
-//            DLOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
-//            return(false);
-//        }
-//        //add header hashes
-//        //hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
-//        //hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
-//        hash_s* hashmin=(hash_s*)minhash;
-//        hashes.push_back(*hashmin);
-//        //hashes.push_back(*(hash_s*)minhash);
-//        //DEBUG only, confirm nowhash
-//        //tree.addhash(nhash,viphash); // removed to save on _TXS traffic
-//        //tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
-//        tree.addhash(nhash,minhash);
-//        if(memcmp(nowhash,nhash,32)) {
-//            DLOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
-//            return(false);
-//        }
-//        return(true);
-//    }
+    bool msgl_hash_tree_get(uint16_t svid,uint32_t msid,uint32_t mnum,std::vector<hash_s>& hashes)
+    {	if(!mnum){ //refuse to provide hashpath without svid-msid index (mnum)
+            return(false);}
+        if(!msg && !header_get()){
+            return(false);}
+        char filename[64];
+        Helper::FileName::getName(filename, now, "msglist.dat");
+        Helper::BlockFileReader fd(filename);
+        if(!fd.isOpen()) {
+            DLOG("ERROR %s not found\n",filename);
+            return(false);}
+        if((--mnum)%2){
+#pragma pack(1)
+            struct {hash_s ha;uint16_t svid;uint32_t msid;} tmp;
+#pragma pack()
+            assert(sizeof(tmp)==32+2+4);
+            //uint8_t tmp[32+2+4]; // do not read own hash
+            fd.lseek(4+32+(2+4+32)*(mnum)-32,SEEK_SET);
+            fd.read((char*)&tmp,32+2+4); // do not read own hash
+            //if(*(uint16_t*)(&tmp[32])!=svid || *(uint32_t*)(&tmp[32+2])!=msid)
+            if(tmp.svid!=svid || tmp.msid!=msid){
+                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+                    tmp.svid,tmp.msid);
+                fd.close();
+                return(false);}
+            DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum-1,msg);
+            //hashes.push_back(*(hash_s*)(&tmp[0]));
+            hashes.push_back(tmp.ha);}
+        else{
+#pragma pack(1)
+            struct {uint16_t svid1;uint32_t msid1;hash_s ha1;uint16_t svid2;uint32_t msid2;hash_s ha2;}
+                tmp;
+#pragma pack()
+            assert(sizeof(tmp)==2+4+32+2+4+32);
+            //uint8_t tmp[2+4+32+2+4+32]; // do not read own hash
+            fd.lseek(4+32+(2+4+32)*(mnum),SEEK_SET);
+            fd.read((char*)&tmp,2+4+32+2+4+32); // do not read own hash
+            //if(*(uint16_t*)(&tmp[0])!=svid || *(uint32_t*)(&tmp[2])!=msid)
+            if(tmp.svid1!=svid || tmp.msid1!=msid){
+                DLOG("ERROR %s bad index %d %04X:%08X <> %04X:%08X\n",filename,mnum,svid,msid,
+                    tmp.svid1,tmp.msid1);
+                fd.close();
+                return(false);}
+            if(mnum<msg-1){
+                DLOG("HASHTREE start %d + %d [max:%d]\n",mnum,mnum+1,msg);
+                //hashes.push_back(*(hash_s*)(&tmp[2+4+32+2+4]));
+                hashes.push_back(tmp.ha2);}
+            else{
+                DLOG("HASHTREE start %d [max:%d]\n",mnum,msg);}}
+        uint32_t htot;
+        fd.lseek(4+32+(2+4+32)*msg,SEEK_SET);
+        fd.read(&htot,4); //needed only for debugging
+        DLOG("HASHTREE htot %d\n",htot);
+        std::vector<uint32_t>add;
+        hashtree tree;
+        tree.hashpath(mnum/2,(msg+1)/2,add);
+        uint32_t m=32*32; //just a large number
+        if(msg%2){ //calculate hash missing in appended hashlist
+            uint32_t tm=msg>>1;
+            m=(tm<<1)-tree.bits(tm);
+            DLOG("HASHTREE special %d\n",m);}
+        for(auto n : add){
+            DLOG("HASHTREE add %d\n",n);
+            if(n<m){
+                assert(n<htot);
+                fd.lseek(4+32+(2+4+32)*msg+4+32*n,SEEK_SET);}
+            else if(n==m){
+                fd.lseek(4+32+(2+4+32)*msg-32,SEEK_SET);}
+            else{
+                assert(n-1<htot);
+                fd.lseek(4+32+(2+4+32)*msg+4+32*(n-1),SEEK_SET);}
+            hash_s phash;
+            fd.read(phash.hash,32);
+            hashes.push_back(phash);}
+        fd.close();
+        //DEBUG only, confirm hash
+            hash_t nhash;
+            tree.hashpathrun(nhash,hashes);
+            if(memcmp(msghash,nhash,32)){
+                DLOG("HASHTREE failed (path len:%d) to get msghash\n",(int)hashes.size());
+                return(false);}
+        //add header hashes
+        //hashes.push_back(*(hash_s*)viphash); // removed to save on _TXS traffic
+        //hashes.push_back(*(hash_s*)oldhash); // removed to save on _TXS traffic
+        hash_s* hashmin=(hash_s*)minhash;
+        hashes.push_back(*hashmin);
+        //hashes.push_back(*(hash_s*)minhash);
+        //DEBUG only, confirm nowhash
+            //tree.addhash(nhash,viphash); // removed to save on _TXS traffic
+            //tree.addhash(nhash,oldhash); // removed to save on _TXS traffic
+            tree.addhash(nhash,minhash);
+            if(memcmp(nowhash,nhash,32)){
+                DLOG("HASHTREE failed (path len:%d) to get nowhash\n",(int)hashes.size());
+                return(false);}
+        return(true);
+    }
 
     uint16_t get_vipuno() {
       for(uint16_t i=1;i<nodes.size();i++){
@@ -924,6 +917,9 @@ class servers { // also a block
         std::vector<uint16_t> svid_rank;
         for(i=1; i<nodes.size(); i++) {
             if(nodes[i].status & SERVER_DBL ) {
+                continue;
+            }
+            if(nodes[i].mtim > 0 && nodes[i].mtim < now - BLOCKDIV*BLOCKSEC) {
                 continue;
             }
             svid_rank.push_back(i);
@@ -1193,7 +1189,7 @@ class servers { // also a block
     int header_get() {
         char filename[64];
         if(!now) {
-            sprintf(filename,"blk/header.hdr");
+            snprintf(filename,sizeof(filename),"blk/header.hdr");
         } else {
             Helper::FileName::getName(filename, now, "header.hdr");
         }
@@ -1405,6 +1401,7 @@ class servers { // also a block
                     vno=num+1;
                 }
             }
+            header_put();
         }
     }
     bool get_signatures(uint32_t path,uint8_t* &data,uint32_t &nok)
@@ -1463,7 +1460,7 @@ class servers { // also a block
         // does not use any local data
 
         extern boost::mutex siglock;
-        boost::lock_guard<boost::mutex> lock(siglock);        
+        boost::lock_guard<boost::mutex> lock(siglock);
 
         char filename[64];
         Helper::FileName::getName(filename, path, "signatures.ok");

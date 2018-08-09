@@ -90,6 +90,7 @@ class GetMessage : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
       public:
 
@@ -100,6 +101,7 @@ class GetMessage : public BlockCommand {
         GetMessageData          m_data;
         commandresponse         m_response;
         message_ptr             m_responseMsg;
+        uint32_t                m_responseBlock;
 };
 
 #endif // GETMESSAGE_H

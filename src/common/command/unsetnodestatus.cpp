@@ -105,13 +105,13 @@ bool UnsetNodeStatus::send(INetworkClient& netClient)
 }
 
 void UnsetNodeStatus::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -154,4 +154,11 @@ uint32_t UnsetNodeStatus::getDestBankId() {
 
 uint32_t UnsetNodeStatus::getStatus() {
     return m_data.info.status;
+}
+
+std::string  UnsetNodeStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"unset_node_status\",\"node\":<node id>,\"status\":<bits_to_unset>}" << "\n";
+    ss << "Example: " << "{\"run\":\"unset_node_status\",\"node\":\"1\",\"status\":\"8\"}" << "\n";
+    return ss.str();
 }

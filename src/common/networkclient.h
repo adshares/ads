@@ -24,6 +24,7 @@ class NetworkClient : public INetworkClient {
     virtual bool readData(char* buff, int size)         override;
     virtual bool readData(std::vector<uint8_t>& buff)   override;
     virtual bool readData(int32_t* buff, int size)      override;
+    virtual bool isConnected()                          override;
 
   private:
     boost::asio::io_service                             m_ioService;

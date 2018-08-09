@@ -28,6 +28,7 @@ public:
         eWrongSignature,
         eDuplicatedTarget,
         eAmountBelowZero,
+        eAmountNotPositive,
         eUserBadTarget,
         eNodeBadTarget,
         eTimeInFuture,
@@ -65,7 +66,9 @@ public:
         eFailedToReadBlockStart,
         eFailedToReadBlockAtStart,
         eNoBlockInSpecifiedRange,
-        eCouldNotReadCorrectVipKeys
+        eCouldNotReadCorrectVipKeys,
+        eNoNewBLocks,
+        eProtocolMismatch
     };
 
 private:
@@ -88,9 +91,10 @@ private:
         { Code::eWrongSignature, "Wrong signature" },
         { Code::eDuplicatedTarget, "Duplicated target" },
         { Code::eAmountBelowZero, "Amount below zero" },
+        { Code::eAmountNotPositive, "Amount must be positive" },
         { Code::eUserBadTarget, "Bad target user" },
         { Code::eNodeBadTarget, "Bad target node" },
-        { Code::eTimeInFuture, "Can't perform operation, inserted time value is in feature" },
+        { Code::eTimeInFuture, "Can't perform operation, inserted time value is in future" },
         { Code::eBroadcastNotReady, "Broadcast not ready, try again later" },
         { Code::eNoBroadcastFile, "No broadcast file to send" },
         { Code::eNoMessageListFile, "No message list file" },
@@ -125,7 +129,9 @@ private:
         { Code::eFailedToReadBlockStart, "Failed to read block start"},
         { Code::eFailedToReadBlockAtStart, "Failed to read block at start"},
         { Code::eNoBlockInSpecifiedRange, "Failed to read block in specified block range"},
-        { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"}
+        { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"},
+        { Code::eNoNewBLocks, "No new blocks to download"},
+        { Code::eProtocolMismatch, "Server and client protocol does not match"}
    };
 
 public:

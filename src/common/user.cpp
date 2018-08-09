@@ -44,7 +44,7 @@ boost::recursive_mutex flog; //to compile LOG()
 using namespace Helper;
 
 
-FILE* stdlog=stderr; //to compile LOG()
+FILE* stdlog=nullptr; //to compile LOG()
 
 bool parse_user(uint32_t& to_user,std::string str_user) {
     char *endptr;
@@ -68,6 +68,10 @@ bool parse_key(uint8_t* to_key,boost::optional<std::string>& json_key,int len) {
         fprintf(stderr,"ERROR: parse_key(%s) bad string length (required %d)\n",str_key.c_str(),2*len);
         return(false);
     }
+    if(str_key.find_first_not_of("0123456789abcdefABCDEF") != std::string::npos) {
+        fprintf(stderr,"ERROR: parse_key(%s) bad string format\n",str_key.c_str());
+        return(false);
+    }
     ed25519_text2key(to_key,str_key.c_str(),len);
     return(true);
 }
@@ -80,20 +84,26 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0) {
     }
 }
 
-std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) {
+std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, std::string& json_run) {
     uint16_t    to_bank=0;
     uint32_t    to_user=0;
     int64_t     to_mass=0;
     uint32_t    to_from=0;
     uint8_t     to_info[32]= {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     uint8_t     to_pkey[32];
-    uint8_t     to_sign[64];    
+    uint8_t     to_confirm[64];
+    uint8_t     to_signature[64];
     std::string txn_type{};
     uint32_t    now=time(NULL);
     uint32_t    to_block=now-(now%BLOCKSEC)-BLOCKSEC;
     boost::property_tree::ptree pt;
 
+    uint16_t sts_bank = sts.bank;
+    uint32_t sts_user = sts.user;
+
+
     std::stringstream ss(line);
+    sts.signature_provided = false;
 
     try {
         boost::property_tree::read_json(ss,pt);
@@ -103,11 +113,48 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         return nullptr;
     }
 
-    boost::optional<std::string> json_sign=pt.get_optional<std::string>("signature");
-    if(json_sign && !parse_key(to_sign,json_sign,64)) {
+    std::string run=pt.get<std::string>("run");
+    json_run = run;
+
+    boost::optional<std::string> json_signature=pt.get_optional<std::string>("signature");
+    if(json_signature) {
+        if(parse_key(to_signature,json_signature,64)) {
+            sts.signature_provided = true;
+        } else {
+            return nullptr;
+        }
+    }
+
+    boost::optional<std::string> json_sender=pt.get_optional<std::string>("sender");
+    if(json_sender) {
+        if(!sts.drun && !sts.signature_provided) {
+            std::cerr << "Sender given but no signature provided. Abort." << std::endl;
+            return nullptr;
+        }
+        if(!sts.parse_acnt(sts_bank, sts_user, *json_sender)) {
+            std::cerr << "Invalid sender. Abort." << std::endl;
+            return nullptr;
+        }
+    }
+
+    if(json_run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
+      std::cerr << "No secret and no signature provided. Abort." << std::endl;
+      return nullptr;
+    }
+
+    if(json_run != "decode_raw" && sts.drun && sts.without_secret) {
+      std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
+    }
+
+    boost::optional<uint32_t> json_time=pt.get_optional<uint32_t>("time");
+    if(json_time) {
+        now=json_time.get();
+    }
+    boost::optional<std::string> json_confirm=pt.get_optional<std::string>("confirm");
+    if(json_confirm && !parse_key(to_confirm,json_confirm,64)) {
         return nullptr;
     }
-    boost::optional<std::string> json_pkey=pt.get_optional<std::string>("pkey");
+    boost::optional<std::string> json_pkey=pt.get_optional<std::string>("public_key");
     if(json_pkey && !parse_key(to_pkey,json_pkey,32)) {
         return nullptr;
     }
@@ -145,18 +192,18 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         txn_type = json_type.get();
     }
 
-    std::string run=pt.get<std::string>("run");
+
     std::unique_ptr<IBlockCommand> command;
 
     if(!run.compare("get_me")) {
-        command = std::make_unique<GetAccount>(sts.bank,sts.user,sts.bank,sts.user,now);
+        command = std::make_unique<GetAccount>(sts_bank,sts_user,sts_bank,sts_user,now);
     }
     else if(!run.compare(txsname[TXSTYPE_INF])) {
         if(!to_bank && !to_user) { // no target account specified
-            command = std::make_unique<GetAccount>(sts.bank,sts.user,sts.bank,sts.user,now);
+            command = std::make_unique<GetAccount>(sts_bank,sts_user,sts_bank,sts_user,now);
         }
         else {
-            command = std::make_unique<GetAccount>(sts.bank,sts.user,to_bank,to_user,now);
+            command = std::make_unique<GetAccount>(sts_bank,sts_user,to_bank,to_user,now);
         }
     }
     else if(!run.compare(txsname[TXSTYPE_LOG])) {
@@ -164,14 +211,14 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_from) {
             to_from=json_from.get();
         }
-        command = std::make_unique<GetLog>(sts.bank, sts.user, to_from, txn_type.c_str());
+        command = std::make_unique<GetLog>(sts_bank, sts_user, to_from, txn_type.c_str());
     }
     else if(!run.compare(txsname[TXSTYPE_BLG])) {
         boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from) {
             to_from=hexdec(json_from.get());
         }
-        command = std::make_unique<GetBroadcastMsg>(sts.bank, sts.user, to_from, now);
+        command = std::make_unique<GetBroadcastMsg>(sts_bank, sts_user, to_from, now);
     }
     else if(!run.compare(txsname[TXSTYPE_BLK])) {
         boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
@@ -190,7 +237,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_to) {
             to_to=hexdec(json_to.get());
         }
-        command = std::make_unique<GetBlocks>(sts.bank, sts.user, now, to_from, to_to);
+        command = std::make_unique<GetBlocks>(sts_bank, sts_user, now, to_from, to_to);
     }
     else if(!run.compare(txsname[TXSTYPE_TXS])) {
         uint32_t node_msid=0;
@@ -199,26 +246,26 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_txid && !sts.parse_txid(to_bank,node_msid,node_mpos,json_txid.get())) {
             return nullptr;
         }
-        command = std::make_unique<GetTransaction>(sts.bank, sts.user, to_bank, node_msid, node_mpos, now);
+        command = std::make_unique<GetTransaction>(sts_bank, sts_user, to_bank, node_msid, node_mpos, now);
     }
     else if(!run.compare(txsname[TXSTYPE_VIP])) {
         boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
         if(json_viphash && !parse_key(to_info,json_viphash,32)) {
             return nullptr;
         }
-        command = std::make_unique<GetVipKeys>(sts.bank, sts.user, now, to_info);
+        command = std::make_unique<GetVipKeys>(sts_bank, sts_user, now, to_info);
     }
     else if(!run.compare(txsname[TXSTYPE_SIG])) {
-        command = std::make_unique<GetSignatures>(sts.bank, sts.user, now, to_block);
+        command = std::make_unique<GetSignatures>(sts_bank, sts_user, now, to_block);
     }
     else if(!run.compare(txsname[TXSTYPE_NDS])) {
-        command = std::make_unique<GetBlock>(sts.bank, sts.user, to_block, now);
+        command = std::make_unique<GetBlock>(sts_bank, sts_user, to_block, now);
     }
     else if(!run.compare(txsname[TXSTYPE_NOD])) {
-        command = std::make_unique<GetAccounts>(sts.bank, sts.user, to_block, to_bank, now);
+        command = std::make_unique<GetAccounts>(sts_bank, sts_user, to_block, to_bank, now);
     }
     else if(!run.compare(txsname[TXSTYPE_MGS])) {
-        command = std::make_unique<GetMessageList>(sts.bank, sts.user, to_block, now);
+        command = std::make_unique<GetMessageList>(sts_bank, sts_user, to_block, now);
     }
     else if(!run.compare(txsname[TXSTYPE_MSG])) {
         uint32_t to_node_msid=0;
@@ -226,13 +273,26 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if(json_node_msid) {
             to_node_msid=json_node_msid.get();
         }
-        command = std::make_unique<GetMessage>(sts.bank, sts.user, to_block, to_bank, to_node_msid, now);
+
+        boost::optional<std::string> json_txid=pt.get_optional<std::string>("message_id");
+        if(json_txid && !sts.parse_msgid(to_bank,to_node_msid,json_txid.get())) {
+            return nullptr;
+        }
+
+        boost::optional<std::string> json_block=pt.get_optional<std::string>("block");
+        if(!json_block) {
+            to_block=0;
+        }
+        command = std::make_unique<GetMessage>(sts_bank, sts_user, to_block, to_bank, to_node_msid, now);
     }
-    else if(!run.compare("send_again")) {
+    else if(!run.compare("send_again") || !run.compare("send_raw") || !run.compare("decode_raw")) {
         boost::optional<std::string> json_data=pt.get_optional<std::string>("data");
         if(json_data) {
             std::string data_str=json_data.get();
             int len=data_str.length()/2;
+            if(len < 1) {
+                return nullptr;
+            }
             uint8_t *data=(uint8_t*)malloc(len+1);
             data[len]='\0';
             if(!parse_key(data,json_data,len)) {
@@ -242,9 +302,9 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
             command = command::factory::makeCommand(*data);
             command->setData((char*)data);
             free(data);
-            return command;
+        } else {
+          return nullptr;
         }
-        return nullptr;
     }
     else if(!run.compare(txsname[TXSTYPE_BRO])) {
         boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
@@ -258,7 +318,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
             text=json_text_asci.get();
         }
         if (!text.empty()) {
-            command = std::make_unique<BroadcastMsg>(sts.bank, sts.user, sts.msid, text.length(), text.c_str(), now);
+            command = std::make_unique<BroadcastMsg>(sts_bank, sts_user, sts.msid, text.length(), text.c_str(), now);
         }
     }
     else if(!run.compare(txsname[TXSTYPE_MPT])) {
@@ -279,35 +339,42 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         if (transactions.empty()) {
             return nullptr;
         }
-        command = std::make_unique<SendMany>(sts.bank, sts.user, sts.msid, transactions, now);
+        command = std::make_unique<SendMany>(sts_bank, sts_user, sts.msid, transactions, now);
     }
     else if(!run.compare(txsname[TXSTYPE_PUT])) {
         boost::optional<std::string> json_info=pt.get_optional<std::string>("message"); // TXSTYPE_PUT only
         if(json_info && !parse_key(to_info,json_info,32)) {
             return nullptr;
         }
-        command = std::make_unique<SendOne>(sts.bank,sts.user,sts.msid, to_bank, to_user, to_mass, to_info, now);
+        command = std::make_unique<SendOne>(sts_bank,sts_user,sts.msid, to_bank, to_user, to_mass, to_info, now);
     }
     else if(!run.compare(txsname[TXSTYPE_USR])) {
         if(!to_bank) {
-            to_bank=sts.bank;
+            to_bank=sts_bank;
         }
-        command = std::make_unique<CreateAccount>(sts.bank, sts.user, sts.msid, to_bank, now);
+
+        if(json_pkey && ed25519_sign_open((uint8_t*)nullptr, 0, to_pkey , to_confirm) == -1) {
+            return nullptr;
+        }
+        command = std::make_unique<CreateAccount>(sts_bank, sts_user, sts.msid, to_bank, now);
+
+        CreateAccount* keycommand = dynamic_cast<CreateAccount*>(command.get());
+        keycommand->setPublicKey(json_pkey ? to_pkey : sts.pk);
     }
     else if(!run.compare(txsname[TXSTYPE_BNK])) {
-        command = std::make_unique<CreateNode>(sts.bank, sts.user, sts.msid, now);
+        command = std::make_unique<CreateNode>(sts_bank, sts_user, sts.msid, now);
     }
     else if(!run.compare(txsname[TXSTYPE_SAV])) {
-        command = std::make_unique<LogAccount>(sts.bank, sts.user, sts.msid, now);
+        command = std::make_unique<LogAccount>(sts_bank, sts_user, sts.msid, now);
     }
     else if(!run.compare(txsname[TXSTYPE_GET])) {
-        command = std::make_unique<RetrieveFunds>(sts.bank, sts.user, sts.msid, now, to_bank, to_user);
+        command = std::make_unique<RetrieveFunds>(sts_bank, sts_user, sts.msid, now, to_bank, to_user);
     }
     else if(!run.compare(txsname[TXSTYPE_KEY])) {
-        command = std::make_unique<SetAccountKey>(sts.bank, sts.user, sts.msid, now, to_pkey, to_sign);
+        command = std::make_unique<SetAccountKey>(sts_bank, sts_user, sts.msid, now, to_pkey, to_confirm);
     }
     else if(!run.compare(txsname[TXSTYPE_BKY])) {
-        command = std::make_unique<ChangeNodeKey>(sts.bank, sts.user, sts.msid, to_bank, now, to_pkey);
+        command = std::make_unique<ChangeNodeKey>(sts_bank, sts_user, sts.msid, to_bank, now, to_pkey);
     }
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
 
@@ -315,7 +382,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         boost::optional<uint16_t> json_status=pt.get_optional<uint16_t>("status");
         if(json_status) {
             to_status=json_status.get();
-                    command = std::make_unique<SetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+                    command = std::make_unique<SetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
         }
     }
     else if(!run.compare(txsname[TXSTYPE_SBS])) {
@@ -323,7 +390,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
         if(json_status) {
             to_status=json_status.get();
-            command = std::make_unique<SetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+            command = std::make_unique<SetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
         }
     }
     else if(!run.compare(txsname[TXSTYPE_UUS])) {
@@ -331,7 +398,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         boost::optional<uint16_t> json_status=pt.get_optional<uint16_t>("status");
         if(json_status) {
             to_status=json_status.get();
-            command = std::make_unique<UnsetAccountStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_user, to_status);
+            command = std::make_unique<UnsetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
         }
 
     }
@@ -340,7 +407,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
         boost::optional<uint32_t> json_status=pt.get_optional<uint32_t>("status");
         if(json_status) {
             to_status=json_status.get();
-            command = std::make_unique<UnsetNodeStatus>(sts.bank, sts.user, sts.msid, now, to_bank, to_status);
+            command = std::make_unique<UnsetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
         }
     }
     else if (!run.compare(txsname[TXSTYPE_GFI])) {
@@ -352,7 +419,15 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line) 
     }
 
     if(command) {
-        command->sign(sts.ha.data(), sts.sk, sts.pk);
+        if(sts.signature_provided) {
+          memcpy(command->getSignature(), to_signature, command->getSignatureSize());
+        } else {
+            if(json_run == "decode_raw") {
+                bzero(command->getSignature(), command->getSignatureSize());
+            } else {
+                command->sign(sts.ha.data(), sts.sk, sts.pk);
+            }
+        }
     }
 
     if(!run.compare(txsname[TXSTYPE_KEY]) && command) {

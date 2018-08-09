@@ -120,13 +120,13 @@ bool LogAccount::send(INetworkClient& netClient)
 }
 
 void LogAccount::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -172,4 +172,11 @@ void LogAccount::setAdditionalData(char* data) {
 
 int LogAccount::getAdditionalDataSize() {
     return sizeof(m_userData);
+}
+
+std::string LogAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"log_account\"}" << "\n";
+    ss << "Example: " << "{\"run\":\"log_account\"}" << "\n";
+    return ss.str();
 }

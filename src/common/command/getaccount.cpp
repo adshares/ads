@@ -8,7 +8,7 @@ GetAccount::GetAccount()
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser,
+GetAccount::GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint32_t buser,
                        uint32_t time)
     : m_data( abank, auser, bbank, buser, time) {
     m_responseError = ErrorCodes::Code::eNone;
@@ -147,3 +147,9 @@ void GetAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
+std::string GetAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_account\",[\"address\":<account_id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_account\",\"address\":\"0002-00000005-XXXX\"}" << "\n";
+    return ss.str();
+}

@@ -11,17 +11,43 @@
 using namespace std;
 
 
-ErrorCodes::Code talk(NetworkClient& netClient, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
-    if(!netClient.reconnect()) {
-        ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
-        return ErrorCodes::Code::eConnectServerError;
+ErrorCodes::Code talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
+    if(sts.drun && command->getCommandType() == CommandType::eModifying) {
+      respHandler.onDryRun(std::move(command));
+      return ErrorCodes::Code::eNone;
+    }
+
+    if(!netClient.isConnected()) {
+        if(!netClient.connect()) {
+            ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
+            return ErrorCodes::Code::eConnectServerError;
+        }
+        int32_t version = CLIENT_PROTOCOL_VERSION;
+        int32_t node_version;
+#ifdef DEBUG
+        version = -version;
+#endif
+        netClient.sendData(reinterpret_cast<unsigned char*>(&version), sizeof(version));
+
+        if(!netClient.readData(&node_version, sizeof(node_version))) {
+            netClient.disConnect();
+            return ErrorCodes::Code::eConnectServerError;
+        }
+
+        uint8_t version_error;
+        if(!netClient.readData(&version_error, 1) || version_error) {
+            ELOG("Version mismatch client(%d) != node(%d)\n", version, node_version);
+            netClient.disConnect();
+            return ErrorCodes::Code::eProtocolMismatch;
+        }
     }
 
     if(command->send(netClient) ) {
         respHandler.onExecute(std::move(command));
     } else {
         ELOG("ERROR reading global info talk\n");
-        return ErrorCodes::Code::eConnectServerError;
+        netClient.disConnect();
+        return command->m_responseError ? command->m_responseError : ErrorCodes::Code::eConnectServerError;
     }
 
     return ErrorCodes::Code::eNone;
@@ -61,10 +87,17 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            auto command = run_json(sts, line);
+            std::string json_run;
+            auto command = run_json(sts, line, json_run);
 
             if(command) {
-                responseError = talk(netClient, respHandler, std::move(command));
+                if(json_run == "decode_raw") {
+                    boost::property_tree::ptree pt;
+                    command->txnToJson(pt);
+                    boost::property_tree::write_json(std::cout, pt, sts.nice);
+                } else {
+                    responseError = talk(netClient, sts, respHandler, std::move(command));
+                }
             }
             else {
                 responseError = ErrorCodes::Code::eCommandParseError;
@@ -73,14 +106,17 @@ int main(int argc, char* argv[]) {
             if(responseError)
             {
                 boost::property_tree::ptree pt;
-                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(responseError));
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
 
         }
     } catch (std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
+        Helper::printErrorJson("Unknown error occured", sts.nice);
     }
+
+    netClient.disConnect();
 
     return 0;
 }

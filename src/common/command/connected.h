@@ -8,7 +8,7 @@
 class Connected : public BlockCommand {
     public:
         Connected();
-        Connected(uint16_t port, uint32_t ip_address);
+        Connected(uint16_t port, uint32_t ip_address, std::string version);
 
         /** \brief Return TXSTYPE_CON as type . */
         virtual int  getType()                                      override;
@@ -87,6 +87,7 @@ class Connected : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
       public:
         ConnectedInfo           m_data;

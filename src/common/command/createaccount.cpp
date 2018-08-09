@@ -28,10 +28,6 @@ unsigned char* CreateAccount::getResponse() {
 
 void CreateAccount::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
-    char *data_ptr = data + getDataSize();
-    setAdditionalData(data_ptr);
-    data_ptr += getAdditionalDataSize();
-    std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
 }
 
 void CreateAccount::setResponse(char* response) {
@@ -71,13 +67,13 @@ bool CreateAccount::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 void CreateAccount::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -156,6 +152,14 @@ int CreateAccount::getAdditionalDataSize() {
     return sizeof(m_newAccount);
 }
 
+unsigned char* CreateAccount::getPublicKey() {
+    return reinterpret_cast<unsigned char*>(&m_newAccount.user_pkey);
+}
+
+void CreateAccount::setPublicKey(uint8_t user_pkey[SHA256_DIGEST_LENGTH]) {
+    memcpy(m_newAccount.user_pkey, user_pkey, SHA256_DIGEST_LENGTH);
+}
+
 uint32_t CreateAccount::getDestBankId() {
     return m_data.info.dst_node;
 }
@@ -177,13 +181,13 @@ void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
         Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
         Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
         // only for account created in the same node
-        if (m_response.usera.user) {
+        if (m_response.new_user) {
             char nAccountAddress[19]="";
-            uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.usera.user);
-            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.usera.user, suffix);
+            uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.new_user);
+            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.new_user, suffix);
             ptree.put("new_account.address", nAccountAddress);
             ptree.put("new_account.node", this->getBankId());
-            ptree.put("new_account.id", m_response.usera.user);
+            ptree.put("new_account.id", m_response.new_user);
         }
     } else {
         if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
@@ -204,4 +208,11 @@ void CreateAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::DST_NODE, m_data.info.dst_node);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string CreateAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"create_account\",[\"node\":<node id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"create_account\",\"node\":\"2\"}" << "\n";
+    return ss.str();
 }

@@ -8,8 +8,8 @@
 namespace {
 struct Header {
     //uint32_t type_and_length;
-    uint32_t    type:8;
-    uint32_t    lenght:24;
+    uint32_t    type:8,
+                lenght:24;
     uint8_t     signature[64];
     uint16_t    svid;
     uint32_t    msid;

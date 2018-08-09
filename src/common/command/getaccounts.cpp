@@ -183,8 +183,9 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
                 memcpy(dp,&u,sizeof(user_t));
             }
         }
-        close(fd);
     }
+    close(fd);
+
     return errorCode;
 }
 
@@ -197,4 +198,11 @@ void GetAccounts::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::BLOCK, m_data.info.block);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string GetAccounts::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_accounts\",[\"node\":<node id>],[\"block\":<block_time as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_accounts\",\"node\":\"1\",\"block\":\"5B052CE0\"}" << "\n";
+    return ss.str();
 }

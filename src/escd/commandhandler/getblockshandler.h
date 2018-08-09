@@ -32,8 +32,7 @@ class GetBlocksHandler : public CommandHandler {
         uint32_t from,
         uint32_t to,
         header_t& header,
-        Helper::Block& currentHeader,
-        int vipTot);
+        Helper::Block& currentHeader);
     void sendFirstVipKeysIfNeeded();
     void sendNewVipKeys();
     void sendBlockHeaders();

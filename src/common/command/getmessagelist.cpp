@@ -66,9 +66,6 @@ bool GetMessageList::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) 
 }
 
 void GetMessageList::saveResponse(settings& /*sts*/) {
-    if (m_responseMessageList.empty()) {
-        m_responseError = ErrorCodes::Code::eBadLength;
-    }
 }
 
 uint32_t GetMessageList::getUserId() {
@@ -168,24 +165,19 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         hash[64]='\0';
         ed25519_key2text(hash, m_responseTxnHash,32);
         ptree.put("msghash",hash);
+        ptree.put("message_count",m_responseMessageList.size());
         hashtree htree;
-        boost::property_tree::ptree msghashes;
+        boost::property_tree::ptree messages;
         for (auto &it : m_responseMessageList) {
             boost::property_tree::ptree msghash;
-
-            char nodehex[5];
-            nodehex[4]='\0';
-            sprintf(nodehex,"%04X", it.node_id);
-            msghash.put("node", nodehex);
-
-            msghash.put("node_msid", it.node_msid);
             ed25519_key2text(hash, it.hash,32);
-            msghash.put("hash", hash);
+            msghash.put_value(Helper::print_msg_pack_id(it.node_id, it.node_msid));
             htree.update(it.hash);
-            msghashes.push_back(std::make_pair("",msghash));
+            messages.push_back(std::make_pair("",msghash));
         }
         uint8_t fullHash[SHA256_DIGEST_LENGTH];
         htree.finish(fullHash);
+
 
         if(memcmp(m_responseTxnHash, fullHash, SHA256_DIGEST_LENGTH)) {
             ed25519_key2text(hash, fullHash, SHA256_DIGEST_LENGTH);
@@ -194,7 +186,9 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
         } else {
             ptree.put("confirmed","yes");
         }
-        ptree.add_child("messages",msghashes);
+        if(m_responseMessageList.size() > 0) {
+            ptree.add_child("messages",messages);
+        }
     }
 }
 
@@ -206,4 +200,11 @@ void GetMessageList::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::BLOCK, m_data.info.block);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string GetMessageList::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_message_list\",[\"block\":<block time as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_message_list\",\"block\":\"5B052CE0\"}" << "\n";
+    return ss.str();
 }

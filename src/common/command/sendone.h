@@ -8,7 +8,7 @@
 class SendOne : public BlockCommand {
     public:
         SendOne();
-        SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
+        SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time);
 
         /** \brief Return TXSTYPE_PUT as type . */
         virtual int  getType()                                      override;
@@ -94,6 +94,7 @@ class SendOne : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
       public:
         /**  \brief Get destination bank id. */
