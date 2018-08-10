@@ -8,7 +8,6 @@ server::server(options& opts) :
     ofip(NULL),
     opts_(opts),
     m_peerManager(*this, opts_),
-    clock_thread(NULL),
     do_validate(0),
     votes_max(0.0),
     do_vote(0),
@@ -269,7 +268,7 @@ void server::start() {
     recyclemsid(lastpath+BLOCKSEC);
     RETURN_ON_SHUTDOWN();
     writemsid(); // synced to new position
-    clock_thread = new boost::thread(boost::bind(&server::clock, this));
+    clock_thread = boost::thread(&server::clock, this);
     //start accept connections from peers
     m_peerManager.startAccept();
 }
@@ -278,9 +277,9 @@ void server::stop() {
     do_validate = 0;
     m_peerManager.stop();
 
-    if(clock_thread!=NULL) {
-        clock_thread->interrupt();
-        clock_thread->join();
+    if(clock_thread.joinable()) {
+        clock_thread.interrupt();
+        clock_thread.join();
     }
 
     threadpool.join_all();
