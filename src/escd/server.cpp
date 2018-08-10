@@ -2809,9 +2809,9 @@ bool server::process_message(message_ptr msg) {
             }
             srvs_.xor4(csum,usera->csum);
             if(*p==TXSTYPE_USR) {
-                srvs_.init_user(*usera,msg->svid,nuser,USER_MIN_MASS,(uint8_t*)npkey,utxs.ttime,utxs.abank,utxs.auser);
+                srvs_.init_user(*usera,msg->svid,nuser,USER_MIN_MASS,(uint8_t*)npkey,utxs.ttime);
             } else {
-                srvs_.init_user(*usera,msg->svid,nuser,0,(uint8_t*)npkey,utxs.ttime,utxs.bbank,utxs.buser);
+                srvs_.init_user(*usera,msg->svid,nuser,0,(uint8_t*)npkey,utxs.ttime);
             }
             srvs_.xor4(csum,usera->csum);
             srvs_.put_user(*usera,msg->svid,nuser);
@@ -3667,10 +3667,10 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
                 peer=(*bi)&0xffff;
                 new_bnk.erase(bi);
                 ELOG("BANK, overwrite %04X\n",peer);
-                srvs_.put_node(u,peer,abank,auser);
+                srvs_.put_node(u,peer);
             } //save_undo() in put_node() !!!
             else if(srvs_.nodes.size()<BANK_MAX-1) {
-                peer=srvs_.add_node(u,abank,auser); //deposits BANK_MIN_TMASS
+                peer=srvs_.add_node(u); //deposits BANK_MIN_TMASS
                 bank_fee.resize(srvs_.nodes.size());
                 ELOG("BANK, add new bank %04X\n",peer);
             } else {
