@@ -40,7 +40,7 @@ Usually you will also need to specify a host name.
     
 2. Configure and start the node
 
-	The ADS node use two TCP ports: 6510 and 6511 (by defaults). You will need to open both on the firewall. 
+	The ADS node uses two TCP ports: 6510 and 6511 (by defaults). You will need to [open both on the firewall](https://help.ubuntu.com/community/UFW). 
 	Configuration tool will ask you about the node number, a secret key and a host name.
 	 
 	```
