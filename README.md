@@ -27,7 +27,7 @@ ESC derives its name from the concept of the Enterprise Service Bus, where a cry
 
 ### Master node
 
-To setup the master node, you will need to provide a node identifier and a secret key. 
+To setup the master node, you will need to provide a node identifier (4 hexadecimal digits) and a secret key (64 hexadecimal digits). 
 Usually you will also need to specify a host name. 
 
 1. Install binaries from official PPA
