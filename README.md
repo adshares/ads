@@ -27,7 +27,7 @@ ESC derives its name from the concept of the Enterprise Service Bus, where a cry
 
 ### Master node
 
-To setup the master node, you will need to provide a node number and a secret key. 
+To setup the master node, you will need to provide a node identifier and a secret key. 
 Usually you will also need to specify a host name. 
 
 1. Install binaries from official PPA
@@ -41,7 +41,7 @@ Usually you will also need to specify a host name.
 2. Configure and start the node
 
 	The ADS node uses two TCP ports: 6510 and 6511 (by defaults). You will need to [open both on the firewall](https://help.ubuntu.com/community/UFW). 
-	Configuration tool will ask you about the node number, a secret key and a host name.
+	Configuration tool will ask you about the node identifier, a secret key and a host name.
 	 
 	```
 	ads-service configure
