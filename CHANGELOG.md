@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2018-08-24
+### Changed
+- Genesis file for the launch
+- Update README
+
+## [0.0.6] - 2018-08-10
+### Changed
+- Genesis file for test launch
+
 ## [0.0.5] - 2018-08-01
 ### Added
 - Support passing version by cmake command.
@@ -22,7 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v0.0.5...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.0.0...HEAD
 
+[0.0.5]: https://github.com/adshares/ads/compare/v0.0.6...v1.0.0
+[0.0.5]: https://github.com/adshares/ads/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/adshares/ads/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/adshares/ads/compare/v0.0.3...v0.0.4
