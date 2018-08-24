@@ -12,8 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update README
 
 ## [0.0.6] - 2018-08-10
+### Added
+- Profit sharing among TOP and VIP nodes
+
 ### Changed
 - Genesis file for test launch
+
+### Fixed
+- Vote counting in get_block command
+- Ability to send externally signed transactions
 
 ## [0.0.5] - 2018-08-01
 ### Added
