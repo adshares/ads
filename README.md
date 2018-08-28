@@ -27,8 +27,8 @@ ESC derives its name from the concept of the Enterprise Service Bus, where a cry
 
 ### Master node
 
-To setup the master node, you will need to provide a secret key (64 hexadecimal digits) and a node identifier (4 hexadecimal digits). 
-Usually you will also need to specify an IP address. 
+To set up the master node, you will need to provide a secret key (64 hexadecimal digits) and a node identifier (4 hexadecimal digits). 
+Usually, you will also need to specify an IP address. 
 
 1. Install binaries from official PPA
 
@@ -43,7 +43,7 @@ Usually you will also need to specify an IP address.
 	The ADS node uses two TCP ports: 6510 and 6511 (by defaults). You will need to [open both on the firewall](https://help.ubuntu.com/community/UFW). 
 	You must also remember to enable [server time synchronization](https://linuxconfig.org/ntp-server-configuration-on-ubuntu-18-04-bionic-beaver-linux).
 	
-	Configuration tool will ask you about a secret key, the node identifier and an IP address.
+	Configuration tool will ask you about a secret key, the node identifier, and an IP address.
 	 
 	```
 	ads-service configure
@@ -62,7 +62,7 @@ Usually you will also need to specify an IP address.
 ### Connecting to the node
 
 To connect to the node, you will usually need to provide an account address and secret key. 
-If the node runs on a machine other than the one where you log in, you will also need to specify a host name. 
+If the node runs on a machine other than the one where you log in, you will also need to specify a hostname. 
 Once you know the proper parameters, you should be able to connect like this:
 
 ```
