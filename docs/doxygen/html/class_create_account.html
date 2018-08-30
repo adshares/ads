@@ -169,6 +169,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a798e307bbf7691cc6fbc9aa0b93aa764"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a798e307bbf7691cc6fbc9aa0b93aa764"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a798e307bbf7691cc6fbc9aa0b93aa764"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6ff29c413d8dd7b31dd9d4325639b2eb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6ff29c413d8dd7b31dd9d4325639b2eb"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>usageHelperToString</b> () override</td></tr>
+<tr class="separator:a6ff29c413d8dd7b31dd9d4325639b2eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a48fceb8f97f6a0444e71eb367b5f93ee"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a48fceb8f97f6a0444e71eb367b5f93ee"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a48fceb8f97f6a0444e71eb367b5f93ee">getDestBankId</a> ()</td></tr>
 <tr class="memdesc:a48fceb8f97f6a0444e71eb367b5f93ee"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get destination bank id. <br /></td></tr>
@@ -184,6 +187,13 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" hr
 <tr class="memitem:a6b07b0953ca37d00441877aabe9ec027"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#a6b07b0953ca37d00441877aabe9ec027">setNewUser</a> (uint32_t userId, uint8_t userPkey[])</td></tr>
 <tr class="memdesc:a6b07b0953ca37d00441877aabe9ec027"><td class="mdescLeft">&#160;</td><td class="mdescRight">Setting new account data.  <a href="#a6b07b0953ca37d00441877aabe9ec027">More...</a><br /></td></tr>
 <tr class="separator:a6b07b0953ca37d00441877aabe9ec027"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acfd6431ee92f19449e3ad1440d683a12"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acfd6431ee92f19449e3ad1440d683a12"></a>
+virtual unsigned char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_create_account.html#acfd6431ee92f19449e3ad1440d683a12">getPublicKey</a> ()</td></tr>
+<tr class="memdesc:acfd6431ee92f19449e3ad1440d683a12"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get public key from additional data. <br /></td></tr>
+<tr class="separator:acfd6431ee92f19449e3ad1440d683a12"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4ed0d3e0cbb8171ea541a35d63fc251e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4ed0d3e0cbb8171ea541a35d63fc251e"></a>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>setPublicKey</b> (uint8_t user_pkey[SHA256_DIGEST_LENGTH])</td></tr>
+<tr class="separator:a4ed0d3e0cbb8171ea541a35d63fc251e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -239,7 +249,7 @@ Additional Inherited Members</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00069">69</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00065">65</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -288,7 +298,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00114">114</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00110">110</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -350,7 +360,7 @@ Here is the call graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00167">167</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00171">171</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -417,7 +427,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00065">65</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
+<p>Definition at line <a class="el" href="createaccount_8cpp_source.html#l00061">61</a> of file <a class="el" href="createaccount_8cpp_source.html">createaccount.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>

@@ -1,4 +1,4 @@
-.TH "TransactionFailed" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "TransactionFailed" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -106,6 +106,9 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
+.ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
+.br
 .in -1c
 .SS "Additional Inherited Members"
 .SH "Detailed Description"
@@ -131,7 +134,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 65 of file transactionfailed\&.cpp\&.
+Definition at line 64 of file transactionfailed\&.cpp\&.
 .SS "bool TransactionFailed::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -148,7 +151,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 97 of file transactionfailed\&.cpp\&.
+Definition at line 96 of file transactionfailed\&.cpp\&.
 .SS "void TransactionFailed::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -167,7 +170,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 61 of file transactionfailed\&.cpp\&.
+Definition at line 60 of file transactionfailed\&.cpp\&.
 
 .SH "Author"
 .PP 

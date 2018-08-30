@@ -1,4 +1,4 @@
-.TH "client" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "client" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -24,6 +24,9 @@ Inherits enable_shared_from_this< client >\&.
 .RI "void \fBstart\fP ()"
 .br
 .ti -1c
+.RI "void \fBhandle_read_version\fP (const boost::system::error_code &error)"
+.br
+.ti -1c
 .RI "void \fBhandle_read_txstype\fP (const boost::system::error_code &error)"
 .br
 .ti -1c
@@ -40,7 +43,7 @@ Inherits enable_shared_from_this< client >\&.
 .PP 
 Main class for esc client\&. Brief description continued\&. 
 .PP
-Definition at line 25 of file client\&.hpp\&.
+Definition at line 26 of file client\&.hpp\&.
 
 .SH "Author"
 .PP 

@@ -85,9 +85,9 @@ Collaboration diagram for Connected:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a3eeedeb7a67fb119d9fed08c4087e8d9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3eeedeb7a67fb119d9fed08c4087e8d9"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>Connected</b> (uint16_t port, uint32_t ip_address)</td></tr>
-<tr class="separator:a3eeedeb7a67fb119d9fed08c4087e8d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0abe93c4c2b250ae85d090c5e6c8e551"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0abe93c4c2b250ae85d090c5e6c8e551"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>Connected</b> (uint16_t port, uint32_t ip_address, std::string version)</td></tr>
+<tr class="separator:a0abe93c4c2b250ae85d090c5e6c8e551"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6bd3d0acffc0bbd8a002e61a5c2a8714"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_connected.html#a6bd3d0acffc0bbd8a002e61a5c2a8714">getType</a> () override</td></tr>
 <tr class="memdesc:a6bd3d0acffc0bbd8a002e61a5c2a8714"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_CON as type . <br /></td></tr>
@@ -174,6 +174,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:aedb76f6e7573e5b8819918df3a1309aa"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aedb76f6e7573e5b8819918df3a1309aa"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:aedb76f6e7573e5b8819918df3a1309aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acd375e25d0bac1cd59ef3b511d0290cf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acd375e25d0bac1cd59ef3b511d0290cf"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>usageHelperToString</b> () override</td></tr>
+<tr class="separator:acd375e25d0bac1cd59ef3b511d0290cf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>

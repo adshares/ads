@@ -81,9 +81,9 @@ Collaboration diagram for SendOne:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:ab80dba8140a433995fc6b46b9cd71c96"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab80dba8140a433995fc6b46b9cd71c96"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>SendOne</b> (uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)</td></tr>
-<tr class="separator:ab80dba8140a433995fc6b46b9cd71c96"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0146880253ecfd05e6706bd1368ed9ef"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0146880253ecfd05e6706bd1368ed9ef"></a>
+&#160;</td><td class="memItemRight" valign="bottom"><b>SendOne</b> (uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)</td></tr>
+<tr class="separator:a0146880253ecfd05e6706bd1368ed9ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aac0572a1fc8ae7d287d44a9f847c38cc"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#aac0572a1fc8ae7d287d44a9f847c38cc">getType</a> () override</td></tr>
 <tr class="memdesc:aac0572a1fc8ae7d287d44a9f847c38cc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_PUT as type . <br /></td></tr>
@@ -182,6 +182,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:ab259466d8eb3ff91a8c76c55af9bb007"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ab259466d8eb3ff91a8c76c55af9bb007"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:ab259466d8eb3ff91a8c76c55af9bb007"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aca543b096c2fc3affc44decff30cacf3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aca543b096c2fc3affc44decff30cacf3"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>usageHelperToString</b> () override</td></tr>
+<tr class="separator:aca543b096c2fc3affc44decff30cacf3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a279a6d3c65d5678c14b34e42ede4703c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a279a6d3c65d5678c14b34e42ede4703c"></a>
 virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_one.html#a279a6d3c65d5678c14b34e42ede4703c">getDestBankId</a> ()</td></tr>
 <tr class="memdesc:a279a6d3c65d5678c14b34e42ede4703c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get destination bank id. <br /></td></tr>

@@ -68,6 +68,9 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>parse_acnt</b> (uint1
 <tr class="memitem:a0ea7e0a09e14dc2e18f099620fb375c6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0ea7e0a09e14dc2e18f099620fb375c6"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>parse_txid</b> (uint16_t &amp;to_bank, uint32_t &amp;node_msid, uint32_t &amp;node_mpos, std::string str_txid)</td></tr>
 <tr class="separator:a0ea7e0a09e14dc2e18f099620fb375c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff69878b37b82ebe8cfd35cf004c1580"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aff69878b37b82ebe8cfd35cf004c1580"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>parse_msgid</b> (uint16_t &amp;to_bank, uint32_t &amp;node_msid, std::string str_txid)</td></tr>
+<tr class="separator:aff69878b37b82ebe8cfd35cf004c1580"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a52ec29514955b805af88ebe649f9663a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a52ec29514955b805af88ebe649f9663a"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>get</b> (int ac, char *av[])</td></tr>
 <tr class="separator:a52ec29514955b805af88ebe649f9663a"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -77,6 +80,9 @@ Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a6eb3cbe1923cc730612e81dbf4f95a00"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6eb3cbe1923cc730612e81dbf4f95a00"></a>
 static void&#160;</td><td class="memItemRight" valign="bottom"><b>print_version</b> ()</td></tr>
 <tr class="separator:a6eb3cbe1923cc730612e81dbf4f95a00"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5cb9fee138ff6d6f319c76a779334dba"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5cb9fee138ff6d6f319c76a779334dba"></a>
+static std::string&#160;</td><td class="memItemRight" valign="bottom"><b>get_version</b> (uint max_length=0)</td></tr>
+<tr class="separator:a5cb9fee138ff6d6f319c76a779334dba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd782549dde69a7852fb0f58751c3237"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acd782549dde69a7852fb0f58751c3237"></a>
 static void&#160;</td><td class="memItemRight" valign="bottom"><b>change_working_dir</b> (std::string workdir)</td></tr>
 <tr class="separator:acd782549dde69a7852fb0f58751c3237"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -116,6 +122,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>olog</b></td></tr>
 <tr class="memitem:a30069c9e96dcf5bb49a531d0b7e8f011"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a30069c9e96dcf5bb49a531d0b7e8f011"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>drun</b></td></tr>
 <tr class="separator:a30069c9e96dcf5bb49a531d0b7e8f011"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adebf55f50693ea18a206d4fa33c0772a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adebf55f50693ea18a206d4fa33c0772a"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>signature_provided</b> = false</td></tr>
+<tr class="separator:adebf55f50693ea18a206d4fa33c0772a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a79d93f504d99cac82ded7363729a8139"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a79d93f504d99cac82ded7363729a8139"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>without_secret</b> = true</td></tr>
+<tr class="separator:a79d93f504d99cac82ded7363729a8139"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a98a0e31292f228b78ebd0820088494e2"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a98a0e31292f228b78ebd0820088494e2"></a>
 ed25519_secret_key&#160;</td><td class="memItemRight" valign="bottom"><b>sk</b></td></tr>
 <tr class="separator:a98a0e31292f228b78ebd0820088494e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -140,7 +152,7 @@ std::string&#160;</td><td class="memItemRight" valign="bottom"><b>workdir</b></t
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p>Definition at line <a class="el" href="settings_8hpp_source.html#l00017">17</a> of file <a class="el" href="settings_8hpp_source.html">settings.hpp</a>.</p>
+<p>Definition at line <a class="el" href="settings_8hpp_source.html#l00018">18</a> of file <a class="el" href="settings_8hpp_source.html">settings.hpp</a>.</p>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li><a class="el" href="settings_8hpp_source.html">settings.hpp</a></li>
 </ul>

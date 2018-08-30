@@ -67,9 +67,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a06565809929341378a44f50d789bf360"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a06565809929341378a44f50d789bf360"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>server</b> (<a class="el" href="classoptions.html">options</a> &amp;opts)</td></tr>
 <tr class="separator:a06565809929341378a44f50d789bf360"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a66bd9eb32455d0581abe2c82dda4dc87"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a66bd9eb32455d0581abe2c82dda4dc87"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> ()</td></tr>
-<tr class="separator:a66bd9eb32455d0581abe2c82dda4dc87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac10a4de76f591314e38bbc4ef6112822"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac10a4de76f591314e38bbc4ef6112822"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>start</b> ()</td></tr>
 <tr class="separator:ac10a4de76f591314e38bbc4ef6112822"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -196,9 +193,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>blk_validate</b> (mes
 <tr class="memitem:a9590623eba99017b495ce8bd62d5c199"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9590623eba99017b495ce8bd62d5c199"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>missing_sent_remove</b> (uint16_t svid)</td></tr>
 <tr class="separator:a9590623eba99017b495ce8bd62d5c199"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5b6558ae5bfe58881b297323a1d125b9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a5b6558ae5bfe58881b297323a1d125b9"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>validator</b> (void)</td></tr>
-<tr class="separator:a5b6558ae5bfe58881b297323a1d125b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa8b44f452d42a176b5badd1cc0c05b9e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa8b44f452d42a176b5badd1cc0c05b9e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>validator</b> ()</td></tr>
+<tr class="separator:aa8b44f452d42a176b5badd1cc0c05b9e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a46d1c546c8508f6d67d0c1f151843476"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a46d1c546c8508f6d67d0c1f151843476"></a>
 uint64_t&#160;</td><td class="memItemRight" valign="bottom"><b>make_ppi</b> (uint16_t tmpos, uint32_t omsid, uint32_t amsid, uint16_t abank, uint16_t bbank)</td></tr>
 <tr class="separator:a46d1c546c8508f6d67d0c1f151843476"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -280,6 +277,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>write_header</b> ()</
 <tr class="memitem:a6898c57835191cfc80fb672a0220ac87"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6898c57835191cfc80fb672a0220ac87"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>clock</b> ()</td></tr>
 <tr class="separator:a6898c57835191cfc80fb672a0220ac87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a31a9836a20ed9c99b52e692cd36fa8af"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a31a9836a20ed9c99b52e692cd36fa8af"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>update_connection_info</b> (std::string &amp;<a class="el" href="classmessage.html">message</a>)</td></tr>
+<tr class="separator:a31a9836a20ed9c99b52e692cd36fa8af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10f79d2926494fdfe75f74333063ade4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a10f79d2926494fdfe75f74333063ade4"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>break_silence</b> (uint32_t now, std::string &amp;<a class="el" href="classmessage.html">message</a>, uint32_t &amp;tnum)</td></tr>
 <tr class="separator:a10f79d2926494fdfe75f74333063ade4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -295,12 +295,12 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>check_msgs_size</b> ()
 <tr class="memitem:aa28434b0eac208a859af28ed5709de5e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa28434b0eac208a859af28ed5709de5e"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>srvs_now</b> ()</td></tr>
 <tr class="separator:aa28434b0eac208a859af28ed5709de5e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd0225762e831c9f02a4c52a454655b9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abd0225762e831c9f02a4c52a454655b9"></a>
+<tr class="memitem:a3949f178cf9a95030e0f1f2e9ac9957e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a3949f178cf9a95030e0f1f2e9ac9957e"></a>
 <a class="el" href="classservers.html">servers</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getBlockInPorgress</b> ()</td></tr>
-<tr class="separator:abd0225762e831c9f02a4c52a454655b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af51e9664566fc6ee137c7335e84b1b5d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="af51e9664566fc6ee137c7335e84b1b5d"></a>
+<tr class="separator:a3949f178cf9a95030e0f1f2e9ac9957e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fc335ac1c8eedce14165666c8946689"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a0fc335ac1c8eedce14165666c8946689"></a>
 <a class="el" href="classservers.html">servers</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>getLastClosedBlock</b> ()</td></tr>
-<tr class="separator:af51e9664566fc6ee137c7335e84b1b5d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a0fc335ac1c8eedce14165666c8946689"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade6d3748f826f7c71982b11f0d53159c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ade6d3748f826f7c71982b11f0d53159c"></a>
 uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>getRandomNodeIndx</b> ()</td></tr>
 <tr class="separator:ade6d3748f826f7c71982b11f0d53159c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -352,6 +352,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>ofip_readonly</b> ()<
 <tr class="memitem:a68a0f335e65544840c148dac5cd43170"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a68a0f335e65544840c148dac5cd43170"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>ofip_isreadonly</b> ()</td></tr>
 <tr class="separator:a68a0f335e65544840c148dac5cd43170"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a869a296b61c50e20079d65779b3b8fb4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a869a296b61c50e20079d65779b3b8fb4"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>ofip_get_tickets</b> ()</td></tr>
+<tr class="separator:a869a296b61c50e20079d65779b3b8fb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -406,7 +409,7 @@ uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>start_msid</b></t
 <p>Definition at line <a class="el" href="server_8hpp_source.html#l00019">19</a> of file <a class="el" href="server_8hpp_source.html">server.hpp</a>.</p>
 </div><hr/>The documentation for this class was generated from the following files:<ul>
 <li><a class="el" href="server_8hpp_source.html">server.hpp</a></li>
-<li><a class="el" href="escd_2main_8cpp_source.html">escd/main.cpp</a></li>
+<li><a class="el" href="server_8cpp_source.html">server.cpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

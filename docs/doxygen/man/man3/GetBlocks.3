@@ -1,4 +1,4 @@
-.TH "GetBlocks" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "GetBlocks" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -104,6 +104,9 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
 .ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
+.br
+.ti -1c
 .RI "uint32_t \fBgetBlockNumberFrom\fP ()"
 .br
 .ti -1c
@@ -168,6 +171,9 @@ Inherits \fBBlockCommand\fP\&.
 .RI "uint32_t \fBm_numOfBlocks\fP {}"
 .br
 .ti -1c
+.RI "bool \fBm_newviphash\fP =false"
+.br
+.ti -1c
 .RI "\fBcommandresponse\fP \fBm_response\fP"
 .br
 .in -1c
@@ -209,7 +215,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 347 of file getblocks\&.cpp\&.
+Definition at line 351 of file getblocks\&.cpp\&.
 .SS "void GetBlocks::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP

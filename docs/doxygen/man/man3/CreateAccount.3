@@ -1,4 +1,4 @@
-.TH "CreateAccount" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "CreateAccount" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -108,6 +108,9 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
 .br
 .ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
+.br
+.ti -1c
 .RI "virtual uint32_t \fBgetDestBankId\fP ()"
 .br
 .RI "\fIGet destination bank id\&. \fP"
@@ -123,6 +126,13 @@ Inherits \fBBlockCommand\fP\&.
 .RI "virtual void \fBsetNewUser\fP (uint32_t userId, uint8_t userPkey[])"
 .br
 .RI "\fISetting new account data\&. \fP"
+.ti -1c
+.RI "virtual unsigned char * \fBgetPublicKey\fP ()"
+.br
+.RI "\fIGet public key from additional data\&. \fP"
+.ti -1c
+.RI "virtual void \fBsetPublicKey\fP (uint8_t user_pkey[SHA256_DIGEST_LENGTH])"
+.br
 .in -1c
 .SS "Additional Inherited Members"
 .SH "Detailed Description"
@@ -146,7 +156,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 69 of file createaccount\&.cpp\&.
+Definition at line 65 of file createaccount\&.cpp\&.
 .SS "bool CreateAccount::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -163,7 +173,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 114 of file createaccount\&.cpp\&.
+Definition at line 110 of file createaccount\&.cpp\&.
 .SS "void CreateAccount::setNewUser (uint32_t userId, uint8_t userPkey[])\fC [virtual]\fP"
 
 .PP
@@ -178,7 +188,7 @@ Setting new account data\&.
 .PP
 
 .PP
-Definition at line 167 of file createaccount\&.cpp\&.
+Definition at line 171 of file createaccount\&.cpp\&.
 .SS "void CreateAccount::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -197,7 +207,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 65 of file createaccount\&.cpp\&.
+Definition at line 61 of file createaccount\&.cpp\&.
 
 .SH "Author"
 .PP 

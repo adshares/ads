@@ -1,4 +1,4 @@
-.TH "ConnectedInfo" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "ConnectedInfo" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -10,7 +10,7 @@ ConnectedInfo \-
 
 .in +1c
 .ti -1c
-.RI "\fBConnectedInfo\fP (uint16_t port_, uint32_t ip_address_)"
+.RI "\fBConnectedInfo\fP (uint16_t port_, uint32_t ip_address_, const char *version_)"
 .br
 .in -1c
 .SS "Public Attributes"
@@ -28,10 +28,14 @@ ConnectedInfo \-
 .RI "uint32_t \fBip_address\fP {0}"
 .br
 .RI "\fIip address \fP"
+.ti -1c
+.RI "char \fBversion\fP [16]"
+.br
+.RI "\fInode soft version \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
-Definition at line 495 of file pods\&.h\&.
+Definition at line 503 of file pods\&.h\&.
 
 .SH "Author"
 .PP 
