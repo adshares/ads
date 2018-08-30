@@ -40,7 +40,7 @@ void GetBroadcastMsgHandler::onExecute() {
 
         Helper::BlockFileReader broadcastFile(filename);
         if (!broadcastFile.isOpen()) {
-            errorCode = ErrorCodes::Code::eNoBroadcastFile;
+            size = 0;
         } else {
             size = broadcastFile.getSize();
             int remainData = (size > MAX_BLG_SIZE) ? MAX_BLG_SIZE : size;
@@ -65,7 +65,7 @@ void GetBroadcastMsgHandler::onExecute() {
             }
         }
     } catch (std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
 }
 

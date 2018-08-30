@@ -13,6 +13,7 @@
 #include "ascii.h"
 #include "txsname.h"
 #include "command/errorcodes.h"
+#include "command/factory.h"
 
 namespace Helper {
 
@@ -155,6 +156,12 @@ const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix) {
     uint16_t suffix;
     (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
     sprintf(acnt,"%04X:%08X:%04X", node, user, suffix);
+    return std::string(acnt);
+}
+
+const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id) {
+    char acnt[19];
+    sprintf(acnt,"%04X:%08X", node, msg_id);
     return std::string(acnt);
 }
 
@@ -365,8 +372,11 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         }
         if(ulog.node > 0) {
             logentry.put("node",ulog.node);
-            logentry.put("account",ulog.user);
-            logentry.put("address",acnt);
+            // create_account on remote node sets node, but created address is unknown
+            if(txst != TXSTYPE_USR || ulog.node == bank) {
+                logentry.put("account",ulog.user);
+                logentry.put("address",acnt);
+            }
         }
         if(!ulog.nmid) {
             char blockhex[9];
@@ -486,6 +496,26 @@ NEXT:
         ;
     }
     close(fd);
+}
+
+void print_all_commands_help()
+{
+    std::cerr<<"Possible commands listing"<<std::endl<<std::endl;;
+
+    std::unique_ptr<IBlockCommand> command;
+    for (uint8_t id = 0; id < TXSTYPE_MAX; ++id)
+    {
+        command = command::factory::makeCommand(id);
+        if (command)
+        {
+            std::string command_help = command->usageHelperToString();
+            if (!command_help.empty())
+            {
+                std::cout<<"Command: " << getTxnName(id) << std::endl;
+                std::cout << command_help << std::endl;
+            }
+        }
+    }
 }
 
 }

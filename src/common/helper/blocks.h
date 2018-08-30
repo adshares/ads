@@ -22,6 +22,13 @@ void arch_old_blocks(uint32_t currentTime);
  */
 void remove_block(const char* blockPath);
 
+/**
+ * @brief Removes files from block path, except directory set as exclude_dir.
+ * @param blockPath - path to block directory in filesystem
+ * @param excludeDir - path to directory skip during remove
+ */
+void remove_block_exclude(const char* blockPath, const char* excludeDir);
+
 //! removes file
 void remove_file(const char* filename);
 
@@ -31,6 +38,9 @@ void remove_file(const char* filename);
  * @return true if exists (not compressed yet), otherwise false.
  */
 bool is_file_not_compressed(const char *filePath);
+
+//! Check is it directory for snapshot or not.
+inline bool is_snapshot_directory(uint32_t blockTime);
 
 uint32_t get_users_count(uint16_t bank);
 

@@ -53,7 +53,7 @@ void MsgPrinter::printJson() {
             if (command) {
                 boost::property_tree::ptree txn;
                 command->setData((char*)ptr);
-                int size = command->getDataSize()  + command->getAdditionalDataSize() + command->getSignatureSize();
+                int size = command->getBlockMessageSize();
                 command->txnToJson(txn);
                 transactions.push_back(std::make_pair("", txn));
                 ptr += size;

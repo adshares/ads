@@ -17,6 +17,14 @@ struct commandresponse {
     uint32_t    mpos;
 } __attribute__((packed));
 
+/** \brief Struct data for all command which are changed blockchain data */
+struct createaccountresponse {
+    user_t      usera;
+    uint32_t    msid;
+    uint32_t    mpos;
+    uint32_t    new_user;
+} __attribute__((packed));
+
 struct tInfo {
     int64_t weight;
     int64_t deduct;
@@ -28,7 +36,7 @@ struct tInfo {
 /** \brief Struct data for get_me and get_accout command */
 struct UserInfoData {
     UserInfoData() = default;
-    UserInfoData(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint16_t buser_, uint32_t time_)
+    UserInfoData(uint16_t abank_, uint32_t auser_, uint16_t bbank_, uint32_t buser_, uint32_t time_)
         : abank{abank_},
           auser{auser_},
           bbank{bbank_},
@@ -51,7 +59,7 @@ struct UserInfoData {
 /** \brief Full struct data for get_me and get_accout command with signature */
 struct UserInfo {
     UserInfo() = default;
-    UserInfo(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time)
+    UserInfo(uint16_t abank, uint32_t auser, uint16_t bbank, uint32_t buser, uint32_t time)
         : info(abank, auser, bbank, buser, time) {
     }
 
@@ -494,12 +502,14 @@ struct GetTransactionResponse {
 /* inform peers about location */
 struct ConnectedInfo {
     ConnectedInfo() = default;
-    ConnectedInfo(uint16_t port_, uint32_t ip_address_) : port(port_), ip_address(ip_address_) {
+    ConnectedInfo(uint16_t port_, uint32_t ip_address_, const char * version_) : port(port_), ip_address(ip_address_) {
+        memcpy(version, version_, sizeof(version));
     }
 
     uint8_t ttype{TXSTYPE_CON}; ///< command type
     uint16_t port{0};           ///< port number
     uint32_t ip_address{0};     ///< ip address
+    char version[16];           ///< node soft version
 }__attribute__((packed));
 
 struct TransactionAcceptedInfo {
@@ -521,10 +531,11 @@ struct TransactionAcceptedInfo {
 
 struct TransactionFailedInfo {
     TransactionFailedInfo() = default;
-    TransactionFailedInfo(uint32_t msgSize) : message_size(msgSize) {
+    TransactionFailedInfo(uint32_t msgSize) {
+        memcpy(&message_size, &msgSize, sizeof(message_size));
     }
     uint8_t ttype{TXSTYPE_NON};  ///< command type
-    uint32_t message_size{0};    ///< message size
+    uint8_t message_size[3];    ///< message size
 }__attribute__((packed));
 
 struct AccountStatusInfo {

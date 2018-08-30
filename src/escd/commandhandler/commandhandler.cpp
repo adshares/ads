@@ -51,8 +51,8 @@ void CommandHandler::performCommonValidation(IBlockCommand& command) {
     auto startedTime = time(NULL);
     int32_t diff = command.getTime() - startedTime;
 
-    if(diff>1) {
-        DLOG("ERROR: time in the future (%d>1s)\n", diff);
+    if(diff>3) {
+        DLOG("ERROR: time in the future (%d>3s)\n", diff);
         throw ErrorCodes::Code::eTimeInFuture;
     }
 
@@ -83,9 +83,9 @@ void CommandHandler::validateModifyingCommand(IBlockCommand& command) {
         throw ErrorCodes::Code::eFeeBelowZero;
     }
 
-    if(command.getDeduct()+command.getFee()+(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
+    if(command.getDeduct()+command.getFee()+(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-             command.getDeduct(), command.getFee(), (uint64_t)(m_usera.user ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
+             command.getDeduct(), command.getFee(), (uint64_t)(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         throw ErrorCodes::Code::eLowBalance;
     }
 }
@@ -97,6 +97,8 @@ CommandHandler::CommitResult CommandHandler::commitChanges(IBlockCommand& comman
     m_usera.msid++;
     m_usera.time = command.getTime();
     m_usera.lpath = lpath;
+    m_usera.node = 0;
+    m_usera.user = 0;
 
     Helper::create256signhash(command.getSignature(), command.getSignatureSize(), m_usera.hash, m_usera.hash);
 

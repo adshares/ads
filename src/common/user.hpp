@@ -9,7 +9,7 @@
 
 const int txslen[TXSTYPE_MAX+1]= { //length does not include variable part and input hash
     1+3,			//0:NON placeholder for failed trsnactions (not defined yet)
-    1+2+4,			//1:CON (port,ipv4), (port==0) => bank shutting down , should add office addr:port
+    1+2+4+16,			//1:CON (port,ipv4), (port==0) => bank shutting down , should add office addr:port
     1+2+4+4+4+2+4+32,	//2:UOK new account, not signed
     1+2+4+4+4+2,		//3:BRO 'bbank' is message length
     1+2+4+4+4+2+4+8+32,	//4:PUT, extra parameter = official message (32 byte)
@@ -44,7 +44,7 @@ class usertxs;
 
 typedef boost::shared_ptr<usertxs> usertxs_ptr;
 //used in  main.cpp
-std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line);
+std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptree& pt);
 
 class usertxs {
   public:
@@ -162,6 +162,26 @@ class usertxs {
             memcpy(data+13,&ttime,4);
             return;
         }
+        DLOG("BAD MSG: %X\n",ttype);
+    }
+
+    usertxs(uint8_t nttype,uint16_t nabank,uint32_t nauser,const char * version) :
+        ttype(nttype),
+        abank(nabank),
+        auser(nauser),
+        amsid(0),
+        ttime(0),
+        data(NULL) {
+        if(ttype==TXSTYPE_CON) {
+            size=txslen[TXSTYPE_CON];
+            data=(uint8_t*)std::malloc(size);
+            data[0]=TXSTYPE_CON;
+            memcpy(data+1  ,&abank,2);
+            memcpy(data+1+2,&auser,4);
+            memcpy(data+1+6,version,16);
+            return;
+        }
+
         DLOG("BAD MSG: %X\n",ttype);
     }
 

@@ -6,7 +6,7 @@ cmake_policy(SET CMP0023 NEW)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -m64 -fPIC -Os")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -m64 -fPIC -Os -fno-strict-aliasing")
 
 #set(Boost_USE_STATIC_LIBS   ON)
 
@@ -42,7 +42,11 @@ if(NOT CMAKE_PROJECT_CONFIG)
 endif(NOT CMAKE_PROJECT_CONFIG)
 
 set(CONFIG_FILE "default_${CMAKE_PROJECT_CONFIG}.h.in")
-project(${CMAKE_PROJECT_CONFIG})
+if(CMAKE_PROJECT_NAME)
+	project(${CMAKE_PROJECT_NAME})
+else()
+	project(${CMAKE_PROJECT_CONFIG})
+endif()
 
 if(EXISTS ${CONFIG_FILE})
     message(FATAL_ERROR "Configuration file ${CONFIG_FILE} not exists")

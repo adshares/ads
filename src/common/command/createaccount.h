@@ -91,6 +91,7 @@ public:
     virtual std::string  toString(bool pretty)                          override;
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+    virtual std::string  usageHelperToString()                          override;
 
 
     /**  \brief Get destination bank id. */
@@ -109,10 +110,14 @@ public:
      */
     virtual void setNewUser(uint32_t userId, uint8_t userPkey[]);
 
+    /** \brief Get public key from additional data. */
+    virtual unsigned char*          getPublicKey();
+    virtual void                    setPublicKey(uint8_t user_pkey[SHA256_DIGEST_LENGTH]);
+
 private:
 
     CreateAccountData   m_data;
-    commandresponse     m_response;
+    createaccountresponse     m_response;
     NewAccountData      m_newAccount;
 };
 

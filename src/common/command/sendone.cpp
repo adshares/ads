@@ -10,7 +10,7 @@ SendOne::SendOne()
 }
 
 SendOne::SendOne(uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank,
-                 uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)
+                 uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)
     : m_data(abank, auser, amsid, bbank, buser, tmass, time, tinfo) {
     m_responseError = ErrorCodes::Code::eNone;
 }
@@ -65,13 +65,13 @@ bool SendOne::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 void SendOne::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -188,4 +188,11 @@ void SendOne::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::AMOUNT, print_amount(m_data.info.ntmass));
     ptree.put(TAG::MSG, Helper::ed25519_key2text(m_data.info.ntinfo, sizeof(m_data.info.ntinfo)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string SendOne::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"send_one\",\"address\":<destination_account_id>,\"amount\":<sending_amount>, [\"message\":\"message_in_hex\"]}" << "\n";
+    ss << "Example: " << "{\"run\":\"send_one\",\"address\":\"0003-00000000-XXXX\",\"amount\":2.1,\"message\":\"000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F\"}" << "\n";
+    return ss.str();
 }

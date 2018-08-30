@@ -63,13 +63,13 @@ bool CreateNode::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 void CreateNode::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -149,4 +149,11 @@ void CreateNode::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::MSGID, m_data.data.amsid);
     ptree.put(TAG::TIME, m_data.data.ttime);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string CreateNode::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"create_node\"}" << "\n";
+    ss << "Example: " << "{\"run\":\"create_node\"}" << "\n";
+    return ss.str();
 }

@@ -103,6 +103,11 @@ bool GetMessage::send(INetworkClient& netClient) {
         return true;
     }
 
+    if (!netClient.readData((int32_t*)&m_responseBlock, sizeof(uint32_t))) {
+        ELOG("GetMessage reading message block\n");
+        return false;
+    }
+
     // msgTypeLength contains type (1B) and length (3B)
     uint32_t msgTypeLength = 0;
     if (!netClient.readData((int32_t*)&msgTypeLength, sizeof(msgTypeLength))) {
@@ -157,6 +162,13 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
     } else {
         m_responseMsg->read_head();
+
+        char blockhex[9];
+        blockhex[8]='\0';
+        sprintf(blockhex,"%08X",m_responseBlock);
+
+        ptree.put("block_id", blockhex);
+        ptree.put("message_id",Helper::print_msg_pack_id(m_responseMsg->svid, m_responseMsg->msid));
         ptree.put("node", m_responseMsg->svid);
         ptree.put("node_msid", m_responseMsg->msid);
         ptree.put("time", m_responseMsg->now);
@@ -175,7 +187,7 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
             if (command) {
                 boost::property_tree::ptree txn;
                 command->setData((char*)data_ptr);
-                int size = command->getDataSize()  + command->getAdditionalDataSize() + command->getSignatureSize();
+                int size = command->getBlockMessageSize();
 
                 txn.put("id", Helper::print_msg_id(m_responseMsg->svid, m_responseMsg->msid, mpos++));
                 command->txnToJson(txn);
@@ -203,4 +215,11 @@ void GetMessage::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::DST_NODE, m_data.info.dst_node);
     ptree.put(TAG::NODE_MSGID, m_data.info.node_msgid);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string GetMessage::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_message\",\"message_id\":<message_id>,[\"block\":<block_id as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_message\",\"message_id\":\"0001:0000000E\",\"block\":\"5B0573C0\"}" << "\n";
+    return ss.str();
 }

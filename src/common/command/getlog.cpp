@@ -188,3 +188,10 @@ void GetLog::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::FROM, m_data.info.from);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string GetLog::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_log\",[\"from\":<timestamp>],[\"type\":<transaction_type>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_log\",\"from\":\"1491210824\",\"type\":\"create_account\"}" << "\n";
+    return ss.str();
+}

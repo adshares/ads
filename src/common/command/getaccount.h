@@ -13,7 +13,7 @@
 class GetAccount : public BlockCommand {
   public:
     GetAccount();
-    GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint16_t buser, uint32_t time);
+    GetAccount(uint16_t abank, uint32_t auser, uint16_t bbank, uint32_t buser, uint32_t time);
 
 
     //IBlock interface
@@ -94,6 +94,7 @@ class GetAccount : public BlockCommand {
     virtual std::string  toString(bool pretty)                          override;
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+    virtual std::string  usageHelperToString()                          override;
 
 
     uint16_t    getDestNode();

@@ -105,13 +105,13 @@ bool UnsetAccountStatus::send(INetworkClient& netClient)
 }
 
 void UnsetAccountStatus::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -159,4 +159,11 @@ uint32_t UnsetAccountStatus::getDestUserId() {
 
 uint16_t UnsetAccountStatus::getStatus() {
     return m_data.info.status;
+}
+
+std::string  UnsetAccountStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"unset_account_status\",\"address\":<destination_account_id>,\"status\":<bits_to_unset>}" << "\n";
+    ss << "Example: " << "{\"run\":\"unset_account_status\",\"address\":\"0001-00000000-XXXX\",\"status\":\"10\"}" << "\n";
+    return ss.str();
 }

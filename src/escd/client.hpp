@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include "helper/socket.h"
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
 #include "../common/helper/blocks.h"
@@ -28,7 +29,7 @@ class client : public boost::enable_shared_from_this<client> {
         : m_socket(io_service),
           m_offi(offi),
           m_addr(""),
-          m_port(""),      
+          m_port(""),
           m_commandService(m_offi, m_socket) {
 #ifdef DEBUG
         DLOG("OFFICER ready %04X\n",m_offi.svid);
@@ -38,7 +39,7 @@ class client : public boost::enable_shared_from_this<client> {
     ~client() {
 #ifdef DEBUG
         DLOG("Client left %s:%s\n",m_addr.c_str(),m_port.c_str());
-#endif        
+#endif
     }
 
     boost::asio::ip::tcp::socket& socket() {
@@ -56,8 +57,38 @@ class client : public boost::enable_shared_from_this<client> {
         Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
         Helper::setSocketNoDelay(m_socket, true);
 
+        boost::asio::async_read(m_socket,boost::asio::buffer(&m_version,sizeof(m_version)),
+                                boost::bind(&client::handle_read_version, shared_from_this(), boost::asio::placeholders::error));
+    }
+
+    void handle_read_version(const boost::system::error_code& error) {
+        if(error) {
+            DLOG("ERROR: read version error\n");
+            m_offi.leave(shared_from_this());
+            return;
+        }
+
+        int32_t version = CLIENT_PROTOCOL_VERSION;
+        uint8_t version_error;
+#ifdef DEBUG
+        version = -version;
+        version_error = m_version >= 0;
+#else
+        version_error = m_version <= 0;
+#endif
+        // logic deciding which versions are compatible should be put here in the future
+        version_error = version_error || (version != m_version);
+
+        boost::asio::write(m_socket, boost::asio::buffer(&version, sizeof(version)));
+        boost::asio::write(m_socket, boost::asio::buffer(&version_error, sizeof(version_error)));
+        if(version_error) {
+            DLOG("ERROR: incorrect client version %d\n", m_version);
+            m_offi.leave(shared_from_this());
+            return;
+        }
+
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
-                                boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
+                                        boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
 
     void handle_read_txstype(const boost::system::error_code& error) {
@@ -107,7 +138,7 @@ class client : public boost::enable_shared_from_this<client> {
     void handle_read_txs_complete(const boost::system::error_code& error)
     {
         if(error) {
-            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());                        
+            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
 
@@ -147,7 +178,9 @@ class client : public boost::enable_shared_from_this<client> {
             //@TODO: lock , unlock in RAII object.
         }
 
-        m_offi.leave(shared_from_this());        
+        boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
+                                        boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
+//        m_offi.leave(shared_from_this());
     }
 
 private:
@@ -157,6 +190,7 @@ private:
     std::string                       m_port;
 
     char                              m_type{TXSTYPE_NON};
+    int32_t                           m_version{0};
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
 };

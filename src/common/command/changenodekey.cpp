@@ -128,13 +128,13 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
 }
 
 void ChangeNodeKey::saveResponse(settings& sts) {
-    if (!std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
+    if (!sts.without_secret && !std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
         m_responseError = ErrorCodes::Code::ePkeyDiffers;
     }
 
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
-    if (!std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
+    if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
         m_responseError = ErrorCodes::Code::eHashMismatch;
     }
 
@@ -192,4 +192,11 @@ void ChangeNodeKey::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::OLD_PKEY, ed25519_key2text(m_data.old_public_key, sizeof(m_data.old_public_key)));
     ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.node_new_key, sizeof(m_data.node_new_key)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string ChangeNodeKey::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"change_node_key\",\"public_key\":<public_key>,[\"node\":<node_id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"change_node_key\",\"public_key\":\"2D1FC97FA56B785E0FDAE5752DE613BAD7FBBB5EBBB46DAEE5DBFA822F976B63\",\"node\":\"2\"}" << "\n";
+    return ss.str();
 }

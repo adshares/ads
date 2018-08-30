@@ -180,3 +180,10 @@ void GetVipKeys::txnToJson(boost::property_tree::ptree& ptree) {
 unsigned char* GetVipKeys::getVipHash() {
     return reinterpret_cast<unsigned char*>(&m_data.info.viphash);
 }
+
+std::string GetVipKeys::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_vipkeys\",\"viphash\":<viphash 32-byte hex string>}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_vipkeys\",\"viphash\":\"D3FD529F6305F574BA22F3BDF761B4778094CB38958300ACDF21D35BE03BDC4F\"}" << "\n";
+    return ss.str();
+}

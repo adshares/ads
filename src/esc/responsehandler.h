@@ -13,6 +13,7 @@ class ResponseHandler {
     ResponseHandler(settings& sts);
 
     void onExecute(std::unique_ptr<IBlockCommand> command);
+    void onDryRun(std::unique_ptr<IBlockCommand> command);
 
   private:
     void initLogs(std::unique_ptr<IBlockCommand>& txs);
