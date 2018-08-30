@@ -15,9 +15,7 @@ office::office(options& opts,server& srv) :
     offifd_(-1),
     message_sent(0),
     message_tnum(0),
-    next_io_service_(0),
-    ioth_(NULL),
-    clock_thread(NULL)
+    next_io_service_(0)
 {
     svid=opts_.svid;
     try {
@@ -78,17 +76,17 @@ void office::iorun() {
 void office::stop() { // send and empty txs queue
     run=false;
     io_service_.stop();
-    if(ioth_!=NULL) {
-        ioth_->join();
+    if(ioth_.joinable()) {
+        ioth_.join();
         for(int i=0; i<CLIENT_POOL; i++) {
             io_services_[i]->stop();
         }
     }
     threadpool.interrupt_all();
     threadpool.join_all();
-    if(clock_thread!=NULL) {
-        clock_thread->interrupt();
-        clock_thread->join();
+    if(clock_thread.joinable()) {
+        clock_thread.interrupt();
+        clock_thread.join();
     }
     DLOG("Office shutdown completed\n");
 }
@@ -168,8 +166,8 @@ void office::start() {
             threadpool.create_thread(boost::bind(&office::iorun_client, this, i));
         }
 
-        ioth_           = new boost::thread(boost::bind(&office::iorun, this));
-        clock_thread    = new boost::thread(boost::bind(&office::clock, this));
+        ioth_        = boost::thread(&office::iorun, this);
+        clock_thread = boost::thread(&office::clock, this);
     } catch (std::exception& e) {
         DLOG("Office.Start error: %s\n",e.what());
     }
@@ -551,7 +549,7 @@ uint32_t office::add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { 
         return 0;
     }
     uint32_t ltime=time(NULL);
-    uint32_t luser=add_user(bbank,pkey,ltime,buser);
+    uint32_t luser=add_user(bbank,pkey,ltime);
     if(luser) {
         uint32_t msid;
         uint32_t mpos;
@@ -565,7 +563,7 @@ uint32_t office::add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { 
     return luser;
 }
 
-uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser) { // will create new account or overwrite old one
+uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when) { // will create new account or overwrite old one
     assert(svid);
     uint32_t nuser;
     user_t nu;
@@ -578,7 +576,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t ause
         if((nu.weight<=0) && (nu.stat&USER_STAT_DELETED)) {
             DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
             //FIXME !!!  wrong time !!! must use time from txs
-            srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
+            srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
             lseek(offifd_,-sizeof(user_t),SEEK_CUR);
             write(offifd_,&nu,sizeof(user_t)); // write all ok
             file_.unlock();
@@ -593,7 +591,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t ause
     //FIXME !!!  wrong time !!! must use time from txs
     nuser=users++;
     mklogfile(svid,nuser);
-    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when,abank,auser);
+    srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
     DLOG("CREATING new account %d\n",nuser);
     file_.lock();
     //deposit.push_back(0);

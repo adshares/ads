@@ -8,7 +8,6 @@ server::server(options& opts) :
     ofip(NULL),
     opts_(opts),
     m_peerManager(*this, opts_),
-    clock_thread(NULL),
     do_validate(0),
     votes_max(0.0),
     do_vote(0),
@@ -269,7 +268,7 @@ void server::start() {
     recyclemsid(lastpath+BLOCKSEC);
     RETURN_ON_SHUTDOWN();
     writemsid(); // synced to new position
-    clock_thread = new boost::thread(boost::bind(&server::clock, this));
+    clock_thread = boost::thread(&server::clock, this);
     //start accept connections from peers
     m_peerManager.startAccept();
 }
@@ -278,9 +277,9 @@ void server::stop() {
     do_validate = 0;
     m_peerManager.stop();
 
-    if(clock_thread!=NULL) {
-        clock_thread->interrupt();
-        clock_thread->join();
+    if(clock_thread.joinable()) {
+        clock_thread.interrupt();
+        clock_thread.join();
     }
 
     threadpool.join_all();
@@ -2810,9 +2809,9 @@ bool server::process_message(message_ptr msg) {
             }
             srvs_.xor4(csum,usera->csum);
             if(*p==TXSTYPE_USR) {
-                srvs_.init_user(*usera,msg->svid,nuser,USER_MIN_MASS,(uint8_t*)npkey,utxs.ttime,utxs.abank,utxs.auser);
+                srvs_.init_user(*usera,msg->svid,nuser,USER_MIN_MASS,(uint8_t*)npkey,utxs.ttime);
             } else {
-                srvs_.init_user(*usera,msg->svid,nuser,0,(uint8_t*)npkey,utxs.ttime,utxs.bbank,utxs.buser);
+                srvs_.init_user(*usera,msg->svid,nuser,0,(uint8_t*)npkey,utxs.ttime);
             }
             srvs_.xor4(csum,usera->csum);
             srvs_.put_user(*usera,msg->svid,nuser);
@@ -3668,10 +3667,10 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
                 peer=(*bi)&0xffff;
                 new_bnk.erase(bi);
                 ELOG("BANK, overwrite %04X\n",peer);
-                srvs_.put_node(u,peer,abank,auser);
+                srvs_.put_node(u,peer);
             } //save_undo() in put_node() !!!
             else if(srvs_.nodes.size()<BANK_MAX-1) {
-                peer=srvs_.add_node(u,abank,auser); //deposits BANK_MIN_TMASS
+                peer=srvs_.add_node(u); //deposits BANK_MIN_TMASS
                 bank_fee.resize(srvs_.nodes.size());
                 ELOG("BANK, add new bank %04X\n",peer);
             } else {

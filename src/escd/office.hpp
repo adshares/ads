@@ -44,7 +44,7 @@ class office {
     bool get_user_global(user_t& u,uint16_t cbank,uint32_t cuser);
     bool get_user(user_t& u,uint16_t cbank,uint32_t cuser);
     uint32_t add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey);
-    uint32_t add_user(uint16_t abank,uint8_t* pk,uint32_t when,uint32_t auser);
+    uint32_t add_user(uint16_t abank, uint8_t* pk, uint32_t when);
     void set_user(uint32_t user, user_t& nu, int64_t deduct);
     void delete_user(uint32_t user);
     void add_remote_deposit(uint32_t buser,int64_t tmass);
@@ -127,8 +127,8 @@ class office {
     std::stack<dep_t> rdep; // users with remote deposits
     std::deque<uint64_t> mque; // list of message to process log
     std::deque<uint32_t> deleted_users; // list of accounts to reuse ... this list could be limited (swapped)
-    boost::thread* ioth_;
-    boost::thread* clock_thread;
+    boost::thread ioth_;
+    boost::thread clock_thread;
     std::set<uint32_t> users_lock;
     boost::mutex file_; //LOCK: server::
     boost::mutex log_; //FIXME, maybe no need for this lock, lock too long
