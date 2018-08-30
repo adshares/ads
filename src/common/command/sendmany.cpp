@@ -8,18 +8,13 @@
 #include "helper/hash.h"
 
 SendMany::SendMany()
-    : m_data{}, m_additionalData(nullptr) {
+    : m_data{} {
     m_responseError = ErrorCodes::eNone;
 }
 
 SendMany::SendMany(uint16_t bank, uint32_t user, uint32_t msid, std::vector<SendAmountTxnRecord> &txns_data, uint32_t time)
-    : m_data(bank, user, msid, time, txns_data.size()), m_transactions(txns_data), m_additionalData(nullptr) {
+    : m_data(bank, user, msid, time, txns_data.size()), m_transactions(txns_data) {
     m_responseError = ErrorCodes::eNone;
-    fillAdditionalData();
-}
-
-SendMany::~SendMany() {
-    delete[] m_additionalData;
 }
 
 unsigned char* SendMany::getData() {
@@ -27,11 +22,9 @@ unsigned char* SendMany::getData() {
 }
 
 unsigned char* SendMany::getAdditionalData() {
-    // workaround: from server side buffer needs to be alocated before read additional data
-    if (!m_additionalData && this->getAdditionalDataSize() > 0) {
-        m_additionalData = new unsigned char[this->getAdditionalDataSize()];
-    }
-    return m_additionalData;
+    if (m_data.info.txn_counter != m_transactions.size())
+        m_transactions.resize(m_data.info.txn_counter);
+    return reinterpret_cast<unsigned char*>(m_transactions.data());
 }
 
 int SendMany::getAdditionalDataSize() {
@@ -48,7 +41,6 @@ void SendMany::setData(char* data) {
     std::copy(data_ptr, data_ptr + getAdditionalDataSize(), getAdditionalData());
     data_ptr += getAdditionalDataSize();
     std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
-    initTransactionVector();
 }
 
 void SendMany::setResponse(char* response) {
@@ -85,10 +77,6 @@ void SendMany::sign(const uint8_t* hash, const uint8_t* sk, const uint8_t* pk) {
     int size = dataSize + additionalSize;
     unsigned char *fullDataBuffer = new unsigned char[size];
 
-    if (!m_additionalData) {
-        fillAdditionalData();
-    }
-
     memcpy(fullDataBuffer, this->getData(), dataSize);
     memcpy(fullDataBuffer + dataSize, this->getAdditionalData(), additionalSize);
 
@@ -102,17 +90,12 @@ bool SendMany::checkSignature(const uint8_t* hash, const uint8_t* pk) {
     int size = dataSize + additionalSize;
     unsigned char *fullDataBuffer = new unsigned char[size];
 
-    if (!m_additionalData) {
-        fillAdditionalData();
-    }
-
     memcpy(fullDataBuffer, this->getData(), dataSize);
     memcpy(fullDataBuffer + dataSize, this->getAdditionalData(), additionalSize);
 
     int result = ed25519_sign_open2(hash,SHA256_DIGEST_LENGTH, fullDataBuffer, size, pk, getSignature());
     delete[] fullDataBuffer;
     return (result == 0);
-
 }
 
 void SendMany::saveResponse(settings& sts) {
@@ -143,9 +126,6 @@ uint32_t SendMany::getTime() {
 }
 
 int64_t SendMany::getFee() {
-    // TODO: CommandHandler::validateModifyingCommand is called before onInit so m_transactions could be not initialized
-    initTransactionVector();
-
     uint64_t fee = 0;
     for (auto &it : m_transactions) {
         fee+=TXS_MPT_FEE(it.amount);
@@ -160,9 +140,6 @@ int64_t SendMany::getFee() {
 }
 
 int64_t SendMany::getDeduct() {
-    // TODO: CommandHandler::validateModifyingCommand is called before onInit so m_transactions could be not initialized
-    initTransactionVector();
-
     int64_t deduct = 0;
     for (auto &it : m_transactions) {
         deduct += it.amount;
@@ -207,39 +184,7 @@ uint32_t SendMany::getUserMessageId() {
     return m_data.info.msg_id;
 }
 
-void SendMany::fillAdditionalData() {
-    if (!m_additionalData) {
-        int size = this->getAdditionalDataSize();
-        if (size > 0) {
-            m_additionalData = new unsigned char[size];
-            unsigned char* dataIt = m_additionalData;
-            int itemSize = sizeof(SendAmountTxnRecord);
-            for (auto it : m_transactions) {
-                memcpy(dataIt, &it, itemSize);
-                dataIt += itemSize;
-            }
-        }
-    }
-}
-
-void SendMany::initTransactionVector() {
-    if(m_transactions.size() > 0) {
-        return;
-    }
-    int size = this->getAdditionalDataSize();
-    if (m_additionalData && size > 0) {
-        SendAmountTxnRecord txn_record;
-        int shift = 0;
-        while (shift < size) {
-            memcpy(&txn_record, m_additionalData + shift, sizeof(SendAmountTxnRecord));
-            m_transactions.push_back(txn_record);
-            shift += sizeof(SendAmountTxnRecord);
-        }
-    }
-}
-
 void SendMany::checkForDuplicates() {
-    initTransactionVector();
     std::set<std::pair<uint16_t, uint32_t>> checkForDuplicate;
     for (auto &it : m_transactions) {
         uint16_t node = it.dest_node;
@@ -256,7 +201,6 @@ void SendMany::checkForDuplicates() {
 }
 
 std::vector<SendAmountTxnRecord> SendMany::getTransactionsVector() {
-    initTransactionVector();
     return m_transactions;
 }
 
@@ -303,3 +247,11 @@ void SendMany::txnToJson(boost::property_tree::ptree& ptree) {
 
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string SendMany::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"send_many\",\"wires\":{<destination_user_address_1>:<amount_1>,<destination_user_address_n>:<amount_n>}}" << "\n";
+    ss << "Example: " << "{\"run\":\"send_many\",\"wires\":{\"0002-00000000-XXXX\":20000.0,\"0003-00000000-XXXX\":0.003}}" << "\n";
+    return ss.str();
+}
+

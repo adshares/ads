@@ -1,4 +1,4 @@
-.TH "SendOne" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "SendOne" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -12,7 +12,7 @@ Inherits \fBBlockCommand\fP\&.
 
 .in +1c
 .ti -1c
-.RI "\fBSendOne\fP (uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint16_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)"
+.RI "\fBSendOne\fP (uint16_t abank, uint32_t auser, uint32_t amsid, uint16_t bbank, uint32_t buser, int64_t tmass, uint8_t tinfo[32], uint32_t time)"
 .br
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
@@ -114,6 +114,9 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
 .br
 .ti -1c
 .RI "virtual uint32_t \fBgetDestBankId\fP ()"

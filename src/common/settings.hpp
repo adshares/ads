@@ -10,6 +10,7 @@
 #include "ed25519/ed25519.h"
 #include "default.hpp"
 #include "helper/ascii.h"
+#include "helper/json.h"
 
 using namespace Helper;
 
@@ -284,18 +285,35 @@ class settings {
             ("hash,x", boost::program_options::value<std::string>(&hash),					"last hash [64chars in hex format / 32bytes]")
             ("secret,s", boost::program_options::value<std::string>(&skey)->implicit_value("-"),         "passphrase or private key [64chars in hex format / 32bytes]")
             ;
+            std::string positional_help;
+            boost::program_options::options_description positionals("Positional options");
+            positionals.add_options()("pos_help", boost::program_options::value<std::string>(&positional_help), "Print all possible commands");
+
+            boost::program_options::positional_options_description positional_options;
+            positional_options.add("pos_help", -1);
+
             boost::program_options::options_description cmdline_options;
-            cmdline_options.add(generic).add(config);
+            cmdline_options.add(generic).add(config).add(positionals);
             boost::program_options::options_description config_file_options;
             config_file_options.add(config);
             boost::program_options::variables_map vm;
-            store(boost::program_options::command_line_parser(ac, av).options(cmdline_options).run(), vm);
+            store(boost::program_options::command_line_parser(ac, av).options(cmdline_options).positional(positional_options).run(), vm);
             std::ifstream ifs("settings.cfg");
             store(parse_config_file(ifs, config_file_options), vm);
             notify(vm);
+            if (!positional_help.empty()) {
+                if (positional_help == "help") {
+                    Helper::print_all_commands_help();
+                    exit(0);
+                }
+                // else go to help
+                vm.insert(std::make_pair("help", boost::program_options::variable_value()));
+            }
             if(vm.count("help")) {
-                std::cerr << "Usage: " << PROJECT_NAME << " [settings]\n";
-                std::cerr << generic << "\n";
+                std::cerr << "Usage: \t" << PROJECT_NAME << " [settings]\n";
+                std::cerr <<  "\t"<< PROJECT_NAME <<" [help]\t\t print all possible commands "<< "\n";
+                std::cerr << generic;
+
                 std::cerr << config << "\n";
 
                 print_version();

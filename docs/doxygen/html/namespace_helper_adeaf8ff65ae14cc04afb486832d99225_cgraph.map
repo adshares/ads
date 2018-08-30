@@ -1,4 +1,6 @@
 <map id="Helper::arch_old_blocks" name="Helper::arch_old_blocks">
 <area shape="rect" id="node2" href="$class_helper_1_1_lib_archive.html#ade2c935f8e99f91c07755a66823035a1" title="Creates archive from directory. " alt="" coords="226,5,355,47"/>
-<area shape="rect" id="node3" href="$namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778" title="Removes block from filesystem. " alt="" coords="216,71,365,98"/>
+<area shape="rect" id="node3" href="$namespace_helper.html#a1d180095c3853b4baeef8a9f5a0a04b0" title="Check is it directory for snapshot or not. " alt="" coords="221,71,360,112"/>
+<area shape="rect" id="node4" href="$namespace_helper.html#aba8764a4af2b7bc749fe85f3ea3cbfbb" title="Removes files from block path, except directory set as exclude_dir. " alt="" coords="216,136,365,177"/>
+<area shape="rect" id="node5" href="$namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778" title="Removes block from filesystem. " alt="" coords="216,202,365,229"/>
 </map>

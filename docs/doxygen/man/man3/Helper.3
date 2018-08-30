@@ -1,4 +1,4 @@
-.TH "Helper" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "Helper" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -107,6 +107,10 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .br
 .RI "\fIRemoves block from filesystem\&. \fP"
 .ti -1c
+.RI "void \fBremove_block_exclude\fP (const char *blockPath, const char *excludeDir)"
+.br
+.RI "\fIRemoves files from block path, except directory set as exclude_dir\&. \fP"
+.ti -1c
 .RI "void \fBremove_file\fP (const char *filename)"
 .br
 .RI "\fIremoves file \fP"
@@ -114,6 +118,10 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "bool \fBis_file_not_compressed\fP (const char *filePath)"
 .br
 .RI "\fICheck is file exists in not compressed block\&. \fP"
+.ti -1c
+.RI "bool \fBis_snapshot_directory\fP (uint32_t blockTime)"
+.br
+.RI "\fICheck is it directory for snapshot or not\&. \fP"
 .ti -1c
 .RI "uint32_t \fBget_users_count\fP (uint16_t bank)"
 .br
@@ -166,10 +174,16 @@ Helper \- TODO: uncomment logs when new log mechanism done\&.
 .RI "const std::string \fBprint_msg_id\fP (uint16_t \fBnode\fP, uint32_t user, int32_t _suffix)"
 .br
 .ti -1c
+.RI "const std::string \fBprint_msg_pack_id\fP (uint16_t \fBnode\fP, uint32_t msg_id)"
+.br
+.ti -1c
 .RI "void \fBprint_log\fP (boost::property_tree::ptree &pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType=\-1)"
 .br
 .ti -1c
 .RI "void \fBsave_log\fP (\fBlog_t\fP *log, int len, uint32_t from, uint16_t bank, uint32_t user)"
+.br
+.ti -1c
+.RI "void \fBprint_all_commands_help\fP ()"
 .br
 .ti -1c
 .RI "int \fBgetLogTxnTypeId\fP (const char *txnName)"
@@ -246,7 +260,7 @@ BLOCKS_COMPRESSED_SHIFT \&.
 .PP
 
 .PP
-Definition at line 22 of file blocks\&.cpp\&.
+Definition at line 23 of file blocks\&.cpp\&.
 .SS "bool Helper::is_file_not_compressed (const char * filePath)"
 
 .PP
@@ -264,7 +278,7 @@ true if exists (not compressed yet), otherwise false\&.
 .PP
 
 .PP
-Definition at line 58 of file blocks\&.cpp\&.
+Definition at line 80 of file blocks\&.cpp\&.
 .SS "void Helper::remove_block (const char * blockPath)"
 
 .PP
@@ -277,7 +291,22 @@ Removes block from filesystem\&.
 .PP
 
 .PP
-Definition at line 49 of file blocks\&.cpp\&.
+Definition at line 54 of file blocks\&.cpp\&.
+.SS "void Helper::remove_block_exclude (const char * blockPath, const char * excludeDir)"
+
+.PP
+Removes files from block path, except directory set as exclude_dir\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIblockPath\fP - path to block directory in filesystem 
+.br
+\fIexcludeDir\fP - path to directory skip during remove 
+.RE
+.PP
+
+.PP
+Definition at line 60 of file blocks\&.cpp\&.
 .SH "Author"
 .PP 
 Generated automatically by Doxygen for esc from the source code\&.

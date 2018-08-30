@@ -13,6 +13,7 @@
 #include "vipprinter.h"
 #include "inxprinter.h"
 #include "logprinter.h"
+#include "archprinter.h"
 
 DataPrinter::DataPrinter() : m_filepath("") {
 }
@@ -63,6 +64,9 @@ std::unique_ptr<DataPrinter> DataPrinterFactory::getPrinter(const std::string &f
             break;
         case FileType::LOG:
             dataPrinter = std::make_unique<LogPrinter>(filepath);
+            break;
+        case FileType::ARCH:
+            dataPrinter = std::make_unique<ArchPrinter>(filepath);
             break;
         default:
             break;

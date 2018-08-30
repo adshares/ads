@@ -13,15 +13,6 @@ class SendMany : public BlockCommand {
         SendMany(uint16_t bank, uint32_t user, uint32_t msid,
                  std::vector<SendAmountTxnRecord> &txns_data, uint32_t time);
 
-        /** \brief Disabled copy constructor. */
-        SendMany(const SendMany& obj) = delete;
-
-        /** \brief Disable copy assignment operator. */
-        SendMany &operator=(const SendMany&) = delete;
-
-        /** \brief Free completeData object resources. */
-        virtual ~SendMany();
-
         /** \brief Return TXSTYPE_MPT as type . */
         virtual int  getType()                                      override;
 
@@ -100,9 +91,6 @@ class SendMany : public BlockCommand {
         /** \brief Save command response to settings object. */
         virtual void            saveResponse(settings& sts)                 override;
 
-        /** \brief Init transaction vector depends on additionalData buffer */
-        virtual void            initTransactionVector();
-
         /**
          * @brief Checks for target duplicates and does amount is positive value.
          * @return ErrorCodes value, eNone if success.
@@ -116,6 +104,7 @@ class SendMany : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
       public:
         /**  \brief Get message id. */
@@ -124,10 +113,8 @@ class SendMany : public BlockCommand {
         commandresponse       m_response;
 
     private:
-        void fillAdditionalData();
 
         std::vector<SendAmountTxnRecord> m_transactions;
-        unsigned char* m_additionalData;
 };
 
 #endif // SENDMANY_H

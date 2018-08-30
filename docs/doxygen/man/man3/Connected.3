@@ -1,4 +1,4 @@
-.TH "Connected" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "Connected" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -15,7 +15,7 @@ Inherits \fBBlockCommand\fP\&.
 
 .in +1c
 .ti -1c
-.RI "\fBConnected\fP (uint16_t port, uint32_t ip_address)"
+.RI "\fBConnected\fP (uint16_t port, uint32_t ip_address, std::string version)"
 .br
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
@@ -105,6 +105,9 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
 .br
 .in -1c
 .SS "Public Attributes"

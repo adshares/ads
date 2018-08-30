@@ -1,4 +1,4 @@
-.TH "servers" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "servers" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -34,16 +34,16 @@ servers \-
 .RI "void \fBinit_node_hash\fP (\fBnode\fP &nn)"
 .br
 .ti -1c
-.RI "uint16_t \fBadd_node\fP (\fBuser_t\fP &ou, uint16_t unode, uint32_t user)"
+.RI "uint16_t \fBadd_node\fP (\fBuser_t\fP &ou)"
 .br
 .ti -1c
-.RI "void \fBput_node\fP (\fBuser_t\fP &ou, uint16_t \fBpeer\fP, uint16_t \fBnode\fP, uint32_t user)"
+.RI "void \fBput_node\fP (\fBuser_t\fP &ou, uint16_t \fBpeer\fP)"
 .br
 .ti -1c
 .RI "void \fBinit_user_hash\fP (\fBuser_t\fP &u)"
 .br
 .ti -1c
-.RI "void \fBinit_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid, int64_t weight, uint8_t *pk, uint32_t when, uint16_t \fBnode\fP, uint16_t user)"
+.RI "void \fBinit_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid, int64_t weight, uint8_t *pk, uint32_t when)"
 .br
 .ti -1c
 .RI "void \fBput_user\fP (\fBuser_t\fP &u, uint16_t \fBpeer\fP, uint32_t uid)"
@@ -98,9 +98,12 @@ servers \-
 .RI "int \fBmsgl_load\fP (std::map< uint64_t, message_ptr > &map, uint16_t mysvid)"
 .br
 .ti -1c
-.RI "uint16_t \fBget_vipuno\fP ()"
+.RI "bool \fBmsgl_hash_tree_get\fP (uint16_t svid, uint32_t msid, uint32_t mnum, std::vector< \fBhash_s\fP > &hashes)"
 .br
 .RI "\fIreplaced by \fBParser::MsglistParser\fP \fP"
+.ti -1c
+.RI "uint16_t \fBget_vipuno\fP ()"
+.br
 .ti -1c
 .RI "void \fBupdate_vipstatus\fP ()"
 .br

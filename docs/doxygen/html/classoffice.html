@@ -103,12 +103,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_user</b> (<a clas
 <tr class="memitem:a659fa2b20e86ad74d23ffa5f752a8dbf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a659fa2b20e86ad74d23ffa5f752a8dbf"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_remote_user</b> (uint16_t bbank, uint32_t buser, uint8_t *pkey)</td></tr>
 <tr class="separator:a659fa2b20e86ad74d23ffa5f752a8dbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add365959d52f24654e1b7bcf4838926f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="add365959d52f24654e1b7bcf4838926f"></a>
-uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_user</b> (uint16_t abank, uint8_t *pk, uint32_t when, uint32_t auser)</td></tr>
-<tr class="separator:add365959d52f24654e1b7bcf4838926f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc48ec8f14391e1a92b3a297177c7d3b"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acc48ec8f14391e1a92b3a297177c7d3b"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>set_user</b> (uint32_t user, const <a class="el" href="structuser__s.html">user_t</a> &amp;nu, int64_t deduct)</td></tr>
-<tr class="separator:acc48ec8f14391e1a92b3a297177c7d3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aafc4b34f43a1d9510640c86f3d4b9afd"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aafc4b34f43a1d9510640c86f3d4b9afd"></a>
+uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_user</b> (uint16_t abank, uint8_t *pk, uint32_t when)</td></tr>
+<tr class="separator:aafc4b34f43a1d9510640c86f3d4b9afd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abb391255d4686303eac369473ed60a96"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abb391255d4686303eac369473ed60a96"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>set_user</b> (uint32_t user, <a class="el" href="structuser__s.html">user_t</a> &amp;nu, int64_t deduct)</td></tr>
+<tr class="separator:abb391255d4686303eac369473ed60a96"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a346aabb1766eb9f4d02cb7acaab3fd1c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a346aabb1766eb9f4d02cb7acaab3fd1c"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>delete_user</b> (uint32_t user)</td></tr>
 <tr class="separator:a346aabb1766eb9f4d02cb7acaab3fd1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -208,9 +208,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>fix_log</b> (uint16_t
 <tr class="memitem:a7bfd7f05dbd8ac2dcee8e8ef45cebf50"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7bfd7f05dbd8ac2dcee8e8ef45cebf50"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>get_log</b> (uint16_t svid, uint32_t user, uint32_t from, std::string &amp;slog)</td></tr>
 <tr class="separator:a7bfd7f05dbd8ac2dcee8e8ef45cebf50"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a59e171741efc9bf7cbe23c3aadfae4ae"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a59e171741efc9bf7cbe23c3aadfae4ae"></a>
+<tr class="memitem:a23507db27fe6917391a18ef90cf7da4a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a23507db27fe6917391a18ef90cf7da4a"></a>
 uint8_t *&#160;</td><td class="memItemRight" valign="bottom"><b>node_pkey</b> (uint16_t <a class="el" href="classnode.html">node</a>)</td></tr>
-<tr class="separator:a59e171741efc9bf7cbe23c3aadfae4ae"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a23507db27fe6917391a18ef90cf7da4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13cd2bcf9644df63fea0f12ea158ace4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a13cd2bcf9644df63fea0f12ea158ace4"></a>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>get_tickets</b> ()</td></tr>
+<tr class="separator:a13cd2bcf9644df63fea0f12ea158ace4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -229,10 +232,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>readonly</b></td></tr
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock">
-<p>Definition at line <a class="el" href="office_8hpp_source.html#l00022">22</a> of file <a class="el" href="office_8hpp_source.html">office.hpp</a>.</p>
+<p>Definition at line <a class="el" href="office_8hpp_source.html#l00028">28</a> of file <a class="el" href="office_8hpp_source.html">office.hpp</a>.</p>
 </div><hr/>The documentation for this class was generated from the following files:<ul>
 <li><a class="el" href="office_8hpp_source.html">office.hpp</a></li>
-<li><a class="el" href="escd_2main_8cpp_source.html">escd/main.cpp</a></li>
+<li><a class="el" href="office_8cpp_source.html">office.cpp</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->

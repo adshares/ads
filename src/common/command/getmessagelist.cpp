@@ -201,3 +201,10 @@ void GetMessageList::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::BLOCK, m_data.info.block);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string GetMessageList::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_message_list\",[\"block\":<block time as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_message_list\",\"block\":\"5B052CE0\"}" << "\n";
+    return ss.str();
+}

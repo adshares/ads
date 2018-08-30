@@ -1,4 +1,4 @@
-.TH "GetAccounts" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "GetAccounts" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -110,6 +110,9 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
 .br
 .ti -1c
 .RI "uint32_t \fBgetDestBankId\fP ()"

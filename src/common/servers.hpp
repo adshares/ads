@@ -193,7 +193,7 @@ class servers { // also a block
 
                 std::string user_balance = f.second.get < std::string > ("balance");
                 parse_amount(u.weight, user_balance);
-                init_user(u, node_num, users_count, u.weight, user_pk, nodes[0].mtim, node_num, users_count);
+                init_user(u, node_num, users_count, u.weight, user_pk, nodes[0].mtim);
                 put_user(u, node_num, users_count);
                 xor4(nodes[node_num].hash, u.csum);
                 users_count++;
@@ -262,7 +262,7 @@ class servers { // also a block
 
                     // create the first user
                     user_t u;
-                    init_user(u, num, 0, stw, it->pk, now, num, 0);
+                    init_user(u, num, 0, stw, it->pk, now);
                     put_user(u, num, 0);
                     //update_nodehash(num);
                     memcpy(it->hash, u.csum, SHA256_DIGEST_LENGTH);
@@ -345,7 +345,7 @@ class servers { // also a block
         SHA256_Final(nn.msha,&sha256);
     }
 
-    uint16_t add_node(user_t& ou,uint16_t unode,uint32_t user) {
+    uint16_t add_node(user_t& ou) {
         uint16_t peer=nodes.size();
         node nn;
         nn.mtim=now;
@@ -354,7 +354,7 @@ class servers { // also a block
         init_node_hash(nn);
         nodes.push_back(nn);
         user_t nu;
-        init_user(nu,peer,0,BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now,unode,user);
+        init_user(nu,peer,0,BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now);
         put_user(nu,peer,0);
         //update_nodehash(peer);
         nodes[peer].weight=nu.weight;
@@ -362,14 +362,14 @@ class servers { // also a block
         return(peer);
     }
 
-    void put_node(user_t& ou,uint16_t peer,uint16_t node,uint32_t user) { //executed in block mode, no lock needed
+    void put_node(user_t& ou,uint16_t peer) { //executed in block mode, no lock needed
         std::map<uint32_t,user_t> undo;
         user_t nu;
         get_user(nu,peer,0);
         undo[0]=nu;
         xor4(nodes[peer].hash,nu.csum);
         save_undo(peer,undo,0);
-        init_user(nu,peer,0,nu.weight+BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now,node,user); // weight does not change
+        init_user(nu,peer,0,nu.weight+BANK_MIN_UMASS+BANK_MIN_TMASS,ou.pkey,now); // weight does not change
         put_user(nu,peer,0);
         xor4(nodes[peer].hash,nu.csum);
         nodes[peer].mtim=now;
@@ -386,7 +386,7 @@ class servers { // also a block
         SHA256_Final(u.hash,&sha256);
     }
 
-    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when,uint16_t /*node*/,uint32_t /*user*/) {
+    void init_user(user_t& u,uint16_t peer,uint32_t uid,int64_t weight,uint8_t* pk,uint32_t when) {
         memset(&u,0,sizeof(user_t));
         u.msid=1; // always >0 to help identify holes in delta files
         u.time=when;

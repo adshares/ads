@@ -189,3 +189,10 @@ void GetSignatures::txnToJson(boost::property_tree::ptree& ptree) {
 uint32_t GetSignatures::getBlockNumber() {
     return m_data.info.block;
 }
+
+std::string GetSignatures::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_signatures\",[\"block\":<block time as hex>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_signatures\",\"block\":\"5B1A48C0\"}" << "\n";
+    return ss.str();
+}

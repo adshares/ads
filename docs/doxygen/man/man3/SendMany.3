@@ -1,4 +1,4 @@
-.TH "SendMany" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "SendMany" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -14,18 +14,6 @@ Inherits \fBBlockCommand\fP\&.
 .ti -1c
 .RI "\fBSendMany\fP (uint16_t bank, uint32_t user, uint32_t msid, std::vector< \fBSendAmountTxnRecord\fP > &txns_data, uint32_t time)"
 .br
-.ti -1c
-.RI "\fBSendMany\fP (const \fBSendMany\fP &obj)=delete"
-.br
-.RI "\fIDisabled copy constructor\&. \fP"
-.ti -1c
-.RI "\fBSendMany\fP & \fBoperator=\fP (const \fBSendMany\fP &)=delete"
-.br
-.RI "\fIDisable copy assignment operator\&. \fP"
-.ti -1c
-.RI "virtual \fB~SendMany\fP ()"
-.br
-.RI "\fIFree completeData object resources\&. \fP"
 .ti -1c
 .RI "virtual int \fBgetType\fP () override"
 .br
@@ -115,10 +103,6 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .RI "\fISave command response to settings object\&. \fP"
 .ti -1c
-.RI "virtual void \fBinitTransactionVector\fP ()"
-.br
-.RI "\fIInit transaction vector depends on additionalData buffer\&. \fP"
-.ti -1c
 .RI "virtual void \fBcheckForDuplicates\fP ()"
 .br
 .RI "\fIChecks for target duplicates and does amount is positive value\&. \fP"
@@ -134,6 +118,9 @@ Inherits \fBBlockCommand\fP\&.
 .br
 .ti -1c
 .RI "virtual void \fBtxnToJson\fP (boost::property_tree::ptree &ptree) override"
+.br
+.ti -1c
+.RI "virtual std::string \fBusageHelperToString\fP () override"
 .br
 .in -1c
 .SS "Public Attributes"
@@ -164,7 +151,7 @@ Checks for target duplicates and does amount is positive value\&.
 .PP
 
 .PP
-Definition at line 232 of file sendmany\&.cpp\&.
+Definition at line 187 of file sendmany\&.cpp\&.
 .SS "bool SendMany::checkSignature (const uint8_t * hash, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -181,7 +168,7 @@ Check actual signature\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 99 of file sendmany\&.cpp\&.
+Definition at line 87 of file sendmany\&.cpp\&.
 .SS "bool SendMany::send (\fBINetworkClient\fP & netClient)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -198,7 +185,7 @@ Send data to the server\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 167 of file sendmany\&.cpp\&.
+Definition at line 150 of file sendmany\&.cpp\&.
 .SS "void SendMany::sign (const uint8_t * hash, const uint8_t * sk, const uint8_t * pk)\fC [override]\fP, \fC [virtual]\fP"
 
 .PP
@@ -217,7 +204,7 @@ Sign actual data plus hash using user private and public keys\&.
 .PP
 Implements \fBICommand\fP\&.
 .PP
-Definition at line 82 of file sendmany\&.cpp\&.
+Definition at line 74 of file sendmany\&.cpp\&.
 
 .SH "Author"
 .PP 

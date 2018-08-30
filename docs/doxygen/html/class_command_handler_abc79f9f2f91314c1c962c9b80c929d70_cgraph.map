@@ -8,7 +8,7 @@
 <area shape="rect" id="node8" href="$class_i_command.html#a6fb68f150036bbc6a7dcf85ba3d432af" title="Get user message id. " alt="" coords="235,309,439,336"/>
 <area shape="rect" id="node9" href="$class_i_command.html#a1ad23c7c5a0fdd0f071340e87baada02" title="Get change in cash balance after command. " alt="" coords="259,360,414,387"/>
 <area shape="rect" id="node10" href="$class_i_command.html#aa28638955f23fe4dc972b13de7d181ed" title="Get command fee. " alt="" coords="269,411,404,437"/>
-<area shape="rect" id="node11" href="$class_i_command.html#a8e18d64e3a74b846ac296eae7bbe1bd8" title="Get pointer to signature data. " alt="" coords="253,461,420,488"/>
-<area shape="rect" id="node12" href="$class_i_command.html#aa4dbf55fc95db5f8c8819a4c8443e23c" title="Get signature size. " alt="" coords="240,512,433,539"/>
-<area shape="rect" id="node13" href="$class_i_command.html#ad3885575857c487e580f3738de8e96a9" title="Get User ID. " alt="" coords="261,563,412,589"/>
+<area shape="rect" id="node11" href="$class_i_command.html#ad3885575857c487e580f3738de8e96a9" title="Get User ID. " alt="" coords="261,461,412,488"/>
+<area shape="rect" id="node12" href="$class_i_command.html#a8e18d64e3a74b846ac296eae7bbe1bd8" title="Get pointer to signature data. " alt="" coords="253,512,420,539"/>
+<area shape="rect" id="node13" href="$class_i_command.html#aa4dbf55fc95db5f8c8819a4c8443e23c" title="Get signature size. " alt="" coords="240,563,433,589"/>
 </map>
