@@ -1664,7 +1664,7 @@ class servers { // also a block
     }
 
     uint32_t nextblock() { //returns period_start
-        DLOG("NEXT BLOCK");
+        DLOG("NEXT BLOCK\n");
 
         now+=BLOCKSEC;
         int num=(now/BLOCKSEC)%BLOCKDIV;
@@ -1688,18 +1688,7 @@ class servers { // also a block
         }
         blockdir();
         //change log directory
-        {
-            extern boost::recursive_mutex flog;
-            extern FILE* stdlog;
-            char filename[32];
-            Helper::FileName::getName(filename, now, "log.txt");
-            flog.lock();
-            fclose(stdlog);
-            stdlog=fopen(filename,"a");
-            uint32_t ntime=time(NULL);
-            fprintf(stdlog,"START: %08X\n",ntime);
-            flog.unlock();
-        }
+        logging::change_log_file(now);
         //FIXME, update VIP status now
         update_vipstatus();
         msg=0;

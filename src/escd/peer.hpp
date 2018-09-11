@@ -1655,14 +1655,14 @@ NEXTUSER:
     }
 
     void sync_start(bool server) {
-        DLOG("sync_start %d\n", server)
+        DLOG("sync_start %d\n", server);
         boost::unique_lock<boost::mutex> lock(pio_);
         if(server) {
             BLOCK_SERV=true;
         } else {
             BLOCK_PEER=true;
         }
-        DLOG("sync_start2 %d\n", server)
+        DLOG("sync_start2 %d\n", server);
         if(!BLOCK_SERV || !BLOCK_PEER) {            
             DLOG("%04X PEER sync_start wait\n",svid);
             return;
