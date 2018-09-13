@@ -1,6 +1,7 @@
 SET(SOURCE
     networkclient.cpp
     user.cpp
+    logging.cpp
 )
 
 SET(HEADERS
@@ -10,6 +11,7 @@ SET(HEADERS
     message.hpp
     user.hpp
     networkclient.h
+    logging.h
 )
 
 include_directories("../../external")
