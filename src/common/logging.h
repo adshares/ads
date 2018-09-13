@@ -4,13 +4,18 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <boost/current_function.hpp>
 
-#define TLOG(...) logging::log_log(logging::LOG_TRACE, __func__, __LINE__, __VA_ARGS__)
-#define DLOG(...) logging::log_log(logging::LOG_DEBUG, __func__, __LINE__, __VA_ARGS__)
-#define ILOG(...) logging::log_log(logging::LOG_INFO,  __func__, __LINE__, __VA_ARGS__)
-#define WLOG(...) logging::log_log(logging::LOG_WARN,  __func__, __LINE__, __VA_ARGS__)
-#define ELOG(...) logging::log_log(logging::LOG_ERROR, __func__, __LINE__, __VA_ARGS__)
-#define FLOG(...) logging::log_log(logging::LOG_FATAL, __func__, __LINE__, __VA_ARGS__)
+#ifndef __LINE__
+#define __LINE__ 0
+#endif /*__LINE__*/
+
+#define TLOG(...) logging::log_log(logging::LOG_TRACE, BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
+#define DLOG(...) logging::log_log(logging::LOG_DEBUG, BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
+#define ILOG(...) logging::log_log(logging::LOG_INFO,  BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
+#define WLOG(...) logging::log_log(logging::LOG_WARN,  BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
+#define ELOG(...) logging::log_log(logging::LOG_ERROR, BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
+#define FLOG(...) logging::log_log(logging::LOG_FATAL, BOOST_CURRENT_FUNCTION, __LINE__, __VA_ARGS__)
 
 namespace logging {
 
