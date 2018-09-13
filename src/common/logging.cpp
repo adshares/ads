@@ -1,16 +1,3 @@
-//void changeLogDir(uint32_t now);
-//{
-//    extern FILE* stdlog;
-//    char filename[32];
-//    Helper::FileName::getName(filename, now, "log.txt");
-//    flog.lock();
-//    fclose(stdlog);
-//    stdlog=fopen(filename,"a");
-//    uint32_t ntime=time(NULL);
-//    fprintf(stdlog,"START: %08X\n",ntime);
-//    flog.unlock();
-//}
-
 #include "logging.h"
 
 #include <stdio.h>
@@ -20,6 +7,9 @@
 #include <time.h>
 #include <mutex>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ini_parser.hpp>
+
 #include "helper/blocks.h"
 
 namespace logging {
@@ -28,14 +18,27 @@ static struct
 {
     std::mutex file_mtx;
     FILE *log_file;
-    int level;
+    LoggingLevel level;
+    LoggingSource source;
 } settings;
 
 
-//static const char *level_names[] =
-//{
-//  "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
-//};
+static const char *level_names[] =
+{
+  "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
+};
+
+void update_log_level(const char* iniFilePath)
+{
+    boost::optional<int> log_level = LoggingLevel::LOG_INFO;
+    boost::property_tree::ptree pt;
+    boost::property_tree::ini_parser::read_ini(iniFilePath, pt);
+    log_level = pt.get_optional<int>("log_level");
+    if (log_level)
+    {
+        settings.level = (LoggingLevel)log_level.get();
+    }
+}
 
 static void lock(void)
 {
@@ -48,7 +51,7 @@ static void unlock(void)
     settings.file_mtx.unlock();
 }
 
-void set_level(int level)
+void set_level(LoggingLevel level)
 {
     settings.level = level;
 }
@@ -58,36 +61,39 @@ void set_log_file(FILE* file)
     settings.log_file = file;
 }
 
-void log_log(int level, const char *fmt, ...)
+void set_log_source(LoggingSource source)
+{
+    settings.source = source;
+}
+
+void log_log(LoggingLevel level, const char* function, int line, const char *fmt, ...)
 {
     if (level < settings.level) {
-    return;
+        return;
     }
 
-    /* Acquire lock */
     lock();
 
-    /* Get current time */
     time_t t = time(NULL);
-    struct tm *lt = localtime(&t);
-
     va_list args;
-    char buf[16];
-    buf[strftime(buf, sizeof(buf), "%H:%M:%S", lt)] = '\0';
-//    fprintf(stderr, "%s %-5s: ", buf, level_names[level]);
-    fprintf(stderr, "%s ", buf);
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-    fflush(stderr);
 
-    buf[strftime(buf, sizeof(buf), "%H:%M:%S", lt)] = '\0';
-//    fprintf(settings.log_file, "%s %-5s: ", buf, level_names[level]);
-    fprintf(settings.log_file, "%s ", buf);
-    va_start(args, fmt);
-    vfprintf(settings.log_file, fmt, args);
-    va_end(args);
-    fflush(settings.log_file);
+    if (settings.source & LoggingSource::LOG_CONSOLE)
+    {
+        fprintf(stderr, "[%ld] [%s:%d] %-5s: ", t, function, line, level_names[level]);
+        va_start(args, fmt);
+        vfprintf(stderr, fmt, args);
+        va_end(args);
+        fflush(stderr);
+    }
+
+    if (settings.source & LoggingSource::LOG_FILE)
+    {
+        fprintf(settings.log_file, "[%ld] [%s:%d] %-5s: ", t, function, line, level_names[level]);
+        va_start(args, fmt);
+        vfprintf(settings.log_file, fmt, args);
+        va_end(args);
+        fflush(settings.log_file);
+    }
 
     unlock();
 }
@@ -97,11 +103,16 @@ void change_log_file(uint32_t timestamp)
     lock();
 
     char filename[32];;
-    Helper::FileName::getName(filename, timestamp, "log.txt");
-    fclose(settings.log_file);
-    settings.log_file = fopen(filename, "a");
     uint32_t ntime=time(NULL);
+    Helper::FileName::getName(filename, timestamp, "log.txt");
+
+    fprintf(settings.log_file,"END: %08X\n",ntime);
+    fclose(settings.log_file);
+
+    settings.log_file = fopen(filename, "a");
     fprintf(settings.log_file,"START: %08X\n",ntime);
+
+    update_log_level("options.cfg");
 
     unlock();
 }
