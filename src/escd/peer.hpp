@@ -442,6 +442,9 @@ public:
 
     void handle_read_header(const boost::system::error_code& error, size_t transfered)
     {
+        last_received_msg_time = time(NULL);
+        last_received_msg_type = read_msg_->data[0];
+
         std::ignore = transfered;
 
         extern message_ptr nullmsg;
@@ -2099,6 +2102,8 @@ NEXTUSER:
     friend class PeerConnectManager;
 
   private:
+    uint32_t    last_received_msg_time=0; //time when msg was last received from peer
+    uint32_t    last_received_msg_type=0; //type of last received msg from peer
     uint32_t    svid; // svid of peer
     int         do_sync; // needed by server::get_more_headers , FIXME, remove this, user peer_hs.do_sync    
     uint32_t    busy; // waiting for response (used during sync load balancing) set to last request time
