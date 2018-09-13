@@ -4234,13 +4234,13 @@ void server::finish_block() {
     for(auto it=update.begin(); it!=update.end(); it++) {
         assert(*it<srvs_.nodes.size());
         if(!srvs_.check_nodehash(*it)) {
-            ELOG("FATAL ERROR, failed to check bank %04X\n",*it);
+            FLOG("FATAL ERROR, failed to check bank %04X\n",*it);
             exit(-1);
         }
     }
 //#endif
     srvs_.finish(); //FIXME, add locking
-    ELOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
+    ILOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
