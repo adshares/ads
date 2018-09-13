@@ -144,7 +144,7 @@ void PeerConnectManager::leevePeer(uint16_t svid, in_addr address, unsigned shor
 
 void PeerConnectManager::leavePeerImpl(uint16_t svid, in_addr address, unsigned short port)
 {    
-    ILOG("%04X PEER LEAVE \n", svid);
+    DLOG("%04X PEER LEAVE \n", svid);
 
     try
     {
@@ -311,7 +311,7 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
         }
     }
     catch (std::exception& e) {
-        ELOG("DNS Connect Exception: %s", e.what());
+        ELOG("DNS Connect Exception: %s\n", e.what());
     }
 }
 
@@ -364,7 +364,7 @@ void PeerConnectManager::timerNextTick(int timeout)
 void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 {    
     if(error ==  boost::asio::error::operation_aborted){
-        ELOG("ERROR connectPeers\n");
+        DLOG("ERROR connectPeers\n");
         return;
     }
 
