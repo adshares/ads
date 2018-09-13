@@ -153,7 +153,7 @@ public:
     {
         //only outgoing connection
         if(error) {            
-            WLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);
+            DLOG("%04X PEER ACCEPT ERROR address %s: port%d\n",svid, addr.c_str(), port);
             leave();
             return;
         }
