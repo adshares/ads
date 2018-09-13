@@ -172,6 +172,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:a38266de86308acb17f82e1eb7de4a099"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a38266de86308acb17f82e1eb7de4a099"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:a38266de86308acb17f82e1eb7de4a099"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a84ad84c1d77ba9be49ef322a88197361"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a84ad84c1d77ba9be49ef322a88197361"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>usageHelperToString</b> () override</td></tr>
+<tr class="separator:a84ad84c1d77ba9be49ef322a88197361"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cc37c45436f977e1be399d81f7cae78"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a9cc37c45436f977e1be399d81f7cae78"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>getBlockNumberFrom</b> ()</td></tr>
 <tr class="separator:a9cc37c45436f977e1be399d81f7cae78"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -235,6 +238,9 @@ hash_t&#160;</td><td class="memItemRight" valign="bottom"><b>m_oldhash</b> {}</t
 <tr class="memitem:a674c66bffdac60abbe3db6fe4aba3171"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a674c66bffdac60abbe3db6fe4aba3171"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>m_numOfBlocks</b> {}</td></tr>
 <tr class="separator:a674c66bffdac60abbe3db6fe4aba3171"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a244751febe7ddf06f2a00ffd0164132a"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a244751febe7ddf06f2a00ffd0164132a"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_newviphash</b> =false</td></tr>
+<tr class="separator:a244751febe7ddf06f2a00ffd0164132a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95c51a891ef79a9dab379ccb00cb390c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a95c51a891ef79a9dab379ccb00cb390c"></a>
 <a class="el" href="structcommandresponse.html">commandresponse</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_response</b></td></tr>
 <tr class="separator:a95c51a891ef79a9dab379ccb00cb390c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -327,7 +333,7 @@ uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>m_numOfBlocks</b>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="getblocks_8cpp_source.html#l00347">347</a> of file <a class="el" href="getblocks_8cpp_source.html">getblocks.cpp</a>.</p>
+<p>Definition at line <a class="el" href="getblocks_8cpp_source.html#l00351">351</a> of file <a class="el" href="getblocks_8cpp_source.html">getblocks.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>

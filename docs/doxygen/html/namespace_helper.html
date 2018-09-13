@@ -128,6 +128,9 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>text2key</b> (const s
 <tr class="memitem:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778">remove_block</a> (const char *blockPath)</td></tr>
 <tr class="memdesc:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes block from filesystem.  <a href="#acb5fcd5a7423d51cbd882faf0d4f3778">More...</a><br /></td></tr>
 <tr class="separator:acb5fcd5a7423d51cbd882faf0d4f3778"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba8764a4af2b7bc749fe85f3ea3cbfbb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#aba8764a4af2b7bc749fe85f3ea3cbfbb">remove_block_exclude</a> (const char *blockPath, const char *excludeDir)</td></tr>
+<tr class="memdesc:aba8764a4af2b7bc749fe85f3ea3cbfbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Removes files from block path, except directory set as exclude_dir.  <a href="#aba8764a4af2b7bc749fe85f3ea3cbfbb">More...</a><br /></td></tr>
+<tr class="separator:aba8764a4af2b7bc749fe85f3ea3cbfbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aad6d58950a969675403f3b1692aa0657"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aad6d58950a969675403f3b1692aa0657"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#aad6d58950a969675403f3b1692aa0657">remove_file</a> (const char *filename)</td></tr>
 <tr class="memdesc:aad6d58950a969675403f3b1692aa0657"><td class="mdescLeft">&#160;</td><td class="mdescRight">removes file <br /></td></tr>
@@ -135,6 +138,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="name
 <tr class="memitem:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#a4d86bf45cfccf62e1aa0c6a4c7e452bf">is_file_not_compressed</a> (const char *filePath)</td></tr>
 <tr class="memdesc:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check is file exists in not compressed block.  <a href="#a4d86bf45cfccf62e1aa0c6a4c7e452bf">More...</a><br /></td></tr>
 <tr class="separator:a4d86bf45cfccf62e1aa0c6a4c7e452bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d180095c3853b4baeef8a9f5a0a04b0"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1d180095c3853b4baeef8a9f5a0a04b0"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespace_helper.html#a1d180095c3853b4baeef8a9f5a0a04b0">is_snapshot_directory</a> (uint32_t blockTime)</td></tr>
+<tr class="memdesc:a1d180095c3853b4baeef8a9f5a0a04b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check is it directory for snapshot or not. <br /></td></tr>
+<tr class="separator:a1d180095c3853b4baeef8a9f5a0a04b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae7a3f355428f0dec47bda4797eafc58d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ae7a3f355428f0dec47bda4797eafc58d"></a>
 uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>get_users_count</b> (uint16_t bank)</td></tr>
 <tr class="separator:ae7a3f355428f0dec47bda4797eafc58d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -186,12 +193,18 @@ const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>print_ad
 <tr class="memitem:a6d4b71e2c7b3fff9c70085fe8a429211"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6d4b71e2c7b3fff9c70085fe8a429211"></a>
 const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>print_msg_id</b> (uint16_t <a class="el" href="classnode.html">node</a>, uint32_t user, int32_t _suffix)</td></tr>
 <tr class="separator:a6d4b71e2c7b3fff9c70085fe8a429211"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac0bde32fc3eca994eef7d2239c9dbc52"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac0bde32fc3eca994eef7d2239c9dbc52"></a>
+const std::string&#160;</td><td class="memItemRight" valign="bottom"><b>print_msg_pack_id</b> (uint16_t <a class="el" href="classnode.html">node</a>, uint32_t msg_id)</td></tr>
+<tr class="separator:ac0bde32fc3eca994eef7d2239c9dbc52"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acba885d288c2c3e6e2312d52cb2b4797"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="acba885d288c2c3e6e2312d52cb2b4797"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>print_log</b> (boost::property_tree::ptree &amp;pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType=-1)</td></tr>
 <tr class="separator:acba885d288c2c3e6e2312d52cb2b4797"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a59d85f0cc749f05c9df088587a0b9e38"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a59d85f0cc749f05c9df088587a0b9e38"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>save_log</b> (<a class="el" href="structlog__s.html">log_t</a> *log, int len, uint32_t from, uint16_t bank, uint32_t user)</td></tr>
 <tr class="separator:a59d85f0cc749f05c9df088587a0b9e38"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac821a8269b6f9ee77f97808afb4856a4"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac821a8269b6f9ee77f97808afb4856a4"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>print_all_commands_help</b> ()</td></tr>
+<tr class="separator:ac821a8269b6f9ee77f97808afb4856a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ced125938ba0182441c379cc6ba0399"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8ced125938ba0182441c379cc6ba0399"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>getLogTxnTypeId</b> (const char *txnName)</td></tr>
 <tr class="separator:a8ced125938ba0182441c379cc6ba0399"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -266,7 +279,7 @@ class <a class="el" href="class_helper_1_1_servers.html">Helper::Servers</a>&#16
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00022">22</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00023">23</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -274,7 +287,9 @@ Here is the call graph for this function:</div>
 <div class="center"><img src="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph.png" border="0" usemap="#namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph" alt=""/></div>
 <map name="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph" id="namespace_helper_adeaf8ff65ae14cc04afb486832d99225_cgraph">
 <area shape="rect" id="node2" href="class_helper_1_1_lib_archive.html#ade2c935f8e99f91c07755a66823035a1" title="Creates archive from directory. " alt="" coords="226,5,355,47"/>
-<area shape="rect" id="node3" href="namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778" title="Removes block from filesystem. " alt="" coords="216,71,365,98"/>
+<area shape="rect" id="node3" href="namespace_helper.html#a1d180095c3853b4baeef8a9f5a0a04b0" title="Check is it directory for snapshot or not. " alt="" coords="221,71,360,112"/>
+<area shape="rect" id="node4" href="namespace_helper.html#aba8764a4af2b7bc749fe85f3ea3cbfbb" title="Removes files from block path, except directory set as exclude_dir. " alt="" coords="216,136,365,177"/>
+<area shape="rect" id="node5" href="namespace_helper.html#acb5fcd5a7423d51cbd882faf0d4f3778" title="Removes block from filesystem. " alt="" coords="216,202,365,229"/>
 </map>
 </div>
 </p>
@@ -304,7 +319,7 @@ Here is the call graph for this function:</div>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>true if exists (not compressed yet), otherwise false. </dd></dl>
 
-<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00058">58</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00080">80</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -340,7 +355,7 @@ Here is the caller graph for this function:</div>
   </dd>
 </dl>
 
-<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00049">49</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00054">54</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the caller graph for this function:</div>
@@ -348,6 +363,53 @@ Here is the caller graph for this function:</div>
 <div class="center"><img src="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph.png" border="0" usemap="#namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph" alt=""/></div>
 <map name="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph" id="namespace_helper_acb5fcd5a7423d51cbd882faf0d4f3778_icgraph">
 <area shape="rect" id="node2" href="namespace_helper.html#adeaf8ff65ae14cc04afb486832d99225" title="Compress old blocks,. " alt="" coords="203,5,365,32"/>
+</map>
+</div>
+</p>
+
+</div>
+</div>
+<a class="anchor" id="aba8764a4af2b7bc749fe85f3ea3cbfbb"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void Helper::remove_block_exclude </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>blockPath</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>excludeDir</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Removes files from block path, except directory set as exclude_dir. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">blockPath</td><td>- path to block directory in filesystem </td></tr>
+    <tr><td class="paramname">excludeDir</td><td>- path to directory skip during remove </td></tr>
+  </table>
+  </dd>
+</dl>
+
+<p>Definition at line <a class="el" href="blocks_8cpp_source.html#l00060">60</a> of file <a class="el" href="blocks_8cpp_source.html">blocks.cpp</a>.</p>
+
+<p><div class="dynheader">
+Here is the caller graph for this function:</div>
+<div class="dyncontent">
+<div class="center"><img src="namespace_helper_aba8764a4af2b7bc749fe85f3ea3cbfbb_icgraph.png" border="0" usemap="#namespace_helper_aba8764a4af2b7bc749fe85f3ea3cbfbb_icgraph" alt=""/></div>
+<map name="namespace_helper_aba8764a4af2b7bc749fe85f3ea3cbfbb_icgraph" id="namespace_helper_aba8764a4af2b7bc749fe85f3ea3cbfbb_icgraph">
+<area shape="rect" id="node2" href="namespace_helper.html#adeaf8ff65ae14cc04afb486832d99225" title="Compress old blocks,. " alt="" coords="203,13,365,39"/>
 </map>
 </div>
 </p>

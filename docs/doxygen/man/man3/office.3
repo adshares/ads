@@ -1,4 +1,4 @@
-.TH "office" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "office" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -58,10 +58,10 @@ office \-
 .RI "uint32_t \fBadd_remote_user\fP (uint16_t bbank, uint32_t buser, uint8_t *pkey)"
 .br
 .ti -1c
-.RI "uint32_t \fBadd_user\fP (uint16_t abank, uint8_t *pk, uint32_t when, uint32_t auser)"
+.RI "uint32_t \fBadd_user\fP (uint16_t abank, uint8_t *pk, uint32_t when)"
 .br
 .ti -1c
-.RI "void \fBset_user\fP (uint32_t user, const \fBuser_t\fP &nu, int64_t deduct)"
+.RI "void \fBset_user\fP (uint32_t user, \fBuser_t\fP &nu, int64_t deduct)"
 .br
 .ti -1c
 .RI "void \fBdelete_user\fP (uint32_t user)"
@@ -165,6 +165,9 @@ office \-
 .ti -1c
 .RI "uint8_t * \fBnode_pkey\fP (uint16_t \fBnode\fP)"
 .br
+.ti -1c
+.RI "int \fBget_tickets\fP ()"
+.br
 .in -1c
 .SS "Public Attributes"
 
@@ -184,7 +187,7 @@ office \-
 .in -1c
 .SH "Detailed Description"
 .PP 
-Definition at line 22 of file office\&.hpp\&.
+Definition at line 28 of file office\&.hpp\&.
 
 .SH "Author"
 .PP 

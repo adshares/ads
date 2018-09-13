@@ -160,3 +160,10 @@ uint32_t SetAccountStatus::getDestUserId() {
 uint16_t SetAccountStatus::getStatus() {
     return m_data.info.status;
 }
+
+std::string SetAccountStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"set_account_status\",\"address\":<destination_account_id>,\"status\":<bits_to_set>}" << "\n";
+    ss << "Example: " << "{\"run\":\"set_account_status\",\"address\":\"0001-00000000-XXXX\",\"status\":\"10\"}" << "\n";
+    return ss.str();
+}

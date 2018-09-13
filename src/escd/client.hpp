@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include "helper/socket.h"
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
 #include "../common/helper/blocks.h"
@@ -39,7 +40,7 @@ class client : public boost::enable_shared_from_this<client> {
     ~client() {
 #ifdef DEBUG
         DLOG("Client left %s:%s\n",m_addr.c_str(),m_port.c_str());
-#endif        
+#endif
     }
 
     boost::asio::ip::tcp::socket& socket() {
@@ -154,7 +155,7 @@ class client : public boost::enable_shared_from_this<client> {
     void handle_read_txs_complete(const boost::system::error_code& error)
     {
         if(error) {
-            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());                        
+            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
             m_offi.leave(shared_from_this());
         }
 

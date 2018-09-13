@@ -28,10 +28,6 @@ unsigned char* CreateAccount::getResponse() {
 
 void CreateAccount::setData(char* data) {
     m_data = *reinterpret_cast<decltype(m_data)*>(data);
-//    char *data_ptr = data + getDataSize();
-//    setAdditionalData(data_ptr);
-//    data_ptr += getAdditionalDataSize();
-//    std::copy(data_ptr, data_ptr + getSignatureSize(), getSignature());
 }
 
 void CreateAccount::setResponse(char* response) {
@@ -212,4 +208,11 @@ void CreateAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.info.ttime);
     ptree.put(TAG::DST_NODE, m_data.info.dst_node);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
+}
+
+std::string CreateAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"create_account\",[\"node\":<node id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"create_account\",\"node\":\"2\"}" << "\n";
+    return ss.str();
 }

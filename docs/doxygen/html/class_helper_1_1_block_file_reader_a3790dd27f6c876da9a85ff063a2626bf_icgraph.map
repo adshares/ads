@@ -2,6 +2,7 @@
 <area shape="rect" id="node2" href="$class_get_broadcast_msg_handler.html#af87a4e17feed555fb468a396d03c7d32" title="Execution event. It executes actual command and commit it to blockchain. " alt="" coords="217,5,389,47"/>
 <area shape="rect" id="node3" href="$class_parser_1_1_msglist_parser.html#a6687c6d3789c39b111cf7c0a8b277efd" title="Load msglist.dat file. " alt="" coords="229,71,377,112"/>
 <area shape="rect" id="node5" href="$classservers.html#a42aef3b8185d8b39cf490eac427aca43" title="replaced by Parser::MsglistParser " alt="" coords="240,137,367,163"/>
-<area shape="rect" id="node6" href="$classservers.html#a45f5d381d2a1bbe11643e783f9f99639" title="replaced by Parser::MsglistParser " alt="" coords="235,187,371,214"/>
+<area shape="rect" id="node6" href="$classservers.html#aa7d9beb10dfccf66f6cd42d4498192ac" title="replaced by Parser::MsglistParser " alt="" coords="235,188,371,229"/>
 <area shape="rect" id="node4" href="$class_get_message_list.html#ad40f1aae0e4ae15ba97cd52dc01258b8" title="Get data from msglist file. " alt="" coords="437,78,664,105"/>
+<area shape="rect" id="node7" href="$class_get_transaction_handler.html#a8efd252dbc9da6470c7ac183369d5f66" title="Execution event. It executes actual command and commit it to blockchain. " alt="" coords="473,188,629,229"/>
 </map>

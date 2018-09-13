@@ -99,6 +99,7 @@ class GetBroadcastMsg : public BlockCommand {
         virtual std::string  toString(bool pretty)                          override;
         virtual void         toJson(boost::property_tree::ptree &ptree)     override;
         virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+        virtual std::string  usageHelperToString()                          override;
 
         virtual void readDataBuffer(unsigned char* dataBuffer, int size);
         virtual void printBlg(GetBroadcastResponse &block, std::string &message, boost::property_tree::ptree &ptree);

@@ -28,7 +28,8 @@ private:
         SIGNATURES_OK,
         VIP,
         INX,
-        LOG
+        LOG,
+        ARCH
     };
 
     const std::map<const std::string, FileType> fileTypeId = {
@@ -41,7 +42,8 @@ private:
         { ".ok",  FileType::SIGNATURES_OK },
         { ".vip", FileType::VIP },
         { ".inx", FileType::INX },
-        { ".log", FileType::LOG }
+        { ".log", FileType::LOG },
+        { ".arch", FileType::ARCH }
     };
 
 public:

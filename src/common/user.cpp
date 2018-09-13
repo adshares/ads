@@ -84,7 +84,7 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0) {
     }
 }
 
-std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, std::string& json_run) {
+std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptree& pt) {
     uint16_t    to_bank=0;
     uint32_t    to_user=0;
     int64_t     to_mass=0;
@@ -96,25 +96,13 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, 
     std::string txn_type{};
     uint32_t    now=time(NULL);
     uint32_t    to_block=now-(now%BLOCKSEC)-BLOCKSEC;
-    boost::property_tree::ptree pt;
 
     uint16_t sts_bank = sts.bank;
     uint32_t sts_user = sts.user;
 
-
-    std::stringstream ss(line);
     sts.signature_provided = false;
 
-    try {
-        boost::property_tree::read_json(ss,pt);
-    }
-    catch (std::exception& e) {
-        std::cerr << "RUN_JSON Exception: " << e.what() << "\n";
-        return nullptr;
-    }
-
     std::string run=pt.get<std::string>("run");
-    json_run = run;
 
     boost::optional<std::string> json_signature=pt.get_optional<std::string>("signature");
     if(json_signature) {
@@ -137,12 +125,21 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, 
         }
     }
 
-    if(json_run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
+    if(run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
       std::cerr << "No secret and no signature provided. Abort." << std::endl;
       return nullptr;
     }
 
-    if(json_run != "decode_raw" && sts.drun && sts.without_secret) {
+    if(run != "decode_raw" && sts.drun && sts.without_secret) {
+      std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
+    }
+
+    if(run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
+      std::cerr << "No secret and no signature provided. Abort." << std::endl;
+      return nullptr;
+    }
+
+    if(run != "decode_raw" && sts.drun && sts.without_secret) {
       std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
     }
 
@@ -421,7 +418,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, 
         if(sts.signature_provided) {
           memcpy(command->getSignature(), to_signature, command->getSignatureSize());
         } else {
-            if(json_run == "decode_raw") {
+            if(run == "decode_raw") {
                 bzero(command->getSignature(), command->getSignatureSize());
             } else {
                 command->sign(sts.ha.data(), sts.sk, sts.pk);
@@ -433,7 +430,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, const std::string& line, 
         SetAccountKey* keycommand = dynamic_cast<SetAccountKey*>(command.get());
 
         if(keycommand && !keycommand->checkPubKeySignaure()) {
-            fprintf(stderr,"ERROR, bad new KEY empty string signature1\n");
+            fprintf(stderr,"ERROR, bad new KEY or empty string signature\n");
             command.reset();
         }
     }

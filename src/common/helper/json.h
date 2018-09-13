@@ -57,6 +57,8 @@ void printErrorJson(const char* errorMsg, bool pretty);
 void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType);
 void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user);
 int getLogTxnTypeId(const char* txnName);
+
+void print_all_commands_help();
 }
 
 #endif // JSON_H

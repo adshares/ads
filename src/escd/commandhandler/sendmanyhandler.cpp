@@ -10,7 +10,6 @@ SendManyHandler::SendManyHandler(office& office, boost::asio::ip::tcp::socket& s
 void SendManyHandler::onInit(std::unique_ptr<IBlockCommand> command) {
     m_command = init<SendMany>(std::move(command));
     assert(m_command);
-    m_command->initTransactionVector();
 }
 
 void SendManyHandler::onExecute() {

@@ -79,18 +79,18 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>user_csum</b> (<a cla
 <tr class="memitem:a02d8e70aed9fad388bba9105c650b6cc"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a02d8e70aed9fad388bba9105c650b6cc"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>init_node_hash</b> (<a class="el" href="classnode.html">node</a> &amp;nn)</td></tr>
 <tr class="separator:a02d8e70aed9fad388bba9105c650b6cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a776e6e9124d98e6ecb026d891e8f6e55"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a776e6e9124d98e6ecb026d891e8f6e55"></a>
-uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_node</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;ou, uint16_t unode, uint32_t user)</td></tr>
-<tr class="separator:a776e6e9124d98e6ecb026d891e8f6e55"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a274b57b6818af419c6e8fa1dd59cb68c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a274b57b6818af419c6e8fa1dd59cb68c"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>put_node</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;ou, uint16_t <a class="el" href="classpeer.html">peer</a>, uint16_t <a class="el" href="classnode.html">node</a>, uint32_t user)</td></tr>
-<tr class="separator:a274b57b6818af419c6e8fa1dd59cb68c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adfcc5de4c950e6e8e5a637a5499f7208"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="adfcc5de4c950e6e8e5a637a5499f7208"></a>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>add_node</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;ou)</td></tr>
+<tr class="separator:adfcc5de4c950e6e8e5a637a5499f7208"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6088746ee5b66286a9fd5e340e80ef6e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6088746ee5b66286a9fd5e340e80ef6e"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>put_node</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;ou, uint16_t <a class="el" href="classpeer.html">peer</a>)</td></tr>
+<tr class="separator:a6088746ee5b66286a9fd5e340e80ef6e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a77d36b08ee0a8ceeb67ccf63c8754df3"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a77d36b08ee0a8ceeb67ccf63c8754df3"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>init_user_hash</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;u)</td></tr>
 <tr class="separator:a77d36b08ee0a8ceeb67ccf63c8754df3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22f50a646ffd8d6e319f8fe5d0a95daf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a22f50a646ffd8d6e319f8fe5d0a95daf"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>init_user</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;u, uint16_t <a class="el" href="classpeer.html">peer</a>, uint32_t uid, int64_t weight, uint8_t *pk, uint32_t when, uint16_t <a class="el" href="classnode.html">node</a>, uint16_t user)</td></tr>
-<tr class="separator:a22f50a646ffd8d6e319f8fe5d0a95daf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a747d577037314dba1846bb4c753e2db9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a747d577037314dba1846bb4c753e2db9"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>init_user</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;u, uint16_t <a class="el" href="classpeer.html">peer</a>, uint32_t uid, int64_t weight, uint8_t *pk, uint32_t when)</td></tr>
+<tr class="separator:a747d577037314dba1846bb4c753e2db9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aebafe4719b1e0cf39cf47922e03f3d7e"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aebafe4719b1e0cf39cf47922e03f3d7e"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>put_user</b> (<a class="el" href="structuser__s.html">user_t</a> &amp;u, uint16_t <a class="el" href="classpeer.html">peer</a>, uint32_t uid)</td></tr>
 <tr class="separator:aebafe4719b1e0cf39cf47922e03f3d7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -143,9 +143,12 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>msgl_map</b> (char *d
 <tr class="memitem:ac4c3e5ccbba457c29e5b95748e875966"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="ac4c3e5ccbba457c29e5b95748e875966"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>msgl_load</b> (std::map&lt; uint64_t, message_ptr &gt; &amp;map, uint16_t mysvid)</td></tr>
 <tr class="separator:ac4c3e5ccbba457c29e5b95748e875966"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa7d9beb10dfccf66f6cd42d4498192ac"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aa7d9beb10dfccf66f6cd42d4498192ac"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classservers.html#aa7d9beb10dfccf66f6cd42d4498192ac">msgl_hash_tree_get</a> (uint16_t svid, uint32_t msid, uint32_t mnum, std::vector&lt; <a class="el" href="unionhash__s.html">hash_s</a> &gt; &amp;hashes)</td></tr>
+<tr class="memdesc:aa7d9beb10dfccf66f6cd42d4498192ac"><td class="mdescLeft">&#160;</td><td class="mdescRight">replaced by <a class="el" href="class_parser_1_1_msglist_parser.html">Parser::MsglistParser</a> <br /></td></tr>
+<tr class="separator:aa7d9beb10dfccf66f6cd42d4498192ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a45f5d381d2a1bbe11643e783f9f99639"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a45f5d381d2a1bbe11643e783f9f99639"></a>
-uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classservers.html#a45f5d381d2a1bbe11643e783f9f99639">get_vipuno</a> ()</td></tr>
-<tr class="memdesc:a45f5d381d2a1bbe11643e783f9f99639"><td class="mdescLeft">&#160;</td><td class="mdescRight">replaced by <a class="el" href="class_parser_1_1_msglist_parser.html">Parser::MsglistParser</a> <br /></td></tr>
+uint16_t&#160;</td><td class="memItemRight" valign="bottom"><b>get_vipuno</b> ()</td></tr>
 <tr class="separator:a45f5d381d2a1bbe11643e783f9f99639"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6572c25dad7f3136b28a7442544b1ccb"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a6572c25dad7f3136b28a7442544b1ccb"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>update_vipstatus</b> ()</td></tr>

@@ -1,13 +1,14 @@
 <map id="DataPrinter" name="DataPrinter">
-<area shape="rect" id="node2" href="$class_dat_printer.html" title="DatPrinter" alt="" coords="162,5,243,32"/>
-<area shape="rect" id="node3" href="$class_hdr_printer.html" title="HdrPrinter" alt="" coords="162,56,243,83"/>
-<area shape="rect" id="node4" href="$class_hlog_printer.html" title="HlogPrinter" alt="" coords="159,107,246,133"/>
-<area shape="rect" id="node5" href="$class_inx_printer.html" title="InxPrinter" alt="" coords="163,157,242,184"/>
-<area shape="rect" id="node6" href="$class_log_printer.html" title="LogPrinter" alt="" coords="162,208,243,235"/>
-<area shape="rect" id="node7" href="$class_msg_list_printer.html" title="MsgListPrinter" alt="" coords="149,259,256,285"/>
-<area shape="rect" id="node8" href="$class_msg_printer.html" title="MsgPrinter" alt="" coords="160,309,245,336"/>
-<area shape="rect" id="node9" href="$class_signatures_printer.html" title="SignaturesPrinter" alt="" coords="141,360,264,387"/>
-<area shape="rect" id="node10" href="$class_srv_printer.html" title="SrvPrinter" alt="" coords="163,411,243,437"/>
-<area shape="rect" id="node11" href="$class_undo_printer.html" title="UndoPrinter" alt="" coords="157,461,248,488"/>
-<area shape="rect" id="node12" href="$class_vip_printer.html" title="VipPrinter" alt="" coords="163,512,242,539"/>
+<area shape="rect" id="node2" href="$class_arch_printer.html" title="ArchPrinter" alt="" coords="159,5,246,32"/>
+<area shape="rect" id="node3" href="$class_dat_printer.html" title="DatPrinter" alt="" coords="162,56,243,83"/>
+<area shape="rect" id="node4" href="$class_hdr_printer.html" title="HdrPrinter" alt="" coords="162,107,243,133"/>
+<area shape="rect" id="node5" href="$class_hlog_printer.html" title="HlogPrinter" alt="" coords="159,157,246,184"/>
+<area shape="rect" id="node6" href="$class_inx_printer.html" title="InxPrinter" alt="" coords="163,208,242,235"/>
+<area shape="rect" id="node7" href="$class_log_printer.html" title="LogPrinter" alt="" coords="162,259,243,285"/>
+<area shape="rect" id="node8" href="$class_msg_list_printer.html" title="MsgListPrinter" alt="" coords="149,309,256,336"/>
+<area shape="rect" id="node9" href="$class_msg_printer.html" title="MsgPrinter" alt="" coords="160,360,245,387"/>
+<area shape="rect" id="node10" href="$class_signatures_printer.html" title="SignaturesPrinter" alt="" coords="141,411,264,437"/>
+<area shape="rect" id="node11" href="$class_srv_printer.html" title="SrvPrinter" alt="" coords="163,461,243,488"/>
+<area shape="rect" id="node12" href="$class_undo_printer.html" title="UndoPrinter" alt="" coords="157,512,248,539"/>
+<area shape="rect" id="node13" href="$class_vip_printer.html" title="VipPrinter" alt="" coords="163,563,242,589"/>
 </map>

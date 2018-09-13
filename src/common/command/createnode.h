@@ -93,6 +93,7 @@ class CreateNode : public BlockCommand {
     virtual std::string  toString(bool pretty)                          override;
     virtual void         toJson(boost::property_tree::ptree &ptree)     override;
     virtual void         txnToJson(boost::property_tree::ptree& ptree)  override;
+    virtual std::string  usageHelperToString()                          override;
 
   private:
     CreateNodeData      m_data;

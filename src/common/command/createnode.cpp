@@ -150,3 +150,10 @@ void CreateNode::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TIME, m_data.data.ttime);
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string CreateNode::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"create_node\"}" << "\n";
+    ss << "Example: " << "{\"run\":\"create_node\"}" << "\n";
+    return ss.str();
+}

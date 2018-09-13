@@ -147,3 +147,9 @@ void GetAccount::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
+std::string GetAccount::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_account\",[\"address\":<account_id>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_account\",\"address\":\"0002-00000005-XXXX\"}" << "\n";
+    return ss.str();
+}

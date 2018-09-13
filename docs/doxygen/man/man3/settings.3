@@ -1,4 +1,4 @@
-.TH "settings" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "settings" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -22,6 +22,9 @@ settings \-
 .RI "bool \fBparse_txid\fP (uint16_t &to_bank, uint32_t &node_msid, uint32_t &node_mpos, std::string str_txid)"
 .br
 .ti -1c
+.RI "bool \fBparse_msgid\fP (uint16_t &to_bank, uint32_t &node_msid, std::string str_txid)"
+.br
+.ti -1c
 .RI "void \fBget\fP (int ac, char *av[])"
 .br
 .in -1c
@@ -30,6 +33,9 @@ settings \-
 .in +1c
 .ti -1c
 .RI "static void \fBprint_version\fP ()"
+.br
+.ti -1c
+.RI "static std::string \fBget_version\fP (uint max_length=0)"
 .br
 .ti -1c
 .RI "static void \fBchange_working_dir\fP (std::string workdir)"
@@ -72,6 +78,12 @@ settings \-
 .RI "bool \fBdrun\fP"
 .br
 .ti -1c
+.RI "bool \fBsignature_provided\fP = false"
+.br
+.ti -1c
+.RI "bool \fBwithout_secret\fP = true"
+.br
+.ti -1c
 .RI "ed25519_secret_key \fBsk\fP"
 .br
 .ti -1c
@@ -95,7 +107,7 @@ settings \-
 .in -1c
 .SH "Detailed Description"
 .PP 
-Definition at line 17 of file settings\&.hpp\&.
+Definition at line 18 of file settings\&.hpp\&.
 
 .SH "Author"
 .PP 

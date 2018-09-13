@@ -109,3 +109,6 @@ void TransactionFailed::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
 }
 
+std::string  TransactionFailed::usageHelperToString() {
+    return std::string("");
+}

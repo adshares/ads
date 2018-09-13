@@ -331,3 +331,9 @@ void GetTransaction::txnToJson(boost::property_tree::ptree& ptree) {
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 
+std::string GetTransaction::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_transaction\",\"txid\":<transaction_id>}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_transaction\",\"txid\":\"0001:00000002:0001\"}" << "\n";
+    return ss.str();
+}

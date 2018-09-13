@@ -84,18 +84,6 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a78edc68b15a7e89ff73021e5569bd4d1"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a78edc68b15a7e89ff73021e5569bd4d1"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>SendMany</b> (uint16_t bank, uint32_t user, uint32_t msid, std::vector&lt; <a class="el" href="struct_send_amount_txn_record.html">SendAmountTxnRecord</a> &gt; &amp;txns_data, uint32_t time)</td></tr>
 <tr class="separator:a78edc68b15a7e89ff73021e5569bd4d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aae72e29a2e0b57a5fdfbf039b0e60620"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aae72e29a2e0b57a5fdfbf039b0e60620"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#aae72e29a2e0b57a5fdfbf039b0e60620">SendMany</a> (const <a class="el" href="class_send_many.html">SendMany</a> &amp;obj)=delete</td></tr>
-<tr class="memdesc:aae72e29a2e0b57a5fdfbf039b0e60620"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disabled copy constructor. <br /></td></tr>
-<tr class="separator:aae72e29a2e0b57a5fdfbf039b0e60620"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:add7e5c2e853f49ba07394df5764fabdf"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="add7e5c2e853f49ba07394df5764fabdf"></a>
-<a class="el" href="class_send_many.html">SendMany</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#add7e5c2e853f49ba07394df5764fabdf">operator=</a> (const <a class="el" href="class_send_many.html">SendMany</a> &amp;)=delete</td></tr>
-<tr class="memdesc:add7e5c2e853f49ba07394df5764fabdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Disable copy assignment operator. <br /></td></tr>
-<tr class="separator:add7e5c2e853f49ba07394df5764fabdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aff8ba9cabc220d6a4026bba20cecb532"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aff8ba9cabc220d6a4026bba20cecb532"></a>
-virtual&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#aff8ba9cabc220d6a4026bba20cecb532">~SendMany</a> ()</td></tr>
-<tr class="memdesc:aff8ba9cabc220d6a4026bba20cecb532"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free completeData object resources. <br /></td></tr>
-<tr class="separator:aff8ba9cabc220d6a4026bba20cecb532"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a36624c0cc1f5f393c0be5de3233fde3d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a36624c0cc1f5f393c0be5de3233fde3d"></a>
 virtual int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#a36624c0cc1f5f393c0be5de3233fde3d">getType</a> () override</td></tr>
 <tr class="memdesc:a36624c0cc1f5f393c0be5de3233fde3d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return TXSTYPE_MPT as type . <br /></td></tr>
@@ -181,10 +169,6 @@ virtual uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#ab9bd5eb4ac775d3b203543ba729bb361">saveResponse</a> (<a class="el" href="classsettings.html">settings</a> &amp;sts) override</td></tr>
 <tr class="memdesc:ab9bd5eb4ac775d3b203543ba729bb361"><td class="mdescLeft">&#160;</td><td class="mdescRight">Save command response to settings object. <br /></td></tr>
 <tr class="separator:ab9bd5eb4ac775d3b203543ba729bb361"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a47c5fae7a070d8619f2fe7ccc32ca30d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a47c5fae7a070d8619f2fe7ccc32ca30d"></a>
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#a47c5fae7a070d8619f2fe7ccc32ca30d">initTransactionVector</a> ()</td></tr>
-<tr class="memdesc:a47c5fae7a070d8619f2fe7ccc32ca30d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Init transaction vector depends on additionalData buffer. <br /></td></tr>
-<tr class="separator:a47c5fae7a070d8619f2fe7ccc32ca30d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf0b063f972d660801b73fa4b7703618"><td class="memItemLeft" align="right" valign="top">virtual void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_send_many.html#acf0b063f972d660801b73fa4b7703618">checkForDuplicates</a> ()</td></tr>
 <tr class="memdesc:acf0b063f972d660801b73fa4b7703618"><td class="mdescLeft">&#160;</td><td class="mdescRight">Checks for target duplicates and does amount is positive value.  <a href="#acf0b063f972d660801b73fa4b7703618">More...</a><br /></td></tr>
 <tr class="separator:acf0b063f972d660801b73fa4b7703618"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -201,6 +185,9 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>toJson</b> (b
 <tr class="memitem:aafcabc0733f7d1b0b7b41a0970e9f3a7"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aafcabc0733f7d1b0b7b41a0970e9f3a7"></a>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>txnToJson</b> (boost::property_tree::ptree &amp;ptree) override</td></tr>
 <tr class="separator:aafcabc0733f7d1b0b7b41a0970e9f3a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea9b06ed1c0ce90573ed81985a3421a8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="aea9b06ed1c0ce90573ed81985a3421a8"></a>
+virtual std::string&#160;</td><td class="memItemRight" valign="bottom"><b>usageHelperToString</b> () override</td></tr>
+<tr class="separator:aea9b06ed1c0ce90573ed81985a3421a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Public Attributes</h2></td></tr>
@@ -244,7 +231,7 @@ Public Attributes</h2></td></tr>
 <p>Checks for target duplicates and does amount is positive value. </p>
 <dl class="section return"><dt>Returns</dt><dd><a class="el" href="class_error_codes.html" title="Error code class provides function to return string message for certain enum error code...">ErrorCodes</a> value, eNone if success. </dd></dl>
 
-<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00232">232</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00187">187</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
 
 </div>
 </div>
@@ -291,7 +278,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a028b270daeeaa4355a98f57535f1a241">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00099">99</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00087">87</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
 
 </div>
 </div>
@@ -328,7 +315,7 @@ Public Attributes</h2></td></tr>
 
 <p>Implements <a class="el" href="class_i_command.html#a58818c39b7e5b251c92884d1ac3d7ff0">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00167">167</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00150">150</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
 
 <p><div class="dynheader">
 Here is the call graph for this function:</div>
@@ -393,7 +380,7 @@ Here is the call graph for this function:</div>
 
 <p>Implements <a class="el" href="class_i_command.html#ac22ed20994df3a99f139dcb18d49a067">ICommand</a>.</p>
 
-<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00082">82</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
+<p>Definition at line <a class="el" href="sendmany_8cpp_source.html#l00074">74</a> of file <a class="el" href="sendmany_8cpp_source.html">sendmany.cpp</a>.</p>
 
 </div>
 </div>

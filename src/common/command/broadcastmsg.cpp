@@ -210,3 +210,10 @@ void BroadcastMsg::txnToJson(boost::property_tree::ptree& ptree) {
     }
     ptree.put(TAG::SIGN, Helper::ed25519_key2text(getSignature(), getSignatureSize()));
 }
+
+std::string BroadcastMsg::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"broadcast\",\"message\":<hexadecimal_string> or \"message_ascii\":<string>}" << "\n";
+    ss << "Example: " << "{\"run\":\"broadcast\",\"message\":\"D69BCCF69C2D0F6CED025A05FA7F3BA687D1603AC1C8D9752209AC2BBF2C4D17\"}" << "\n";
+    return ss.str();
+}

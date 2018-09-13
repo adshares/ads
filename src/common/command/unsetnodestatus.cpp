@@ -155,3 +155,10 @@ uint32_t UnsetNodeStatus::getDestBankId() {
 uint32_t UnsetNodeStatus::getStatus() {
     return m_data.info.status;
 }
+
+std::string  UnsetNodeStatus::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"unset_node_status\",\"node\":<node id>,\"status\":<bits_to_unset>}" << "\n";
+    ss << "Example: " << "{\"run\":\"unset_node_status\",\"node\":\"1\",\"status\":\"8\"}" << "\n";
+    return ss.str();
+}

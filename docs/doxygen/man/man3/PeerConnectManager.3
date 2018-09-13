@@ -1,4 +1,4 @@
-.TH "PeerConnectManager" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "PeerConnectManager" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -85,35 +85,35 @@ Definition at line 110 of file peerclientmanager\&.cpp\&.
 .SS "bool PeerConnectManager::checkDuplicate (uint16_t svid)"
 Check if we already connected with perr with svid 
 .PP
-Definition at line 506 of file peerclientmanager\&.cpp\&.
+Definition at line 518 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::deliver (message_ptr msg, uint16_t svid)"
 Deliver message to particular peer 
 .PP
-Definition at line 401 of file peerclientmanager\&.cpp\&.
+Definition at line 413 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::deliverToAll (message_ptr msg)"
 Deliver message to all peers 
 .PP
-Definition at line 419 of file peerclientmanager\&.cpp\&.
+Definition at line 431 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::fillknown (message_ptr msg)"
 Put information to message with all peers that are already active 
 .PP
-Definition at line 541 of file peerclientmanager\&.cpp\&.
+Definition at line 553 of file peerclientmanager\&.cpp\&.
 .SS "std::string PeerConnectManager::getActualPeerList ()"
 Get list with informations about current peers 
 .PP
-Definition at line 475 of file peerclientmanager\&.cpp\&.
+Definition at line 487 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::getMoreHeaders (uint32_t now)"
 Request header from random active peer 
 .PP
-Definition at line 512 of file peerclientmanager\&.cpp\&.
+Definition at line 524 of file peerclientmanager\&.cpp\&.
 .SS "int PeerConnectManager::getPeersCount (bool activeOnly)"
 Get how many peers we have connections with 
 .PP
-Definition at line 497 of file peerclientmanager\&.cpp\&.
+Definition at line 509 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::getReadyPeers (std::set< uint16_t > & ready)"
 Get acitive and not busy peers 
 .PP
-Definition at line 463 of file peerclientmanager\&.cpp\&.
+Definition at line 475 of file peerclientmanager\&.cpp\&.
 .SS "void PeerConnectManager::leevePeer (uint16_t svid, in_addr addr, unsigned short port)"
 Remove peer from connected peers 
 .PP

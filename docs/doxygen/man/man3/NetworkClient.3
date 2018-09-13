@@ -1,4 +1,4 @@
-.TH "NetworkClient" 3 "Wed Jul 4 2018" "esc" \" -*- nroff -*-
+.TH "NetworkClient" 3 "Thu Aug 30 2018" "esc" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -50,6 +50,10 @@ Inherits \fBINetworkClient\fP\&.
 .RI "virtual bool \fBreadData\fP (int32_t *buff, int size) override"
 .br
 .RI "\fIRead data to int\&. \fP"
+.ti -1c
+.RI "virtual bool \fBisConnected\fP () override"
+.br
+.RI "\fICheck if connected to server\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 

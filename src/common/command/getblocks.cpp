@@ -142,6 +142,11 @@ bool GetBlocks::receiveHeaders(INetworkClient& netClient) {
         m_receivedHeaders.push_back(sh);
     }
 
+    if(!netClient.readData((char*)&m_newviphash, sizeof(m_newviphash))) {
+        ELOG("GetBlocks ERROR reading newviphash flag\n");
+        return false;
+    }
+
     return true;
 }
 
@@ -444,6 +449,10 @@ void GetBlocks::toJson(boost::property_tree::ptree& ptree) {
             }
             ptree.put_child("blocks", blockChild);
         }
+
+        if(m_newviphash) {
+            ptree.put("warning", "some blocks may not have been updated due to new nodes - rerun command");
+        }
     }
     else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
@@ -467,4 +476,11 @@ uint32_t GetBlocks::getBlockNumberFrom() {
 
 uint32_t GetBlocks::getBlockNumberTo() {
     return m_data.info.to;
+}
+
+std::string GetBlocks::usageHelperToString() {
+    std::stringstream ss{};
+    ss << "Usage: " << "{\"run\":\"get_blocks\",[\"from\":<from_timestamp>],[\"to\":<to_timestamp>]}" << "\n";
+    ss << "Example: " << "{\"run\":\"get_blocks\",\"from\":\"1491210824\",\"to\":\"1491211048\"}" << "\n";
+    return ss.str();
 }
