@@ -93,7 +93,7 @@ class server {
     bool known_elector(uint16_t svid);
     void write_header();
     void clock();
-    void update_connection_info(std::string& message);
+    void update_connection_info(std::string& message,uint32_t& tnum);
     bool break_silence(uint32_t now,std::string& message,uint32_t& tnum);
     void missing_msgs_erase(message_ptr& msg);
     void missing_msgs_insert(message_ptr& msg);

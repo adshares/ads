@@ -3154,11 +3154,11 @@ bool server::process_message(message_ptr msg) {
             return(false);
         }
 
-        if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight &&
-            deduct+fee+(utxs.auser?0:BANK_MIN_UMASS)>usera->weight+(int64_t)local_dsu[utxs.auser].deposit){
+        if(deduct+fee+(utxs.auser?0:BANK_MIN_UMASS/2)>usera->weight &&
+            deduct+fee+(utxs.auser?0:BANK_MIN_UMASS/2)>usera->weight+(int64_t)local_dsu[utxs.auser].deposit){
             //network accepts total withdrawal from users and bank owners (otherwise dividend fee may invalidate message included in the next block)
             ELOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
-                 deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS),usera->weight+(int64_t)local_dsu[utxs.auser].deposit);
+                 deduct,fee,(uint64_t)(utxs.auser?0:BANK_MIN_UMASS/2),usera->weight+(int64_t)local_dsu[utxs.auser].deposit);
             close(fd);
             return(false);
         }
@@ -3308,7 +3308,8 @@ bool server::process_message(message_ptr msg) {
     //local_deposit.clear();
     local_dsu.clear();
 
-    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-MESSAGE_FEE(msg->len);
+    int64_t message_fee=MESSAGE_FEE(msg->len);
+    int64_t profit=BANK_PROFIT(local_fee+lodiv_fee)-message_fee;
     bank_fee[msg->svid]+=profit;
     msg->save_undo(undo,ousers,csum,weight,profit,srvs_.nodes[msg->svid].msha,srvs_.nodes[msg->svid].mtim);
     srvs_.nodes[msg->svid].weight+=weight;
@@ -3329,6 +3330,7 @@ bool server::process_message(message_ptr msg) {
         local_fee=BANK_PROFIT(local_fee);
         lodiv_fee=BANK_PROFIT(lodiv_fee);
         myput_fee=BANK_PROFIT(myput_fee);
+
         log_t alog;
         alog.time=now;
         alog.type=TXSTYPE_FEE|0x8000; //incoming
@@ -3337,11 +3339,11 @@ bool server::process_message(message_ptr msg) {
         alog.umid=0;
         alog.nmid=msg->msid;
         alog.mpos=0;
-        alog.weight=profit;
+        alog.weight=profit+message_fee;
         memcpy(alog.info,&local_fee,sizeof(int64_t));
         memcpy(alog.info+sizeof(int64_t),&lodiv_fee,sizeof(int64_t));
-        memcpy(alog.info+2*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
-        bzero(alog.info+3*sizeof(int64_t),sizeof(int64_t));
+        memcpy(alog.info+2*sizeof(int64_t),&message_fee,sizeof(int64_t));
+        memcpy(alog.info+3*sizeof(int64_t),&myput_fee,sizeof(int64_t)); //FIXME, useless !!!
         log[0]=alog;
     }
 
@@ -4094,15 +4096,52 @@ void server::commit_bankfee(uint64_t myput_fee) {
     assert((char*)&u.rpath<(char*)&u.weight);
     assert((char*)&u.rpath<(char*)&u.csum);
     std::map<uint64_t,log_t> log;
+#ifdef SHARED_PROFIT
+    std::vector<uint16_t> receiving_nodes;
+    std::vector<uint16_t> sharing_nodes;
+    for(uint16_t i=1; i<max_svid; i++) {
+        sharing_nodes.push_back(i);
+        if(srvs_.nodes[i].status & SERVER_VIP ) {
+            receiving_nodes.push_back(i);
+        }
+    }
+    std::stable_sort(sharing_nodes.begin(),sharing_nodes.end(),[this](const uint16_t& i,const uint16_t& j) {
+        return(this->bank_fee[i]>this->bank_fee[j]);
+    });
+    if(sharing_nodes.size() > SHARED_PROFIT_NODES) {
+        sharing_nodes.resize(SHARED_PROFIT_NODES);
+    }
+
+    int64_t bank_fee_share = 0;
+    for(auto& i : sharing_nodes) {
+        bank_fee_share += bank_fee[i];
+        if(srvs_.nodes[i].status & SERVER_DBL ) {
+            continue;
+        }
+        if(srvs_.nodes[i].mtim > 0 && srvs_.nodes[i].mtim < srvs_.now - BLOCKDIV*BLOCKSEC) {
+            continue;
+        }
+        receiving_nodes.push_back(i);
+    }
+
+    if(bank_fee_share < 0) {
+        bank_fee_share = 0;
+    }
+    bank_fee_share = SHARED_PROFIT(bank_fee_share / receiving_nodes.size());
+#endif
 
     for(uint16_t svid=1; svid<max_svid; svid++) {
         int fd=open_bank(svid);
-        //char filename[64];
-        //sprintf(filename,"usr/%04X.dat",svid);
-        //int fd=open(filename,O_RDWR,0644);
-        //if(fd<0){
-        //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
-        //  exit(-1);}
+
+        int64_t net_fee_share = 0;
+#ifdef SHARED_PROFIT
+        if(std::find(sharing_nodes.begin(), sharing_nodes.end(), svid) != sharing_nodes.end()) {
+            net_fee_share = -SHARED_PROFIT(bank_fee[svid]);
+        }
+        net_fee_share += bank_fee_share * std::count(receiving_nodes.begin(), receiving_nodes.end(), svid);
+        bank_fee[svid] += net_fee_share;
+#endif
+
         read(fd,&u,sizeof(user_t));
         std::map<uint32_t,user_t> undo;
         undo.emplace(0,u);
@@ -4146,8 +4185,8 @@ void server::commit_bankfee(uint64_t myput_fee) {
             alog.time=time(NULL);
             alog.type=TXSTYPE_FEE|0x8000; //incoming ... bank_fee
             alog.node=svid;
-            alog.user=0;
-            alog.umid=0;
+            alog.user=(net_fee_share >> 32) & 0xFFFFFFFF;
+            alog.umid=(net_fee_share & 0xFFFFFFFF);
             alog.nmid=0;
             alog.mpos=srvs_.now;
             alog.weight=bfee;
@@ -4748,12 +4787,13 @@ void server::clock() {
     }
 }
 
-void server::update_connection_info(std::string& message)
+void server::update_connection_info(std::string& message,uint32_t& tnum)
 {
   // send connection info if node address changed and periodically at least once per dividend period (nodes inactive for dividend period are removed from vip list)
   if(opts_.svid && msid_ == last_srvs_.nodes[opts_.svid].msid && (srvs_.nodes[opts_.svid].ipv4 != opts_.ipv4 || srvs_.nodes[opts_.svid].port != (opts_.port&0xFFFF) || srvs_.nodes[opts_.svid].mtim < srvs_.now - BLOCKDIV*BLOCKSEC/2)) {
     usertxs txs(TXSTYPE_CON,opts_.port&0xFFFF,opts_.ipv4,settings::get_version(16).c_str());
     message.append((char*)txs.data,txs.size);
+    tnum++;
   }
 }
 

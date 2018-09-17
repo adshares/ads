@@ -342,7 +342,7 @@ class settings {
                 std::string line;
                 line = vm["secret"].as<std::string>();
                 if (line == "-") {
-                    std::cerr << "ENTER passphrase or private key\n";
+                    std::cerr << "ENTER passphrase or secret key\n";
                     line = get_password('*');
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
                     if(line.empty()) {
@@ -370,15 +370,15 @@ class settings {
             }
 
             if(vm.count("port")) {
-                std::cerr << "Bank port: " << vm["port"].as<int>() << std::endl;
+                std::cerr << "Node port: " << vm["port"].as<int>() << std::endl;
             } else {
-                std::cerr << "ERROR: bank port missing!" << std::endl;
+                std::cerr << "ERROR: node port missing!" << std::endl;
                 exit(1);
             }
             if (vm.count("host")) {
-                std::cerr << "Bank host: " << vm["host"].as<std::string>() << std::endl;
+                std::cerr << "Node host: " << vm["host"].as<std::string>() << std::endl;
             } else {
-                std::cerr << "ERROR: bank host missing!" << std::endl;
+                std::cerr << "ERROR: node host missing!" << std::endl;
                 exit(1);
             }
             if (vm.count("address")) {
@@ -395,7 +395,7 @@ class settings {
                 vm.insert(std::make_pair("user", boost::program_options::variable_value(user, false)));
             }
             if (vm.count("bank")) {
-                std::cerr << "Bank   id: " << vm["bank"].as<uint16_t>() << std::endl;
+                std::cerr << "Node   id: " << vm["bank"].as<uint16_t>() << std::endl;
             }
             //else{
             //	std::cerr << "ERROR: bank id missing! Specify --bank or --address" << std::endl;

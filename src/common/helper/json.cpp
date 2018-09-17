@@ -282,16 +282,16 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     logentry.put("profit",print_amount(ulog.weight));
                     logentry.put("node",ulog.node);
                     logentry.put("node_msid",ulog.nmid);
-                    if(ulog.nmid==bank) {
-                        int64_t fee;
+                    if(ulog.node==bank) {
+                        int64_t txs;
                         int64_t div;
-                        //int64_t put; //FIXME, useless !!!
-                        memcpy(&fee,ulog.info+ 0,8);
+                        int64_t fee;
+                        memcpy(&txs,ulog.info+ 0,8);
                         memcpy(&div,ulog.info+ 8,8);
-                        //memcpy(&put,ulog.info+16,8); //FIXME, useless !!!
-                        logentry.put("profit_fee",print_amount(fee));
+                        memcpy(&fee,ulog.info+16,8);
+                        logentry.put("profit_txs",print_amount(txs));
                         logentry.put("profit_div",print_amount(div));
-                        //logentry.put("profit_put",print_amount(put)); //FIXME, useless !!!
+                        logentry.put("fee",print_amount(fee));
                     }
                 } else { // bank profit at block end
                     char blockhex[9];
@@ -302,6 +302,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     int64_t usr;
                     int64_t get;
                     int64_t put;
+                    int64_t shared = ((uint64_t)ulog.user << 32) | ulog.umid;
                     memcpy(&div,ulog.info+ 0,8);
                     memcpy(&usr,ulog.info+ 8,8);
                     memcpy(&get,ulog.info+16,8);
@@ -310,7 +311,8 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                     logentry.put("profit_div",print_amount(div));
                     logentry.put("profit_usr",print_amount(usr));
                     logentry.put("profit_get",print_amount(get));
-                    logentry.put("profit",print_amount(div+usr+get+put));
+                    logentry.put("profit_shared",print_amount(shared));
+                    logentry.put("profit",print_amount(div+usr+get+put+shared));
                     logentry.put("fee",print_amount(ulog.weight));
                 }
                 logtree.push_back(std::make_pair("",logentry));

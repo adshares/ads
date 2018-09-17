@@ -1,13 +1,10 @@
-.idea
-/build*
-/docs/doxygen/out/*
-__pycache__
-.pytest_cache
-/deployment
+.idea/
+build/
+deployment/
+docs/doxygen/out/
 *.user
-/tests/*.sh
+tests/*.sh
 src/common/default.h
-*.pyc
 test.txt
 logs.txt
 _test_load.py
@@ -16,3 +13,4 @@ _test_remote_network.py
 .cproject
 .settings
 .DS_Store
+src/version

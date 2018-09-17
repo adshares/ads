@@ -94,6 +94,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
 
     uint16_t sts_bank = sts.bank;
     uint32_t sts_user = sts.user;
+
     sts.signature_provided = false;
 
     std::string run=pt.get<std::string>("run");
@@ -117,6 +118,15 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
             std::cerr << "Invalid sender. Abort." << std::endl;
             return nullptr;
         }
+    }
+
+    if(run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
+      std::cerr << "No secret and no signature provided. Abort." << std::endl;
+      return nullptr;
+    }
+
+    if(run != "decode_raw" && sts.drun && sts.without_secret) {
+      std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
     }
 
     if(run != "decode_raw" && !sts.drun && sts.without_secret && !sts.signature_provided) {
@@ -334,7 +344,6 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if(!to_bank) {
             to_bank=sts_bank;
         }
-
         if(json_pkey && ed25519_sign_open((uint8_t*)nullptr, 0, to_pkey , to_confirm) == -1) {
             return nullptr;
         }

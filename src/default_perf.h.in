@@ -6,8 +6,6 @@
 #define GIT_BRANCH "@GIT_BRANCH@"
 #define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
 
-#define CLIENT_PROTOCOL_VERSION 1 /* when changed update logic in client::handle_read_version() */
-
 #ifdef DEBUG
 #define BLOCKSEC 32 /* block period in seconds */
 #define BLOCKDIV 4 /* number of blocks for dividend update */
@@ -17,22 +15,21 @@
 #define VIP_MAX 7 /* maximum number of VIP servers */
 #define MIN_PEERS 8 /* keep at least 3 peers connected */
 #define MAX_PEERS 16 /* keep not more than 8 peers connected */
-#define VALIDATORS 8 /* number of validator threads */
-#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+#define VALIDATORS 16 /* number of validator threads */
+#define CLIENT_POOL 32	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
-//#define BLOCKS_COMPRESSED_SHIFT 16 /* shift from current block to archive old blocks */
 #else
-#define BLOCKSEC 512 /* block period in seconds (17min) */
-#define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
+#define BLOCKSEC 32 /* block period in seconds (17min) */
+#define BLOCKDIV 4 /* number of blocks for dividend update (dividend period 12 days) */
 #define MAX_UNDO 4096 /* maximum history of block undo files in blocks (24 days) */
 #define MAX_MSGWAIT 0x10 /* wait no more than 16s for a message */
 #define VOTE_DELAY 4 /*increase later (maybe monitor network delay)!!!*/
-#define VIP_MAX 31 /* maximum number of VIP servers */
+#define VIP_MAX 7 /* maximum number of VIP servers */
 #define MIN_PEERS 8 /* keep at least 8 peers connected */
 #define MAX_PEERS 16 /* keep not more than 16 peers connected */
-#define VALIDATORS 8 /* number of validator threads */
-#define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
+#define VALIDATORS 16 /* number of validator threads */
+#define CLIENT_POOL 32	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #endif
@@ -63,11 +60,11 @@
 #define OFFICE_PORT "9091"
 #define SERVER_PORT "8081"
 #ifdef DEBUG
-#define SERVER_DNSA "devseed.dns.loc"
+#define SERVER_DNSA "devseed.adshares.net"
 #else
-#define SERVER_DNSA "seed.dns.loc"
+#define SERVER_DNSA "seed.adshares.net"
 #endif
-#define MAXCLIENTS 128
+#define MAXCLIENTS 256
 
 #define USER_STAT_DELETED 0x1 /* account can be deleted and reused */
 

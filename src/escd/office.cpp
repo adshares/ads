@@ -400,7 +400,7 @@ void office::clock() {
 #endif
             file_.lock();
             // send connection info if outdated and no transactions
-            srv_.update_connection_info(message);
+            srv_.update_connection_info(message,message_tnum);
             file_.unlock();
             continue;
         }

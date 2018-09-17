@@ -32,6 +32,7 @@ void verifyProtocol(INetworkClient& netClient) {
 }
 
 
+
 void talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, std::unique_ptr<IBlockCommand> command) {
     if(sts.drun && command->getCommandType() == CommandType::eModifying) {
       respHandler.onDryRun(std::move(command));
