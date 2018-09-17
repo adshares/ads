@@ -911,8 +911,6 @@ class servers { // also a block
 
     void update_viphash() {
         uint32_t i;
-        vok=0;
-        vno=0;
 
         std::vector<uint16_t> svid_rank;
         for(i=1; i<nodes.size(); i++) {
@@ -1261,6 +1259,7 @@ class servers { // also a block
         if(!data_write(filename,false)) {
             ELOG("ERROR, failed to write header\n");
         }
+        put();
         //std::ofstream ofs(filename);
         //if(ofs.is_open()){
         //	boost::archive::text_oarchive oa(ofs);

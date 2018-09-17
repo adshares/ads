@@ -911,12 +911,6 @@ public:
         send_sync(put_msg);
     }
 
-    void update_header_votes(uint16_t votesOk, uint16_t votesNo) {
-        server_.last_srvs_.vok = votesOk;
-        server_.last_srvs_.vno = votesNo;
-        server_.last_srvs_.header_put();
-    }
-
     void handle_read_msglist(const boost::system::error_code& error)
     {
         if(error){
@@ -971,7 +965,7 @@ public:
             return;
         }
 
-        update_header_votes(head.vok, head.vno);
+        header.header_put();
         server_.msgl_process(header,read_msg_->data+12+header.vok*sizeof(svsi_t));
       ////FIXME, process check and save in one function
       //std::map<uint64_t,message_ptr> map;
