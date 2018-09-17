@@ -719,7 +719,9 @@ void server::load_chain() {
             }
 #endif
             //finish block
+            srvs_.header_get();
             srvs_.finish(); //FIXME, add locking
+
             if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)) {
                 ELOG("ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
                 exit(-1);
