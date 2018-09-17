@@ -368,7 +368,7 @@ void office::clock() {
     //if(run){
     //  get_msg(srv_.msid_+1);
     //  start_accept();}
-    DLOG("CLOCK START %d\n", run);
+    ILOG("CLOCK START %d\n", run);
 
     start_accept();
     while(run) {
