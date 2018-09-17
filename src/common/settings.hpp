@@ -11,6 +11,7 @@
 #include "default.hpp"
 #include "helper/ascii.h"
 #include "helper/json.h"
+#include "utils/os_utils.h"
 
 using namespace Helper;
 
@@ -228,6 +229,19 @@ class settings {
         }
     }
 
+    std::string get_password(char print_char = 0) {
+        std::string pass;
+        char ch;
+        while (1) {
+            ch = utils::getch();
+            if (ch == '\n') break;
+            std::cout<<print_char;
+            pass.push_back(ch);
+        }
+        std::cout<<std::endl;
+        return pass;
+    }
+
     static void change_working_dir(std::string workdir) {
         auto i = workdir.find("$HOME");
         if(i != std::string::npos) {
@@ -329,7 +343,7 @@ class settings {
                 line = vm["secret"].as<std::string>();
                 if (line == "-") {
                     std::cerr << "ENTER passphrase or private key\n";
-                    std::getline(std::cin,line);
+                    line = get_password('*');
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
                     if(line.empty()) {
                         std::cerr << "ERROR, failed to read passphrase\n";

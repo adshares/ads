@@ -1,6 +1,7 @@
 SET(SOURCE
     networkclient.cpp
     user.cpp
+    logging.cpp
 )
 
 SET(HEADERS
@@ -10,6 +11,7 @@ SET(HEADERS
     message.hpp
     user.hpp
     networkclient.h
+    logging.h
 )
 
 include_directories("../../external")
@@ -18,6 +20,7 @@ add_subdirectory(abstraction)
 add_subdirectory(helper)
 add_subdirectory(command)
 add_subdirectory(parser)
+add_subdirectory(utils)
 
 
 add_library(common ${SOURCE} ${HEADERS})

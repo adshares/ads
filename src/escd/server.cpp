@@ -719,7 +719,9 @@ void server::load_chain() {
             }
 #endif
             //finish block
+            srvs_.header_get();
             srvs_.finish(); //FIXME, add locking
+
             if(memcmp(srvs_.nowhash,block->nowhash,SHA256_DIGEST_LENGTH)) {
                 ELOG("ERROR, failed to arrive at correct hash at block %08X, fatal\n",srvs_.now);
                 exit(-1);
@@ -4234,13 +4236,13 @@ void server::finish_block() {
     for(auto it=update.begin(); it!=update.end(); it++) {
         assert(*it<srvs_.nodes.size());
         if(!srvs_.check_nodehash(*it)) {
-            ELOG("FATAL ERROR, failed to check bank %04X\n",*it);
+            FLOG("FATAL ERROR, failed to check bank %04X\n",*it);
             exit(-1);
         }
     }
 //#endif
     srvs_.finish(); //FIXME, add locking
-    ELOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
+    ILOG("SPEED: %.1f  [txs:%lu]\n",(float)srvs_.txs/(float)BLOCKSEC,srvs_.txs);
     last_srvs_=srvs_; // consider not making copies of nodes
     memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
     period_start=srvs_.nextblock();
@@ -4282,6 +4284,8 @@ void server::finish_block() {
     srvs_.clean_old(opts_.svid);
 #endif
     signlater(); // sign own removed messages
+
+    m_peerManager.printLastMsgInfoForPeers();
 }
 
 //message_ptr write_handshake(uint32_t ipv4,uint32_t port,uint16_t peer)
@@ -4632,14 +4636,14 @@ void server::clock() {
         int allpeerCount = m_peerManager.getPeersCount(false);
         int tickets = ofip_get_tickets();
         if(missing_msgs_.size()) {
-            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
+            ILOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s] (miss:%d:%016lX)\n",
                  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
                  //(int)wait_msgs_.size(),(int)peers_.size(),(uint32_t)*((uint32_t*)srvs_.nowhash),srvs_.now,plist,
 
                  (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str(),
                  (int)missing_msgs_.size(),missing_msgs_.begin()->first);
         } else {
-            ELOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s]\n",
+            ILOG("CLOCK: %02lX (check:%d wait:%d peers:%d allpeers:%d hash:%8X now:%8X ticket:%u msg:%u txs:%lu) [%s]\n",
                  ((long)(srvs_.now+BLOCKSEC)-(long)now),(int)check_msgs_.size(),
 
                  (int)wait_msgs_.size(),peerCount,allpeerCount,srvs_.nowh32(),srvs_.now,tickets,srvs_.msg,srvs_.txs,plist.c_str());
@@ -4896,13 +4900,12 @@ void server::ofip_change_pkey(uint8_t* pkey) {
 }
 
 void server::ofip_readwrite() {
-    DLOG("OFFICE SET READWRITE\n");
-    std::cout << "OFFICE SET READWRITE\n";
+    ILOG("OFFICE SET READWRITE\n");
     ofip->readonly=false;
 }
 
 void server::ofip_readonly() {
-    DLOG("OFFICE SET READONLY\n");
+    ILOG("OFFICE SET READONLY\n");
     ofip->readonly=true;
 }
 
