@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <string>
+#include <fstream>
+#include <algorithm>
 #include <time.h>
 #include <mutex>
-
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/ini_parser.hpp>
 
 #include "helper/blocks.h"
 
@@ -16,7 +16,7 @@ namespace logging {
 
 static struct
 {
-    std::mutex file_mtx;
+    std::recursive_mutex file_mtx;
     FILE *log_file;
     LoggingLevel level;
     LoggingSource source;
@@ -30,13 +30,26 @@ static const char *level_names[] =
 
 void update_log_level(const char* iniFilePath)
 {
-    boost::optional<int> log_level = LoggingLevel::LOG_INFO;
-    boost::property_tree::ptree pt;
-    boost::property_tree::ini_parser::read_ini(iniFilePath, pt);
-    log_level = pt.get_optional<int>("log_level");
-    if (log_level)
+    const std::string KEYWORD = "log_level";
+    const int length = KEYWORD.length();
+
+    std::ifstream ini_file(iniFilePath);
+    std::string line;
+    while(std::getline(ini_file, line))
     {
-        settings.level = (LoggingLevel)log_level.get();
+        std::size_t pos = line.find(KEYWORD);
+        if (pos != std::string::npos)
+        {
+            line.erase(std::remove_if(line.begin(), line.end(), isspace), line.end());
+            if (line[0] != ';' && pos == 0)
+            {
+                try {
+                    int log_level = std::stoi(line.substr(length+1));
+                    settings.level = (LoggingLevel)log_level;
+                } catch (std::exception) {}
+                break;
+            }
+        }
     }
 }
 
