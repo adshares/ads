@@ -896,10 +896,10 @@ class servers { // also a block
             update_viphash();
             load_vip(len,buf,viphash);
         }
-        ELOG("VIPS %d:\n",(len/(2+32)));
+        ILOG("VIPS %d:\n",(len/(2+32)));
         for(int i=0; i<len; i+=2+32) {
             uint16_t svid=*((uint16_t*)(&buf[i+4]));
-            ELOG("VIP: %04X\n",svid);
+            ILOG("VIP: %04X\n",svid);
             assert(svid>0 && svid<nodes.size());
             nodes[svid].status |= SERVER_VIP;
             if(!i) {
@@ -911,8 +911,6 @@ class servers { // also a block
 
     void update_viphash() {
         uint32_t i;
-        vok=0;
-        vno=0;
 
         std::vector<uint16_t> svid_rank;
         for(i=1; i<nodes.size(); i++) {
@@ -1261,14 +1259,7 @@ class servers { // also a block
         if(!data_write(filename,false)) {
             ELOG("ERROR, failed to write header\n");
         }
-        //header is also stored in servers.srv
-        char filenameS[64]="servers.srv";
-        if(now>0) {
-            Helper::FileName::getName(filenameS, now, "servers.srv");
-        }
-        if(!data_write(filenameS,false)) {
-            ELOG("ERROR, failed to write header\n");
-        }
+        put();
         //std::ofstream ofs(filename);
         //if(ofs.is_open()){
         //	boost::archive::text_oarchive oa(ofs);
@@ -1312,33 +1303,33 @@ class servers { // also a block
     }
     void header_print() {
         char hash[2*SHA256_DIGEST_LENGTH];
-        ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
+        ILOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
              now,msg,nod,div,vok,vno,txs);
         ed25519_key2text(hash,oldhash,SHA256_DIGEST_LENGTH);
-        ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,msghash,SHA256_DIGEST_LENGTH);
-        ELOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-        ELOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,viphash,SHA256_DIGEST_LENGTH);
-        ELOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,nowhash,SHA256_DIGEST_LENGTH);
-        ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     }
     void header_print(header_t& head) {
         char hash[2*SHA256_DIGEST_LENGTH];
-        ELOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
+        ILOG("HEAD now:%08X msg:%08X nod:%08X div:%08X vok:%04X vno:%04X txs:%016lX\n",
              head.now,head.msg,head.nod,head.div,head.vok,head.vno,txs);
         ed25519_key2text(hash,head.oldhash,SHA256_DIGEST_LENGTH);
-        ELOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("OLDHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,head.msghash,SHA256_DIGEST_LENGTH);
-        ELOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("TXSHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,head.nodhash,SHA256_DIGEST_LENGTH);
-        ELOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NODHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,head.viphash,SHA256_DIGEST_LENGTH);
-        ELOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("VIPHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         ed25519_key2text(hash,head.nowhash,SHA256_DIGEST_LENGTH);
-        ELOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NOWHASH %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
     }
     void save_signature(uint32_t path,uint16_t svid,uint8_t* sig,bool ok) {
         extern boost::mutex siglock;
@@ -1672,7 +1663,7 @@ class servers { // also a block
     }
 
     uint32_t nextblock() { //returns period_start
-        DLOG("NEXT BLOCK");
+        DLOG("NEXT BLOCK\n");
 
         now+=BLOCKSEC;
         int num=(now/BLOCKSEC)%BLOCKDIV;
@@ -1696,18 +1687,7 @@ class servers { // also a block
         }
         blockdir();
         //change log directory
-        {
-            extern boost::recursive_mutex flog;
-            extern FILE* stdlog;
-            char filename[32];
-            Helper::FileName::getName(filename, now, "log.txt");
-            flog.lock();
-            fclose(stdlog);
-            stdlog=fopen(filename,"a");
-            uint32_t ntime=time(NULL);
-            fprintf(stdlog,"START: %08X\n",ntime);
-            flog.unlock();
-        }
+        logging::change_log_file(now);
         //FIXME, update VIP status now
         update_vipstatus();
         msg=0;

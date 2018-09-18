@@ -37,6 +37,8 @@ class options {
     int back;
     std::vector<std::string> peer;
     std::string workdir;
+    int log_level = (int)logging::LoggingLevel::LOG_INFO;
+    int log_source = (int)logging::LoggingSource::LOG_ALL;
 
     void print_version() {
         std::string version = PROJECT_VERSION;
@@ -71,7 +73,8 @@ class options {
             ("comm,c", boost::program_options::value<bool>(&comm)->default_value(0),			"commit database roll back database (irreversible!) and proceed")
             ("viphash,V", boost::program_options::value<std::string>(&viphash)->default_value(""),      "current viphash of desired network (required with --fast switch)")
             ("genesis,g", boost::program_options::value<std::string>(&genesis)->default_value(""),      "json file with network state at genesis block (works with --init)")
-
+            ("log_level", boost::program_options::value<int>(&log_level)->default_value(logging::LoggingLevel::LOG_INFO), "collecting logs level:\n0 - trace (all)\n1 - debug\n2 - info\n3 - warning\n4 - error\n5 - fatal (only)")
+            ("log_source", boost::program_options::value<int>(&log_source)->default_value(logging::LoggingSource::LOG_ALL), "logs output sources:\n0 - none\n1 - only console\n2 - only file\n3 - file and console")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);
@@ -162,6 +165,8 @@ class options {
             if(vm.count("back") && vm.count("comm")) {
                 std::cout << "Commit DB   : " << vm["comm"].as<bool>() << std::endl;
             }
+            logging::set_level((logging::LoggingLevel)log_level);
+            logging::set_log_source((logging::LoggingSource)log_source);
         } catch(std::exception &e) {
             std::cout << "Exception: " << e.what() << std::endl;
             exit(1);
