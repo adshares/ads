@@ -83,7 +83,7 @@ void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boos
     if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->svid) )
     { 
         new_peer->leave();
-        DLOG("WARNING: dropping connection %d\n", new_peer->svid);
+        WLOG("WARNING: dropping connection %d\n", new_peer->svid);
     }
     else
     {        
@@ -120,7 +120,7 @@ void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<pee
         DLOG("Add active peer svid: %ud\n", svid);
         if(m_activePeers.find(svid) != m_activePeers.end())
         {
-            DLOG("ERROR active peer svid: %ud\n", svid);
+            WLOG("ERROR active peer svid: %ud\n", svid);
         }
         m_activePeers[svid] = peer;
     }
@@ -223,7 +223,7 @@ void PeerConnectManager::connect(in_addr peer_address, unsigned short port, uint
         new_peer->tryAsyncConnect(iterator, PEER_CONNECT_TIMEOUT);
 
     } catch (std::exception& e){
-            DLOG("Connection: %s\n",e.what());
+            ELOG("Connection: %s\n",e.what());
     }
 }
 
@@ -311,7 +311,7 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
         }
     }
     catch (std::exception& e) {
-        ELOG("DNS Connect Exception: %s", e.what());
+        ELOG("DNS Connect Exception: %s\n", e.what());
     }
 }
 
@@ -326,6 +326,7 @@ void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
 
         if(maxNodeIndx == 0){
             assert(maxNodeIndx != 0);
+            ELOG("maxNodeIndx == 0, returning\n");
             return;
         }
 
@@ -363,7 +364,7 @@ void PeerConnectManager::timerNextTick(int timeout)
 void PeerConnectManager::connectPeers(const boost::system::error_code& error)
 {    
     if(error ==  boost::asio::error::operation_aborted){
-        DLOG("ERROR connectPeers\n");        
+        DLOG("ERROR connectPeers\n");
         return;
     }
 
@@ -572,4 +573,18 @@ void PeerConnectManager::fillknown(message_ptr msg)
         msg->know_insert(pi->second->svid);        
     }
     ++r;
+}
+
+void PeerConnectManager::printLastMsgInfoForPeers() {
+    uint32_t currentTime = time(NULL);
+    ILOG("LAST RECEIVED MSG FOR ALL PEERS FOR NODE SVID=%04X, CURRENT TIME=%u\n", m_opts.svid, currentTime);
+
+    for(const auto& peer : m_activePeers) {
+        uint32_t timeDiff = currentTime-peer.second->last_received_msg_time;
+        ILOG("\tLast received msg from peer svid:%04X was %u seconds ago (timestamp:%u), msg type:%u\n",
+             peer.second->svid,
+             timeDiff,
+             peer.second->last_received_msg_time,
+             peer.second->last_received_msg_type);
+    }
 }

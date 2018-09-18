@@ -72,6 +72,8 @@ public:
     void getMoreHeaders(uint32_t now);
     /** Put information to message with all peers that are already active */
     void fillknown(message_ptr msg);
+    /** Print time and type of the last received message from every peer */
+    void printLastMsgInfoForPeers();
 
     friend class peer;
 private:
@@ -115,7 +117,6 @@ private:
     void deliverToAllImpl(message_ptr msg);
     void updateImpl(message_ptr msg, uint16_t svid);
     void updateAllImpl(message_ptr msg);
-
 private:
     options&                                        m_opts;
     server&                                         m_server;    
