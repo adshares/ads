@@ -1259,7 +1259,14 @@ class servers { // also a block
         if(!data_write(filename,false)) {
             ELOG("ERROR, failed to write header\n");
         }
-        put();
+        //header is also stored in servers.srv
+        char filenameS[64]="servers.srv";
+        if(now>0) {
+            Helper::FileName::getName(filenameS, now, "servers.srv");
+        }
+        if(!data_write(filenameS,false)) {
+            ELOG("ERROR, failed to write header\n");
+        }
         //std::ofstream ofs(filename);
         //if(ofs.is_open()){
         //	boost::archive::text_oarchive oa(ofs);
