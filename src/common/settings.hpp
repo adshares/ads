@@ -238,7 +238,8 @@ class settings {
             std::cout<<print_char;
             pass.push_back(ch);
         }
-        std::cout<<std::endl;
+        if (print_char != 0)
+            std::cout<<std::endl;
         return pass;
     }
 
@@ -343,7 +344,7 @@ class settings {
                 line = vm["secret"].as<std::string>();
                 if (line == "-") {
                     std::cerr << "ENTER passphrase or private key\n";
-                    line = get_password('*');
+                    line = get_password();
                     boost::trim_right_if(line,boost::is_any_of(" \r\n\t"));
                     if(line.empty()) {
                         std::cerr << "ERROR, failed to read passphrase\n";
