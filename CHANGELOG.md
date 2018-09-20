@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2018-08-24
+### Changed
+- New log format
+- Log level can be changed without recompilation
+
+### Fixed
+- Vote counting during full synchronization of the node
+- Now secret provided from terminal is not printed on screen
+- Fixed network timeout when using client in a interactive mode
+
 ## [1.0.0] - 2018-08-24
 ### Changed
 - Genesis file for the launch
@@ -38,8 +48,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.0.1...HEAD
 
+[1.0.1]: https://github.com/adshares/ads/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/adshares/ads/compare/v0.0.6...v1.0.0
 [0.0.6]: https://github.com/adshares/ads/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/adshares/ads/compare/v0.0.4...v0.0.5
