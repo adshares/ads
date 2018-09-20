@@ -26,13 +26,16 @@ int main(int argc, char** argv)
 	SHA256_Update(&sha256,argv[1],strlen(argv[1]));
 	SHA256_Final(sk,&sha256);
 	ed25519_publickey(sk,pk);
-	fprintf(stdout,"SK: ");
+	println("================================================================");
+	fprintf(stdout,"SecretKey: ");
 	printkey(stdout,sk,32);
-	fprintf(stdout,"PK: ");
+	println("================================================================");
+	fprintf(stdout,"PublicKey: ");
 	printkey(stdout,pk,32);
 	ed25519_sign((const unsigned char*)NULL,0,sk,pk,sg);
-	fprintf(stdout,"SG: ");
+	fprintf(stdout,"Signature: ");
 	printkey(stdout,sg,64);
+	println("================================================================");
 	return 0;
 }
 
