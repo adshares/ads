@@ -14,7 +14,6 @@
 #include "office.hpp"
 
 bool finish=false;
-boost::recursive_mutex flog;
 boost::mutex siglock;
 FILE* stdlog=NULL;
 candidate_ptr nullcnd;
@@ -71,6 +70,7 @@ int main(int argc, char* argv[]) {
     opt.get(argc,argv);
 
     stdlog=fopen("log.txt","w");
+    logging::set_log_file(stdlog);
     FILE *lock=fopen(".lock","a");
     assert(lock!=NULL);
     fprintf(lock,"%s:%d/%d\n",opt.addr.c_str(),opt.port,opt.svid);

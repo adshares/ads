@@ -54,7 +54,6 @@ class client : public boost::enable_shared_from_this<client> {
            if (ec == boost::asio::error::operation_aborted)
                return;
 
-           m_socket.close();
            m_offi.leave(shared_from_this());
            DLOG("CLIENT: timeout %s:%s\n",m_addr.c_str(),m_port.c_str());
        });
@@ -69,7 +68,6 @@ class client : public boost::enable_shared_from_this<client> {
 #endif
 
         Helper::setSocketTimeout(m_socket, NETSRV_SOCK_TIMEOUT, NETSRV_SOCK_IDLE, NETSRV_SOCK_MAXTRY);
-        Helper::setSocketNoDelay(m_socket, true);
 
         set_timeout();
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_version,sizeof(m_version)),
