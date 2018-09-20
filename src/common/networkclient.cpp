@@ -6,21 +6,31 @@
 #include "helper/ascii.h"
 #include "helper/socket.h"
 
-#define NETCL_SOCK_TIMEOUT 10
+#define NETCL_SOCK_TIMEOUT 4
 #define NETCL_SOCK_IDLE    15
 #define NETCL_SOCK_MAXTRY  3
 
 NetworkClient::NetworkClient(const std::string& address, const std::string& port, bool pretty):
     m_query(address, port.c_str()),
     m_resolver(m_ioService),
-    m_prettyJson(pretty)
+    m_prettyJson(pretty),
+    m_timeout(0)
 {
 }
 
 NetworkClient::~NetworkClient() {
 }
 
+void NetworkClient::setTimeout()
+ {
+    m_timeout = time(NULL) + NETCL_SOCK_TIMEOUT;
+ }
+
 bool NetworkClient::isConnected() {
+    if(m_timeout && time(NULL) >= m_timeout) {
+        m_socket->close();
+        m_connected = false;
+    }
     return m_connected;
 }
 
@@ -55,6 +65,7 @@ bool NetworkClient::connect() {
         }
 
         m_connected = true;
+        setTimeout();
     }
 
     return true;
@@ -89,6 +100,7 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff) {
         if(m_connected && m_socket) {
             auto size = buff.size();
             if( boost::asio::write(*m_socket.get(), boost::asio::buffer(std::move(buff))) == size ) {
+                setTimeout();
                 return true;
             }
         }
@@ -105,6 +117,7 @@ bool NetworkClient::sendData(uint8_t* buff, int size) {
     try {
         if(m_connected && m_socket) {
             if( boost::asio::write(*m_socket.get(), boost::asio::buffer(buff, size)) == (std::size_t)size ) {
+                setTimeout();
                 return true;
             }
         }
@@ -121,6 +134,7 @@ bool NetworkClient::readData(std::vector<uint8_t>& buff) {
         if(m_connected && m_socket) {
             auto size = buff.size();
             if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff)) == size ) {
+                setTimeout();
                 return true;
             }
         }
@@ -136,6 +150,7 @@ bool NetworkClient::readData(uint8_t* buff, int size) {
     try {
         if(m_connected && m_socket) {
             if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ) {
+                setTimeout();
                 return true;
             }
         }
@@ -151,6 +166,7 @@ bool NetworkClient::readData(char* buff, int size) {
     try {
         if(m_connected && m_socket) {
             if( boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size ) {
+                setTimeout();
                 return true;
             }
         }
@@ -166,6 +182,7 @@ bool NetworkClient::readData(int32_t *buff, int size) {
     try {
         if(m_connected && m_socket) {
             if (boost::asio::read(*m_socket.get(), boost::asio::buffer(buff, size)) == (size_t)size) {
+                setTimeout();
                 return true;
             }
         }
