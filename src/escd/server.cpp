@@ -199,29 +199,6 @@ void server::start() {
     ELOG("START @ %08X with MSID: %08X\n",lastpath,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
-    if(!opts_.svid) { // READONLY ok
-        iamvip=false;
-        bzero(skey,sizeof(hash_t));
-        bzero(pkey,sizeof(hash_t));
-    } else {
-        if(last_srvs_.nodes.size()<=(unsigned)opts_.svid) {
-            ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
-            exit(-1);
-        }
-        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
-        //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
-        memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
-        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
-        if(!last_srvs_.find_key(pkey,skey)) {
-            char pktext[2*32+1];
-            pktext[2*32]='\0';
-            ed25519_key2text(pktext,pkey,32);
-            ELOG("ERROR: failed to find secret key for key:\n%.64s\n",pktext);
-            exit(-1);
-        }
-        last_srvs_.find_more_keys(pkey,nkeys);
-    }
-
     if(!opts_.init) {
         if(!undo_bank(true)) { //check database consistance
             if(!do_fast) {
@@ -244,6 +221,29 @@ void server::start() {
                 do_sync=1;
             }
         }
+    }
+
+    if(!opts_.svid) { // READONLY ok
+        iamvip=false;
+        bzero(skey,sizeof(hash_t));
+        bzero(pkey,sizeof(hash_t));
+    } else {
+        if(last_srvs_.nodes.size()<=(unsigned)opts_.svid) {
+            ELOG("ERROR: reading servers (<=%d)\n",opts_.svid);
+            exit(-1);
+        }
+        iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
+        //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
+        memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
+        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
+        if(!last_srvs_.find_key(pkey,skey)) {
+            char pktext[2*32+1];
+            pktext[2*32]='\0';
+            ed25519_key2text(pktext,pkey,32);
+            ELOG("ERROR: failed to find secret key for key:\n%.64s\n",pktext);
+            exit(-1);
+        }
+        last_srvs_.find_more_keys(pkey,nkeys);
     }
 
     //start connecting to peers
