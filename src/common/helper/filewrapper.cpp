@@ -20,8 +20,10 @@ FileWrapper::FileWrapper(const std::string filepath, int mask, bool removeOnClos
 
 FileWrapper::~FileWrapper()
 {
-    close(m_file_descriptor);
-    m_file_descriptor = -1;
+    if (m_file_descriptor != -1) {
+        close(m_file_descriptor);
+        m_file_descriptor = -1;
+    }
     if (m_remove_on_close) {
         remove();
     }
