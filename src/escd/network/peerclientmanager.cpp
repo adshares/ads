@@ -99,11 +99,16 @@ void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boos
 
 void PeerConnectManager::ioRun()
 {
-    try {
-        m_ioService.run();
-    } //Now we know the server is down.
-    catch (std::exception& e) {
-        ELOG("Server.Run error: %s\n",e.what());
+    for (;;)
+    {
+        try {
+            m_ioService.run();
+            break; // run exited normally
+        } //Now we know the server is down.
+        catch (std::exception& e) {
+            WLOG("Server.Run error: %s\n",e.what());
+            RETURN_ON_SHUTDOWN();
+        }
     }
 }
 
@@ -233,7 +238,7 @@ void PeerConnectManager::connect(boost::asio::ip::tcp::endpoint endpoint, uint16
     auto port = endpoint.port();
 
     in_addr   inaddr;
-    if(inet_aton(addr.c_str(), &inaddr) == 0){
+    if(inet_aton(addr.c_str(), &inaddr) != 0){
         connect(inaddr, port, svid);
     }
 }

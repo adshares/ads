@@ -26,6 +26,7 @@ class NetworkClient : public INetworkClient {
     virtual bool readData(int32_t* buff, int size)      override;
     virtual bool isConnected()                          override;
 
+
   private:
     boost::asio::io_service                             m_ioService;
     boost::asio::ip::tcp::resolver::query               m_query;
@@ -33,6 +34,9 @@ class NetworkClient : public INetworkClient {
     std::unique_ptr<boost::asio::ip::tcp::socket>       m_socket;
     std::atomic<bool>                                   m_connected{false};
     bool                                                m_prettyJson;
+    int32_t                                             m_timeout;
+
+    void setTimeout();
 };
 
 #endif // NETWORKCLIENT_H

@@ -148,8 +148,12 @@ void GetBlocksHandler::readBlockHeaders(
     header_t& header,
     Helper::Block& block) {
 
+    uint32_t last_valid=0;
+    uint32_t invalid_counter=0;
+
     m_newviphash=false;
     for(block.getData().ttime=from; block.getData().ttime<=to; ) {
+        bool not_enough_sig=false;
         if(!block.readDataFromHeaderFile()) {
             break;
         }
@@ -161,14 +165,25 @@ void GetBlocksHandler::readBlockHeaders(
         int vipTot=vipSize(header.viphash);
         if(block.getData().voteYes<=vipTot/2) {
             DLOG("INFO, too few (%d <= %d/2) votes for block %08X\n", block.getData().voteYes, vipTot, block.getData().ttime);
-            break;
+            not_enough_sig = true;
         }
         header = block.getHeader();
         DLOG("INFO, adding block %08X\n", block.getData().ttime);
         m_serversHeaders.push_back(header);
+
+        // allow block with not enough signatures if there are further blocks with enough signatures with same viphash
+        if(not_enough_sig) {
+            invalid_counter++;
+        } else {
+            last_valid = block.getData().ttime;
+            invalid_counter=0;
+        }
         block.getData().ttime += BLOCKSEC;
     }
-    block.getData().ttime-=BLOCKSEC;
+    block.getData().ttime = last_valid;
+    for(unsigned int i=0;i<invalid_counter;i++) {
+        m_serversHeaders.pop_back();
+    }
 }
 
 ErrorCodes::Code GetBlocksHandler::prepareResponse() {
