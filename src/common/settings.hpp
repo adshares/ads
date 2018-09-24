@@ -235,7 +235,9 @@ class settings {
         while (1) {
             ch = utils::getch();
             if (ch == '\n') break;
-            std::cout<<print_char;
+            if (print_char != 0) {
+                std::cout<<print_char;
+            }
             pass.push_back(ch);
         }
         if (print_char != 0)

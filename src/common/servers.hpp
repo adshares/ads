@@ -1696,6 +1696,8 @@ class servers { // also a block
         //change log directory
         logging::change_log_file(now);
         //FIXME, update VIP status now
+        vok=0;
+        vno=0;
         update_vipstatus();
         msg=0;
         txs=0;
