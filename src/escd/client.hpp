@@ -56,6 +56,7 @@ class client : public boost::enable_shared_from_this<client> {
 
            m_offi.leave(shared_from_this());
            DLOG("CLIENT: timeout %s:%s\n",m_addr.c_str(),m_port.c_str());
+           m_socket.cancel();
        });
     }
 
@@ -106,7 +107,7 @@ class client : public boost::enable_shared_from_this<client> {
 
     void handle_read_txstype(const boost::system::error_code& error) {
         if(error) {
-            DLOG("ERROR: read txstype error\n");
+//            DLOG("ERROR: read txstype error\n");
             m_offi.leave(shared_from_this());
             return;
         }
