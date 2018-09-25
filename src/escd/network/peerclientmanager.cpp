@@ -46,6 +46,7 @@ PeerConnectManager::~PeerConnectManager()
 
 void PeerConnectManager::startConnect()
 {
+    DLOG("PEER_MANAGER START CONNECT\n");
     timerNextTick(1);
 }
 
@@ -350,7 +351,7 @@ void PeerConnectManager::getPeersFromServerFile(std::vector<std::pair<in_addr_t,
         //Don't connect to myself
         if(i != m_opts.svid && m_server.getNode(i, nodeInfo))
         {
-            peerAddrs.push_back(std::make_pair(nodeInfo.ipv4, nodeInfo.port));
+            peerAddrs.push_back(std::make_pair(nodeInfo.ipv4, static_cast<unsigned short>(nodeInfo.port)));
         }
     }
 }
@@ -372,20 +373,24 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
     int neededPeers = MIN_PEERS - m_peers.size();
     neededPeers = neededPeers > MAX_INIT_CONN ? MAX_INIT_CONN : neededPeers;
 
+    DLOG("Need %d peers\n");
+
     //@TODO: ADD check if we cannot access any server.
     //In this case SHUTDOWN_AND_RETURN() should be called
     if(!error && neededPeers > 0)
     {
-        std::vector<std::pair<in_addr_t, unsigned short>> peerAddrs;
+        std::vector<std::pair<in_addr_t, unsigned short>> peerAddrs(m_server.getMaxNodeIndx());
 
         getPeersFromConfig(peerAddrs);
         getPeersFromDNS(peerAddrs);
         getPeersFromServerFile(peerAddrs);
 
         if(peerAddrs.size() > 0) {
+            DLOG("Available peers: %d\n", neededPeers, peerAddrs.size());
             for(unsigned int i=0; i<peerAddrs.size() && neededPeers > 0; i++) {
                 int inx = random()%peerAddrs.size();
                 auto peer = peerAddrs[inx];
+                DLOG("Selected peer %d. addr %d, port %d\n", inx, peer.first, peer.second);
                 if(peer.second > 0 && m_peers.find(peer) == m_peers.end() )
                 {
                     in_addr addr;
@@ -393,6 +398,8 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
                     connect(addr, peer.second, BANK_MAX);
                     peerAddrs[inx].second=0;
                     neededPeers--;
+                } else {
+                    DLOG("Selected peer already connected\n");
                 }
             }
         } else {
