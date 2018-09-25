@@ -327,6 +327,7 @@ void PeerConnectManager::getPeersFromDNS(std::vector<std::pair<in_addr_t, unsign
             if(inet_aton(addr.c_str(), &inaddr) != 0){
                 peerAddrs.push_back(std::make_pair(inaddr.s_addr, port));
             }
+            ++iterator;
         }
     }
     catch (std::exception& e) {
@@ -373,33 +374,37 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
     int neededPeers = MIN_PEERS - m_peers.size();
     neededPeers = neededPeers > MAX_INIT_CONN ? MAX_INIT_CONN : neededPeers;
 
-    DLOG("Need %d peers\n");
+    DLOG("Need %d peers\n", neededPeers);
 
     //@TODO: ADD check if we cannot access any server.
     //In this case SHUTDOWN_AND_RETURN() should be called
     if(!error && neededPeers > 0)
     {
-        std::vector<std::pair<in_addr_t, unsigned short>> peerAddrs(m_server.getMaxNodeIndx());
+        std::vector<std::pair<in_addr_t, unsigned short>> peerAddrs;
 
         getPeersFromConfig(peerAddrs);
         getPeersFromDNS(peerAddrs);
         getPeersFromServerFile(peerAddrs);
 
+        DLOG("Available peers: %d\n", peerAddrs.size());
+
         if(peerAddrs.size() > 0) {
-            DLOG("Available peers: %d\n", neededPeers, peerAddrs.size());
             for(unsigned int i=0; i<peerAddrs.size() && neededPeers > 0; i++) {
                 int inx = random()%peerAddrs.size();
                 auto peer = peerAddrs[inx];
-                DLOG("Selected peer %d. addr %d, port %d\n", inx, peer.first, peer.second);
+
                 if(peer.second > 0 && m_peers.find(peer) == m_peers.end() )
                 {
+                    DLOG("Selected peer %d. addr %d, port %d\n", inx, peer.first, peer.second);
                     in_addr addr;
                     addr.s_addr = peer.first;
                     connect(addr, peer.second, BANK_MAX);
                     peerAddrs[inx].second=0;
                     neededPeers--;
                 } else {
-                    DLOG("Selected peer already connected\n");
+                    if(peer.second > 0) {
+                        DLOG("Selected peer already connected\n");
+                    }
                 }
             }
         } else {
