@@ -297,12 +297,9 @@ void PeerConnectManager::getPeersFromConfig(std::vector<std::pair<in_addr_t, uns
             boost::asio::ip::tcp::resolver::iterator    end;
 
 
-            if(iterator != end)
+            if(iterator != end && inet_aton(iterator->endpoint().address().to_string().c_str(), &addr) != 0)
             {
-               if(inet_aton(iterator->endpoint().address().to_string().c_str(), &addr) != 0)
-               {
-                   peerAddrs.push_back(std::make_pair(addr.s_addr, atol(port.c_str())));
-               }
+                peerAddrs.push_back(std::make_pair(addr.s_addr, atol(port.c_str())));
             }
         }
     }
@@ -316,7 +313,6 @@ void PeerConnectManager::getPeersFromDNS(std::vector<std::pair<in_addr_t, unsign
         boost::asio::ip::tcp::resolver::query       query(m_opts.dnsa.c_str(),SERVER_PORT);
         boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
         boost::asio::ip::tcp::resolver::iterator    end;
-        std::vector<boost::asio::ip::tcp::resolver::iterator> endpoints;
 
         while(iterator != end)
         {
