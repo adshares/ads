@@ -348,7 +348,9 @@ void PeerConnectManager::getPeersFromServerFile(std::vector<std::pair<in_addr_t,
         //Don't connect to myself
         if(i != m_opts.svid && m_server.getNode(i, nodeInfo))
         {
-            peerAddrs.push_back(std::make_pair(nodeInfo.ipv4, static_cast<unsigned short>(nodeInfo.port)));
+            if(nodeInfo.mtim >= m_server.last_srvs_.now - BLOCKSEC*BLOCKDIV) {
+                peerAddrs.push_back(std::make_pair(nodeInfo.ipv4, static_cast<unsigned short>(nodeInfo.port)));
+            }
         }
     }
 }
