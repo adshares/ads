@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Node did not stop when there was not enough signatures
 - Improved peer discovery
-- Bug #151
+- On rare occasions node could suddenly stop all peer communication [#151](https://github.com/adshares/ads/issues/151)
 
 ## [1.0.1] - 2018-09-20
 ### Changed
