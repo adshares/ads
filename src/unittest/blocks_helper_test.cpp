@@ -87,6 +87,8 @@ TEST(BlockTest, openFileFromDirectoryBlock) {
 }
 
 TEST(BlockTest, compressOldBlocks) {
+#ifdef BLOCKS_COMRESSED_SHIFT
+
     int expectedFileSize =
             sizeof(Helper::ServersHeader) +
             (7*4) + // jump for 7 files (5 + 2 msgs)
@@ -106,6 +108,7 @@ TEST(BlockTest, compressOldBlocks) {
     struct stat st = {};
     stat(dirpath, &st);
     EXPECT_EQ(expectedFileSize, st.st_size);
+#endif
 }
 
 TEST(BlockTest, excludedFile) {
