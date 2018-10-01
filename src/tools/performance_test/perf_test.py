@@ -31,11 +31,12 @@ def create_account_directories(num_accounts):
             os.makedirs(path)
             os.chdir(path)
             os.symlink('../esc', 'esc')
-            settings = open('settings.cfg', 'w')
-            settings.write('port=9091\n')
-            settings.write('host=127.0.0.1\n')
-            settings.write('address=%s\n' % get_account_address(i))
-            settings.write('secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0\n')
+            with open('settings.cfg', 'w') as settings:
+                settings.write('port=9091\n')
+                settings.write('host=127.0.0.1\n')
+                settings.write('address=%s\n' % get_account_address(i))
+                settings.write('secret=14B183205CA661F589AD83809952A692DFA48F5D490B10FD120DA7BF10F2F4A0\n')
+
             os.chdir('..')
 
 
@@ -115,7 +116,7 @@ def test_get_me(num_transactions, num_clients, num_exec):
 def build_send_one(txs_per_client):
     send_cmd = []
 
-    offset = 6000
+    offset = 1000
 
     for i in range(offset, offset + txs_per_client):
         send_cmd.append('{"run":"send_one","address":"' + get_account_address(i) + '","amount":1}\n')
@@ -229,15 +230,15 @@ def test_move_tokens(num_transactions, num_esc, num_exec):
 
 def run_tests():
     num_accounts = 10000
-    num_transactions = 10000
+    num_transactions = 100000
     num_esc = 16
 
     prepare_accounts(num_accounts, num_esc)
     test_get_me(num_transactions, num_esc, num_exec=1)
     test_send_one(num_transactions, num_esc, num_exec=10)
 
-    prepare_token_accounts(num_accounts, num_esc)
-    test_move_tokens(num_transactions, num_esc, num_exec=1)
+    # prepare_token_accounts(num_accounts, num_esc)
+    # test_move_tokens(num_transactions, num_esc, num_exec=1)
 
 
 run_tests()
