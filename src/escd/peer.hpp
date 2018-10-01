@@ -590,7 +590,7 @@ public:
             } else if(read_msg_->data[0]==MSGTYPE_SOK) {
                 uint32_t now;
                 memcpy(&now,read_msg_->data+1,4);
-                ELOG("%04X Authenticated, peer in sync at %08X\n",svid,now);
+                ILOG("%04X Authenticated, peer in sync at %08X\n",svid,now);
                 update_sync();
                 do_sync=0;
                 setState(ST_SYNCD);
@@ -844,9 +844,9 @@ public:
                 ELOG("%04X ERROR, hashing header chain :-(\n",svid);
                 char hash[2*SHA256_DIGEST_LENGTH];
                 ed25519_key2text(hash,headers[num-2].nowhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X NOWHASH nowhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X NOWHASH nowhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X NOWHASH oldhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X NOWHASH oldhash %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 leave();
                 return;
             }
@@ -856,10 +856,10 @@ public:
             ELOG("%04X ERROR, initial oldhash mismatch :-(\n",svid);
             char hash[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash,headers[0].oldhash,SHA256_DIGEST_LENGTH);
-            ELOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X NOWHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             ed25519_key2text(hash,sync_ls.nowhash,SHA256_DIGEST_LENGTH);
-            ELOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
-            ELOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
+            ILOG("%04X NOWHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X Maybe start syncing from an older block (peer will disconnect)\n\n",svid);
             leave();
             return;
         }
@@ -943,9 +943,9 @@ public:
             ELOG("%04X ERROR got wrong msglist msghash\n",svid); // consider updating server
             char hash[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash,read_msg_->data+12+header.vok*sizeof(svsi_t),SHA256_DIGEST_LENGTH);
-            ELOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X MSGHASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             ed25519_key2text(hash,header.msghash,SHA256_DIGEST_LENGTH);
-            ELOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X MSGHASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             leave();
             return;
         }
@@ -1288,7 +1288,7 @@ NEXTUSER:
             ELOG("%04X SERVERS incompatible with hash\n",svid);
             char hash[2*SHA256_DIGEST_LENGTH];
             ed25519_key2text(hash,sync_hs.head.nodhash,SHA256_DIGEST_LENGTH);
-            ELOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X NODHASH peer %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             free(peer_svsi);
             free(peer_nods);
             throw std::runtime_error("CATCH asio error (handle_read_servers)\n");
@@ -1351,9 +1351,9 @@ NEXTUSER:
             char hash[2*SHA256_DIGEST_LENGTH];
             ELOG("%04X WARNING, last message hash mismatch, should run full resync\n",svid);
             ed25519_key2text(hash,srvs_.nodes[opts_.svid].msha,SHA256_DIGEST_LENGTH);
-            ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
             ed25519_key2text(hash,peer_hs.msha,SHA256_DIGEST_LENGTH);
-            ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+            ILOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
         }
         if(incoming_) {
             DLOG("%04X INCOMING HANDSHAKE \n",svid);
@@ -1367,18 +1367,18 @@ NEXTUSER:
                 char hash[2*SHA256_DIGEST_LENGTH];
                 ELOG("%04X ERROR oldhash mismatch, FIXME, move back more blocks to sync\n",svid);
                 ed25519_key2text(hash,sync_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 ed25519_key2text(hash,peer_hs.head.oldhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 return(0);
             }
             if(memcmp(peer_hs.head.nowhash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH)) {
                 char hash[2*SHA256_DIGEST_LENGTH];
                 ELOG("%04X WARNING nowhash mismatch, not tested :-( move back one block to sync\n",svid);
                 ed25519_key2text(hash,sync_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X HASH have %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 ed25519_key2text(hash,peer_hs.head.nowhash,SHA256_DIGEST_LENGTH);
-                ELOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
+                ILOG("%04X HASH got  %.*s\n",svid,2*SHA256_DIGEST_LENGTH,hash);
                 return(0);
             }
         }
@@ -1390,7 +1390,7 @@ NEXTUSER:
             }
             //if(peer_hs.head.now<sync_hs.head.now){
             if(peer_hs.do_sync) {
-                ELOG("%04X Authenticated, provide sync data\n",svid);
+                ILOG("%04X Authenticated, provide sync data\n",svid);
                 //write_sync(); // peer will disconnect if peer does not want the data
                 int vok=sync_hs.head.vok;
                 int vno=sync_hs.head.vno;
@@ -1402,7 +1402,7 @@ NEXTUSER:
                 setState(ST_SYNCD);
                 return(1);
             } else {
-                ELOG("%04X Authenticated, peer in sync\n",svid);
+                ILOG("%04X Authenticated, peer in sync\n",svid);
                 update_sync();
                 last_active=now; // protect from disconnect
                 do_sync=0;
@@ -1464,7 +1464,7 @@ NEXTUSER:
         last_active=now; // protect from disconnect
         do_sync=0; // set peer in sync, we are not in sync (server_.do_sync==1)
 
-        ELOG("%04X ADD active peer !!!!!!!!!!!\n",svid);
+        ILOG("%04X ADD active peer !!!!!!!!!!!\n",svid);
 
         setState(ST_SYNCD);
         return(1);
@@ -1487,7 +1487,7 @@ NEXTUSER:
             }
 
             busy=0; // make peer available for download traffic
-            ELOG("%04X CONTINUE after authentication1\n",svid);
+            ILOG("%04X CONTINUE after authentication1\n",svid);
             asyncWaitForNewMessageHeader();
             return;
         }
@@ -1561,7 +1561,7 @@ NEXTUSER:
             }
 
             busy=0; // make peer available for download traffic
-            ELOG("%04X CONTINUE after authentication2\n",svid);
+            ILOG("%04X CONTINUE after authentication2\n",svid);
             asyncWaitForNewMessageHeader();
             return;
         }
@@ -1979,7 +1979,7 @@ NEXTUSER:
     }
 
     void sync_finish() {
-        ELOG("%04X SYNC OK\n",svid);
+        ILOG("%04X SYNC OK\n",svid);
         hash_s* hash_p=(hash_s*)last_message_hash;
         server_.save_candidate(BLOCK_MODE,*hash_p,PEER_block_add,PEER_block_del,svid);
         boost::lock_guard<boost::mutex> lock(pio_);

@@ -121,7 +121,7 @@ class servers { // also a block
 
     void create_genesis_block(const std::string genesis_file) {
         assert(nodes.size() == 0);
-        ELOG("INIT: using genesis file %s\n", genesis_file.c_str());
+        ILOG("INIT: using genesis file %s\n", genesis_file.c_str());
 
         boost::property_tree::ptree data;
         boost::property_tree::read_json(genesis_file, data);
@@ -137,7 +137,7 @@ class servers { // also a block
 
         char hash_text[2 * SHA256_DIGEST_LENGTH];
         ed25519_key2text(hash_text, genesis_hash, SHA256_DIGEST_LENGTH);
-        ELOG("genesis hash: %.*s\n", 2 * SHA256_DIGEST_LENGTH, hash_text);
+        ILOG("genesis hash: %.*s\n", 2 * SHA256_DIGEST_LENGTH, hash_text);
 
         boost::property_tree::ptree dataConfig = data.get_child("config");
 
@@ -147,7 +147,7 @@ class servers { // also a block
             ELOG("Invalid genesis start time: %d, must be divisible by %d\n", startTimeOpt.get(), BLOCKSEC);
             exit(-1);
         } else {
-            ELOG("Genesis start time: %d\n", startTimeOpt.get());
+            ILOG("Genesis start time: %d\n", startTimeOpt.get());
 
         }
 
@@ -158,7 +158,7 @@ class servers { // also a block
         uint64_t clockNow = time(NULL);
         while (clockNow < waitUntil) {
             boost::this_thread::sleep(boost::posix_time::seconds(1));
-            ELOG("Awaiting for genesis block time: %lu s\n", waitUntil - clockNow);
+            ILOG("Awaiting for genesis block time: %lu s\n", waitUntil - clockNow);
             clockNow = time(NULL);
             RETURN_ON_SHUTDOWN()
             ;
@@ -285,7 +285,7 @@ class servers { // also a block
             }
         }
 
-        ELOG("INIT: weight diff: %016lX\n", TOTALMASS-sum);
+        ILOG("INIT: weight diff: %016lX\n", TOTALMASS-sum);
         //nodes.begin()->weight=TOTALMASS-sum;
         assert(num > 0);
         //vtot=(uint16_t)(num<VIP_MAX?num:VIP_MAX); // probably not needed !!!
@@ -1033,7 +1033,7 @@ class servers { // also a block
         tree.finish(nodhash);
         char hash[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(hash,nodhash,SHA256_DIGEST_LENGTH);
-        ELOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         hashnow();
         //char filename[64];
         //sprintf(filename,"blk/%03X/%05X/servers.txt",now>>20,now&0xFFFFF);
@@ -1636,7 +1636,7 @@ class servers { // also a block
         tree.finish(tmphash);
         char hash[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(hash,tmphash,SHA256_DIGEST_LENGTH);
-        ELOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
+        ILOG("NODHASH sync %.*s\n",2*SHA256_DIGEST_LENGTH,hash);
         return(memcmp(tmphash,peer_nodehash,SHA256_DIGEST_LENGTH));
     }
 
@@ -1689,7 +1689,7 @@ class servers { // also a block
                 div=0;
             }
             //ELOG("NEW DIVIDEND %08X (%.8f)\n",div,(float)(div)/0xFFFFFFFF);
-            ELOG("NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
+            ILOG("NEW DIVIDEND %08X (%.8f) (diff:%016lX,div:%.8lf)\n",
                  div,(float)(div)/0xFFFF,TOTALMASS-sum,(double)(TOTALMASS-sum)/(double)sum);
         }
         blockdir();
@@ -1750,7 +1750,7 @@ class servers { // also a block
     void clean_old(uint16_t svid) {
         if (MAX_UNDO > 0) {
             char pat[8];
-            ELOG("CLEANING by %04X\n",svid);
+            ILOG("CLEANING by %04X\n",svid);
             sprintf(pat,"%04X",svid);
             for(int i=MAX_UNDO; i<MAX_UNDO+100; i+=10) {
 #ifdef DEBUG
