@@ -50,7 +50,6 @@ void server::start() {
         }
 
         memcpy(pkey, last_srvs_.nodes[opts_.svid].pk, sizeof(hash_t));
-        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if (!last_srvs_.find_key(pkey, skey)) {
             char pktext[2 * 32 + 1];
             pktext[2 * 32] = '\0';
@@ -235,7 +234,6 @@ void server::start() {
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
         //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
         memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
-        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(!last_srvs_.find_key(pkey,skey)) {
             char pktext[2*32+1];
             pktext[2*32]='\0';

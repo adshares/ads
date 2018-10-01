@@ -95,14 +95,15 @@ public:
         DLOG("%04X PEER IORUN START\n",svid);
         try {
             peer_io_service_.run();
+            DLOG("%04X PEER IORUN END\n",svid);
         } //Now we know the server is down.
         catch (std::exception& e) {
 //FIXME, stop peer after Broken pipe (now does not stop if peer ends with 'assert')
 //FIXME, wipe out inactive peers (better solution)
             ELOG("%04X CATCH IORUN Service.Run error:%s\n",svid,e.what());
             leave();
-        }        
-    }    
+        }
+    }
 
     void tryAsyncConnect(boost::asio::ip::tcp::resolver::iterator& connIt, int timeout) {        
         m_netclient.asyncConnect(connIt, boost::bind(&peer::connect, this, boost::asio::placeholders::error), timeout);

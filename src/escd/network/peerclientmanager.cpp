@@ -108,15 +108,21 @@ void PeerConnectManager::ioRun()
     for (;;)
     {
         try {
+            if(m_ioService.stopped()) {
+                DLOG("io_service: reset\n");
+                m_ioService.reset();
+            }
             DLOG("before io_service::run()\n");
             std::size_t val = m_ioService.run();
             DLOG("after io_service::run(), returned value = %lu\n", val);
-            break; // run exited normally
         } //Now we know the server is down.
         catch (std::exception& e) {
             WLOG("Server.Run error: %s\n",e.what());
-            RETURN_ON_SHUTDOWN();
         }
+
+        RETURN_ON_SHUTDOWN();
+        DLOG("io_service: restart in 100 ms\n");
+        boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     }
 
     DLOG("after for loop\n");
