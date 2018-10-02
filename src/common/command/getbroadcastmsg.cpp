@@ -124,7 +124,7 @@ bool GetBroadcastMsg::send(INetworkClient& netClient) {
         return false;
     }
 
-    ELOG("size %ud %08X\n", m_header.fileSize, m_data.info.block);
+    DLOG("size %ud %08X\n", m_header.fileSize, m_data.info.block);
 
     unsigned char *readBuffer = new unsigned char[m_header.fileSize];
     if (!netClient.readData(readBuffer, m_header.fileSize)) {
