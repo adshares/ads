@@ -139,7 +139,7 @@ void db_backup(uint32_t block_path, uint16_t nodes)
         current_block -= current_block%BLOCKSEC;
         std::vector<std::shared_ptr<Helper::FileWrapper>> undoFiles;
         std::shared_ptr<Helper::FileWrapper> undo_file;
-        for (uint32_t block = block_path + BLOCKSEC; block <= current_block; block+=BLOCKSEC) {
+        for (uint32_t block = block_path; block <= current_block; block+=BLOCKSEC) {
             char undoPath[64];
             Helper::FileName::getBlk(undoPath, block);
             if (!boost::filesystem::exists(undoPath))

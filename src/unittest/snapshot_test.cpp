@@ -52,9 +52,9 @@ const int kSnapshotBlock = kStartBlockDec + BLOCKSEC;
  *
  *          snapshot file
  * |      |         |         |         |
- * |      |    0    |    13   |    3    |
+ * |      |    0    |    12   |    10   |
  * |      |    1    |    2    |    5    |
- * |      |    2    |    2    |    4    |
+ * |      |    2    |    1    |    1    |
  * |      |         |         |         |
  * --------------------------------------
  */
@@ -72,12 +72,12 @@ TEST(SnapshotTest, prepareData)
 
     clean();
 
-    snapshot_usrs[0].msid = 13;
-    snapshot_usrs[0].weight = 3;
+    snapshot_usrs[0].msid = 12;
+    snapshot_usrs[0].weight = 10;
     snapshot_usrs[1].msid = 2;
     snapshot_usrs[1].weight = 5;
-    snapshot_usrs[2].msid = 2;
-    snapshot_usrs[2].weight = 4;
+    snapshot_usrs[2].msid = 1;
+    snapshot_usrs[2].weight = 1;
 
     char filename[64];
 
