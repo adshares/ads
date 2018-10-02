@@ -108,7 +108,9 @@ void PeerConnectManager::ioRun()
     for (;;)
     {
         try {
-            m_ioService.run();
+            DLOG("before io_service::run()\n");
+            std::size_t val = m_ioService.run();
+            DLOG("after io_service::run(), returned value = %lu\n", val);
             break; // run exited normally
         } //Now we know the server is down.
         catch (std::exception& e) {
@@ -116,6 +118,8 @@ void PeerConnectManager::ioRun()
             RETURN_ON_SHUTDOWN();
         }
     }
+
+    DLOG("after for loop\n");
 }
 
 void PeerConnectManager::addActivePeer(uint16_t svid, boost::shared_ptr<peer> peer)

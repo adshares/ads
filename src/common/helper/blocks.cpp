@@ -14,6 +14,7 @@
 
 #include "default.h"
 #include "libarchive.h"
+#include "servers.h"
 
 namespace Helper {
 
@@ -96,27 +97,57 @@ uint32_t get_users_count(uint16_t bank) {
     return (st.st_size/sizeof(user_t));
 }
 
-void db_backup(uint32_t block_path, uint16_t nodes) {
+void db_backup(uint32_t block_path, uint16_t nodes)
+{
     // used to temporary name for snapshot, resolve names colision between sparse local und/* file and currently creating db snapshot.
     const char* const snapshot_postfix = "tmp";
+    char backupFilePath[64];
 
     if (!is_snapshot_directory(block_path)) {
         return;
     }
 
-    char previousSnapshotPath[64];
-    char backupFilePath[64];
-    unsigned int usert_size = sizeof(user_t);
+    Helper::FileName::getName(backupFilePath, block_path, "servers.srv");
+    Helper::Servers servers(backupFilePath);
+    servers.load();
 
-    // for each node
     for (uint16_t bank = 1; bank < nodes; ++bank)
     {
-        // get undo files, youngest at begin
+
+        // open snapshot file
+        Helper::FileName::getUndo(backupFilePath, block_path, bank);
+        strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
+        Helper::FileWrapper snapshotFile;
+        if (!snapshotFile.open(backupFilePath, O_WRONLY | O_CREAT, 0644))
+        {
+            WLOG("Can't open snapshot file: %s\n" , backupFilePath);
+            return;
+        }
+
+        // open bank file
+        char filePath[64];
+        Helper::FileName::getUsr(filePath, bank);
+        Helper::FileWrapper bankFile;
+        if (!bankFile.open(filePath))
+        {
+            WLOG("Can't open bank file: %s\n", filePath);
+            return;
+        }
+
+        // open undos from now to block_path
+        uint32_t current_block = time(NULL);
+        current_block -= current_block%BLOCKSEC;
         std::vector<std::shared_ptr<Helper::FileWrapper>> undoFiles;
         std::shared_ptr<Helper::FileWrapper> undo_file;
-        for (int i=0; i<BLOCKDIV; ++i) {
-            uint32_t block = block_path - (i*BLOCKSEC);
+        for (uint32_t block = block_path; block <= current_block; block+=BLOCKSEC) {
             char undoPath[64];
+            Helper::FileName::getBlk(undoPath, block);
+            if (!boost::filesystem::exists(undoPath))
+            {
+                WLOG("Gap in block chain: %d %s\n", block, undoPath);
+                break;
+            }
+
             Helper::FileName::getUndo(undoPath, block, bank);
 
             undo_file.reset(new FileWrapper(std::string(undoPath), O_RDONLY, true));
@@ -125,50 +156,51 @@ void db_backup(uint32_t block_path, uint16_t nodes) {
             }
         }
 
-        // load previous snapshot or usr/* for initial run
-        uint32_t users = get_users_count(bank);
-        Helper::FileName::getUndo(previousSnapshotPath, (block_path - (BLOCKDIV*BLOCKSEC)), bank);
-        if (!boost::filesystem::exists(previousSnapshotPath)) {
-            Helper::FileName::getUsr(previousSnapshotPath, bank);
-        }
-
-        Helper::FileWrapper last_snapshot(previousSnapshotPath, O_RDONLY, false);
-        if (!last_snapshot.isOpen()) {
-            return;
-        }
-
-        user_t u;
-        Helper::FileName::getUndo(backupFilePath, block_path, bank);
-        strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
-
-        int current_snapshot = open(backupFilePath, O_WRONLY | O_CREAT, 0644);
-        if (current_snapshot < 0) {
-            return;
-        }
-
         // for each user
+        uint32_t users = servers.getNode(bank).accountCount;
         for (uint32_t user = 0; user < users; ++user)
         {
-            u = {};
+            user_t usr = {};
+            // read undos and find user (user->msid != 0)
             for (auto it=undoFiles.begin(); it != undoFiles.end(); ++it)
             {
-                (*it)->seek(user * usert_size, SEEK_SET);
-                (*it)->read((char*)&u, usert_size);
-                if (u.msid != 0)  // user found, get from undo
+                (*it)->seek(user * sizeof(user_t), SEEK_SET);
+                (*it)->read((char*)&usr, sizeof(user_t));
+                if (usr.msid != 0)
                 {
-                    last_snapshot.seek(usert_size, SEEK_CUR);
-                    if (!write(current_snapshot, (char*)&u, usert_size)) break;
+                    // user found
+                    bankFile.seek(sizeof(user_t), SEEK_CUR);
                     break;
                 }
             } // end of undo
-            if (u.msid != 0) continue; // user already found
-            // not found in undo, get from last snapshot
-            last_snapshot.read((char*)&u, usert_size);
-            if (!write(current_snapshot, (char*)&u, usert_size)) break;
-        } // foreach user
 
-        close(current_snapshot);
-    } // foreach bank
+            if (usr.msid == 0)
+            {
+                // if not found read user from bank file
+                bankFile.read((char*)&usr, sizeof(user_t));
+
+                if (!undoFiles.empty())
+                {
+                    user_t latest_record = {};
+                    auto latest_undo = undoFiles.back();
+                    latest_undo->seek(user * sizeof(user_t), SEEK_SET);
+                    latest_undo->read((char*)&latest_record, sizeof(user_t));
+                    if (latest_record.msid != 0)
+                    {
+                        memcpy((char*)&usr, &latest_record, sizeof(user_t));
+                    }
+                }
+            }
+
+            // write user to snapshot file
+            if (!snapshotFile.write((char*)&usr, sizeof(user_t)))
+            {
+                WLOG("Can't write to bank file\n");
+                return;
+            }
+
+        } // end of for each user
+    } // end of for each node
 
     // change snapshot temp file name to correct one
     for (uint16_t bank = 1; bank < nodes; ++bank)
@@ -178,8 +210,6 @@ void db_backup(uint32_t block_path, uint16_t nodes) {
         std::rename(backupFilePath,
                     std::string(backupFilePath).substr(0, Helper::FileName::kUndoNameFixedLength).c_str());
     }
-
-    return;
 }
 
 }

@@ -475,13 +475,13 @@ class message :
 
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,nhash,SHA256_DIGEST_LENGTH);
-      ELOG("nhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
+      ILOG("nhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash, mhash,SHA256_DIGEST_LENGTH);
-      ELOG("mhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
+      ILOG("mhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
 
 
       if(memcmp(mhash,nhash,32)){
-        DLOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
+        ELOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
         return(false);}
       return(true);
     }
