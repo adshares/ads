@@ -1021,7 +1021,7 @@ public:
         }
         for(uint32_t block=path+BLOCKSEC; block<=srvs_.now; block++) {
             Helper::FileName::getUndo(filename, block, bank);
-            int uf = open(filename, O_RDONLY);
+            int uf = open(filename, O_RDONLY|O_CREAT, 0644);
             if(uf<0) {
                 continue;
             }
