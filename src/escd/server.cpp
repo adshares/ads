@@ -219,6 +219,10 @@ void server::start() {
                 }
                 do_sync=1;
             }
+            if(opts_.back && opts_.comm) {
+                // save msid.txt after succesfull back
+                writemsid();
+            }
         }
     }
 
@@ -292,10 +296,12 @@ void server::recyclemsid(uint32_t lastpath) {
     uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_) {
-        ELOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
-        if(!do_fast) {
+
+        if(msid_ > 0 && !do_fast) {
+            ELOG("Initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
             exit(-1);
         }
+        WLOG("Setting initial msid from network (%08X)\n",firstmsid);
         msid_=firstmsid;
         return;
     }
