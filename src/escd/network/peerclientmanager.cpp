@@ -124,6 +124,8 @@ void PeerConnectManager::addActivePeer(uint16_t svid, boost::shared_ptr<peer> pe
 
 void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<peer> peer)
 {
+    DLOG("ENTERED addActivePeerImpl\n");
+
     try{
         boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
         DLOG("Add active peer svid: %ud\n", svid);
@@ -137,6 +139,8 @@ void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<pee
     {
         ELOG("ERROR: Leave peer exception%s", e.what());
     }
+
+    DLOG("LEFT addActivePeerImpl\n");
 }
 
 void PeerConnectManager::leevePeer(uint16_t svid, std::string address, unsigned short port)
@@ -427,15 +431,18 @@ void PeerConnectManager::deliver(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::deliverImpl(message_ptr msg, uint16_t svid)
 {
+    DLOG("ENTERED deliverImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
     if(svidPeer != m_activePeers.end()){
         svidPeer->second->deliver(msg);
+        DLOG("LEFT deliverImpl 1\n");
         return;
     }
 
     msg->sent_erase(svid);
+    DLOG("LEFT deliverImpl 2\n");
 }
 
 void PeerConnectManager::deliverToAll(message_ptr msg)
@@ -445,11 +452,14 @@ void PeerConnectManager::deliverToAll(message_ptr msg)
 
 void PeerConnectManager::deliverToAllImpl(message_ptr msg)
 {
+    DLOG("ENTERED deliverToAllImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers){
         peer.second->deliver(msg);
     }
+
+    DLOG("LEFT deliverToAllImpl\n");
 }
 
 void PeerConnectManager::update(message_ptr msg, uint16_t svid)
@@ -459,12 +469,15 @@ void PeerConnectManager::update(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::updateImpl(message_ptr msg, uint16_t svid)
 {
+    DLOG("ENTERED updateImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
     if(svidPeer != m_activePeers.end()){
         svidPeer->second->update(msg);
     }
+
+    DLOG("LEFT updateImpl\n");
 }
 
 void PeerConnectManager::updateAll(message_ptr msg)
@@ -474,12 +487,15 @@ void PeerConnectManager::updateAll(message_ptr msg)
 
 void PeerConnectManager::updateAllImpl(message_ptr msg)
 {
+    DLOG("ENTERED updateAllImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers)
     {
         peer.second->update(msg);
     }
+
+    DLOG("LEFT updateAllImpl\n");
 }
 
 void PeerConnectManager::getReadyPeers(std::set<uint16_t>& ready)
