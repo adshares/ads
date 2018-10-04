@@ -12,10 +12,10 @@ FileWrapper::FileWrapper() :
 {
 }
 
-FileWrapper::FileWrapper(const std::string filepath, int mask, bool removeOnClose) :
+FileWrapper::FileWrapper(const std::string filepath, int mask, int mode, bool removeOnClose) :
     m_file_descriptor(-1), m_filepath(filepath), m_remove_on_close(removeOnClose)
 {
-    m_file_descriptor = ::open(m_filepath.c_str(), mask);
+    m_file_descriptor = ::open(m_filepath.c_str(), mask, mode);
 }
 
 FileWrapper::~FileWrapper()
