@@ -431,7 +431,7 @@ void PeerConnectManager::deliver(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::deliverImpl(message_ptr msg, uint16_t svid)
 {
-    DLOG("ENTERED deliverImpl, peer svid:%u, msg type:%u\n", svid, msg->data[0]);
+    DLOG("ENTERED deliverImpl, peer svid:%u\n", svid);
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
@@ -452,7 +452,7 @@ void PeerConnectManager::deliverToAll(message_ptr msg)
 
 void PeerConnectManager::deliverToAllImpl(message_ptr msg)
 {
-    DLOG("ENTERED deliverToAllImpl, msg type:%u\n", msg->data[0]);
+    DLOG("ENTERED deliverToAllImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers){
@@ -469,7 +469,7 @@ void PeerConnectManager::update(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::updateImpl(message_ptr msg, uint16_t svid)
 {
-    DLOG("ENTERED updateImpl, peer svid:%u, msg type:%u\n", svid, msg->data[0]);
+    DLOG("ENTERED updateImpl, peer svid:%u\n", svid);
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
@@ -487,7 +487,7 @@ void PeerConnectManager::updateAll(message_ptr msg)
 
 void PeerConnectManager::updateAllImpl(message_ptr msg)
 {
-    DLOG("ENTERED updateAllImpl, msg type:%u\n", msg->data[0]);
+    DLOG("ENTERED updateAllImpl\n");
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers)
