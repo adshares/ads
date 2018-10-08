@@ -122,9 +122,9 @@ void PeerConnectManager::addActivePeer(uint16_t svid, boost::shared_ptr<peer> pe
     m_ioService.dispatch(boost::bind(&PeerConnectManager::addActivePeerImpl, this, svid, peer));
 }
 
-void PeerConnectManager::addActivePeerImpl(uint16_t svid , boost::shared_ptr<peer> peer)
+void PeerConnectManager::addActivePeerImpl(uint16_t svid, boost::shared_ptr<peer> peer)
 {
-    DLOG("ENTERED addActivePeerImpl\n");
+    DLOG("ENTERED addActivePeerImpl, peer svid:%u\n", svid);
 
     try{
         boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
@@ -431,7 +431,11 @@ void PeerConnectManager::deliver(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::deliverImpl(message_ptr msg, uint16_t svid)
 {
-    DLOG("ENTERED deliverImpl\n");
+    DLOG("ENTERED deliverImpl, peer svid:%u\n", svid);
+    if (msg->data != nullptr) {
+        DLOG("msg type:%u\n", msg->data[0]);
+    }
+
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
@@ -453,6 +457,9 @@ void PeerConnectManager::deliverToAll(message_ptr msg)
 void PeerConnectManager::deliverToAllImpl(message_ptr msg)
 {
     DLOG("ENTERED deliverToAllImpl\n");
+    if (msg->data != nullptr) {
+        DLOG("msg type:%u\n", msg->data[0]);
+    }
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers){
@@ -469,7 +476,10 @@ void PeerConnectManager::update(message_ptr msg, uint16_t svid)
 
 void PeerConnectManager::updateImpl(message_ptr msg, uint16_t svid)
 {
-    DLOG("ENTERED updateImpl\n");
+    DLOG("ENTERED updateImpl, peer svid:%u\n", svid);
+    if (msg->data != nullptr) {
+        DLOG("msg type:%u\n", msg->data[0]);
+    }
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     auto svidPeer = m_activePeers.find(svid);
@@ -488,6 +498,9 @@ void PeerConnectManager::updateAll(message_ptr msg)
 void PeerConnectManager::updateAllImpl(message_ptr msg)
 {
     DLOG("ENTERED updateAllImpl\n");
+    if (msg->data != nullptr) {
+        DLOG("msg type:%u\n", msg->data[0]);
+    }
     boost::shared_lock< boost::shared_mutex > lock(m_peerMx);
 
     for(auto& peer: m_activePeers)
