@@ -42,7 +42,7 @@ office::~office() {
     if(offifd_>=0) {
         close(offifd_);
     }
-    ELOG("Office down\n");
+    ILOG("Office down\n");
 }
 
 void office::iorun_client(int i) {
@@ -802,7 +802,7 @@ bool office::add_msg(IBlockCommand& utxs, uint32_t& msid, uint32_t& mpos) {
 
     std::unique_lock<boost::mutex> lock(file_);
     if(message_tnum>=MESSAGE_TNUM_MAX) {
-        ELOG("MESSAGE busy, delaying message addition\n");
+        ILOG("MESSAGE busy, delaying message addition\n");
     }
 
     while(message_tnum>=MESSAGE_TNUM_MAX) {
@@ -862,7 +862,7 @@ bool office::add_msg(uint8_t* msg, uint32_t len, uint32_t& msid, uint32_t& mpos)
 
     std::unique_lock<boost::mutex> lock(file_);
     if(message_tnum>=MESSAGE_TNUM_MAX) {
-        ELOG("MESSAGE busy, delaying message addition\n");
+        ILOG("MESSAGE busy, delaying message addition\n");
     }
 
     while(message_tnum>=MESSAGE_TNUM_MAX) {
@@ -906,7 +906,7 @@ bool office::add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos
     int len=utxs.size;
     file_.lock();
     if(message_tnum>=MESSAGE_TNUM_MAX) {
-        ELOG("MESSAGE busy, delaying message addition\n");
+        ILOG("MESSAGE busy, delaying message addition\n");
     }
     while(message_tnum>=MESSAGE_TNUM_MAX) {
         file_.unlock();
@@ -1289,7 +1289,7 @@ void office::handle_accept(client_ptr c, const boost::system::error_code& error)
     DLOG("OFFICE new ticket (total open:%ld)\n",clients_.size());
 #endif
     if(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG) {
-        ELOG("OFFICE busy, delaying connection\n");
+        ILOG("OFFICE busy, delaying connection\n");
     }
 
     while(clients_.size()>=MAXCLIENTS || srv_.do_sync || message.length()>MESSAGE_TOO_LONG) {

@@ -21,11 +21,11 @@ server::~server() {
     //threadpool.join_all();
     //clock_thread->interrupt();
     //clock_thread->join();
-    ELOG("Server down\n");
+    ILOG("Server down\n");
 }
 
 void server::start() {
-    ELOG("SERVER start point\n");
+    ILOG("SERVER start point\n");
 
     mkdir("usr",0755); // create dir for bank accounts
     mkdir("inx",0755); // create dir for bank message indeces
@@ -50,7 +50,6 @@ void server::start() {
         }
 
         memcpy(pkey, last_srvs_.nodes[opts_.svid].pk, sizeof(hash_t));
-        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if (!last_srvs_.find_key(pkey, skey)) {
             char pktext[2 * 32 + 1];
             pktext[2 * 32] = '\0';
@@ -66,7 +65,7 @@ void server::start() {
 
         srvs_.now -= BLOCKSEC;
         period_start = srvs_.nextblock();
-        ELOG("MAKE BLOCKCHAIN\n");
+        ILOG("MAKE BLOCKCHAIN\n");
         message_map empty;
         //      srvs_.now = last_srvs_.nodes[0].mtim;
         srvs_.msg = 0;
@@ -87,12 +86,12 @@ void server::start() {
               // create empty servers so sync can start and download updated servers
               last_srvs_.find_pkey(pkey); // get this node public key
               last_srvs_.init_fast(opts_.svid, pkey);
-              ELOG("CREATING nodes for fast sync\n");
+              ILOG("CREATING nodes for fast sync\n");
             } else if(!opts_.init) {
                 ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
                 exit(-1);
             }
-            ELOG("CREATING first node\n");
+            ILOG("CREATING first node\n");
         } else if( (int)opts_.svid >(int)last_srvs_.nodes.size()) {
             ELOG("ERROR reading servers (size:%d)\n",(int)last_srvs_.nodes.size());
             exit(-1);
@@ -110,7 +109,7 @@ void server::start() {
 
     if(opts_.back && !opts_.comm) {
         if(undo_bank(false)) {
-            ELOG("DATABASE check passed, run again with --comm (-c) to commit database change and proceed\n");
+            ILOG("DATABASE check passed, run again with --comm (-c) to commit database change and proceed\n");
             exit(0);
         } else {
             ELOG("DATABASE check failed\n");
@@ -127,7 +126,7 @@ void server::start() {
                 ELOG("ERROR reading servers for path %08X\n",lastpath);
                 exit(-1);
             }
-            ELOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",lastpath,msid_);
+            ILOG("INIT from last state @ %08X with MSID: %08X (file usr/0001.dat found)\n",lastpath,msid_);
             if(!undo_bank(true)) {
                 ELOG("ERROR loading initial database, fatal\n");
                 exit(-1);
@@ -140,7 +139,7 @@ void server::start() {
             srvs_=last_srvs_;
             memcpy(srvs_.oldhash,last_srvs_.nowhash,SHA256_DIGEST_LENGTH);
             period_start=srvs_.nextblock();
-            ELOG("MAKE BLOCKCHAIN\n");
+            ILOG("MAKE BLOCKCHAIN\n");
             for(; srvs_.now<now;) {
                 message_map empty;
                 srvs_.msg=0;
@@ -154,7 +153,7 @@ void server::start() {
             start_path=0;
             start_msid=0;
             msid_=0;
-            ELOG("START from a fresh database\n");
+            ILOG("START from a fresh database\n");
             last_srvs_.init(now-BLOCKSEC);
             bank_fee.resize(last_srvs_.nodes.size());
             srvs_=last_srvs_;
@@ -186,7 +185,7 @@ void server::start() {
             start_path=0;
             start_msid=0;
             msid_=0;
-            ELOG("START with read only database\n");
+            ILOG("START with read only database\n");
             last_srvs_.init(now-BLOCKSEC);
             last_srvs_.update_vipstatus();
             bank_fee.resize(last_srvs_.nodes.size());
@@ -196,7 +195,7 @@ void server::start() {
         period_start=srvs_.nextblock();
     } //changes now!
 
-    ELOG("START @ %08X with MSID: %08X\n",lastpath,msid_);
+    ILOG("START @ %08X with MSID: %08X\n",lastpath,msid_);
     //vip_max=srvs_.update_vip(); //based on initial weights at start time, move to nextblock()
 
     if(!opts_.init) {
@@ -209,7 +208,7 @@ void server::start() {
             }
             do_sync=1;
         } else {
-            ELOG("DATABASE check passed\n");
+            ILOG("DATABASE check passed\n");
             uint32_t now=time(NULL);
             now-=now%BLOCKSEC;
             if(last_srvs_.now==now-BLOCKSEC && !do_fast) {
@@ -219,6 +218,10 @@ void server::start() {
                     ELOG("WARNING, possibly missing too much history for full resync\n");
                 }
                 do_sync=1;
+            }
+            if(opts_.back && opts_.comm) {
+                // save msid.txt after succesfull back
+                writemsid();
             }
         }
     }
@@ -235,7 +238,6 @@ void server::start() {
         iamvip=(bool)(srvs_.nodes[opts_.svid].status & SERVER_VIP);
         //pkey=srvs_.nodes[opts_.svid].pk; // consider having a separate buffer for pkey
         memcpy(pkey,srvs_.nodes[opts_.svid].pk,sizeof(hash_t));
-        //DLOG("INI:%016lX\n",*(uint64_t*)pkey);
         if(!last_srvs_.find_key(pkey,skey)) {
             char pktext[2*32+1];
             pktext[2*32]='\0';
@@ -260,7 +262,7 @@ void server::start() {
             load_banks();
             srvs_.write_start();
         }
-        ELOG("START syncing headers\n");
+        ILOG("START syncing headers\n");
         load_chain();
     } // sets do_sync=0;
 
@@ -294,10 +296,12 @@ void server::recyclemsid(uint32_t lastpath) {
     uint32_t firstmsid=srvs_.nodes[opts_.svid].msid;
     hash_t msha;
     if(firstmsid>msid_) {
-        ELOG("ERROR initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
-        if(!do_fast) {
+
+        if(msid_ > 0 && !do_fast) {
+            ELOG("Initial msid lower than on network, fatal (%08X<%08X)\n",msid_,firstmsid);
             exit(-1);
         }
+        WLOG("Setting initial msid from network (%08X)\n",firstmsid);
         msid_=firstmsid;
         return;
     }
@@ -323,19 +327,19 @@ void server::recyclemsid(uint32_t lastpath) {
                 ntime=time(NULL);
                 assert(ntime>=srvs_.now);
             }
-            ELOG("RECYCLED message %04X:%08X from %08X/ signing with new time %08X [len:%d]\n",opts_.svid,lastmsid,lastpath,ntime,msg->len);
+            ILOG("RECYCLED message %04X:%08X from %08X/ signing with new time %08X [len:%d]\n",opts_.svid,lastmsid,lastpath,ntime,msg->len);
             msg->signnewtime(ntime,skey,pkey,msha);
             ntime++;
         }
         memcpy(msha,msg->sigh,sizeof(hash_t));
         if(txs_insert(msg)) {
-            ELOG("RECYCLED message %04X:%08X from %08X/ inserted\n",opts_.svid,lastmsid,lastpath);
+            ILOG("RECYCLED message %04X:%08X from %08X/ inserted\n",opts_.svid,lastmsid,lastpath);
             if(srvs_.now!=lastpath) {
-                ELOG("MOVE message %04X:%08X from %08X/ to %08X/\n",opts_.svid,lastmsid,lastpath,srvs_.now);
+                ILOG("MOVE message %04X:%08X from %08X/ to %08X/\n",opts_.svid,lastmsid,lastpath,srvs_.now);
                 msg->move(srvs_.now);
             }
         } else {
-            ELOG("RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);
+            ILOG("RECYCLED message %04X:%08X from %08X/ known\n",opts_.svid,lastmsid,lastpath);
         }
     }
     if(msid_!=start_msid) {
@@ -473,7 +477,7 @@ NEXTUSER:
 }
 
 void server::load_banks() {
-    ELOG("LOAD BANKS\n");
+    ILOG("LOAD BANKS\n");
 
     //create missing bank messages
     uint16_t end=last_srvs_.nodes.size();
@@ -520,7 +524,7 @@ void server::load_banks() {
             }
         }
         missing_.unlock();
-        ELOG("WAITING for banks (peers:%d)\n",(int)ready.size());
+        ILOG("WAITING for banks (peers:%d)\n",(int)ready.size());
         //TODO sleep much shorter !!!
         boost::this_thread::sleep(boost::posix_time::seconds(1)); //yes, yes, use futur/promise instead
         RETURN_ON_SHUTDOWN();
@@ -570,14 +574,14 @@ void server::load_chain() {
         for(; !n;) {
             //boost::this_thread::sleep(boost::posix_time::seconds(1));
             m_peerManager.getMoreHeaders(srvs_.now); // try getting more headers
-            ELOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
+            ILOG("\nWAITING 1s (%08X<%08X)\n",srvs_.now,now);
             boost::this_thread::sleep(boost::posix_time::seconds(1));
             RETURN_ON_SHUTDOWN();
             n=headers.size();
         }
         auto block=headers.begin();
         for(;;) {
-            ELOG("START syncing header %08X\n",block->now);
+            ILOG("START syncing header %08X\n",block->now);
             if(srvs_.now!=block->now) {
                 ELOG("ERROR, got strange block numbers %08X<>%08X\n",srvs_.now,block->now);
                 exit(-1);
@@ -746,7 +750,7 @@ void server::load_chain() {
             for(block++; block==headers.end(); block++) { // wait for peers to load more blocks
                 block--;
                 headers_.unlock();
-                ELOG("WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
+                ILOG("WAITING at block end (headers:%d) (srvs_.now:%08X;now:%08X) \n",
                      (int)headers.size(),srvs_.now,now);
                 //FIXME, insecure !!! better to ask more peers / wait for block with enough votes
                 m_peerManager.getMoreHeaders(block->now+BLOCKSEC);
@@ -978,7 +982,7 @@ void server::LAST_block_final(hash_s& cand) {
         it->second->status|=MSGSTAT_VAL;
         if(it->second->msid==0xFFFFFFFF) {
             uint16_t svid=it->second->svid;
-            ELOG("DOUBLE setting dbl status for node %04X\n",svid);
+            ILOG("DOUBLE setting dbl status for node %04X\n",svid);
             dbls_.lock();
             dbl_srvs_.insert(svid); //FIXME, pointless
             dbls_.unlock();
@@ -994,7 +998,7 @@ void server::LAST_block_final(hash_s& cand) {
     for(auto am=winner->msg_add.begin(); am!=winner->msg_add.end(); am++) {
         if(*(uint32_t*)(((uint8_t*)&am->first)+2)==0xFFFFFFFF) {
             uint16_t svid=*(uint16_t*)(((uint8_t*)&am->first)+6);
-            ELOG("DOUBLE setting dbl status for node %04X\n",svid);
+            ILOG("DOUBLE setting dbl status for node %04X\n",svid);
             dbls_.lock();
             dbl_srvs_.insert(svid); //FIXME, pointless
             dbls_.unlock();
@@ -1136,7 +1140,7 @@ void server::LAST_block_final(hash_s& cand) {
                 continue;
             }
             if((tm->second->status & MSGSTAT_BAD)) {
-                ELOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                ILOG("REMOVE bad message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                 if((tm->second->status & MSGSTAT_COM)) {
                     undo_message(tm->second);
                 }
@@ -1153,11 +1157,11 @@ void server::LAST_block_final(hash_s& cand) {
                 continue;
             }
             if(!(tm->second->status & MSGSTAT_VAL) && (tm->second->status & MSGSTAT_COM)) {
-                ELOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
+                ILOG("UNDO message %04X:%08X [min:%08X len:%d status:%X]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len,tm->second->status);
                 undo_message(tm->second);
                 //if(tm->second->now<last_srvs_.now) will be too late :-(
                 if(tm->second->now<srvs_.now) {
-                    ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                    ILOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                     message_ptr msg=tm->second;
                     bad_insert(tm->second);
                     //remove_message(tm->second);
@@ -1167,7 +1171,7 @@ void server::LAST_block_final(hash_s& cand) {
                         txs_msgs_.erase(tm);
                     }
                 } else {
-                    ELOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                    ILOG("INVALIDATE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                     tm->second->move(LAST_block+BLOCKSEC);
                     wait_.lock();
                     wait_msgs_.push_back(tm->second);
@@ -1178,7 +1182,7 @@ void server::LAST_block_final(hash_s& cand) {
             if(!(tm->second->status & MSGSTAT_VAL) && tm->second->path && tm->second->path<=LAST_block) {
                 //if(tm->second->now<last_srvs_.now) will be too late :-(
                 if(tm->second->now<last_srvs_.now) {
-                    ELOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                    ILOG("REMOVE late message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                     message_ptr msg=tm->second;
                     bad_insert(tm->second);
                     //remove_message(tm->second);
@@ -1189,19 +1193,19 @@ void server::LAST_block_final(hash_s& cand) {
                         txs_msgs_.erase(tm);
                     }
                 } else {
-                    ELOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                    ILOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                     tm->second->move(LAST_block+BLOCKSEC);
                 }
             }
             if((tm->second->status & (MSGSTAT_VAL | MSGSTAT_COM)) == MSGSTAT_VAL ) {
                 if(tm->second->msid==0xFFFFFFFF) {
-                    ELOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+                    ILOG("COMMIT dbl message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
                     tm->second->status|=MSGSTAT_COM; // the only place to commit dbl messages
                     assert(srvs_.nodes[tm->second->svid].status&SERVER_DBL);
                     continue;
                 }
                 if(tm->second->status & MSGSTAT_DAT) {
-                    ELOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+                    ILOG("QUEUE message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
                     wait_.lock();
                     for(auto wm=wait_msgs_.begin(); wm!=wait_msgs_.end(); wm++) {
                         if((*wm)==tm->second) {
@@ -1222,7 +1226,7 @@ void server::LAST_block_final(hash_s& cand) {
                 //auto it=bad_msgs_.find(*(hash_s*)tm->second->sigh);
                 if(it!=bad_msgs_.end()) {
                     if(it->second->hash.num==tm->second->hash.num) {
-                        ELOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+                        ILOG("RECOVER message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
                         tm->second=it->second;
                         assert(tm->second->status & MSGSTAT_DAT);
                         bad_recover(tm->second);
@@ -1243,7 +1247,7 @@ void server::LAST_block_final(hash_s& cand) {
                     }
                 }
                 //FIXME, check info about peer inventory !!! find out who knows about the message !!!
-                ELOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
+                WLOG("MISSING message %04X:%08X [len:%d]\n",tm->second->svid,tm->second->msid,tm->second->len);
                 missing_msgs_[tm->second->hash.num]=tm->second;
             }
         }
@@ -1330,20 +1334,20 @@ void server::count_votes(uint32_t now,hash_s& cand) {
         if(now>srvs_.now+BLOCKSEC+(BLOCKSEC/2)) {
             panic=true;
             if(!ofip_isreadonly()) {
-                ELOG("LATE CANDIDATE !!!, set office readonly\n");
+                WLOG("LATE CANDIDATE !!!, set office readonly\n");
                 ofip_readonly();
             }
-            ELOG("\n\nCANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n\n\n",
+            WLOG("\n\nCANDIDATE SELECTED:%016lX second:%016lX max:%016lX counted:%016lX BECAUSE OF TIMEOUT!!!\n\n\n",
                  cnd1->score,x,votes_max,votes_counted);
         } else {
-            ELOG("CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
+            ILOG("CANDIDATE ELECTED:%016lX second:%016lX max:%016lX counted:%016lX\n",
                  cnd1->score,x,votes_max,votes_counted);
         }
         do_block=2;
         winner=cnd1;
         char text[2*SHA256_DIGEST_LENGTH];
         ed25519_key2text(text,best.hash,SHA256_DIGEST_LENGTH);
-        ELOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
+        ILOG("CAND %.*s elected\n",2*SHA256_DIGEST_LENGTH,text);
         if(winner->failed) {
             ELOG("BAD CANDIDATE elected :-(\n");
         }
@@ -1362,7 +1366,7 @@ void server::count_votes(uint32_t now,hash_s& cand) {
         }
     }
     if(do_block==2 && winner->elected_accept()) {
-        ELOG("CANDIDATE winner accepted\n");
+        ILOG("CANDIDATE winner accepted\n");
         do_block=3;
         if(do_vote) {
             write_candidate(best);
@@ -1379,12 +1383,12 @@ void server::count_votes(uint32_t now,hash_s& cand) {
         }
     }
     if(do_vote && cnd1->accept() && cnd1->peers.size()>1) {
-        ELOG("CANDIDATE proposal accepted\n");
+        ILOG("CANDIDATE proposal accepted\n");
         write_candidate(best);
         return;
     }
     if(do_vote && now>srvs_.now+BLOCKSEC+(do_vote-1)*VOTE_DELAY) {
-        ELOG("CANDIDATE proposing\n");
+        ILOG("CANDIDATE proposing\n");
         write_candidate(cand);
     }
 }
@@ -1468,13 +1472,13 @@ void server::prepare_poll() {
         }
         //uint64_t score=last_srvs_.nodes[svid_rank[j]].weight/2+TOTALMASS/(2*(VIP_MAX+1));
         uint64_t score=(last_srvs_.nodes[svid_rank[j]].weight+TOTALMASS)/(2*(VIP_MAX+1));
-        ELOG("ELECTOR[%d]=%016lX\n",svid_rank[j],score);
+        ILOG("ELECTOR[%d]=%016lX\n",svid_rank[j],score);
         electors[svid_rank[j]]=score;
         votes_max+=score;
     }
     extern candidate_ptr nullcnd;
     winner=nullcnd;
-    ELOG("ELECTOR max:%016lX\n",votes_max);
+    ILOG("ELECTOR max:%016lX\n",votes_max);
 // READNLY ? if readonly server and not enough electors ... resync !
 #ifdef DEBUG
     if(electors.size()<electors_old && electors.size()<srvs_.vtot/2 && (int)electors.size() < opts_.mins && !opts_.init) {
@@ -2326,7 +2330,7 @@ void server::validator(void) {
                 nod->mtim=busy_msg->now;
                 memcpy(nod->msha,busy_msg->sigh,sizeof(hash_t));
                 if(busy_msg->svid==opts_.svid && msid_<nod->msid) {
-                    ELOG("WARNING !!! increasing local msid by network !!!\n");
+                    WLOG("WARNING !!! increasing local msid by network !!!\n");
                     msid_=nod->msid;
                 }
                 uint32_t now=time(NULL);
@@ -3065,7 +3069,7 @@ bool server::process_message(message_ptr msg) {
                 } else {
                     if(node==opts_.svid) {
                         ofip_change_pkey((uint8_t*)utxs.key(p));
-                        ELOG("WARNING, changing my node key !\n");
+                        WLOG("WARNING, changing my node key !\n");
                     }
                     uint64_t ppb=make_ppi(tmpos,omsid,msg->msid,msg->svid,node);
                     txs_bky[ppb]=*(hash_s*)utxs.key(p);
@@ -3360,7 +3364,7 @@ bool server::process_message(message_ptr msg) {
     for(auto it=txs_bky.begin(); it!=txs_bky.end(); it++) {
         uint16_t node=ppi_bbank(it->first);
         if(last_srvs_.nodes[node].status & SERVER_DBL) {
-            ELOG("WARNING schedule resetting DBL status for node %04X!\n",node);
+            WLOG("WARNING schedule resetting DBL status for node %04X!\n",node);
             //blk_bky[ppi].push_back(it->first);
             blk_bky[it->first]=node;
         }
@@ -3670,16 +3674,16 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
                 auto bi=new_bnk.begin();
                 peer=(*bi)&0xffff;
                 new_bnk.erase(bi);
-                ELOG("BANK, overwrite %04X\n",peer);
+                ILOG("BANK, overwrite %04X\n",peer);
                 srvs_.put_node(u,peer);
             } //save_undo() in put_node() !!!
             else if(srvs_.nodes.size()<BANK_MAX-1) {
                 peer=srvs_.add_node(u); //deposits BANK_MIN_TMASS
                 bank_fee.resize(srvs_.nodes.size());
-                ELOG("BANK, add new bank %04X\n",peer);
+                ILOG("BANK, add new bank %04X\n",peer);
             } else {
                 //close(fd);
-                ELOG("BANK, can not create more banks\n");
+                ILOG("BANK, can not create more banks\n");
                 //goto BLK_END;
                 union {
                     uint64_t big;
@@ -4152,7 +4156,7 @@ void server::commit_bankfee(uint64_t myput_fee) {
         if(div==(int64_t)0x8FFFFFFFFFFFFFFF) {
             div=0;
         } else {
-            ELOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
+            ILOG("DIV: during bank_fee to %04X (%016lX)\n",svid,div);
             if(svid==opts_.svid) {
                 mydiv_fee+=BANK_PROFIT(fee);
             }
@@ -4476,7 +4480,7 @@ void server::write_candidate(const hash_s& cand_hash) {
         ELOG("FATAL message insert error for own message, dying !!!\n");
         exit(-1);
     }
-    ELOG("SENDING candidate\n");
+    ILOG("SENDING candidate\n");
     m_peerManager.updateAll(msg); // update peers even if we are not an elector
 }
 
@@ -4490,13 +4494,13 @@ candidate_ptr server::save_candidate(uint32_t blk,const hash_s& h,std::map<uint6
             uint32_t msid=(key>>16) & 0xFFFFFFFFL;
             uint16_t svid=(key>>48);
             if(msid==0xFFFFFFFF) {
-                ELOG("%04X WARNING peer removed DBL spend from%04X\n",peer,svid);
+                WLOG("%04X WARNING peer removed DBL spend from%04X\n",peer,svid);
                 failed=true;
                 break;
             }
             message_ptr pm=message_svidmsid(svid,msid); //LOCK: txs_
             if(pm!=nullmsg && (pm->status & (MSGSTAT_DAT|MSGSTAT_VAL)) && pm->got<srvs_.now+BLOCKSEC-MESSAGE_MAXAGE) {
-                ELOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
+                WLOG("%04X WARNING peer removed old message %04X:%08X\n",peer,svid,msid);
                 failed=true;
                 break;
             }
@@ -4690,7 +4694,7 @@ void server::clock() {
         if(now>(srvs_.now+((BLOCKSEC*3)/4)) && (last_srvs_.vok<last_srvs_.vtot/2 && !opts_.init)) { // '<' not '<='
             panic=true;
             if(!ofip_isreadonly()) {
-                ELOG("LATE SIGNATURES !!!, set office readonly vok %d vtot %d\n", last_srvs_.vok, last_srvs_.vtot);
+                WLOG("LATE SIGNATURES !!!, set office readonly vok %d vtot %d\n", last_srvs_.vok, last_srvs_.vtot);
                 ofip_readonly();
             }
         }
@@ -4743,7 +4747,7 @@ void server::clock() {
                 char hash[2*SHA256_DIGEST_LENGTH];
                 hash[2*SHA256_DIGEST_LENGTH-1]='?';
                 ed25519_key2text(hash,put_msg->data+1,SHA256_DIGEST_LENGTH);
-                ELOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
+                ILOG("LAST HASH put %.*s\n",(int)(2*SHA256_DIGEST_LENGTH),hash);
                 m_peerManager.deliverToAll(put_msg); // sets BLOCK_MODE for peers
             }
             do_block=1; //must be before save_candidate

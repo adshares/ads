@@ -95,9 +95,9 @@ int main(int argc, char* argv[]) {
                 opt.init=false;
                 opt.comm=true;
                 opt.genesis="";
-                ELOG("\n\nRESTARTING\n\n\n");
+                ILOG("\n\nRESTARTING\n\n\n");
             } else {
-                ELOG("Shutting down\n");
+                ILOG("Shutting down\n");
             }
             o.stop();
             s.stop();

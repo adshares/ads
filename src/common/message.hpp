@@ -133,8 +133,6 @@ class message :
         memcpy(data+4+64+6,&now,4);
         memcpy(data+4+64+10,text,text_len);
 
-        DLOG("INI:%016lX\n",*(uint64_t*)mypk);
-
         if(text_type==MSGTYPE_BLK) {
             if(mysk==NULL) { // creating message from network
                 memcpy(data+4,mypk,64);
@@ -475,13 +473,13 @@ class message :
 
       char hash[2*SHA256_DIGEST_LENGTH];
       ed25519_key2text(hash,nhash,SHA256_DIGEST_LENGTH);
-      ELOG("nhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
+      ILOG("nhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
       ed25519_key2text(hash, mhash,SHA256_DIGEST_LENGTH);
-      ELOG("mhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
+      ILOG("mhash %.*s\n", 2*SHA256_DIGEST_LENGTH,hash);
 
 
       if(memcmp(mhash,nhash,32)){
-        DLOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
+        ELOG("HASHTREE failed (path len:%d)\n",(int)hashes.size());
         return(false);}
       return(true);
     }
@@ -797,7 +795,6 @@ class message :
                 return(ed25519_sign_open(data+4+64,10+sizeof(hash_t),svpk,data+4));
             }
             if(data[0]==MSGTYPE_INI) {
-                DLOG("INI:%016lX\n",*(uint64_t*)svpk);
                 return(ed25519_sign_open(data+4+64,len-4-64,svpk,data+4));
             }
             assert(0);

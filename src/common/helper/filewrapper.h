@@ -13,7 +13,7 @@ class FileWrapper
 {
 public:
     FileWrapper();
-    FileWrapper(const std::string filepath, int mask, bool removeOnClose = false);
+    FileWrapper(const std::string filepath, int mask, int mode = 0644, bool removeOnClose = false);
     ~FileWrapper();
 
     bool isOpen();
