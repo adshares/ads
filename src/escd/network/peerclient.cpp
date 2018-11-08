@@ -76,7 +76,13 @@ std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
     boost::asio::async_write(m_socket, boost::asio::buffer(data, len), boost::bind(&PeerClient::operationDone, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
     do{
-        m_socket.get_io_service().run_one();
+        auto& ioService = m_socket.get_io_service();
+        if (ioService.stopped()) {
+            ELOG("Stopping writeSync task because io_service is stopped\n");
+            m_ec = boost::asio::error::timed_out;
+            break;
+        }
+        ioService.run_one();
     }
     while (m_ec == boost::asio::error::would_block);
 
@@ -103,7 +109,13 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
     boost::asio::async_read(m_socket, boost::asio::buffer(data, len), boost::bind(&PeerClient::operationDone, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
     do{
-        m_socket.get_io_service().run_one();
+        auto& ioService = m_socket.get_io_service();
+        if (ioService.stopped()) {
+            ELOG("Stopping readSync task because io_service is stopped\n");
+            m_ec = boost::asio::error::timed_out;
+            break;
+        }
+        ioService.run_one();
     }
     while (m_ec == boost::asio::error::would_block);
 
