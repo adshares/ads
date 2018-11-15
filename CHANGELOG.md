@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2018-11-15
+### Fixed
+- Stability improvements for peer communication
+- Node logs cleanup
+
 ## [1.0.3] - 2018-10-09
 ### Changed
 - Modified DB rollback mechanism to support starting from backup
@@ -63,8 +68,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.0.4...HEAD
 
+[1.0.4]: https://github.com/adshares/ads/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/adshares/ads/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/adshares/ads/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/adshares/ads/compare/v1.0.0...v1.0.1
