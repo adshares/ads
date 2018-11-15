@@ -87,6 +87,17 @@ Address: 000X-0000000Y-AAAA
 
 See a list of all [available commands](https://github.com/adshares/ads/wiki/ADS-API#methods).
 
+### Updating the node
+
+Updating binaries from official PPA:
+
+```
+ads-service stop
+sudo apt-get update
+sudo apt-get install ads ads-tools
+ads-service start
+```
+
 ### Documentation
 
 - [Installation](https://github.com/adshares/ads/wiki#installation)
