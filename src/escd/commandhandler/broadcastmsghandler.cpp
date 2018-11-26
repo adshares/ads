@@ -20,7 +20,7 @@ void BroadcastMsgHandler::onExecute() {
         log_t tlog;
         tlog.time   = time(NULL);
         tlog.type   = m_command->getType();
-        tlog.node   = m_command->getAdditionalDataSize();
+        tlog.node   = m_command->getBankId();
         tlog.user   = m_command->getUserId();
         tlog.umid   = m_command->getUserMessageId();
         tlog.nmid   = res.msid;
