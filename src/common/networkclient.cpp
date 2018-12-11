@@ -55,13 +55,11 @@ bool NetworkClient::connect() {
             }
 
             if (error) {
-                Helper::printErrorJson(error.message().c_str(), m_prettyJson);
-                return false;
+                throw CommandException(ErrorCodes::Code::eConnectServerError, error.message());
             }
         } catch(std::exception& e) {
-            Helper::printErrorJson(e.what(), m_prettyJson);
             m_connected = false;
-            return false;
+            throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
         }
 
         m_connected = true;
@@ -79,9 +77,8 @@ bool NetworkClient::disConnect() {
             }
             m_socket.reset();
         } catch(std::exception& e) {
-            Helper::printErrorJson(e.what(), m_prettyJson);
             m_connected = false;
-            return false;
+            throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
         }
 
         m_connected = false;
@@ -105,8 +102,8 @@ bool NetworkClient::sendData(std::vector<uint8_t> buff) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;
@@ -122,8 +119,8 @@ bool NetworkClient::sendData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;
@@ -139,8 +136,8 @@ bool NetworkClient::readData(std::vector<uint8_t>& buff) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;
@@ -155,8 +152,8 @@ bool NetworkClient::readData(uint8_t* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;
@@ -171,8 +168,8 @@ bool NetworkClient::readData(char* buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;
@@ -187,8 +184,8 @@ bool NetworkClient::readData(int32_t *buff, int size) {
             }
         }
     } catch(std::exception& e) {
-        Helper::printErrorJson(e.what(), m_prettyJson);
         m_connected = false;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, e.what());
     }
 
     return false;

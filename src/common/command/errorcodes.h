@@ -3,6 +3,9 @@
 
 #define ERROR_CODE_LENGTH 4
 #define ERROR_TAG "error"
+#define ERROR_CODE_TAG "error_code"
+#define ERROR_INFO_TAG "error_info"
+
 
 
 /** \brief Error code class provides function to return string message for certain enum error code. */
@@ -68,7 +71,8 @@ public:
         eNoBlockInSpecifiedRange,
         eCouldNotReadCorrectVipKeys,
         eNoNewBLocks,
-        eProtocolMismatch
+        eProtocolMismatch,
+        eUnknownError = 255,
     };
 
 private:
@@ -131,7 +135,8 @@ private:
         { Code::eNoBlockInSpecifiedRange, "Failed to read block in specified block range"},
         { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"},
         { Code::eNoNewBLocks, "No new blocks to download"},
-        { Code::eProtocolMismatch, "Server and client protocol does not match"}
+        { Code::eProtocolMismatch, "Server and client protocol does not match"},
+        { Code::eUnknownError, "Unknown error occured"}
    };
 
 public:
@@ -151,5 +156,24 @@ public:
     }
 };
 
+class CommandException : std::runtime_error
+{
+    public:
+        CommandException(const int code, const std::string info) : std::runtime_error(info) {
+            error_code = code;
+        }
+        int getErrorCode() {
+            return error_code;
+        }
+        const char * getErrorInfo() {
+            return what();
+        }
+        const char * getError()
+        {
+            return ErrorCodes().getErrorMsg(getErrorCode());
+        }
+    private:
+        int error_code;
+};
 
 #endif // ERRORCODES_H

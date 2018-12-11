@@ -137,9 +137,10 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid) {
     return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
-void printErrorJson(const char *errorMsg, bool pretty) {
+void printErrorJson(const ErrorCodes::Code errorCode, const char *errorMsg, bool pretty) {
     boost::property_tree::ptree ptree;
     ptree.put(ERROR_TAG, errorMsg);
+    ptree.put(ERROR_CODE_TAG, errorCode);
     boost::property_tree::write_json(std::cout, ptree, pretty);
 }
 
