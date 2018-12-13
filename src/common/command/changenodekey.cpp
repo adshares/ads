@@ -105,6 +105,7 @@ int64_t ChangeNodeKey::getDeduct() {
 
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
+    sendDataSize(netClient);
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
         ELOG("ChangeNodeKey sending error\n");
         return false;
