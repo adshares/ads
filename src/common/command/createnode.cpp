@@ -98,6 +98,7 @@ int64_t CreateNode::getDeduct() {
 }
 
 bool CreateNode::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
         ELOG("CreateNode sending error\n");
         return false;
