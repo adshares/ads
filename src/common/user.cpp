@@ -387,7 +387,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         command = std::make_unique<SetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_SBS])) {
-        uint16_t  to_status=pt.get<uint16_t>("status");
+        uint32_t  to_status=pt.get<uint32_t>("status");
         command = std::make_unique<SetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_UUS])) {
@@ -395,7 +395,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         command = std::make_unique<UnsetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_UBS])) {
-        uint16_t  to_status=pt.get<uint16_t>("status");
+        uint32_t  to_status=pt.get<uint32_t>("status");
         command = std::make_unique<UnsetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
     }
     else if (!run.compare(txsname[TXSTYPE_GFI])) {
