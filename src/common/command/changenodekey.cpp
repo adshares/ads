@@ -110,6 +110,8 @@ bool ChangeNodeKey::send(INetworkClient& netClient)
         return false;
     }
 
+    readDataSize(netClient);
+
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("ChangeNodeKey reading error\n");
         return false;

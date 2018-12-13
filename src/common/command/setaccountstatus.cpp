@@ -82,10 +82,14 @@ int64_t SetAccountStatus::getDeduct() {
 
 bool SetAccountStatus::send(INetworkClient& netClient)
 {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("SetAccountStatus sending error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("SetAccountStatus reading error\n");

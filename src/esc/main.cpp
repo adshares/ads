@@ -26,9 +26,9 @@ void verifyProtocol(INetworkClient& netClient) {
 
     uint8_t version_error;
     if(!netClient.readData(&version_error, 1) || version_error) {
-        ELOG("Version mismatch client(%d) != node(%d)\n", version, node_version);
+        ELOG("Version mismatch client(%d) <> node(%d)\n", version, node_version);
         netClient.disConnect();
-        throw CommandException(ErrorCodes::Code::eProtocolMismatch, "");
+        throw CommandException(ErrorCodes::Code::eProtocolMismatch, "Version mismatch client(%d) <> node(%d)");
     }
 }
 

@@ -24,9 +24,10 @@
 #include "getblockshandler.h"
 #include "logaccounthandler.h"
 #include "../office.hpp"
+#include "../client.hpp"
 
-CommandService::CommandService(office& office, boost::asio::ip::tcp::socket& socket)
-    : m_socket(socket), m_offi(office)
+CommandService::CommandService(office& office, client& client)
+    : m_client(client), m_offi(office)
 {
 }
 
@@ -37,128 +38,128 @@ void CommandService::onExecute(std::unique_ptr<IBlockCommand> command)
     if(!m_offi.get_user(usera, command->getBankId(), command->getUserId())) {
         ErrorCodes::Code code = ErrorCodes::Code::eGetUserFail;
         DLOG("ERROR: %s\n", ErrorCodes().getErrorMsg(code));
-        boost::asio::write(m_socket, boost::asio::buffer(&code, ERROR_CODE_LENGTH));
+        m_client.sendError(code);
         return;
     };
 
     switch(command->getType()) {
     case TXSTYPE_INF: {
-        GetAccountHandler getAccountHandler(m_offi, m_socket);
+        GetAccountHandler getAccountHandler(m_offi, m_client);
         getAccountHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_KEY: {
-        SetAccountKeyHandler setAccountHandler(m_offi, m_socket);
+        SetAccountKeyHandler setAccountHandler(m_offi, m_client);
         setAccountHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_BNK: {
-        CreateNodeHandler createNodeHandler(m_offi, m_socket);
+        CreateNodeHandler createNodeHandler(m_offi, m_client);
         createNodeHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_PUT: {
-        SendOneHandler sendOneHandler(m_offi, m_socket);
+        SendOneHandler sendOneHandler(m_offi, m_client);
         sendOneHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_MPT: {
-        SendManyHandler sendManyHandler(m_offi, m_socket);
+        SendManyHandler sendManyHandler(m_offi, m_client);
         sendManyHandler.execute(std::move(command), usera);
     	break;
     }
     case TXSTYPE_USR: {
-        CreateAccountHandler createAccountHandler(m_offi, m_socket);
+        CreateAccountHandler createAccountHandler(m_offi, m_client);
         createAccountHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_NOD: {
-        GetAccountsHandler getAccountsHandler(m_offi, m_socket);
+        GetAccountsHandler getAccountsHandler(m_offi, m_client);
         getAccountsHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_BRO: {
-        BroadcastMsgHandler broadcastMsgHandler(m_offi, m_socket);
+        BroadcastMsgHandler broadcastMsgHandler(m_offi, m_client);
         broadcastMsgHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_BLG: {
-        GetBroadcastMsgHandler getBroadcastMsgHandler(m_offi, m_socket);
+        GetBroadcastMsgHandler getBroadcastMsgHandler(m_offi, m_client);
         getBroadcastMsgHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_BKY: {
-        ChangeNodeKeyHandler changeNodeKeyHandler(m_offi, m_socket);
+        ChangeNodeKeyHandler changeNodeKeyHandler(m_offi, m_client);
         changeNodeKeyHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_NDS: {
-        GetBlockHandler getBlockHandler(m_offi, m_socket);
+        GetBlockHandler getBlockHandler(m_offi, m_client);
         getBlockHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_MGS: {
-        GetMessageListHandler getMessageListHandler(m_offi, m_socket);
+        GetMessageListHandler getMessageListHandler(m_offi, m_client);
         getMessageListHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_MSG: {
-        GetMessageHandler getMessageHandler(m_offi, m_socket);
+        GetMessageHandler getMessageHandler(m_offi, m_client);
         getMessageHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_LOG: {
-        GetLogHandler getLogHandler(m_offi, m_socket);
+        GetLogHandler getLogHandler(m_offi, m_client);
         getLogHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_TXS: {
-        GetTransactionHandler getTransactionHandler(m_offi, m_socket);
+        GetTransactionHandler getTransactionHandler(m_offi, m_client);
         getTransactionHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_SUS: {
-        SetAccountStatusHandler setAccountStatusHandler(m_offi, m_socket);
+        SetAccountStatusHandler setAccountStatusHandler(m_offi, m_client);
         setAccountStatusHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_SBS: {
-        SetNodeStatusHandler setNodeStatusHandler(m_offi, m_socket);
+        SetNodeStatusHandler setNodeStatusHandler(m_offi, m_client);
         setNodeStatusHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_UUS: {
-        UnsetAccountStatusHandler unsetAccountStatusHandler(m_offi, m_socket);
+        UnsetAccountStatusHandler unsetAccountStatusHandler(m_offi, m_client);
         unsetAccountStatusHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_UBS: {
-        UnsetNodeStatusHandler unsetNodeStatusHandler(m_offi, m_socket);
+        UnsetNodeStatusHandler unsetNodeStatusHandler(m_offi, m_client);
         unsetNodeStatusHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_SIG: {
-        GetSignaturesHandler getSignaturesHandler(m_offi, m_socket);
+        GetSignaturesHandler getSignaturesHandler(m_offi, m_client);
         getSignaturesHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_GET: {
-        RetrieveFundsHandler retrieveFundsHandler(m_offi, m_socket);
+        RetrieveFundsHandler retrieveFundsHandler(m_offi, m_client);
         retrieveFundsHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_VIP: {
-        GetVipKeysHandler getVipKeysHandler(m_offi, m_socket);
+        GetVipKeysHandler getVipKeysHandler(m_offi, m_client);
         getVipKeysHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_BLK: {
-        GetBlocksHandler getBlocksHandler(m_offi, m_socket);
+        GetBlocksHandler getBlocksHandler(m_offi, m_client);
         getBlocksHandler.execute(std::move(command), usera);
         break;
     }
     case TXSTYPE_SAV: {
-        LogAccountHandler logAccountHandler(m_offi, m_socket);
+        LogAccountHandler logAccountHandler(m_offi, m_client);
         logAccountHandler.execute(std::move(command), usera);
         break;
     }

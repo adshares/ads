@@ -11,7 +11,7 @@ class office;
 
 class SendOneHandler : public CommandHandler {
   public:
-    SendOneHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    SendOneHandler(office& office, client& client);
 
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;

@@ -93,10 +93,14 @@ uint32_t GetMessageList::getUserMessageId() {
 }
 
 bool GetMessageList::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetMessageList sending error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("GetMessageList reading error\n");

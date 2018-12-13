@@ -147,6 +147,8 @@ uint32_t BroadcastMsg::getUserMessageId() {
 }
 
 bool BroadcastMsg::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), getDataSize())) {
         ELOG("BroadcastMsg ERROR sending data\n");
         return false;
@@ -161,6 +163,8 @@ bool BroadcastMsg::send(INetworkClient& netClient) {
         ELOG("BroadcastMsg ERROR sending signature\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("BroadcastMsg reading error\n");

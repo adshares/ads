@@ -87,6 +87,8 @@ int64_t LogAccount::getDeduct() {
 
 bool LogAccount::send(INetworkClient& netClient)
 {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), getDataSize())) {
         ELOG("LogAccount ERROR sending data\n");
         return false;
@@ -101,6 +103,8 @@ bool LogAccount::send(INetworkClient& netClient)
         ELOG("LogAccount ERROR sending signature\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("LogAccount ERROR reading response error\n");

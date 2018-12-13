@@ -101,10 +101,15 @@ bool GetTransaction::send(INetworkClient& netClient) {
         return true;
     }
 
+    sendDataSize(netClient);
+
+
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetTransaction sending error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("GetTransaction reading error\n");

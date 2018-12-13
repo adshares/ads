@@ -4,10 +4,13 @@
 #include "command/commandtype.h"
 #include "helper/hash.h"
 #include "../office.hpp"
+#include "../client.hpp"
+#include "../client.hpp"
 
-CommandHandler::CommandHandler(office& office, boost::asio::ip::tcp::socket& socket)
+CommandHandler::CommandHandler(office& office, client& client)
     : m_offi(office),
-      m_socket(socket) {
+      m_client(client),
+      m_socket(client.socket()) {
 }
 
 void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_t& usera)
@@ -18,16 +21,7 @@ void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_
         executeImpl(std::move(command));
     }
     catch(const ErrorCodes::Code& error) {
-        sendErrorToClient(error);
-    }
-}
-
-void CommandHandler::sendErrorToClient(ErrorCodes::Code error) {
-    try {
-        boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
-    }
-    catch(std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        m_client.sendError(error);
     }
 }
 

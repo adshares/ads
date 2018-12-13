@@ -3,13 +3,14 @@
 #include <fstream>
 #include "command/getbroadcastmsg.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 #include "helper/blocks.h"
 #include "helper/blockfilereader.h"
 
 
-GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetBroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {

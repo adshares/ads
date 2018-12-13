@@ -89,10 +89,14 @@ int64_t GetAccounts::getDeduct() {
 }
 
 bool GetAccounts::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetAccounts sending error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("GetAccounts reading error\n");

@@ -1,10 +1,11 @@
 #include "broadcastmsghandler.h"
 #include "command/broadcastmsg.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 
-BroadcastMsgHandler::BroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+BroadcastMsgHandler::BroadcastMsgHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void BroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -46,7 +47,7 @@ void BroadcastMsgHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&res.msid, sizeof(res.msid)));
             response.emplace_back(boost::asio::buffer(&res.mpos, sizeof(res.mpos)));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception&) {
         DLOG("ERROR responding to client %08X\n",m_command->getUserId());
     }

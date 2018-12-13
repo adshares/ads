@@ -11,7 +11,7 @@ class office;
 
 class GetMessageHandler : public CommandHandler {
   public:
-    GetMessageHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    GetMessageHandler(office& office, client& client);
 
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;

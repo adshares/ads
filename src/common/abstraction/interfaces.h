@@ -9,6 +9,7 @@
 #include "command/commandtype.h"
 
 class office;
+class client;
 
 /*!
  * \brief Interface for class which is responible for client network connection.
@@ -102,6 +103,8 @@ class ICommand {
      * \param pk    Pointer to public key.
     */
     virtual bool                    send(INetworkClient& netClient) = 0;
+    virtual bool                    sendDataSize(INetworkClient& netClient) = 0;
+    virtual bool                    readDataSize(INetworkClient& netClient) = 0;
     /** \brief Save command response to settings object. */
     virtual void                    saveResponse(settings& sts)     = 0;
 
@@ -134,6 +137,7 @@ class IBlockCommand : public ICommand, public IJsonSerialize {
 
 class BlockCommand : public IBlockCommand
 {
+public:
     unsigned char* getAdditionalData() override { return nullptr; }
 
     int getAdditionalDataSize() override { return 0; }
@@ -147,6 +151,17 @@ class BlockCommand : public IBlockCommand
     {
         return getDataSize() + getSignatureSize() + getAdditionalDataSize();
     }
+
+
+    bool sendDataSize(INetworkClient& netClient) override {
+        int32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize();
+        return netClient.sendData(reinterpret_cast<unsigned char*>(&data_size), sizeof(data_size));
+    }
+
+    bool readDataSize(INetworkClient& netClient) override {
+        int32_t data_size = 0;
+        return netClient.readData(&data_size, sizeof(data_size));
+   }
 };
 
 /*!

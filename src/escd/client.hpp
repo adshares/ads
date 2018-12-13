@@ -31,7 +31,7 @@ class client : public boost::enable_shared_from_this<client> {
           m_addr(""),
           m_port(""),
           m_timeout(io_service),
-          m_commandService(m_offi, m_socket) {
+          m_commandService(m_offi, *this) {
 #ifdef DEBUG
         DLOG("OFFICER ready %04X\n",m_offi.svid);
 #endif
@@ -90,17 +90,34 @@ class client : public boost::enable_shared_from_this<client> {
 #else
         version_error = m_version <= 0;
 #endif
+        m_version = abs(m_version);
         // logic deciding which versions are compatible should be put here in the future
-        version_error = version_error || (version != m_version);
+        version_error = version_error || (m_version < CLIENT_MIN_ACCEPTED_VERSION || m_version > CLIENT_PROTOCOL_VERSION);
 
         boost::asio::write(m_socket, boost::asio::buffer(&version, sizeof(version)));
         boost::asio::write(m_socket, boost::asio::buffer(&version_error, sizeof(version_error)));
         if(version_error) {
-            DLOG("ERROR: incorrect client version %d\n", m_version);
+            DLOG("ERROR: incorrect client version %d\n", (version < 0 ? -1 : 1)*m_version);
             m_offi.leave(shared_from_this());
             return;
         }
 
+        DLOG("CLIENT: version %d\n", (version < 0 ? -1 : 1)*m_version);
+
+        if(m_version == 2) {
+            boost::asio::async_read(m_socket,boost::asio::buffer(&m_size,sizeof(m_size)),
+                                                    boost::bind(&client::handle_read_size, shared_from_this(), boost::asio::placeholders::error));
+        } else {
+            boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
+                                        boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
+        }
+    }
+
+    void handle_read_size(const boost::system::error_code& error) {
+        if(error) {
+            m_offi.leave(shared_from_this());
+            return;
+        }
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -195,9 +212,34 @@ class client : public boost::enable_shared_from_this<client> {
         }
 
         set_timeout();
-        boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
+        if(m_version == 2) {
+            boost::asio::async_read(m_socket,boost::asio::buffer(&m_size,sizeof(m_size)),
+                                                    boost::bind(&client::handle_read_size, shared_from_this(), boost::asio::placeholders::error));
+        } else {
+            boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
-//        m_offi.leave(shared_from_this());
+        }
+    }
+
+    void sendError(const ErrorCodes::Code& error) {
+        try {
+            if(m_version == 2) {
+                int32_t size = ERROR_CODE_LENGTH;
+                boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
+            }
+            boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
+        }
+        catch(std::exception& e) {
+            DLOG("Responding to client %08X error: %s\n", m_addr + ":" + m_port, e.what());
+        }
+    }
+
+    void sendResponse(std::vector<boost::asio::const_buffer>& data) {
+        if(m_version == 2) {
+            int32_t size = data.size();
+            boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
+        }
+        boost::asio::write(m_socket, data);
     }
 
 private:
@@ -207,6 +249,7 @@ private:
     std::string                       m_port;
 
     char                              m_type{TXSTYPE_NON};
+    int32_t                           m_size{0};
     int32_t                           m_version{0};
     boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;

@@ -11,7 +11,7 @@ class office;
 
 class UnsetNodeStatusHandler : public CommandHandler {
   public:
-    UnsetNodeStatusHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    UnsetNodeStatusHandler(office& office, client& client);
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute() override;

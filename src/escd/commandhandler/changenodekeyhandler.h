@@ -11,7 +11,7 @@ class office;
 
 class ChangeNodeKeyHandler : public CommandHandler {
   public:
-    ChangeNodeKeyHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    ChangeNodeKeyHandler(office& office, client& client);
 
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;

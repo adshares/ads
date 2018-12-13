@@ -1,11 +1,12 @@
 #include "getmessagehandler.h"
 #include "command/getmessage.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 #include "message.hpp"
 
-GetMessageHandler::GetMessageHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetMessageHandler::GetMessageHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetMessageHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -34,11 +35,11 @@ void GetMessageHandler::onExecute() {
     try {
         std::vector<boost::asio::const_buffer> response;
         response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
-        response.emplace_back(boost::asio::buffer(&block, sizeof(uint32_t)));
         if(!errorCode) {
+            response.emplace_back(boost::asio::buffer(&block, sizeof(uint32_t)));
             response.emplace_back(boost::asio::buffer(msg->data, msg->len));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception&) {
         DLOG("ERROR responding to client %08X\n",m_command->getUserId());
     }

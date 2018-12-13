@@ -1,10 +1,11 @@
 #include "getloghandler.h"
 #include "command/getlog.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 
-GetLogHandler::GetLogHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetLogHandler::GetLogHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetLogHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -27,7 +28,7 @@ void GetLogHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&m_usera, sizeof(user_t)));
             response.emplace_back(boost::asio::buffer(slog.c_str(), slog.size()));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

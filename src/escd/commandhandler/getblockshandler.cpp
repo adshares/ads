@@ -1,12 +1,13 @@
 #include "getblockshandler.h"
 #include "command/getblocks.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/vipkeys.h"
 #include "helper/servers.h"
 #include "helper/block.h"
 
-GetBlocksHandler::GetBlocksHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetBlocksHandler::GetBlocksHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetBlocksHandler::onInit(std::unique_ptr<IBlockCommand> command) {

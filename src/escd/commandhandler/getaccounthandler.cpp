@@ -1,10 +1,11 @@
 #include "getaccounthandler.h"
 #include "command/getaccount.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "command/errorcodes.h"
 
-GetAccountHandler::GetAccountHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetAccountHandler::GetAccountHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -46,7 +47,7 @@ void GetAccountHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
             response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         ELOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

@@ -1,10 +1,11 @@
 #include "createnodehandler.h"
 #include "command/createnode.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 
-CreateNodeHandler::CreateNodeHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+CreateNodeHandler::CreateNodeHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void CreateNodeHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -51,7 +52,7 @@ void CreateNodeHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&res.msid, sizeof(res.msid)));
             response.emplace_back(boost::asio::buffer(&res.mpos, sizeof(res.mpos)));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
 
     } catch (std::exception& e) {
         ELOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());

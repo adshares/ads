@@ -6,7 +6,8 @@
 #define GIT_BRANCH "@GIT_BRANCH@"
 #define GIT_COMMIT_HASH "@GIT_COMMIT_HASH@"
 
-#define CLIENT_PROTOCOL_VERSION 1 /* when changed update logic in client::handle_read_version() */
+#define CLIENT_PROTOCOL_VERSION 2 /* when changed update logic in client::handle_read_version() */
+#define CLIENT_MIN_ACCEPTED_VERSION 1 /* when changed update logic in client::handle_read_version() */
 
 #ifdef DEBUG
 #define BLOCKSEC 32 /* block period in seconds */

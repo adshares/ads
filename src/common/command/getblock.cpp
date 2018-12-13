@@ -97,10 +97,14 @@ int64_t GetBlock::getDeduct() {
 }
 
 bool GetBlock::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), sizeof(m_data))) {
         ELOG("GetBlock sending error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("GetBlock reading error\n");

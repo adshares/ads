@@ -108,6 +108,8 @@ int64_t CreateAccount::getDeduct() {
 }
 
 bool CreateAccount::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), getDataSize())) {
         ELOG("CreateAccount sending data error\n");
         return false;
@@ -122,6 +124,8 @@ bool CreateAccount::send(INetworkClient& netClient) {
         ELOG("CreateAccount sending signature error\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
        ELOG("CreateAccount reading error\n");

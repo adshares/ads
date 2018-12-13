@@ -148,6 +148,8 @@ int64_t SendMany::getDeduct() {
 }
 
 bool SendMany::send(INetworkClient& netClient) {
+    sendDataSize(netClient);
+
     if(!netClient.sendData(getData(), this->getDataSize())) {
         ELOG("SendMany ERROR sending data\n");
         return false;
@@ -162,6 +164,8 @@ bool SendMany::send(INetworkClient& netClient) {
         ELOG("SendMany ERROR sending signature\n");
         return false;
     }
+
+    readDataSize(netClient);
 
     if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
         ELOG("SendMany reading error\n");
