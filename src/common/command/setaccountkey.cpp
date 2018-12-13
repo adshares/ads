@@ -97,6 +97,7 @@ uint32_t SetAccountKey::getUserMessageId()
 
 bool SetAccountKey::send(INetworkClient& netClient)
 {
+    sendDataSize(netClient);
     if(! netClient.sendData(getData(), sizeof(m_data) )) {
         ELOG("SetAccountKey sending error\n");
         return false;
