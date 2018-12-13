@@ -124,7 +124,9 @@ bool GetLog::send(INetworkClient& netClient) {
         // case when filter transaction type doesn't exists
         return true;
     }
-
+    
+    sendDataSize(netClient);
+    
     if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
         ELOG("GetLog sending error\n");
         return false;
