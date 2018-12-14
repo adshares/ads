@@ -6,6 +6,7 @@
 #include <memory>
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
 #include "user.hpp"
@@ -78,6 +79,23 @@ uint32_t hexdec(std::string str, uint32_t fallback = 0) {
         return std::stoul(str, nullptr, 16);
     } catch(std::exception &ex) {
         return fallback;
+    }
+}
+
+void checkUnusedFields(boost::property_tree::ptree& pt, std::string used_fields) {
+    std::vector<std::string> parts;
+    boost::split(parts, used_fields, boost::is_any_of(","));
+    parts.push_back("run");
+    parts.push_back("signature");
+    parts.push_back("time");
+    parts.push_back("sender");
+    parts.push_back("hash");
+    parts.push_back("msid");
+
+    for(auto& it : pt) {
+        if(std::find(parts.begin(), parts.end(), it.first) == parts.end()) {
+            throw CommandException(ErrorCodes::Code::eCommandParseError, "Unrecognised field: " + it.first);
+        }
     }
 }
 
@@ -185,9 +203,11 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
     std::unique_ptr<IBlockCommand> command;
 
     if(!run.compare("get_me")) {
+        checkUnusedFields(pt, "");
         command = std::make_unique<GetAccount>(sts_bank,sts_user,sts_bank,sts_user,now);
     }
     else if(!run.compare(txsname[TXSTYPE_INF])) {
+        checkUnusedFields(pt, "address");
         if(!to_bank && !to_user) { // no target account specified
             command = std::make_unique<GetAccount>(sts_bank,sts_user,sts_bank,sts_user,now);
         }
@@ -196,6 +216,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         }
     }
     else if(!run.compare(txsname[TXSTYPE_LOG])) {
+        checkUnusedFields(pt, "from,type");
         boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from"); //FIXME, decide HEX or DEC
         if(json_from) {
             to_from=json_from.get();
@@ -203,6 +224,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         command = std::make_unique<GetLog>(sts_bank, sts_user, to_from, txn_type.c_str());
     }
     else if(!run.compare(txsname[TXSTYPE_BLG])) {
+        checkUnusedFields(pt, "from");
         boost::optional<std::string> json_from=pt.get_optional<std::string>("from");
         if(json_from) {
             to_from=hexdec(json_from.get());
@@ -226,6 +248,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if(json_to) {
             to_to=hexdec(json_to.get());
         }
+        checkUnusedFields(pt, "from,to");
         command = std::make_unique<GetBlocks>(sts_bank, sts_user, now, to_from, to_to);
     }
     else if(!run.compare(txsname[TXSTYPE_TXS])) {
@@ -235,6 +258,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if(json_txid && !sts.parse_txid(to_bank,node_msid,node_mpos,json_txid.get(),"txid")) {
             return nullptr;
         }
+        checkUnusedFields(pt, "txid");
         command = std::make_unique<GetTransaction>(sts_bank, sts_user, to_bank, node_msid, node_mpos, now);
     }
     else if(!run.compare(txsname[TXSTYPE_VIP])) {
@@ -242,18 +266,23 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if(json_viphash && !parse_key(to_info,json_viphash,32,"viphash")) {
             return nullptr;
         }
+        checkUnusedFields(pt, "viphash");
         command = std::make_unique<GetVipKeys>(sts_bank, sts_user, now, to_info);
     }
     else if(!run.compare(txsname[TXSTYPE_SIG])) {
+        checkUnusedFields(pt, "block");
         command = std::make_unique<GetSignatures>(sts_bank, sts_user, now, to_block);
     }
     else if(!run.compare(txsname[TXSTYPE_NDS])) {
+        checkUnusedFields(pt, "block");
         command = std::make_unique<GetBlock>(sts_bank, sts_user, to_block, now);
     }
     else if(!run.compare(txsname[TXSTYPE_NOD])) {
+        checkUnusedFields(pt, "node,block");
         command = std::make_unique<GetAccounts>(sts_bank, sts_user, to_block, to_bank, now);
     }
     else if(!run.compare(txsname[TXSTYPE_MGS])) {
+        checkUnusedFields(pt, "block");
         command = std::make_unique<GetMessageList>(sts_bank, sts_user, to_block, now);
     }
     else if(!run.compare(txsname[TXSTYPE_MSG])) {
@@ -278,9 +307,11 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if(!json_block) {
             to_block=0;
         }
+        checkUnusedFields(pt, "message_id,node_msid,block,node");
         command = std::make_unique<GetMessage>(sts_bank, sts_user, to_block, to_bank, to_node_msid, now);
     }
     else if(!run.compare("send_again") || !run.compare("send_raw") || !run.compare("decode_raw")) {
+        checkUnusedFields(pt, "data");
         boost::optional<std::string> json_data=pt.get<std::string>("data");
         if(json_data) {
             std::string data_str=json_data.get();
@@ -313,6 +344,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
             text=json_text_asci.get();
         }
         if (!text.empty()) {
+            checkUnusedFields(pt, "message,message_ascii");
             command = std::make_unique<BroadcastMsg>(sts_bank, sts_user, sts.msid, text.length(), text.c_str(), now);
         }
     }
@@ -337,6 +369,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         if (transactions.empty()) {
             return nullptr;
         }
+        checkUnusedFields(pt, "wires");
         command = std::make_unique<SendMany>(sts_bank, sts_user, sts.msid, transactions, now);
     }
     else if(!run.compare(txsname[TXSTYPE_PUT])) {
@@ -346,6 +379,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         }
         pt.get<std::string>("address");
         pt.get<std::string>("amount");
+        checkUnusedFields(pt, "address,amount,message");
         command = std::make_unique<SendOne>(sts_bank,sts_user,sts.msid, to_bank, to_user, to_mass, to_info, now);
     }
     else if(!run.compare(txsname[TXSTYPE_USR])) {
@@ -359,46 +393,57 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
                 return nullptr;
             }
         }
+
+        checkUnusedFields(pt, "node,confirm,public_key");
         command = std::make_unique<CreateAccount>(sts_bank, sts_user, sts.msid, to_bank, now);
 
         CreateAccount* keycommand = dynamic_cast<CreateAccount*>(command.get());
         keycommand->setPublicKey(json_pkey ? to_pkey : sts.pk);
     }
     else if(!run.compare(txsname[TXSTYPE_BNK])) {
+        checkUnusedFields(pt, "");
         command = std::make_unique<CreateNode>(sts_bank, sts_user, sts.msid, now);
     }
     else if(!run.compare(txsname[TXSTYPE_SAV])) {
+        checkUnusedFields(pt, "");
         command = std::make_unique<LogAccount>(sts_bank, sts_user, sts.msid, now);
     }
     else if(!run.compare(txsname[TXSTYPE_GET])) {
+        checkUnusedFields(pt, "address");
         command = std::make_unique<RetrieveFunds>(sts_bank, sts_user, sts.msid, now, to_bank, to_user);
     }
     else if(!run.compare(txsname[TXSTYPE_KEY])) {
         pt.get<std::string>("confirm");
         pt.get<std::string>("public_key");
+        checkUnusedFields(pt, "confirm,public_key");
         command = std::make_unique<SetAccountKey>(sts_bank, sts_user, sts.msid, now, to_pkey, to_confirm);
     }
     else if(!run.compare(txsname[TXSTYPE_BKY])) {
+        checkUnusedFields(pt, "node,public_key");
         command = std::make_unique<ChangeNodeKey>(sts_bank, sts_user, sts.msid, to_bank, now, to_pkey);
     }
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
-
+        checkUnusedFields(pt, "node,status");
         uint16_t  to_status=pt.get<uint16_t>("status");
         command = std::make_unique<SetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_SBS])) {
         uint32_t  to_status=pt.get<uint32_t>("status");
+        checkUnusedFields(pt, "node,status");
         command = std::make_unique<SetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_UUS])) {
         uint16_t  to_status=pt.get<uint16_t>("status");
+        checkUnusedFields(pt, "node,status");
         command = std::make_unique<UnsetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_UBS])) {
         uint32_t  to_status=pt.get<uint32_t>("status");
+        checkUnusedFields(pt, "node,status");
         command = std::make_unique<UnsetNodeStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_status);
     }
     else if (!run.compare(txsname[TXSTYPE_GFI])) {
+        checkUnusedFields(pt, "type");
         command = std::make_unique<GetFields>(txn_type.c_str());
     }
     else {
