@@ -410,6 +410,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
     }
     else if(!run.compare(txsname[TXSTYPE_GET])) {
         checkUnusedFields(pt, "address");
+        pt.get<std::string>("address");
         command = std::make_unique<RetrieveFunds>(sts_bank, sts_user, sts.msid, now, to_bank, to_user);
     }
     else if(!run.compare(txsname[TXSTYPE_KEY])) {
@@ -423,7 +424,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         command = std::make_unique<ChangeNodeKey>(sts_bank, sts_user, sts.msid, to_bank, now, to_pkey);
     }
     else if(!run.compare(txsname[TXSTYPE_SUS])) {
-        checkUnusedFields(pt, "node,status");
+        checkUnusedFields(pt, "node,status,address");
         uint16_t  to_status=pt.get<uint16_t>("status");
         command = std::make_unique<SetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
@@ -434,7 +435,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
     }
     else if(!run.compare(txsname[TXSTYPE_UUS])) {
         uint16_t  to_status=pt.get<uint16_t>("status");
-        checkUnusedFields(pt, "node,status");
+        checkUnusedFields(pt, "node,status,address");
         command = std::make_unique<UnsetAccountStatus>(sts_bank, sts_user, sts.msid, now, to_bank, to_user, to_status);
     }
     else if(!run.compare(txsname[TXSTYPE_UBS])) {

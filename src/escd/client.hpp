@@ -221,7 +221,7 @@ class client : public boost::enable_shared_from_this<client> {
         }
     }
 
-    void sendError(const ErrorCodes::Code& error) {
+    void sendError(const ErrorCodes::Code& error, boost::asio::const_buffer& error_info) {
         try {
             if(m_version == 2) {
                 int32_t size = ERROR_CODE_LENGTH;
@@ -232,6 +232,10 @@ class client : public boost::enable_shared_from_this<client> {
         catch(std::exception& e) {
             DLOG("Responding to client %08X error: %s\n", m_addr + ":" + m_port, e.what());
         }
+    }
+
+    void sendError(const ErrorCodes::Code& error) {
+        sendError(error, boost::asio::null_buffers)
     }
 
     void sendResponse(std::vector<boost::asio::const_buffer>& data) {
