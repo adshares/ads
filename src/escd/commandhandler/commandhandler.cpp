@@ -20,6 +20,9 @@ void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_
     try {
         executeImpl(std::move(command));
     }
+    catch(CommandException& error) {
+        m_client.sendError((ErrorCodes::Code)error.getErrorCode(), error.getErrorInfo());
+    }
     catch(const ErrorCodes::Code& error) {
         m_client.sendError(error);
     }

@@ -22,6 +22,7 @@ void GetAccountHandler::onExecute() {
     if(!m_offi.get_user_global(remoteAccount, m_command->getDestNode(), m_command->getDestUser())) {
         DLOG("FAILED to get global user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
         errorCode = ErrorCodes::Code::eGetGlobalUserFail;
+        return m_client.sendError(errorCode);
     }
 
     if(m_offi.svid == m_command->getDestNode())
@@ -32,6 +33,7 @@ void GetAccountHandler::onExecute() {
             {
                 DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
                 errorCode = ErrorCodes::Code::eGetUserFail;
+                return m_client.sendError(errorCode);
             }
         }
     }
@@ -57,7 +59,7 @@ void GetAccountHandler::onValidate() {
     const int32_t diff = m_command->getTime() - time(nullptr);
 
     // this is special, just local info
-    if((abs(diff)>2)) {
+    if((abs(diff)>10)) {
         DLOG("ERROR: high time difference (%d>2s)\n", diff);
         throw ErrorCodes::Code::eHighTimeDifference;
     }

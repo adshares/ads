@@ -221,26 +221,33 @@ class client : public boost::enable_shared_from_this<client> {
         }
     }
 
-    void sendError(const ErrorCodes::Code& error, boost::asio::const_buffer& error_info) {
+    void sendError(const ErrorCodes::Code error, boost::asio::const_buffer error_info) {
         try {
             if(m_version == 2) {
-                int32_t size = ERROR_CODE_LENGTH;
+                uint32_t size = ERROR_CODE_LENGTH + boost::asio::detail::buffer_size_helper(error_info);
                 boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
             }
             boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
+            if(m_version == 2) {
+                boost::asio::write(m_socket, boost::asio::buffer(error_info));
+            }
         }
         catch(std::exception& e) {
             DLOG("Responding to client %08X error: %s\n", m_addr + ":" + m_port, e.what());
         }
     }
 
-    void sendError(const ErrorCodes::Code& error) {
-        sendError(error, boost::asio::null_buffers)
+    void sendError(const ErrorCodes::Code error, std::string error_info) {
+         sendError(error, boost::asio::buffer(&error_info[0], error_info.length()));
+     }
+
+    void sendError(const ErrorCodes::Code error) {
+        sendError(error, boost::asio::buffer((void *)nullptr, 0));
     }
 
-    void sendResponse(std::vector<boost::asio::const_buffer>& data) {
+    void sendResponse(std::vector<boost::asio::const_buffer> data) {
         if(m_version == 2) {
-            int32_t size = data.size();
+            uint32_t size = data.size();
             boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
         }
         boost::asio::write(m_socket, data);
@@ -253,7 +260,7 @@ private:
     std::string                       m_port;
 
     char                              m_type{TXSTYPE_NON};
-    int32_t                           m_size{0};
+    uint32_t                          m_size{0};
     int32_t                           m_version{0};
     boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;

@@ -112,6 +112,8 @@ class ICommand {
 
 public:
     ErrorCodes::Code m_responseError;
+    uint32_t         m_responseSize;
+    std::string      m_responseInfo;
 };
 
 
@@ -154,14 +156,35 @@ public:
 
 
     bool sendDataSize(INetworkClient& netClient) override {
-        int32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize();
+        uint32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize();
         return netClient.sendData(reinterpret_cast<unsigned char*>(&data_size), sizeof(data_size));
     }
 
     bool readDataSize(INetworkClient& netClient) override {
-        int32_t data_size = 0;
-        return netClient.readData(&data_size, sizeof(data_size));
-   }
+        return netClient.readData((int32_t*)&m_responseSize, sizeof(m_responseSize));
+    }
+
+    bool readResponseError(INetworkClient& netClient) {
+        if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+            return false;
+        }
+        ELOG("errorInfo SIZE %d\n", m_responseSize);
+        if(m_responseSize > ERROR_CODE_LENGTH) {
+            m_responseSize -= ERROR_CODE_LENGTH;
+
+
+            char errorInfo[4097];
+            if(m_responseSize >= sizeof(errorInfo)) {
+                return false;
+            }
+            if (!netClient.readData(errorInfo, m_responseSize)) {
+                return false;
+            }
+            errorInfo[m_responseSize] = '\0';
+            m_responseInfo = errorInfo;
+        }
+        return true;
+    }
 };
 
 /*!

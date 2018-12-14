@@ -128,7 +128,12 @@ int main(int argc, char* argv[]) {
                 if(shouldDecodeRaw(propertyTree)) {
                     decodeRaw(sts.nice, std::move(command));
                 } else {
-                    talk(netClient, sts, respHandler, std::move(command));
+                    try {
+                        talk(netClient, sts, respHandler, std::move(command));
+                    }
+                    catch(std::exception& redirect) {
+
+                    }
                 }
             }
             catch(boost::property_tree::ptree_bad_path& e) {
