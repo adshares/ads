@@ -33,10 +33,10 @@ class GetBlocksHandler : public CommandHandler {
         uint32_t to,
         header_t& header,
         Helper::Block& currentHeader);
-    void sendFirstVipKeysIfNeeded();
-    void sendNewVipKeys();
-    void sendBlockHeaders();
-    void sendLastBlockSignatures();
+    void sendFirstVipKeysIfNeeded(std::vector<boost::asio::const_buffer>&);
+    void sendNewVipKeys(std::vector<boost::asio::const_buffer>&);
+    void sendBlockHeaders(std::vector<boost::asio::const_buffer>&);
+    void sendLastBlockSignatures(std::vector<boost::asio::const_buffer>&);
     VipKeys m_firstVipKeys;
     VipKeys m_newVipKeys;
     Signatures m_signatures;
