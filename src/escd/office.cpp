@@ -359,6 +359,93 @@ void office::process_log(uint32_t now) { //FIXME, check here if logs are not dup
     mque.clear();
 }
 
+void office::resolve_hostnames() {
+    boost::asio::ip::tcp::resolver              resolver(io_service_);
+    for(std::string host : opts_.allow_from) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            allow_from.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string host : opts_.redirect_read_exclude) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            redirect_read_exclude.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string host : opts_.redirect_write_exclude) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            redirect_write_exclude.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string address : opts_.redirect_read) {
+        const size_t posPort    = address.find(':');
+
+        std::string host    = address.substr(0, posPort);
+        std::string port    = address.substr(posPort+1);
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),port);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got endpoint %s:%d\n", iterator->endpoint().address().to_string().c_str(), iterator->endpoint().port());
+            redirect_read.push_back(iterator->endpoint());
+            ++iterator;
+        }
+    }
+
+    for(std::string address : opts_.redirect_write) {
+        const size_t posPort    = address.find(':');
+
+        std::string host    = address.substr(0, posPort);
+        std::string port    = address.substr(posPort+1);
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),port);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got endpoint %s:%d\n", iterator->endpoint().address().to_string().c_str(), iterator->endpoint().port());
+            redirect_write.push_back(iterator->endpoint());
+            ++iterator;
+        }
+    }
+
+}
+
 void office::clock() {
     //while(run){
     //  if(srv_.msid_>=srv_.start_msid){
@@ -370,6 +457,14 @@ void office::clock() {
     //  start_accept();}
     ILOG("CLOCK START %d\n", run);
 
+
+    try {
+        resolve_hostnames();
+    } catch(boost::system::system_error& error) {
+        ELOG("Could not resolve hostnames %s\n", error.what());
+        SHUTDOWN();
+        return;
+    }
     start_accept();
     while(run) {
         uint32_t now=time(NULL);
@@ -1281,6 +1376,16 @@ void office::start_accept() {
 }
 
 void office::handle_accept(client_ptr c, const boost::system::error_code& error) {
+
+    if(allow_from.size() > 0) {
+        TLOG("CLIENT: allow check %s\n", c->socket().remote_endpoint().address().to_string().c_str());
+        if(std::find(allow_from.begin(), allow_from.end(), c->socket().remote_endpoint().address()) == allow_from.end()) {
+            TLOG("CLIENT: drop %s\n", c->socket().remote_endpoint().address().to_string().c_str());
+            c->socket().close();
+            start_accept();
+            return;
+        }
+    }
     //uint32_t now=time(NULL);
     if(!run) {
         return;

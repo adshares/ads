@@ -38,6 +38,7 @@ class office {
     void process_div(uint32_t path);
     void update_block(uint32_t period_start,uint32_t now,message_map& commit_msgs,uint32_t newdiv);
     void process_log(uint32_t now);
+    void resolve_hostnames();
     void clock();
     void process_gup(uint32_t now);
     void process_dep(uint32_t now);
@@ -106,6 +107,11 @@ class office {
     uint32_t block_ready;
     uint32_t users; //number of users of the bank
     std::string message;
+    std::vector<boost::asio::ip::address> allow_from;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_read;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_write;
+    std::vector<boost::asio::ip::address> redirect_read_exclude;
+    std::vector<boost::asio::ip::address> redirect_write_exclude;
     boost::asio::ip::tcp::endpoint endpoint_;
     boost::asio::io_service io_service_;
     boost::asio::io_service::work work_;
