@@ -1336,6 +1336,11 @@ bool office::get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog
             mis+=l;
             continue;
         }
+        if(log.type == (TXSTYPE_USR | 0x8000)) { // new account owner discard old logs
+            slog.clear();
+            slog.append((char*)&len,4);
+            mis = tot;
+        }
         slog.append((char*)&log,l);
     }
     len-=mis;
