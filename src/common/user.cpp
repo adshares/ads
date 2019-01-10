@@ -216,12 +216,12 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         }
     }
     else if(!run.compare(txsname[TXSTYPE_LOG])) {
-        checkUnusedFields(pt, "from,type");
+        checkUnusedFields(pt, "from,type,address");
         boost::optional<uint32_t> json_from=pt.get_optional<uint32_t>("from"); //FIXME, decide HEX or DEC
         if(json_from) {
             to_from=json_from.get();
         }
-        command = std::make_unique<GetLog>(sts_bank, sts_user, to_from, txn_type.c_str());
+        command = std::make_unique<GetLog>(sts_bank, sts_user, to_from, to_bank, to_user, txn_type.c_str());
     }
     else if(!run.compare(txsname[TXSTYPE_BLG])) {
         checkUnusedFields(pt, "from");

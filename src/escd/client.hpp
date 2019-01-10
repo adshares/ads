@@ -140,7 +140,13 @@ class client : public boost::enable_shared_from_this<client> {
         m_command = command::factory::makeCommand(m_type);
 
         if(m_command) {
-            boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, m_command->getDataSize()-1),
+            int data_size = m_command->getDataSize()-1;
+            if(m_version == 1) {
+                if(m_type == TXSTYPE_LOG) {
+                    data_size -= sizeof(uint16_t)+sizeof(uint32_t);
+                }
+            }
+            boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, data_size),
                                     boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
         }
         else {

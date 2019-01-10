@@ -19,7 +19,7 @@ class GetLog : public BlockCommand {
      * \param from - collect logs from blog timestamp
      * \param txnTypeFilter - text name of transaction to user filter eg. send_one, create_account, "" for all
      */
-    GetLog(uint16_t bank, uint32_t user, uint32_t from, const char* txnTypeFilter);
+    GetLog(uint16_t bank, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user, const char* txnTypeFilter);
 
     //IBlock interface
     /** \brief Return TXSTYPE_LOG as type . */
@@ -69,6 +69,13 @@ class GetLog : public BlockCommand {
      * \param pk    Pointer to public key.
     */
     virtual bool checkSignature(const uint8_t* hash, const uint8_t* pk)  override;
+
+    /**  \brief Get destination bank id. */
+    virtual  uint16_t       getDestBankId();
+
+            /**  \brief Get destination user id. */
+    virtual  uint32_t       getDestUserId();
+
 
     /** \brief Get time of command. */
     virtual uint32_t        getTime()                                   override;
