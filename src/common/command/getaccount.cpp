@@ -68,8 +68,10 @@ bool GetAccount::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
 
 void GetAccount::saveResponse(settings& sts)
 {
-    sts.msid = m_response.usera.msid;
-    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
+    if(m_data.info.abank == m_data.info.bbank && m_data.info.auser == m_data.info.buser) { // get_me
+        sts.msid = m_response.usera.msid;
+        std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
+    }
 }
 
 uint32_t GetAccount::getUserId() {
