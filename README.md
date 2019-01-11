@@ -87,6 +87,19 @@ Address: 000X-0000000Y-AAAA
 
 See a list of all [available commands](https://github.com/adshares/ads/wiki/ADS-API#methods).
 
+#### JSON-RPC client for ADS
+
+The JSON-RPC client for ADS (`ads-json-rpc`) was created to simplify `ads` wallet program usage.
+It supports most of [ADS-API](https://github.com/adshares/ads/wiki/ADS-API#methods) methods and complies [JSON-RPC](https://www.jsonrpc.org/specification) specification version 2.0.
+The `ads-json-rpc` is part of `ads-tool` package.
+It's installation and usage is described in details on [ads-tools project page](https://github.com/adshares/ads-tools).
+
+Adshares made publicly available JSON-RPC clients for ADS Mainnet and Testnet.
+* mainnet: https://rpc.adshares.net
+* testnet: https://rpc.e11.click
+
+More information about can be found on [wiki](https://github.com/adshares/ads/wiki/How-to-generate-transactions-offline-with-JSON-RPC).
+
 ### Updating the node
 
 Updating binaries from official PPA:
