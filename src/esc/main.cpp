@@ -98,7 +98,8 @@ int main(int argc, char* argv[]) {
 
     settings sts;
     sts.get(argc,argv);
-    boost::scoped_ptr<NetworkClient> netClient(new NetworkClient(sts.host, std::to_string(sts.port), sts.nice));
+    boost::shared_ptr<NetworkClient> netClient(new NetworkClient(sts.host, std::to_string(sts.port), sts.nice));
+    boost::shared_ptr<NetworkClient> netClientModify(netClient);
     ResponseHandler respHandler(sts);
 
 #if INTPTR_MAX == INT64_MAX
@@ -108,6 +109,8 @@ int main(int argc, char* argv[]) {
         std::string line;
 
         while (std::getline(std::cin, line)) {
+            respHandler.redirect_host = "";
+            respHandler.redirect_port = "";
             DLOG("GOT REQUEST %s\n", line.c_str());
 
             if(line.at(0) == '.') {
@@ -119,23 +122,31 @@ int main(int argc, char* argv[]) {
 
             try {
                 auto propertyTree = getPropertyTree(line);
-                auto command = run_json(sts, propertyTree);
+                while(true) {
+                    auto command = run_json(sts, propertyTree);
 
-                if(!command) {
-                    throw CommandException(ErrorCodes::Code::eCommandParseError, "");
-                }
+                    if(!command) {
+                        throw CommandException(ErrorCodes::Code::eCommandParseError, "");
+                    }
 
-                if(shouldDecodeRaw(propertyTree)) {
-                    decodeRaw(sts.nice, std::move(command));
-                } else {
-                    while(true) {
+                    auto commandType = command->getCommandType();
+
+                    if(shouldDecodeRaw(propertyTree)) {
+                        decodeRaw(sts.nice, std::move(command));
+                    } else {
+
                         try {
-                            talk(*netClient, sts, respHandler, std::move(command));
+                            talk(commandType == CommandType::eModifying ? *netClientModify : *netClient, sts, respHandler, std::move(command));
                         }
                         catch(RedirectException &e) {
                             respHandler.redirect_host = e.getIp().to_string();
                             respHandler.redirect_port = std::to_string(e.getPort());
-                            netClient.reset(new NetworkClient(respHandler.redirect_host, respHandler.redirect_port, sts.nice));
+                            boost::shared_ptr<NetworkClient> x(new NetworkClient(respHandler.redirect_host, respHandler.redirect_port, sts.nice));
+                            if(commandType == CommandType::eModifying) {
+                                netClientModify.swap(x);
+                            } else {
+                                netClient.swap(x);
+                            }
                             continue;
                         }
                         break;
