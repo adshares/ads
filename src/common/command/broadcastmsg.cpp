@@ -166,7 +166,7 @@ bool BroadcastMsg::send(INetworkClient& netClient) {
 
     readDataSize(netClient);
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
         ELOG("BroadcastMsg reading error\n");
         return false;
     }
@@ -195,6 +195,8 @@ void BroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("tx.account_public_key_new", tx_user_hashin.str());
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     } else {
         Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
         Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);

@@ -98,7 +98,7 @@ int main(int argc, char* argv[]) {
 
     settings sts;
     sts.get(argc,argv);
-    NetworkClient netClient(sts.host, std::to_string(sts.port), sts.nice);
+    boost::scoped_ptr<NetworkClient> netClient(new NetworkClient(sts.host, std::to_string(sts.port), sts.nice));
     ResponseHandler respHandler(sts);
 
 #if INTPTR_MAX == INT64_MAX
@@ -128,51 +128,69 @@ int main(int argc, char* argv[]) {
                 if(shouldDecodeRaw(propertyTree)) {
                     decodeRaw(sts.nice, std::move(command));
                 } else {
-                    try {
-                        talk(netClient, sts, respHandler, std::move(command));
-                    }
-                    catch(std::exception& redirect) {
-
+                    while(true) {
+                        try {
+                            talk(*netClient, sts, respHandler, std::move(command));
+                        }
+                        catch(RedirectException &e) {
+                            respHandler.redirect_host = e.getIp().to_string();
+                            respHandler.redirect_port = std::to_string(e.getPort());
+                            netClient.reset(new NetworkClient(respHandler.redirect_host, respHandler.redirect_port, sts.nice));
+                            continue;
+                        }
+                        break;
                     }
                 }
             }
-            catch(boost::property_tree::ptree_bad_path& e) {
+            catch(const boost::property_tree::ptree_bad_path& e) {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
                 pt.put(ERROR_CODE_TAG, ErrorCodes::Code::eCommandParseError);
 
                 std::string info = "Required field is missing: " + e.path<boost::property_tree::path>().reduce();
                 pt.put(ERROR_INFO_TAG, info);
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
-            catch(boost::property_tree::ptree_bad_data& e) {
+            catch(const boost::property_tree::ptree_bad_data& e) {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
                 pt.put(ERROR_CODE_TAG, ErrorCodes::Code::eCommandParseError);
 
                 pt.put(ERROR_INFO_TAG, e.what());
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
-            catch(CommandException &e) {
+            catch(const CommandException &e) {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, e.getError());
                 pt.put(ERROR_CODE_TAG, e.getErrorCode());
                 pt.put(ERROR_INFO_TAG, e.getErrorInfo());
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
             catch(const ErrorCodes::Code& responseError) {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(responseError));
                 pt.put(ERROR_CODE_TAG, responseError);
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
         }
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
         Helper::printErrorJson(ErrorCodes::Code::eUnknownError, "Unknown error occured", sts.nice);
     }
 
-    netClient.disConnect();
+    netClient->disConnect();
 
     return 0;
 }

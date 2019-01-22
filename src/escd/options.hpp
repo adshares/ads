@@ -85,9 +85,9 @@ class options {
             ("log_level", boost::program_options::value<int>(&log_level)->default_value(logging::LoggingLevel::LOG_INFO), "collecting logs level:\n0 - trace (all)\n1 - debug\n2 - info\n3 - warning\n4 - error\n5 - fatal (only)")
             ("log_source", boost::program_options::value<int>(&log_source)->default_value(logging::LoggingSource::LOG_ALL), "logs output sources:\n0 - none\n1 - only console\n2 - only file\n3 - file and console")
             ("allow-from", boost::program_options::value<std::vector<std::string>>(&allow_from)->composing(), "ip/host (allow only clients from specified IPs)")
-            ("redirect-read", boost::program_options::value<std::vector<std::string>>(&redirect_read)->composing(), "host:port (redirect reading clients to another endopoint)")
+            ("redirect-read", boost::program_options::value<std::vector<std::string>>(&redirect_read)->composing(), "host:port (redirect reading clients to another endpoint)")
             ("redirect-read-exclude", boost::program_options::value<std::vector<std::string>>(&redirect_read_exclude)->composing(), "ip/host (do not redirect clients from specified IPs)")
-            ("redirect-write", boost::program_options::value<std::vector<std::string>>(&redirect_write)->composing(), "host:port (redirect writing clients to another endopoint)")
+            ("redirect-write", boost::program_options::value<std::vector<std::string>>(&redirect_write)->composing(), "host:port (redirect writing clients to another endpoint)")
             ("redirect-write-exclude", boost::program_options::value<std::vector<std::string>>(&redirect_write_exclude)->composing(), "ip/host (do not redirect clients from specified IPs)")
             ;
             boost::program_options::options_description cmdline_options;

@@ -182,7 +182,16 @@ public:
             }
             errorInfo[m_responseSize] = '\0';
             m_responseInfo = errorInfo;
+
+            if(m_responseError == ErrorCodes::Code::eRedirect) {
+//                char text[13];
+//                text[12] = '\0';
+//                ed25519_key2text(text, (uint8_t*)errorInfo, 6);
+//                std::cerr << text << std::endl;
+                throw RedirectException(errorInfo);
+            }
         }
+
         return true;
     }
 };

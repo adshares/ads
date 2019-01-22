@@ -98,7 +98,7 @@ bool GetMessage::send(INetworkClient& netClient) {
 
     readDataSize(netClient);
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
         ELOG("GetMessage reading error\n");
         return false;
     }
@@ -164,6 +164,8 @@ std::string GetMessage::toString(bool /*pretty*/) {
 void GetMessage::toJson(boost::property_tree::ptree& ptree) {
     if (m_responseError) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     } else {
         m_responseMsg->read_head();
 
@@ -202,6 +204,8 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
             } else {
                 m_responseError = ErrorCodes::Code::eIncorrectTransaction;
                 ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+                ptree.put(ERROR_CODE_TAG, m_responseError);
+                ptree.put(ERROR_INFO_TAG, m_responseInfo);
                 return;
             }
         }

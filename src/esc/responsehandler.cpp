@@ -118,5 +118,8 @@ void ResponseHandler::commonResponse(std::unique_ptr<IBlockCommand> command) {
         command->saveResponse(m_sts);
     }
     command->toJson(m_pt);
+    if(redirect_host.length() > 0) {
+        m_pt.put("redirect", redirect_host + ":" + redirect_port);
+    }
     boost::property_tree::write_json(std::cout, m_pt, m_sts.nice);
 }

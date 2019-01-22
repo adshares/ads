@@ -4,6 +4,7 @@
 #include <openssl/sha.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <boost/asio.hpp>
 
 #include "default.h"
 #include "logging.h"

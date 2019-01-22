@@ -6,8 +6,6 @@
 #define ERROR_CODE_TAG "error_code"
 #define ERROR_INFO_TAG "error_info"
 
-
-
 /** \brief Error code class provides function to return string message for certain enum error code. */
 class ErrorCodes {
 public:
@@ -72,6 +70,10 @@ public:
         eCouldNotReadCorrectVipKeys,
         eNoNewBLocks,
         eProtocolMismatch,
+        eRedirect,
+        e2FARequired,
+        e2FAInvalid,
+        eExtraDataError,
         eUnknownError = 255,
     };
 
@@ -136,6 +138,10 @@ private:
         { Code::eCouldNotReadCorrectVipKeys, "Vip keys file not found or empty or vipkeys failed check"},
         { Code::eNoNewBLocks, "No new blocks to download"},
         { Code::eProtocolMismatch, "Server and client protocol does not match"},
+        { Code::eRedirect, "Redirect request to another endpoint"},
+        { Code::e2FARequired, "Node requires 2FA token"},
+        { Code::e2FAInvalid, "2FA token is invalid"},
+        { Code::eExtraDataError, "Extra data error. Consult extension provider."},
         { Code::eUnknownError, "Unknown error occured"}
    };
 
@@ -147,7 +153,7 @@ public:
         }
         return "";
     }
-    const char* getErrorMsg(int errorCode) {
+    const char* getErrorMsg(const int errorCode) {
         const auto &it = errorCodeMsg.find((ErrorCodes::Code)errorCode);
         if (it != errorCodeMsg.end()) {
             return it->second;
@@ -156,24 +162,53 @@ public:
     }
 };
 
-class CommandException : std::runtime_error
+class CommandException : public std::runtime_error
 {
     public:
         CommandException(const int code, const std::string info) : std::runtime_error(info) {
             error_code = code;
         }
-        int getErrorCode() {
+        int getErrorCode() const {
             return error_code;
         }
-        const char * getErrorInfo() {
+        const char * getErrorInfo() const {
             return what();
         }
-        const char * getError()
-        {
+        const char * getError () const {
             return ErrorCodes().getErrorMsg(getErrorCode());
         }
     private:
         int error_code;
+};
+
+class RedirectException : public CommandException
+{
+    public:
+        static std::string redirString(char * data)
+        {
+            boost::asio::ip::address_v4 ip;
+            uint16_t port;
+            memcpy(&ip, data, sizeof(ip));
+            memcpy(&port, data+sizeof(ip), sizeof(port));
+            return ip.to_string() + ":" + std::to_string(port);
+        }
+
+        boost::asio::ip::address_v4 getIp() const {
+            return ip;
+        }
+
+        uint16_t getPort() const {
+            return port;
+        }
+
+        RedirectException(char * data) : CommandException(ErrorCodes::Code::eRedirect, redirString(data)) {
+            memcpy(&ip, data, sizeof(ip));
+            memcpy(&port, data+sizeof(ip), sizeof(port));
+        }
+
+    private:
+        boost::asio::ip::address_v4 ip;
+        uint16_t port;
 };
 
 #endif // ERRORCODES_H

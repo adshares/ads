@@ -102,7 +102,7 @@ bool GetMessageList::send(INetworkClient& netClient) {
 
     readDataSize(netClient);
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
         ELOG("GetMessageList reading error\n");
         return false;
     }
@@ -158,6 +158,8 @@ std::string GetMessageList::toString(bool /*pretty*/) {
 void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
     if (m_responseError) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     } else {
         char blockhex[9];
         blockhex[8]='\0';

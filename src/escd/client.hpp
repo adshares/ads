@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <chrono>
 #include "helper/socket.h"
 #include "command/factory.h"
 #include "commandhandler/commandservice.h"
@@ -185,6 +186,20 @@ class client : public boost::enable_shared_from_this<client> {
 
         if(m_command)
         {
+            if(m_command->getCommandType() == CommandType::eReadingOnly && m_offi.redirect_read.size() > 0) {
+                if(std::find(m_offi.redirect_read_exclude.begin(), m_offi.redirect_read_exclude.end(), m_socket.remote_endpoint().address()) == m_offi.redirect_read_exclude.end()) {
+                    TLOG("CLIENT: redirect %s\n", m_socket.remote_endpoint().address().to_string().c_str());
+                    return this->sendRedirect(CommandType::eReadingOnly);
+                }
+            }
+
+            if(m_command->getCommandType() == CommandType::eModifying && m_offi.redirect_write.size() > 0) {
+                if(std::find(m_offi.redirect_write_exclude.begin(), m_offi.redirect_write_exclude.end(), m_socket.remote_endpoint().address()) == m_offi.redirect_write_exclude.end()) {
+                    TLOG("CLIENT: redirect %s\n", m_socket.remote_endpoint().address().to_string().c_str());
+                    return this->sendRedirect(CommandType::eModifying);
+                }
+            }
+
             auto lockUserId = m_command->getUserId();
 
             try{
@@ -245,12 +260,55 @@ class client : public boost::enable_shared_from_this<client> {
         }
     }
 
+    void sendError(const ErrorCodes::Code error, std::vector<boost::asio::const_buffer> error_info, int info_size) {
+        try {
+            if(m_version == 2) {
+                uint32_t size = ERROR_CODE_LENGTH + info_size;
+                boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
+            }
+            boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
+            if(m_version == 2) {
+                boost::asio::write(m_socket, error_info);
+            }
+        }
+        catch(std::exception& e) {
+            DLOG("Responding to client %08X error: %s\n", m_addr + ":" + m_port, e.what());
+        }
+    }
+
     void sendError(const ErrorCodes::Code error, std::string error_info) {
          sendError(error, boost::asio::buffer(&error_info[0], error_info.length()));
      }
 
     void sendError(const ErrorCodes::Code error) {
         sendError(error, boost::asio::buffer((void *)nullptr, 0));
+    }
+
+    void sendRedirect(CommandType cmd_type) {
+        std::vector<boost::asio::ip::tcp::endpoint> targets;
+        if(cmd_type == CommandType::eModifying) {
+            targets = m_offi.redirect_write;
+        } else if(cmd_type == CommandType::eReadingOnly) {
+            targets = m_offi.redirect_read;
+        }
+        if(targets.size() == 0) {
+            sendError(ErrorCodes::eUnknownError);
+            m_offi.leave(shared_from_this());
+            return;
+        }
+        std::vector<boost::asio::const_buffer> response;
+
+        struct timeval tp;
+        gettimeofday(&tp, NULL);
+        long int ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+
+        auto endpoint = targets[ ms % targets.size()];
+        boost::asio::ip::address_v4 ip = endpoint.address().to_v4();
+        auto port = endpoint.port();
+        response.emplace_back(boost::asio::buffer(&ip, sizeof(ip)));
+        response.emplace_back(boost::asio::buffer(&port, sizeof(port)));
+        sendError(ErrorCodes::eRedirect, response, sizeof(ip)+sizeof(port));
+        m_offi.leave(shared_from_this());
     }
 
     void sendResponse(std::vector<boost::asio::const_buffer> data) {

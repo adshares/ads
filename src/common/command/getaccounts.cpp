@@ -98,7 +98,7 @@ bool GetAccounts::send(INetworkClient& netClient) {
 
     readDataSize(netClient);
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
         ELOG("GetAccounts reading error\n");
         return false;
     }
@@ -151,6 +151,8 @@ void GetAccounts::toJson(boost::property_tree::ptree& ptree) {
         ptree.put_child("accounts", users);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

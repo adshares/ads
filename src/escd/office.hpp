@@ -99,6 +99,11 @@ class office {
     hash_t pkey; // local copy for managing updates
     std::stack<gup_t> gup; // GET results
     bool readonly;
+    std::vector<boost::asio::ip::address> allow_from;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_read;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_write;
+    std::vector<boost::asio::ip::address> redirect_read_exclude;
+    std::vector<boost::asio::ip::address> redirect_write_exclude;
   private:
     bool run;
     char ofifilename[64];
@@ -107,11 +112,6 @@ class office {
     uint32_t block_ready;
     uint32_t users; //number of users of the bank
     std::string message;
-    std::vector<boost::asio::ip::address> allow_from;
-    std::vector<boost::asio::ip::tcp::endpoint> redirect_read;
-    std::vector<boost::asio::ip::tcp::endpoint> redirect_write;
-    std::vector<boost::asio::ip::address> redirect_read_exclude;
-    std::vector<boost::asio::ip::address> redirect_write_exclude;
     boost::asio::ip::tcp::endpoint endpoint_;
     boost::asio::io_service io_service_;
     boost::asio::io_service::work work_;

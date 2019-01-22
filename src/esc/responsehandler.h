@@ -23,7 +23,9 @@ class ResponseHandler {
     settings&                   m_sts;
     boost::property_tree::ptree m_pt;
     boost::property_tree::ptree m_logpt;
-
+  public:
+    std::string redirect_host;
+    std::string redirect_port;
 };
 
 
