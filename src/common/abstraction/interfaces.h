@@ -168,30 +168,31 @@ public:
         if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
             return false;
         }
-        ELOG("errorInfo SIZE %d\n", m_responseSize);
-        if(m_responseSize > ERROR_CODE_LENGTH) {
-            m_responseSize -= ERROR_CODE_LENGTH;
+        if(m_responseError) {
+            ELOG("errorInfo SIZE %d\n", m_responseSize);
+            if(m_responseSize > ERROR_CODE_LENGTH) {
+                m_responseSize -= ERROR_CODE_LENGTH;
 
 
-            char errorInfo[4097];
-            if(m_responseSize >= sizeof(errorInfo)) {
-                return false;
-            }
-            if (!netClient.readData(errorInfo, m_responseSize)) {
-                return false;
-            }
-            errorInfo[m_responseSize] = '\0';
-            m_responseInfo = errorInfo;
+                char errorInfo[4097];
+                if(m_responseSize >= sizeof(errorInfo)) {
+                    return false;
+                }
+                if (!netClient.readData(errorInfo, m_responseSize)) {
+                    return false;
+                }
+                errorInfo[m_responseSize] = '\0';
+                m_responseInfo = errorInfo;
 
-            if(m_responseError == ErrorCodes::Code::eRedirect) {
-//                char text[13];
-//                text[12] = '\0';
-//                ed25519_key2text(text, (uint8_t*)errorInfo, 6);
-//                std::cerr << text << std::endl;
-                throw RedirectException(errorInfo);
+                if(m_responseError == ErrorCodes::Code::eRedirect) {
+    //                char text[13];
+    //                text[12] = '\0';
+    //                ed25519_key2text(text, (uint8_t*)errorInfo, 6);
+    //                std::cerr << text << std::endl;
+                    throw RedirectException(errorInfo);
+                }
             }
         }
-
         return true;
     }
 };
