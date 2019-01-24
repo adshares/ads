@@ -91,7 +91,7 @@ class office {
     void put_ulog(uint32_t user,log_t& log);
     void put_ulog(std::map<uint64_t,log_t>& log);
     bool fix_log(uint16_t svid,uint32_t user);
-    bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog);
+    bool get_log(uint16_t svid,uint32_t user,uint32_t from,bool full,std::string& slog);
     uint8_t* node_pkey(uint16_t node);
 
     int get_tickets();

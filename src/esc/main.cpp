@@ -122,7 +122,9 @@ int main(int argc, char* argv[]) {
 
             try {
                 auto propertyTree = getPropertyTree(line);
-                while(true) {
+                bool redirect;
+                do {
+                    redirect = false;
                     auto command = run_json(sts, propertyTree);
 
                     if(!command) {
@@ -147,11 +149,11 @@ int main(int argc, char* argv[]) {
                             } else {
                                 netClient.swap(x);
                             }
-                            continue;
+                            redirect = true;
                         }
-                        break;
                     }
                 }
+                while(redirect);
             }
             catch(const boost::property_tree::ptree_bad_path& e) {
                 boost::property_tree::ptree pt;

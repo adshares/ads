@@ -313,7 +313,10 @@ class client : public boost::enable_shared_from_this<client> {
 
     void sendResponse(std::vector<boost::asio::const_buffer> data) {
         if(m_version == 2) {
-            uint32_t size = data.size();
+            uint32_t size = 0;//
+            for(auto& i : data) {
+                size += boost::asio::buffer_size(i);
+            }
             boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
         }
         boost::asio::write(m_socket, data);

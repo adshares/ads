@@ -11,8 +11,8 @@ GetLog::GetLog()
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user, const char *txnTypeFilter)
-        : m_data(bank, user, from, dst_node, dst_user), m_txnTypeFilter(-1) {
+GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user, bool full, const char *txnTypeFilter)
+        : m_data(bank, user, from, dst_node, dst_user, full), m_txnTypeFilter(-1) {
     m_responseError = ErrorCodes::Code::eNone;
     if (strlen(txnTypeFilter) > 0) {
         int id = Helper::getTxnLogTypeId(txnTypeFilter);
@@ -117,6 +117,10 @@ uint32_t GetLog::getUserId() {
 
 uint32_t GetLog::getBankId() {
     return m_data.info.node;
+}
+
+uint8_t GetLog::getFull() {
+    return m_data.info.full;
 }
 
 uint32_t GetLog::getTime() {

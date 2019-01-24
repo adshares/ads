@@ -444,8 +444,8 @@ struct GetMessageResponse {
 
 struct GetLogInfo {
     GetLogInfo() = default;
-    GetLogInfo(uint16_t node_, uint32_t user_, uint32_t from_, uint16_t dst_node_, uint32_t dst_user_)
-        : node(node_), user(user_), from(from_), dst_node(dst_node_), dst_user(dst_user_) {
+    GetLogInfo(uint16_t node_, uint32_t user_, uint32_t from_, uint16_t dst_node_, uint32_t dst_user_, bool full_)
+        : node(node_), user(user_), from(from_), dst_node(dst_node_), dst_user(dst_user_), full(full_) {
     }
 
     uint8_t ttype{TXSTYPE_LOG}; ///< command type
@@ -454,12 +454,13 @@ struct GetLogInfo {
     uint32_t from{0};           ///< from time
     uint16_t dst_node{0};       ///< dest node
     uint32_t dst_user{0};       ///< dest user
+    uint8_t  full{0};
 }__attribute__((packed));
 
 struct GetLogData {
     GetLogData() = default;
-    GetLogData(uint16_t node, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user)
-        : info(node, user, from, dst_node, dst_user) {
+    GetLogData(uint16_t node, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user, bool full)
+        : info(node, user, from, dst_node, dst_user, full) {
     }
 
     GetLogInfo info;

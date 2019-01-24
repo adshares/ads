@@ -28,7 +28,7 @@ void GetLogHandler::onExecute() {
     }
 
     std::string slog;
-    if (!m_offi.get_log(node, user, m_command->getTime(), slog)) {
+    if (!m_offi.get_log(node, user, m_command->getTime(), m_command->getFull(), slog)) {
         errorCode = ErrorCodes::Code::eGetLogFailed;
     }
 
