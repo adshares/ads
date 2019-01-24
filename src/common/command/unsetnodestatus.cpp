@@ -82,10 +82,7 @@ int64_t UnsetNodeStatus::getDeduct() {
 
 bool UnsetNodeStatus::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("UnsetNodeStatus sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

@@ -68,6 +68,11 @@ class ICommand {
     virtual unsigned char*          getSignature()      = 0;
     /** \brief Get signature size. */
     virtual int                     getSignatureSize()  = 0;
+
+    virtual unsigned char* getExtraData() = 0;
+    virtual int getExtraDataSize() = 0;
+    virtual void setExtraData(std::string data) = 0;
+
     /** \brief Sign actual data plus hash using user private and public keys.
      *
      * \param hash  Previous hash operation.
@@ -154,11 +159,32 @@ public:
         return getDataSize() + getSignatureSize() + getAdditionalDataSize();
     }
 
+    unsigned char* getExtraData() override {
+        return reinterpret_cast<unsigned char*>(const_cast<char*>(extra_data.c_str()));
+    }
+
+    int getExtraDataSize() override {
+        return extra_data.size();
+    }
+
+    void setExtraData(std::string data) override {
+        extra_data = data;
+    }
+
 
     bool sendDataSize(INetworkClient& netClient) override {
-        uint32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize();
+        uint32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize() + getExtraDataSize();
         return netClient.sendData(reinterpret_cast<unsigned char*>(&data_size), sizeof(data_size));
     }
+
+    bool sendData(INetworkClient& netClient) {
+        bool res = sendDataSize(netClient);
+        res = res && netClient.sendData(getData(), getDataSize());
+        res = res && netClient.sendData(getAdditionalData(), getAdditionalDataSize());
+        res = res && netClient.sendData(getSignature(), getSignatureSize());
+        res = res && netClient.sendData(getExtraData(), getExtraDataSize());
+        return res;
+   }
 
     bool readDataSize(INetworkClient& netClient) override {
         return netClient.readData((int32_t*)&m_responseSize, sizeof(m_responseSize));
@@ -195,6 +221,9 @@ public:
         }
         return true;
     }
+
+private:
+    std::string extra_data;
 };
 
 /*!

@@ -87,10 +87,7 @@ int64_t LogAccount::getDeduct() {
 
 bool LogAccount::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), getDataSize())) {
-        ELOG("LogAccount ERROR sending data\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

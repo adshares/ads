@@ -145,10 +145,7 @@ bool GetLog::send(INetworkClient& netClient) {
         return true;
     }
     
-    sendDataSize(netClient);
-    
-    if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        ELOG("GetLog sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

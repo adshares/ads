@@ -88,10 +88,7 @@ uint32_t GetVipKeys::getUserMessageId() {
 
 bool GetVipKeys::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetVipKeys sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

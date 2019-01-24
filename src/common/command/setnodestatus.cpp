@@ -82,10 +82,7 @@ int64_t SetNodeStatus::getDeduct() {
 
 bool SetNodeStatus::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SetNodeStatus sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

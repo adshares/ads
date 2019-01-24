@@ -82,10 +82,7 @@ int64_t UnsetAccountStatus::getDeduct() {
 
 bool UnsetAccountStatus::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("UnsetAccountStatus sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

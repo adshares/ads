@@ -117,10 +117,7 @@ int64_t SendOne::getDeduct() {
 }
 
 bool SendOne::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SendOne sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

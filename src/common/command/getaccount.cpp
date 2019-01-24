@@ -103,10 +103,7 @@ uint32_t GetAccount::getDestUser(){
 }
 
 bool GetAccount::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        ELOG("GetAccount sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

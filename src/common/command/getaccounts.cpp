@@ -89,10 +89,7 @@ int64_t GetAccounts::getDeduct() {
 }
 
 bool GetAccounts::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetAccounts sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

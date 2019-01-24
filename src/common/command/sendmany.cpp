@@ -148,20 +148,7 @@ int64_t SendMany::getDeduct() {
 }
 
 bool SendMany::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), this->getDataSize())) {
-        ELOG("SendMany ERROR sending data\n");
-        return false;
-    }
-
-    if(!netClient.sendData(getAdditionalData(), this->getAdditionalDataSize())) {
-        ELOG("SendMany ERROR sending additional data\n");
-        return false;
-    }
-
-    if(!netClient.sendData(getSignature(), this->getSignatureSize())) {
-        ELOG("SendMany ERROR sending signature\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

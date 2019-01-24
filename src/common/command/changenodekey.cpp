@@ -103,11 +103,17 @@ int64_t ChangeNodeKey::getDeduct() {
     return 0;
 }
 
+unsigned char* ChangeNodeKey::getExtraData() {
+    return m_data.old_public_key;
+}
+
+int ChangeNodeKey::getExtraDataSize() {
+    return sizeof(m_data.old_public_key);
+}
+
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-    if(! netClient.sendData(getData(), sizeof(m_data) )) {
-        ELOG("ChangeNodeKey sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

@@ -97,10 +97,7 @@ int64_t GetBlock::getDeduct() {
 }
 
 bool GetBlock::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetBlock sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

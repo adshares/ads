@@ -350,10 +350,7 @@ bool GetBlocks::validateLastBlockUsingFirstKeys() {
 
 bool GetBlocks::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetBlocks sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

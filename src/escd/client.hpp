@@ -109,6 +109,7 @@ class client : public boost::enable_shared_from_this<client> {
             boost::asio::async_read(m_socket,boost::asio::buffer(&m_size,sizeof(m_size)),
                                                     boost::bind(&client::handle_read_size, shared_from_this(), boost::asio::placeholders::error));
         } else {
+            m_readsize +=1;
             boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
         }
@@ -119,6 +120,7 @@ class client : public boost::enable_shared_from_this<client> {
             m_offi.leave(shared_from_this());
             return;
         }
+        m_readsize +=1;
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
 
@@ -128,7 +130,7 @@ class client : public boost::enable_shared_from_this<client> {
     void handle_read_txstype(const boost::system::error_code& error) {
         if(error) {
 //            DLOG("ERROR: read txstype error\n");
-            m_offi.leave(shared_from_this());
+            return m_offi.leave(shared_from_this());
             return;
         }
 
@@ -144,9 +146,10 @@ class client : public boost::enable_shared_from_this<client> {
             int data_size = m_command->getDataSize()-1;
             if(m_version == 1) {
                 if(m_type == TXSTYPE_LOG) {
-                    data_size -= sizeof(uint16_t)+sizeof(uint32_t);
+                    data_size -= sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t);
                 }
             }
+            m_readsize += data_size;
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, data_size),
                                     boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
         }
@@ -160,9 +163,11 @@ class client : public boost::enable_shared_from_this<client> {
     void handle_read_extended_txs(const boost::system::error_code& error) {
         if (error) {
             DLOG("ERROR reading txs data: %s\n", error.message().c_str());
-            m_offi.leave(shared_from_this());
+            return m_offi.leave(shared_from_this());
         }
 
+
+        m_readsize += m_command->getAdditionalDataSize();
         boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getAdditionalData(), m_command->getAdditionalDataSize()),
                                 boost::bind(&client::handle_read_signature_txs, shared_from_this(), boost::asio::placeholders::error));
     }
@@ -170,22 +175,47 @@ class client : public boost::enable_shared_from_this<client> {
     void handle_read_signature_txs(const boost::system::error_code& error) {
         if (error) {
             DLOG("ERROR reading txs extended data: %s\n", error.message().c_str());
-            m_offi.leave(shared_from_this());
+            return m_offi.leave(shared_from_this());
         }
 
-        boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getSignature(), m_command->getSignatureSize()),
-                                boost::bind(&client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
+        m_readsize += m_command->getSignatureSize();
+
+
+
+            boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getSignature(), m_command->getSignatureSize()),
+                    boost::bind(m_size > m_readsize ? &client::handle_read_txs_extra : &client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
+
+    }
+
+    void handle_read_txs_extra(const boost::system::error_code& error)
+    {
+        if(error) {
+            DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
+            return m_offi.leave(shared_from_this());
+        }
+        int32_t extra_data_size = m_size - m_readsize;
+        if(extra_data_size > 32000) {
+            DLOG("ERROR txs extra data too long\n");
+            return m_offi.leave(shared_from_this());
+        }
+        m_extra_data.clear();
+        m_extra_data.resize(extra_data_size);
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_extra_data.data(), m_size - m_readsize),
+                 boost::bind( &client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
     }
 
     void handle_read_txs_complete(const boost::system::error_code& error)
     {
         if(error) {
             DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
-            m_offi.leave(shared_from_this());
+            return m_offi.leave(shared_from_this());
         }
 
         if(m_command)
         {
+            if(m_extra_data.size() > 0) {
+                // extra data ignored
+            }
             if(m_command->getCommandType() == CommandType::eReadingOnly && m_offi.redirect_read.size() > 0) {
                 if(std::find(m_offi.redirect_read_exclude.begin(), m_offi.redirect_read_exclude.end(), m_socket.remote_endpoint().address()) == m_offi.redirect_read_exclude.end()) {
                     TLOG("CLIENT: redirect %s\n", m_socket.remote_endpoint().address().to_string().c_str());
@@ -330,12 +360,12 @@ private:
 
     char                              m_type{TXSTYPE_NON};
     uint32_t                          m_size{0};
+    uint32_t                          m_readsize{0};
     int32_t                           m_version{0};
     boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
-
-
+    std::vector<char>                 m_extra_data;
 };
 
 #endif // CLIENT_HPP

@@ -105,11 +105,7 @@ bool GetBroadcastMsg::send(INetworkClient& netClient) {
         return true;
     }
 
-    sendDataSize(netClient);
-
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetBroadcastMsg sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

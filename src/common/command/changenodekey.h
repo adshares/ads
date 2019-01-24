@@ -44,6 +44,10 @@ class ChangeNodeKey : public BlockCommand {
     /** \brief Get signature size. */
     virtual int getSignatureSize()                              override;
 
+    unsigned char* getExtraData()                               override;
+
+    int getExtraDataSize()                                      override;
+
     /** \brief Sign actual data plus hash using user private and public keys.
      *
      * \param hash  Previous hash operation.

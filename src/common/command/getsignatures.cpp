@@ -87,10 +87,7 @@ uint32_t GetSignatures::getUserMessageId() {
 
 bool GetSignatures::send(INetworkClient& netClient)
 {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetSignatures sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 

@@ -91,6 +91,7 @@ void checkUnusedFields(boost::property_tree::ptree& pt, std::string used_fields)
     parts.push_back("sender");
     parts.push_back("hash");
     parts.push_back("msid");
+    parts.push_back("extra_data");
 
     for(auto& it : pt) {
         if(std::find(parts.begin(), parts.end(), it.first) == parts.end()) {
@@ -151,6 +152,16 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
 
     if(run != "decode_raw" && sts.drun && sts.without_secret) {
       std::cerr << "WARNING: dry-run will not produce signature (no secret provided)\n";
+    }
+
+    boost::optional<std::string> json_extra_hex=pt.get_optional<std::string>("extra_data");
+    std::string extraData;
+    if(json_extra_hex) {
+       std::string text_hex=json_extra_hex.get();
+       if(text_hex.length() > 32000 * 2) {
+           throw CommandException(ErrorCodes::Code::eCommandParseError, "Extra data too long.");
+       }
+       text2key(text_hex, extraData);
     }
 
     boost::optional<uint32_t> json_time=pt.get_optional<uint32_t>("time");
@@ -475,6 +486,10 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
             throw CommandException(ErrorCodes::Code::eCommandParseError, "bad new KEY or empty string signature");
             command.reset();
         }
+    }
+
+    if(extraData.length() > 0) {
+        command->setExtraData(extraData);
     }
 
     return command;

@@ -89,10 +89,7 @@ int64_t GetMessage::getDeduct() {
 }
 
 bool GetMessage::send(INetworkClient& netClient) {
-    sendDataSize(netClient);
-
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetMessage sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
