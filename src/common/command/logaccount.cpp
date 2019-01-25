@@ -91,16 +91,6 @@ bool LogAccount::send(INetworkClient& netClient)
         return false;
     }
 
-    if(!netClient.sendData(getAdditionalData(), getAdditionalDataSize())) {
-        ELOG("LogAccount ERROR sending additional data\n");
-        return false;
-    }
-
-    if(!netClient.sendData(getSignature(), getSignatureSize())) {
-        ELOG("LogAccount ERROR sending signature\n");
-        return false;
-    }
-
     readDataSize(netClient);
 
     if(!readResponseError(netClient)) {

@@ -180,9 +180,12 @@ public:
     bool sendData(INetworkClient& netClient) {
         bool res = sendDataSize(netClient);
         res = res && netClient.sendData(getData(), getDataSize());
-        res = res && netClient.sendData(getAdditionalData(), getAdditionalDataSize());
-        res = res && netClient.sendData(getSignature(), getSignatureSize());
-        res = res && netClient.sendData(getExtraData(), getExtraDataSize());
+        if(getAdditionalDataSize() > 0)
+            res = res && netClient.sendData(getAdditionalData(), getAdditionalDataSize());
+        if(getSignatureSize() > 0)
+            res = res && netClient.sendData(getSignature(), getSignatureSize());
+        if(getExtraDataSize() > 0)
+            res = res && netClient.sendData(getExtraData(), getExtraDataSize());
         return res;
    }
 

@@ -158,9 +158,14 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
     std::string extraData;
     if(json_extra_hex) {
        std::string text_hex=json_extra_hex.get();
-       if(text_hex.length() > 32000 * 2) {
-           throw CommandException(ErrorCodes::Code::eCommandParseError, "Extra data too long.");
+       if(text_hex.length() % 2 != 0) {
+           throw CommandException(ErrorCodes::Code::eCommandParseError, "extra_data invalid length.");
        }
+       if(text_hex.length() > 32000 * 2) {
+          throw CommandException(ErrorCodes::Code::eCommandParseError, "extra_data too long.");
+      }
+       extraData.resize(text_hex.length() / 2);
+       parse_key(reinterpret_cast<unsigned char*>(&extraData[0]), json_extra_hex, text_hex.length() / 2, "extra_data");
        text2key(text_hex, extraData);
     }
 

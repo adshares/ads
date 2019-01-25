@@ -143,7 +143,7 @@ class client : public boost::enable_shared_from_this<client> {
 
         m_command = command::factory::makeCommand(m_type);
 
-        if(m_command) {
+        if(m_command && m_command->getDataSize() > 1 && m_command->getData() != nullptr) {
             int data_size = m_command->getDataSize()-1;
             if(m_version == 1) {
                 if(m_type == TXSTYPE_LOG) {
@@ -156,6 +156,8 @@ class client : public boost::enable_shared_from_this<client> {
         }
         else {
             DLOG("ERROR: Could not create command");
+            m_offi.leave(shared_from_this());
+            return;
         }
 
     }
@@ -194,14 +196,12 @@ class client : public boost::enable_shared_from_this<client> {
             DLOG("ERROR reading signature txs: %s\n", error.message().c_str());
             return m_offi.leave(shared_from_this());
         }
-        int32_t extra_data_size = m_size - m_readsize;
-        if(extra_data_size > 32000) {
+        m_extra_data_size = m_size - m_readsize;
+        if(m_extra_data_size > sizeof(m_extra_data)) {
             DLOG("ERROR txs extra data too long\n");
             return m_offi.leave(shared_from_this());
         }
-        m_extra_data.clear();
-        m_extra_data.resize(extra_data_size);
-        boost::asio::async_read(m_socket,boost::asio::buffer(m_extra_data.data(), m_size - m_readsize),
+        boost::asio::async_read(m_socket,boost::asio::buffer(m_extra_data, m_extra_data_size),
                  boost::bind( &client::handle_read_txs_complete, shared_from_this(), boost::asio::placeholders::error));
     }
 
@@ -214,7 +214,7 @@ class client : public boost::enable_shared_from_this<client> {
 
         if(m_command)
         {
-            if(m_extra_data.size() > 0) {
+            if(m_extra_data_size > 0) {
                 // extra data ignored
             }
             if(m_command->getCommandType() == CommandType::eReadingOnly && m_offi.redirect_read.size() > 0) {
@@ -366,7 +366,8 @@ private:
     boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
-    std::vector<char>                 m_extra_data;
+    char                              m_extra_data[32000];
+    uint32_t                          m_extra_data_size{0};
 };
 
 #endif // CLIENT_HPP
