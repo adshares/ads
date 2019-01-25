@@ -121,7 +121,7 @@ class client : public boost::enable_shared_from_this<client> {
             m_offi.leave(shared_from_this());
             return;
         }
-        m_readsize +=1;
+        m_readsize =1;
         boost::asio::async_read(m_socket,boost::asio::buffer(&m_type,1),
                                         boost::bind(&client::handle_read_txstype, shared_from_this(), boost::asio::placeholders::error));
 
