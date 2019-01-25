@@ -86,14 +86,14 @@ size_t  ChangeNodeKey::getBlockMessageSize()
     return sizeof(ChangeNodeKeyData);
 }
 
-/*unsigned char*  ChangeNodeKey::getAdditionalData()
+unsigned char*  ChangeNodeKey::getAdditionalData()
 {
     return reinterpret_cast<unsigned char*>(&m_data.old_public_key);
 }
 
 int ChangeNodeKey::getAdditionalDataSize() {
     return sizeof(m_data.old_public_key);
-}*/
+}
 
 int64_t ChangeNodeKey::getFee() {
     return TXS_BKY_FEE;
@@ -101,14 +101,6 @@ int64_t ChangeNodeKey::getFee() {
 
 int64_t ChangeNodeKey::getDeduct() {
     return 0;
-}
-
-unsigned char* ChangeNodeKey::getExtraData() {
-    return m_data.old_public_key;
-}
-
-int ChangeNodeKey::getExtraDataSize() {
-    return sizeof(m_data.old_public_key);
 }
 
 bool ChangeNodeKey::send(INetworkClient& netClient)

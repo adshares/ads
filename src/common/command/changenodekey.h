@@ -23,6 +23,9 @@ class ChangeNodeKey : public BlockCommand {
     /** \brief Get pointer to command data structure. */
     virtual unsigned char*  getData()                           override;
 
+    /** \brief Get additional data. Used only on server side to add new created account data */
+    virtual unsigned char*          getAdditionalData()         override;
+
     /** \brief Get pointer to response data. */
     virtual unsigned char*  getResponse()                       override;
 
@@ -38,15 +41,14 @@ class ChangeNodeKey : public BlockCommand {
     /** \brief Get response data struct size. */
     virtual int getResponseSize()                               override;
 
+    /** \brief Get additional data size. */
+    virtual int getAdditionalDataSize()                         override;
+
     /** \brief Get pointer to signature data. */
     virtual unsigned char*  getSignature()                      override;
 
     /** \brief Get signature size. */
     virtual int getSignatureSize()                              override;
-
-    unsigned char* getExtraData()                               override;
-
-    int getExtraDataSize()                                      override;
 
     /** \brief Sign actual data plus hash using user private and public keys.
      *
