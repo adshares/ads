@@ -122,10 +122,6 @@ bool SetAccountKey::send(INetworkClient& netClient)
 
 void SetAccountKey::saveResponse(settings& sts)
 {
-    if (std::equal(sts.pk, sts.pk + SHA256_DIGEST_LENGTH, m_response.usera.pkey)) {
-        m_responseError = ErrorCodes::Code::ePkeyNotChanged;
-    }
-
     std::array<uint8_t, SHA256_DIGEST_LENGTH> hashout;
     Helper::create256signhash(getSignature(), getSignatureSize(), sts.ha, hashout);
     if (!sts.signature_provided && !std::equal(hashout.begin(), hashout.end(), m_response.usera.hash)) {
