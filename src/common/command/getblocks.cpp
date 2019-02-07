@@ -129,17 +129,15 @@ bool GetBlocks::receiveHeaders(INetworkClient& netClient) {
         return false;
     }
 
-    if(m_numOfBlocks==0) {
-        return true;
-    }
-
-    m_receivedHeaders.reserve(m_numOfBlocks);
-    for(uint32_t n=0; n<m_numOfBlocks; ++n) {
-        header_t sh;
-        if(!netClient.readData((char*)&sh, sizeof(sh))) {
-            return false;
+    if(m_numOfBlocks > 0) {
+        m_receivedHeaders.reserve(m_numOfBlocks);
+        for(uint32_t n=0; n<m_numOfBlocks; ++n) {
+            header_t sh;
+            if(!netClient.readData((char*)&sh, sizeof(sh))) {
+                return false;
+            }
+            m_receivedHeaders.push_back(sh);
         }
-        m_receivedHeaders.push_back(sh);
     }
 
     if(!netClient.readData((char*)&m_newviphash, sizeof(m_newviphash))) {
