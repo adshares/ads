@@ -365,7 +365,10 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
         boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("message_ascii");
         std::string text;
-        if(json_text_hex) {
+
+        if(json_text_hex && json_text_asci) {
+            throw CommandException(ErrorCodes::Code::eCommandParseError, "Cannot use both fields: message, message_ascii");
+        } else if(json_text_hex) {
             std::string text_hex=json_text_hex.get();
             text2key(text_hex, text);
         }
@@ -373,7 +376,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
             text=json_text_asci.get();
         }
         if (text.empty()) {
-            throw CommandException(ErrorCodes::Code::eCommandParseError, "No broadcast message");
+            throw CommandException(ErrorCodes::Code::eCommandParseError, "Required field is missing: message");
         } else {
             command = std::make_unique<BroadcastMsg>(sts_bank, sts_user, sts.msid, text.length(), text.c_str(), now);
         }
