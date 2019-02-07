@@ -161,7 +161,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
        if(text_hex.length() % 2 != 0) {
            throw CommandException(ErrorCodes::Code::eCommandParseError, "extra_data invalid length.");
        }
-       if(text_hex.length() > 32000 * 2) {
+       if(text_hex.length() > MAX_EXTRADATA_LENGTH * 2) {
           throw CommandException(ErrorCodes::Code::eCommandParseError, "extra_data too long.");
       }
        extraData.resize(text_hex.length() / 2);
@@ -283,7 +283,7 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         command = std::make_unique<GetTransaction>(sts_bank, sts_user, to_bank, node_msid, node_mpos, now);
     }
     else if(!run.compare(txsname[TXSTYPE_VIP])) {
-        boost::optional<std::string> json_viphash=pt.get_optional<std::string>("viphash");
+        boost::optional<std::string> json_viphash=pt.get<std::string>("viphash");
         if(json_viphash && !parse_key(to_info,json_viphash,32,"viphash")) {
             return nullptr;
         }

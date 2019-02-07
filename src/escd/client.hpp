@@ -366,7 +366,7 @@ private:
     boost::asio::deadline_timer       m_timeout;
     CommandService                    m_commandService;
     std::unique_ptr<IBlockCommand>    m_command;
-    char                              m_extra_data[32000];
+    char                              m_extra_data[MAX_EXTRADATA_LENGTH];
     uint32_t                          m_extra_data_size{0};
 };
 
