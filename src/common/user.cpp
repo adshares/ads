@@ -347,6 +347,13 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
                 return nullptr;
             }
             command = command::factory::makeCommand(*data);
+            if(!command) {
+                throw CommandException(ErrorCodes::Code::eCommandParseError, "Failed to decode data field");
+            }
+            if(len < command->getDataSize()) {
+                free(data);
+                throw CommandException(ErrorCodes::Code::eCommandParseError, "Failed to decode data field");
+            }
             command->setData((char*)data);
             free(data);
         } else {
