@@ -166,7 +166,6 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
       }
        extraData.resize(text_hex.length() / 2);
        parse_key(reinterpret_cast<unsigned char*>(&extraData[0]), json_extra_hex, text_hex.length() / 2, "extra_data");
-       text2key(text_hex, extraData);
     }
 
     boost::optional<uint32_t> json_time=pt.get_optional<uint32_t>("time");
