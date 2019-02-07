@@ -361,6 +361,8 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         }
     }
     else if(!run.compare(txsname[TXSTYPE_BRO])) {
+        checkUnusedFields(pt, "message,message_ascii");
+
         boost::optional<std::string> json_text_hex=pt.get_optional<std::string>("message");
         boost::optional<std::string> json_text_asci=pt.get_optional<std::string>("message_ascii");
         std::string text;
@@ -371,8 +373,9 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
         else if (json_text_asci) {
             text=json_text_asci.get();
         }
-        if (!text.empty()) {
-            checkUnusedFields(pt, "message,message_ascii");
+        if (text.empty()) {
+            throw CommandException(ErrorCodes::Code::eCommandParseError, "No broadcast message");
+        } else {
             command = std::make_unique<BroadcastMsg>(sts_bank, sts_user, sts.msid, text.length(), text.c_str(), now);
         }
     }
