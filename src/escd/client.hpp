@@ -214,6 +214,15 @@ class client : public boost::enable_shared_from_this<client> {
 
         if(m_command)
         {
+            if(m_version == 1) {
+                if(m_type == TXSTYPE_LOG) {
+                    unsigned char sign[64];
+                    int extra_len = sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t);
+                    memcpy(sign, m_command->getData() + m_command->getDataSize() - extra_len, extra_len);
+                    memcpy(sign + extra_len, m_command->getSignature(), 64 - extra_len);
+                }
+            }
+
             if(m_extra_data_size > 0) {
                 // extra data ignored
             }
