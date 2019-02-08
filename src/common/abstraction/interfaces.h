@@ -112,6 +112,8 @@ class ICommand {
     virtual bool                    readDataSize(INetworkClient& netClient) = 0;
     /** \brief Save command response to settings object. */
     virtual void                    saveResponse(settings& sts)     = 0;
+    virtual void                    setClientVersion(uint32_t version) = 0;
+    virtual uint32_t                getClientVersion() = 0;
 
     virtual ~ICommand() = default;
 
@@ -160,15 +162,15 @@ public:
     }
 
     unsigned char* getExtraData() override {
-        return reinterpret_cast<unsigned char*>(const_cast<char*>(extra_data.c_str()));
+        return reinterpret_cast<unsigned char*>(const_cast<char*>(m_extra_data.c_str()));
     }
 
     int getExtraDataSize() override {
-        return extra_data.size();
+        return m_extra_data.size();
     }
 
     void setExtraData(std::string data) override {
-        extra_data = data;
+        m_extra_data = data;
     }
 
 
@@ -225,8 +227,19 @@ public:
         return true;
     }
 
+    uint32_t getClientVersion() override
+    {
+        return m_client_version;
+    }
+
+    void setClientVersion (uint32_t version) override
+    {
+        m_client_version = version;
+    }
+
 private:
-    std::string extra_data;
+    std::string m_extra_data;
+    uint32_t m_client_version;
 };
 
 /*!
