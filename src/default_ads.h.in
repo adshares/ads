@@ -24,6 +24,8 @@
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 128 /* shift from current block to archive old blocks */
 #define SHARED_PROFIT_NODES     10         /* Limit profit sharing to the first N nodes (+vips) */
+#define ACCOUNT_INACTIVE_AGE    4*BLOCKSEC /* account is considered inactive after 4 blocks */
+#define ACCOUNT_DORMANT_AGE     6*BLOCKSEC /* account is considered dormant after 8 blocks */
 #else
 #define BLOCKSEC 512 /* block period in seconds (17min) */
 #define BLOCKDIV 2048 /* number of blocks for dividend update (dividend period 12 days) */
@@ -39,6 +41,8 @@
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 4096 /* shift from current block to archive old blocks */
 #define SHARED_PROFIT_NODES     100         /* Limit profit sharing to the first N nodes (+vips) */
+#define ACCOUNT_INACTIVE_AGE    365*24*3600 /* account is considered inactive after one year */
+#define ACCOUNT_DORMANT_AGE     2*365*24*3600 /* account is considered dormant after one year */
 #endif
 
 #define TOTALMASS 3875820600000000000L /* total balance (target) */

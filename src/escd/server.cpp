@@ -3874,22 +3874,23 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
 }
 
 int64_t server::dividend(user_t& u) {
-    if(u.rpath<period_start && u.lpath<period_start) {
-        u.rpath=srvs_.now;
-        int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
-        if(div<-u.weight) {
-            div=-u.weight;
-        }
-        u.weight+=div;
-        return(div);
-    }
-    return(0x8FFFFFFFFFFFFFFF);
+    int64_t fee = 0;
+    return dividend(u, fee);
 }
 
 int64_t server::dividend(user_t& u,int64_t& fee) {
     if(u.rpath<period_start && u.lpath<period_start) {
         u.rpath=srvs_.now;
-        int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
+        int64_t div;
+        if(u.lpath < srvs_.now - ACCOUNT_DORMANT_AGE) {
+            div = -TXS_GOK_FEE(u.weight);
+        } else if(u.lpath < srvs_.now - ACCOUNT_INACTIVE_AGE) {
+            div = 0;
+        } else {
+            div=(u.weight>>16)*srvs_.div;
+        }
+        div -= TXS_DIV_FEE;
+
         if(div<-u.weight) {
             div=-u.weight;
         } else {
