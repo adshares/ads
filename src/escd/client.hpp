@@ -142,14 +142,10 @@ class client : public boost::enable_shared_from_this<client> {
         }
 
         m_command = command::factory::makeCommand(m_type);
+        m_command->setClientVersion(m_version);
 
         if(m_command && m_command->getDataSize() > 1 && m_command->getData() != nullptr) {
             int data_size = m_command->getDataSize()-1;
-            if(m_version == 1) {
-                if(m_type == TXSTYPE_LOG) {
-                    data_size -= sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t);
-                }
-            }
             m_readsize += data_size;
             boost::asio::async_read(m_socket,boost::asio::buffer(m_command->getData()+1, data_size),
                                     boost::bind(&client::handle_read_extended_txs, shared_from_this(), boost::asio::placeholders::error));
@@ -214,15 +210,6 @@ class client : public boost::enable_shared_from_this<client> {
 
         if(m_command)
         {
-            if(m_version == 1) {
-                if(m_type == TXSTYPE_LOG) {
-                    unsigned char sign[64];
-                    int extra_len = sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t);
-                    memcpy(sign, m_command->getData() + m_command->getDataSize() - extra_len, extra_len);
-                    memcpy(sign + extra_len, m_command->getSignature(), 64 - extra_len);
-                }
-            }
-
             if(m_extra_data_size > 0) {
                 // extra data ignored
             }
