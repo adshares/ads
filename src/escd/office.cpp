@@ -1336,27 +1336,6 @@ bool office::get_log(uint16_t svid,uint32_t user,uint32_t from,bool full,std::st
             mis+=l;
             continue;
         }
-        if(!full && log.type == (TXSTYPE_USR | 0x8000)) { // new account owner discard old logs
-            mis = tot;
-
-            std::string carryLog;
-            log_t p_log;
-            int offset = slog.length() - sizeof(log_t);
-            while(offset >= 4) {
-                memcpy(&p_log, &slog[offset], sizeof(log_t));
-                if(p_log.time == log.time) {
-                    carryLog.append((char*)&p_log,sizeof(log_t));
-                } else {
-                    break;
-                }
-                offset -= sizeof(log_t);
-            }
-
-            mis -= carryLog.length();
-            slog.clear();
-            slog.append((char*)&len,4);
-            slog.append(carryLog);
-        }
         slog.append((char*)&log,l);
     }
     len-=mis;

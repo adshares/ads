@@ -208,7 +208,7 @@ void GetLog::toJson(boost::property_tree::ptree& ptree) {
             user_id = this->getUserId();
         }
         Helper::print_user(m_response, ptree, true, node_id, user_id);
-        Helper::print_log(ptree, node_id, user_id, m_lastlog, m_txnTypeFilter);
+        Helper::print_log(ptree, node_id, user_id, m_lastlog, m_txnTypeFilter, getFull());
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
         ptree.put(ERROR_CODE_TAG, m_responseError);

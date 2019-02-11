@@ -166,7 +166,7 @@ const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id) {
     return std::string(acnt);
 }
 
-void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1) {
+void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1, bool full = false) {
     char filename[64];
     sprintf(filename,"log/%04X_%08X.bin", bank, user);
     int fd=open(filename,O_RDONLY);
@@ -191,15 +191,39 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
     }
     log_t ulog;
     boost::property_tree::ptree logtree;
+    int skip_usr=0;
     while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
         if(ulog.time<lastlog) {
             //fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             continue;
         }
         uint16_t txst=ulog.type&0xFF;
+
+        if(!full && ulog.type == (TXSTYPE_USR | 0x8000)) {
+            if(skip_usr) {
+                skip_usr=0;
+            } else {
+                skip_usr=1;
+                logtree.clear();
+                uint32_t create_time = ulog.time;
+                lseek(fd,-sizeof(log_t),SEEK_CUR);
+                while(lseek(fd,-sizeof(log_t),SEEK_CUR) > 0) {
+                    if(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
+                        if(ulog.time != create_time) {
+                            break;
+                        }
+                        lseek(fd,-sizeof(log_t),SEEK_CUR);
+                    } else {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
         if (txnType != -1 && txst != txnType) {
             continue;
         }
+
         char info[65];
         info[64]='\0';
         ed25519_key2text(info,ulog.info,32);
