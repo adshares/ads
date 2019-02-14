@@ -207,15 +207,16 @@ bool GetTransaction::saveToFile(char *data) {
     uint8_t dir[6];
     memcpy(dir,&m_data.info.dst_node, sizeof(m_data.info.dst_node));
     memcpy(dir+2,&m_data.info.node_msgid, sizeof(m_data.info.node_msgid));
-    char filename[128];
-    snprintf(filename, sizeof(filename),"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
-    create_directories(filename);
-    if (is_directory(filename) == false) {
+    char dirname[64];
+    snprintf(dirname, sizeof(dirname),"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
+    create_directories(dirname);
+    if (is_directory(dirname) == false) {
         m_responseError = ErrorCodes::Code::eCantCreateDirectory;
         return false;
     }
-    permissions(filename, owner_all | group_read | group_exe | others_read | others_exe);
-    snprintf(filename, sizeof(filename), "%s/%04X.txs", filename, m_data.info.position);
+    permissions(dirname, owner_all | group_read | group_exe | others_read | others_exe);
+    char filename[128];
+    snprintf(filename, sizeof(filename), "%s/%04X.txs", dirname, m_data.info.position);
     std::ofstream file(filename, std::ofstream::out | std::ofstream::binary);
     if (file.is_open()) {
         file.write((char*)&m_responseHeader, sizeof(m_responseHeader));
