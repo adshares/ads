@@ -213,7 +213,17 @@ void office::update_div(uint32_t now,uint32_t newdiv) {
             }
             u.weight=USER_MIN_MASS;
         }
-        int64_t div=(u.weight>>16)*newdiv-TXS_DIV_FEE;
+
+        int64_t div;
+        if(u.lpath < now - ACCOUNT_DORMANT_AGE) {
+            div = -TXS_GOK_FEE(u.weight);
+        } else if(u.lpath < now - ACCOUNT_INACTIVE_AGE) {
+            div = 0;
+        } else {
+            div=(u.weight>>16)*newdiv;
+        }
+        div -= TXS_DIV_FEE;
+
         if(div<-u.weight) {
             div=-u.weight;
         }
