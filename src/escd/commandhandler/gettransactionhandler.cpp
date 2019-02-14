@@ -1,12 +1,13 @@
 #include "gettransactionhandler.h"
 #include "command/gettransaction.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 #include "helper/servers.h"
 #include "servers.hpp"
 
-GetTransactionHandler::GetTransactionHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetTransactionHandler::GetTransactionHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetTransactionHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -34,7 +35,6 @@ void GetTransactionHandler::onExecute() {
         //servers.setNow(msg->path);
         servers srvs_;
         srvs_.now=msg->path;
-        //if (!servers.getMsglHashTree(msg->svid, msg->msid, mnum, hashes)) {
         if(!srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes))
         {
             errorCode = ErrorCodes::Code::eFailToGetHashTree;
@@ -59,7 +59,7 @@ void GetTransactionHandler::onExecute() {
                 response.emplace_back(boost::asio::buffer(it.hash, sizeof(it.hash)));
             }
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

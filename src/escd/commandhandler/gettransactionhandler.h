@@ -11,7 +11,7 @@ class office;
 
 class GetTransactionHandler : public CommandHandler {
   public:
-    GetTransactionHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    GetTransactionHandler(office& office, client& client);
 
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;

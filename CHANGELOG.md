@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] - 2019-02-14
+### Added
+- Error codes and more descriptive error info returned by client
+- `get_log` now accept requests for other accounts in the same node
+- Allow to specify whitelist of IPs allowed to connect to node
+- Allow nodes to transparently redirect clients to another endpoints
+
+### Changed
+- Client protocol upgrade. New client is not compatible with nodes version 1.0.4 and lower
+- New nodes are compatible with older clients
+- Client will not accept command with unknown fields
+- `get_log` for reused account will not return previous owner history by default
+- Dividend calculations for inactive accounts
+
+### Fixed
+- Stability improvements
+- `decode_raw` validates data length
+- Poperly handle `change_account_key` command when changing to the same key
+
 ## [1.0.4] - 2018-11-15
 ### Fixed
 - Stability improvements for peer communication
@@ -68,8 +87,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.0.4...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.0.5...HEAD
 
+[1.0.5]: https://github.com/adshares/ads/compare/v1.0.4...v1.0.3
 [1.0.4]: https://github.com/adshares/ads/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/adshares/ads/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/adshares/ads/compare/v1.0.1...v1.0.2

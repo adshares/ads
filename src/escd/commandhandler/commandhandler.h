@@ -7,8 +7,6 @@
 #include "command/pods.h"
 #include "default.hpp"
 
-class office;
-
 /*!
  * \brief Base class for all command handlers.
  */
@@ -17,10 +15,11 @@ class CommandHandler : public ICommandHandler {
     /** \brief Constructor.
       * \param office  Office object.
       * \param socket  Socket connected with client. */
-    CommandHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    CommandHandler(office& office, client& client);
     virtual void execute(std::unique_ptr<IBlockCommand> command, const user_t& usera) override;
   protected:
     office&                         m_offi;     ///< Reference to office object.
+    client&                         m_client;   ///< Reference to office object.
     boost::asio::ip::tcp::socket&   m_socket;   ///< Socket for connection with client.
     user_t                          m_usera;    ///< Current user blockchain data.
     struct CommitResult {
@@ -37,7 +36,6 @@ class CommandHandler : public ICommandHandler {
     void executeImpl(std::unique_ptr<IBlockCommand>);
     void performCommonValidation(IBlockCommand&);
     void validateModifyingCommand(IBlockCommand&);
-    void sendErrorToClient(ErrorCodes::Code);
 };
 
 template<typename CommandType>

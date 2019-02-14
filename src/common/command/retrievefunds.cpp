@@ -82,12 +82,13 @@ int64_t RetrieveFunds::getDeduct() {
 
 bool RetrieveFunds::send(INetworkClient& netClient)
 {
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("RetrieveFunds sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if(!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("RetrieveFunds reading error\n");
         return false;
     }
@@ -129,6 +130,8 @@ void RetrieveFunds::toJson(boost::property_tree::ptree &ptree) {
         Helper::print_msgid_info(ptree, m_data.info.abank, m_response.msid, m_response.mpos);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

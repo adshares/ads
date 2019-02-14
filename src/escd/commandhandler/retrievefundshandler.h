@@ -11,7 +11,7 @@ class office;
 
 class RetrieveFundsHandler : public CommandHandler {
   public:
-    RetrieveFundsHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    RetrieveFundsHandler(office& office, client& client);
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute() override;

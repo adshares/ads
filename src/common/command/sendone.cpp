@@ -117,12 +117,13 @@ int64_t SendOne::getDeduct() {
 }
 
 bool SendOne::send(INetworkClient& netClient) {
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("SendOne sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("SendOne reading error\n");
         return false;
     }
@@ -170,6 +171,8 @@ void SendOne::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("tx.account_public_key_new", tx_user_hashin.str());
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

@@ -38,6 +38,7 @@ class office {
     void process_div(uint32_t path);
     void update_block(uint32_t period_start,uint32_t now,message_map& commit_msgs,uint32_t newdiv);
     void process_log(uint32_t now);
+    void resolve_hostnames();
     void clock();
     void process_gup(uint32_t now);
     void process_dep(uint32_t now);
@@ -90,7 +91,7 @@ class office {
     void put_ulog(uint32_t user,log_t& log);
     void put_ulog(std::map<uint64_t,log_t>& log);
     bool fix_log(uint16_t svid,uint32_t user);
-    bool get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog);
+    bool get_log(uint16_t svid,uint32_t user,uint32_t from,bool full,std::string& slog);
     uint8_t* node_pkey(uint16_t node);
 
     int get_tickets();
@@ -98,6 +99,11 @@ class office {
     hash_t pkey; // local copy for managing updates
     std::stack<gup_t> gup; // GET results
     bool readonly;
+    std::vector<boost::asio::ip::address> allow_from;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_read;
+    std::vector<boost::asio::ip::tcp::endpoint> redirect_write;
+    std::vector<boost::asio::ip::address> redirect_read_exclude;
+    std::vector<boost::asio::ip::address> redirect_write_exclude;
   private:
     bool run;
     char ofifilename[64];

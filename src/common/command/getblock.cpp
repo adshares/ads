@@ -97,12 +97,13 @@ int64_t GetBlock::getDeduct() {
 }
 
 bool GetBlock::send(INetworkClient& netClient) {
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetBlock sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("GetBlock reading error\n");
         return false;
     }
@@ -213,6 +214,8 @@ void GetBlock::toJson(boost::property_tree::ptree& ptree) {
         }
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

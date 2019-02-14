@@ -4,6 +4,7 @@
 #include <openssl/sha.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>
+#include <boost/asio.hpp>
 
 #include "default.h"
 #include "logging.h"
@@ -49,6 +50,7 @@
 #define MSGTYPE_SOK 99  /* peer synced */
 
 #define MAX_BROADCAST_LENGTH  32000 //64k in hex multiplied by 2
+#define MAX_EXTRADATA_LENGTH  32000 //64k in hex multiplied by 2
 
 #pragma pack(1)
 typedef struct headlink_s { // header links sent when syncing

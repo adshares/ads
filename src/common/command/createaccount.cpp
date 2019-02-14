@@ -108,22 +108,13 @@ int64_t CreateAccount::getDeduct() {
 }
 
 bool CreateAccount::send(INetworkClient& netClient) {
-    if(!netClient.sendData(getData(), getDataSize())) {
-        ELOG("CreateAccount sending data error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if(!netClient.sendData(getAdditionalData(), getAdditionalDataSize())) {
-        ELOG("CreateAccount sending additional data error\n");
-        return false;
-    }
+    readDataSize(netClient);
 
-    if(!netClient.sendData(getSignature(), getSignatureSize())) {
-        ELOG("CreateAccount sending signature error\n");
-        return false;
-    }
-
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
        ELOG("CreateAccount reading error\n");
        return false;
     }
@@ -196,6 +187,8 @@ void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("tx.account_public_key_new", tx_user_hashin.str());
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

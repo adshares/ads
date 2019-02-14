@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/exceptions.hpp>
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
@@ -20,14 +21,14 @@ void verifyProtocol(INetworkClient& netClient) {
 
     if(!netClient.readData(&node_version, sizeof(node_version))) {
         netClient.disConnect();
-        throw ErrorCodes::Code::eConnectServerError;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, "Could not read version");
     }
 
     uint8_t version_error;
     if(!netClient.readData(&version_error, 1) || version_error) {
-        ELOG("Version mismatch client(%d) != node(%d)\n", version, node_version);
+        ELOG("Version mismatch client(%d) <> node(%d)\n", version, node_version);
         netClient.disConnect();
-        throw ErrorCodes::Code::eProtocolMismatch;
+        throw CommandException(ErrorCodes::Code::eProtocolMismatch, "Version mismatch client(%d) <> node(%d)");
     }
 }
 
@@ -42,7 +43,7 @@ void talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, 
     if(!netClient.isConnected()) {
         if(!netClient.connect()) {
             ELOG("Error: %s", ErrorCodes().getErrorMsg(ErrorCodes::Code::eConnectServerError));
-            throw ErrorCodes::Code::eConnectServerError;
+            throw CommandException(ErrorCodes::Code::eConnectServerError, "Connect failed");
         }
 
         verifyProtocol(netClient);
@@ -54,9 +55,9 @@ void talk(NetworkClient& netClient, settings sts, ResponseHandler& respHandler, 
         ELOG("ERROR reading global info talk\n");
         netClient.disConnect();
         if(command->m_responseError) {
-            throw command->m_responseError;
+            throw CommandException(command->m_responseError, "");
         }
-        throw ErrorCodes::Code::eConnectServerError;
+        throw CommandException(ErrorCodes::Code::eConnectServerError, "ERROR reading response");
     }
 }
 
@@ -69,7 +70,7 @@ boost::property_tree::ptree getPropertyTree(const std::string& line) {
     }
     catch (std::exception& e) {
         std::cerr << "RUN_JSON Exception: " << e.what() << "\n";
-        throw ErrorCodes::Code::eCommandParseError;
+        throw CommandException(ErrorCodes::Code::eCommandParseError, e.what());
     }
 }
 
@@ -97,7 +98,8 @@ int main(int argc, char* argv[]) {
 
     settings sts;
     sts.get(argc,argv);
-    NetworkClient netClient(sts.host, std::to_string(sts.port), sts.nice);
+    boost::shared_ptr<NetworkClient> netClient(new NetworkClient(sts.host, std::to_string(sts.port), sts.nice));
+    boost::shared_ptr<NetworkClient> netClientModify(netClient);
     ResponseHandler respHandler(sts);
 
 #if INTPTR_MAX == INT64_MAX
@@ -107,6 +109,8 @@ int main(int argc, char* argv[]) {
         std::string line;
 
         while (std::getline(std::cin, line)) {
+            respHandler.redirect_host = "";
+            respHandler.redirect_port = "";
             DLOG("GOT REQUEST %s\n", line.c_str());
 
             if(line.at(0) == '.') {
@@ -118,30 +122,88 @@ int main(int argc, char* argv[]) {
 
             try {
                 auto propertyTree = getPropertyTree(line);
-                auto command = run_json(sts, propertyTree);
+                bool redirect;
+                do {
+                    redirect = false;
+                    auto command = run_json(sts, propertyTree);
 
-                if(!command) {
-                    throw ErrorCodes::Code::eCommandParseError;
-                }
+                    if(!command) {
+                        throw CommandException(ErrorCodes::Code::eCommandParseError, "");
+                    }
 
-                if(shouldDecodeRaw(propertyTree)) {
-                    decodeRaw(sts.nice, std::move(command));
-                } else {
-                    talk(netClient, sts, respHandler, std::move(command));
+                    auto commandType = command->getCommandType();
+
+                    if(shouldDecodeRaw(propertyTree)) {
+                        decodeRaw(sts.nice, std::move(command));
+                    } else {
+
+                        try {
+                            talk(commandType == CommandType::eModifying ? *netClientModify : *netClient, sts, respHandler, std::move(command));
+                        }
+                        catch(RedirectException &e) {
+                            respHandler.redirect_host = e.getIp().to_string();
+                            respHandler.redirect_port = std::to_string(e.getPort());
+                            boost::shared_ptr<NetworkClient> x(new NetworkClient(respHandler.redirect_host, respHandler.redirect_port, sts.nice));
+                            if(commandType == CommandType::eModifying) {
+                                netClientModify.swap(x);
+                            } else {
+                                netClient.swap(x);
+                            }
+                            redirect = true;
+                        }
+                    }
                 }
+                while(redirect);
+            }
+            catch(const boost::property_tree::ptree_bad_path& e) {
+                boost::property_tree::ptree pt;
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                pt.put(ERROR_CODE_TAG, ErrorCodes::Code::eCommandParseError);
+
+                std::string info = "Required field is missing: " + e.path<boost::property_tree::path>().reduce();
+                pt.put(ERROR_INFO_TAG, info);
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
+                boost::property_tree::write_json(std::cout, pt, sts.nice);
+            }
+            catch(const boost::property_tree::ptree_bad_data& e) {
+                boost::property_tree::ptree pt;
+                pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(ErrorCodes::Code::eCommandParseError));
+                pt.put(ERROR_CODE_TAG, ErrorCodes::Code::eCommandParseError);
+
+                pt.put(ERROR_INFO_TAG, e.what());
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
+                boost::property_tree::write_json(std::cout, pt, sts.nice);
+            }
+            catch(const CommandException &e) {
+                boost::property_tree::ptree pt;
+                pt.put(ERROR_TAG, e.getError());
+                pt.put(ERROR_CODE_TAG, e.getErrorCode());
+                pt.put(ERROR_INFO_TAG, e.getErrorInfo());
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
+                boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
             catch(const ErrorCodes::Code& responseError) {
                 boost::property_tree::ptree pt;
                 pt.put(ERROR_TAG, ErrorCodes().getErrorMsg(responseError));
+                pt.put(ERROR_CODE_TAG, responseError);
+                if(respHandler.redirect_host.length() > 0) {
+                    pt.put("redirect", respHandler.redirect_host + ":" + respHandler.redirect_port);
+                }
                 boost::property_tree::write_json(std::cout, pt, sts.nice);
             }
         }
-    } catch (std::exception& e) {
+    } catch (const std::exception& e) {
         ELOG("Main Exception: %s\n", e.what());
-        Helper::printErrorJson("Unknown error occured", sts.nice);
+        Helper::printErrorJson(ErrorCodes::Code::eUnknownError, "Unknown error occured", sts.nice);
     }
 
-    netClient.disConnect();
+    netClient->disConnect();
 
     return 0;
 }

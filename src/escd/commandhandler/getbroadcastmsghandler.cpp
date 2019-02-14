@@ -3,13 +3,14 @@
 #include <fstream>
 #include "command/getbroadcastmsg.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 #include "helper/blocks.h"
 #include "helper/blockfilereader.h"
 
 
-GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetBroadcastMsgHandler::GetBroadcastMsgHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetBroadcastMsgHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -55,15 +56,17 @@ void GetBroadcastMsgHandler::onExecute() {
     }
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        BroadcastFileHeader header{path, lpath, size};
+        std::vector<boost::asio::const_buffer> response;
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if(!errorCode) {
-            BroadcastFileHeader header{path, lpath, size};
-            boost::asio::write(m_socket, boost::asio::buffer(&header, sizeof(header)));
+            response.emplace_back(boost::asio::buffer(&header, sizeof(header)));
             // message is sending in parts of max size MESSAGE_CHUNK each block
             for (auto &it : fileBuffer) {
-                boost::asio::write(m_socket, boost::asio::buffer(it));
+                response.emplace_back(boost::asio::buffer(it));
             }
         }
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

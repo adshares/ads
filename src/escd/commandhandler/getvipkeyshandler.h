@@ -11,7 +11,7 @@ class office;
 
 class GetVipKeysHandler : public CommandHandler {
   public:
-    GetVipKeysHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    GetVipKeysHandler(office& office, client& client);
 
     //ICommandHandler interface
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;

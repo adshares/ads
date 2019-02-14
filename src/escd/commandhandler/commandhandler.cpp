@@ -4,10 +4,13 @@
 #include "command/commandtype.h"
 #include "helper/hash.h"
 #include "../office.hpp"
+#include "../client.hpp"
+#include "../client.hpp"
 
-CommandHandler::CommandHandler(office& office, boost::asio::ip::tcp::socket& socket)
+CommandHandler::CommandHandler(office& office, client& client)
     : m_offi(office),
-      m_socket(socket) {
+      m_client(client),
+      m_socket(client.socket()) {
 }
 
 void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_t& usera)
@@ -17,17 +20,11 @@ void CommandHandler::execute(std::unique_ptr<IBlockCommand> command, const user_
     try {
         executeImpl(std::move(command));
     }
+    catch(CommandException& error) {
+        m_client.sendError((ErrorCodes::Code)error.getErrorCode(), error.getErrorInfo());
+    }
     catch(const ErrorCodes::Code& error) {
-        sendErrorToClient(error);
-    }
-}
-
-void CommandHandler::sendErrorToClient(ErrorCodes::Code error) {
-    try {
-        boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
-    }
-    catch(std::exception& e) {
-        DLOG("Responding to client %08X error: %s\n", m_usera.user, e.what());
+        m_client.sendError(error);
     }
 }
 
@@ -83,7 +80,13 @@ void CommandHandler::validateModifyingCommand(IBlockCommand& command) {
         throw ErrorCodes::Code::eFeeBelowZero;
     }
 
-    if(command.getDeduct()+command.getFee()+(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS) > m_usera.weight) {
+    int64_t available_balance = m_usera.weight - (command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS);
+
+    if(m_usera.lpath < m_offi.last_path() + BLOCKSEC - ACCOUNT_DORMANT_AGE) {
+        available_balance += -TXS_GOK_FEE(m_usera.weight);
+    }
+
+    if(command.getDeduct()+command.getFee() > available_balance) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              command.getDeduct(), command.getFee(), (uint64_t)(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
         throw ErrorCodes::Code::eLowBalance;

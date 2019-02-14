@@ -68,8 +68,10 @@ bool GetAccount::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
 
 void GetAccount::saveResponse(settings& sts)
 {
-    sts.msid = m_response.usera.msid;
-    std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
+    if(m_data.info.abank == m_data.info.bbank && m_data.info.auser == m_data.info.buser) { // get_me
+        sts.msid = m_response.usera.msid;
+        std::copy(m_response.usera.hash, m_response.usera.hash + SHA256_DIGEST_LENGTH, sts.ha.data());
+    }
 }
 
 uint32_t GetAccount::getUserId() {
@@ -101,12 +103,13 @@ uint32_t GetAccount::getDestUser(){
 }
 
 bool GetAccount::send(INetworkClient& netClient) {
-    if (!netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        ELOG("GetAccount sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("GetAccount reading error\n");
         return false;
     }
@@ -133,6 +136,8 @@ void GetAccount::toJson(boost::property_tree::ptree& ptree) {
         print_user(m_response.globalusera, ptree, false, m_data.info.bbank, m_data.info.buser);
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

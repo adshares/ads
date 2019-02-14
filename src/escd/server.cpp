@@ -891,7 +891,7 @@ uint32_t server::readmsid() {
     fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+3,h+2,h+1,h+0);
     fclose(fp);
     if(svid!=(uint32_t)opts_.svid) {
-        throw("FATAL ERROR: failed to read correct svid from msid.txt\n");
+        throw std::runtime_error("FATAL ERROR: failed to read correct svid from msid.txt");
     }
     return(path);
 }
@@ -900,7 +900,7 @@ uint32_t server::readmsid() {
 void server::writemsid() {
     FILE* fp=fopen("msid.txt","w");
     if(fp==NULL) {
-        throw("FATAL ERROR: failed to write to msid.txt\n");
+        throw std::runtime_error("FATAL ERROR: failed to write to msid.txt");
     }
     uint64_t *h=(uint64_t*)&msha_;
     fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[3],h[2],h[1],h[0]);
@@ -3808,7 +3808,7 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
             srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
             srvs_.user_csum(u,bbank,tx->buser);
             srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
-            lseek(fd,-sizeof(user_t),SEEK_CUR);
+            lseek(fd,-(off_t)sizeof(user_t),SEEK_CUR);
             write(fd,&u,sizeof(user_t)); // write before undo ... not good for sync
             tlog.time=time(NULL);
             tlog.umid=0;
@@ -3874,22 +3874,23 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
 }
 
 int64_t server::dividend(user_t& u) {
-    if(u.rpath<period_start && u.lpath<period_start) {
-        u.rpath=srvs_.now;
-        int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
-        if(div<-u.weight) {
-            div=-u.weight;
-        }
-        u.weight+=div;
-        return(div);
-    }
-    return(0x8FFFFFFFFFFFFFFF);
+    int64_t fee = 0;
+    return dividend(u, fee);
 }
 
 int64_t server::dividend(user_t& u,int64_t& fee) {
     if(u.rpath<period_start && u.lpath<period_start) {
         u.rpath=srvs_.now;
-        int64_t div=(u.weight>>16)*srvs_.div-TXS_DIV_FEE;
+        int64_t div;
+        if(u.lpath < srvs_.now - ACCOUNT_DORMANT_AGE) {
+            div = -TXS_GOK_FEE(u.weight);
+        } else if(u.lpath < srvs_.now - ACCOUNT_INACTIVE_AGE) {
+            div = 0;
+        } else {
+            div=(u.weight>>16)*srvs_.div;
+        }
+        div -= TXS_DIV_FEE;
+
         if(div<-u.weight) {
             div=-u.weight;
         } else {
@@ -4605,6 +4606,9 @@ void server::write_header() {
     for(auto it=nkeys.begin(); it!=nkeys.end(); it++) {
         uint16_t node=it->first;
         if(memcmp(last_srvs_.nodes[node].pk,it->second.pkey,32)) {
+            continue;
+        }
+        if(it->second.skey == NULL) {
             continue;
         }
         message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),node,head.now,

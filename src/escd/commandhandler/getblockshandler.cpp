@@ -1,12 +1,13 @@
 #include "getblockshandler.h"
 #include "command/getblocks.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/vipkeys.h"
 #include "helper/servers.h"
 #include "helper/block.h"
 
-GetBlocksHandler::GetBlocksHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetBlocksHandler::GetBlocksHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetBlocksHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -18,15 +19,41 @@ void GetBlocksHandler::onExecute() {
     const auto errorCode = prepareResponse();
 
     try {
-        boost::asio::write(m_socket, boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
+        std::vector<boost::asio::const_buffer> response;
+        uint32_t firstVipLength;
+        uint32_t numOfHeaders;
+        uint32_t numOfSignatures;
+        uint32_t newVipLength;
+
+        response.emplace_back(boost::asio::buffer(&errorCode, ERROR_CODE_LENGTH));
         if (!errorCode) {
-            sendFirstVipKeysIfNeeded();
-            sendBlockHeaders();
+            //sendFirstVipKeysIfNeeded
+            firstVipLength = m_firstVipKeys.getLength();
+            if(firstVipLength > 0) {
+                response.emplace_back(boost::asio::buffer(&firstVipLength, sizeof(firstVipLength)));
+                response.emplace_back(boost::asio::buffer(m_firstVipKeys.getVipKeys(), firstVipLength));
+            }
+
+            //sendBlockHeaders
+            numOfHeaders = m_serversHeaders.size();
+            response.emplace_back(boost::asio::buffer(&numOfHeaders, sizeof(numOfHeaders)));
+            response.emplace_back(boost::asio::buffer(m_serversHeaders));
+            response.emplace_back(boost::asio::buffer(&m_newviphash , sizeof(m_newviphash)));
+
             if(m_serversHeaders.size() > 0) {
-                sendLastBlockSignatures();
-                sendNewVipKeys();
+                //sendLastBlockSignatures
+                numOfSignatures = m_signatures.getSignaturesOk().size();
+                response.emplace_back(boost::asio::buffer(&numOfSignatures, sizeof(numOfSignatures)));
+                response.emplace_back(boost::asio::buffer(m_signatures.getSignaturesOk()));
+                //sendNewVipKeys
+                newVipLength = m_newVipKeys.getLength();
+                response.emplace_back(boost::asio::buffer(&newVipLength, sizeof(newVipLength)));
+                if(newVipLength > 0) {
+                    response.emplace_back(boost::asio::buffer(m_newVipKeys.getVipKeys(), newVipLength));
+                }
             }
         }
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
@@ -35,33 +62,20 @@ void GetBlocksHandler::onExecute() {
 void GetBlocksHandler::onValidate() {
 }
 
-void GetBlocksHandler::sendFirstVipKeysIfNeeded() {
-    const uint32_t length = m_firstVipKeys.getLength();
-    if(length > 0) {
-        boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
-        boost::asio::write(m_socket, boost::asio::buffer(m_firstVipKeys.getVipKeys(), length));
-    }
+void GetBlocksHandler::sendFirstVipKeysIfNeeded(std::vector<boost::asio::const_buffer>& ) {
+
 }
 
-void GetBlocksHandler::sendNewVipKeys() {
-    const uint32_t length = m_newVipKeys.getLength();
-    boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
-    if(length > 0) {
-        boost::asio::write(m_socket, boost::asio::buffer(m_newVipKeys.getVipKeys(), length));
-    }
+void GetBlocksHandler::sendNewVipKeys(std::vector<boost::asio::const_buffer>& ) {
+
 }
 
-void GetBlocksHandler::sendBlockHeaders() {
-    const uint32_t numOfHeaders = m_serversHeaders.size();
-    boost::asio::write(m_socket, boost::asio::buffer(&numOfHeaders, sizeof(numOfHeaders)));
-    boost::asio::write(m_socket, boost::asio::buffer(m_serversHeaders));
-    boost::asio::write(m_socket, boost::asio::buffer(&m_newviphash , sizeof(m_newviphash)));
+void GetBlocksHandler::sendBlockHeaders(std::vector<boost::asio::const_buffer>& ) {
+
 }
 
-void GetBlocksHandler::sendLastBlockSignatures() {
-    const uint32_t numOfSignatures = m_signatures.getSignaturesOk().size();
-    boost::asio::write(m_socket, boost::asio::buffer(&numOfSignatures, sizeof(numOfSignatures)));
-    boost::asio::write(m_socket, boost::asio::buffer(m_signatures.getSignaturesOk()));
+void GetBlocksHandler::sendLastBlockSignatures(std::vector<boost::asio::const_buffer>& ) {
+
 }
 
 uint32_t GetBlocksHandler::readStart() {

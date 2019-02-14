@@ -137,9 +137,10 @@ int check_csum(user_t& u,uint16_t peer,uint32_t uid) {
     return(memcmp(csum,u.csum,sizeof(hash_t)));
 }
 
-void printErrorJson(const char *errorMsg, bool pretty) {
+void printErrorJson(const ErrorCodes::Code errorCode, const char *errorMsg, bool pretty) {
     boost::property_tree::ptree ptree;
     ptree.put(ERROR_TAG, errorMsg);
+    ptree.put(ERROR_CODE_TAG, errorCode);
     boost::property_tree::write_json(std::cout, ptree, pretty);
 }
 
@@ -165,7 +166,7 @@ const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id) {
     return std::string(acnt);
 }
 
-void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1) {
+void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1, bool full = false) {
     char filename[64];
     sprintf(filename,"log/%04X_%08X.bin", bank, user);
     int fd=open(filename,O_RDONLY);
@@ -178,7 +179,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         if(end>0) {
             off_t start=end;
             off_t tseek=0;
-            while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
+            while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-(off_t)sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
                 uint32_t ltime=0;
                 tseek=read(fd,&ltime,sizeof(uint32_t));
                 if(ltime<lastlog-1) { // tollerate 1s difference
@@ -190,15 +191,39 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
     }
     log_t ulog;
     boost::property_tree::ptree logtree;
+    int skip_usr=0;
     while(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
         if(ulog.time<lastlog) {
             //fprintf(stderr,"SKIPP %d [%08X]\n",ulog.time,ulog.time);
             continue;
         }
         uint16_t txst=ulog.type&0xFF;
+
+        if(!full && ulog.type == (TXSTYPE_USR | 0x8000)) {
+            if(skip_usr) {
+                skip_usr=0;
+            } else {
+                skip_usr=1;
+                logtree.clear();
+                uint32_t create_time = ulog.time;
+                lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR);
+                while(lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR) > 0) {
+                    if(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
+                        if(ulog.time != create_time) {
+                            break;
+                        }
+                        lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR);
+                    } else {
+                        break;
+                    }
+                }
+                continue;
+            }
+        }
         if (txnType != -1 && txst != txnType) {
             continue;
         }
+
         char info[65];
         info[64]='\0';
         ed25519_key2text(info,ulog.info,32);
@@ -467,11 +492,11 @@ void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user) 
     if(end>0) {
         off_t start=end;
         off_t tseek=0;
-        while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
+        while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-(off_t)sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
             uint32_t ltime=0;
             tseek=read(fd,&ltime,sizeof(uint32_t));
             if(ltime<from) { // tollerate 1s difference
-                lseek(fd,sizeof(log_t)-sizeof(uint32_t),SEEK_CUR);
+                lseek(fd,sizeof(log_t)-(off_t)sizeof(uint32_t),SEEK_CUR);
                 break;
             }
         }

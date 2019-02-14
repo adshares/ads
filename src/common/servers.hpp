@@ -302,7 +302,7 @@ class servers { // also a block
     void write_start() {
         FILE* fp=fopen("blk/start.txt","w");
         if(fp==NULL) {
-            throw("FATAL ERROR: failed to write to blk/start.txt\n");
+            throw std::runtime_error("FATAL ERROR: failed to write to blk/start.txt");
         }
         fprintf(fp,"%08X\n",now);
         fclose(fp);
@@ -364,7 +364,7 @@ class servers { // also a block
 
     void put_node(user_t& ou,uint16_t peer) { //executed in block mode, no lock needed
         std::map<uint32_t,user_t> undo;
-        user_t nu;
+        user_t nu{};
         get_user(nu,peer,0);
         undo[0]=nu;
         xor4(nodes[peer].hash,nu.csum);

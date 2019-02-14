@@ -101,12 +101,13 @@ bool GetTransaction::send(INetworkClient& netClient) {
         return true;
     }
 
-    if(!netClient.sendData(getData(), sizeof(m_data))) {
-        ELOG("GetTransaction sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("GetTransaction reading error\n");
         return false;
     }
@@ -281,6 +282,8 @@ void GetTransaction::toJson(boost::property_tree::ptree& ptree) {
     }
     if (m_responseError) {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     } else {
         char tx_id[64];
         sprintf(tx_id,"%04X:%08X:%04X",m_responseHeader.node,m_responseHeader.msid,m_responseHeader.tnum);

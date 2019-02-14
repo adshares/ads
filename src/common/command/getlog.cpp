@@ -11,8 +11,8 @@ GetLog::GetLog()
     m_responseError = ErrorCodes::Code::eNone;
 }
 
-GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from, const char *txnTypeFilter)
-        : m_data(bank, user, from), m_txnTypeFilter(-1) {
+GetLog::GetLog(uint16_t bank, uint32_t user, uint32_t from, uint16_t dst_node, uint32_t dst_user, bool full, const char *txnTypeFilter)
+        : m_data(bank, user, from, dst_node, dst_user, full), m_txnTypeFilter(-1) {
     m_responseError = ErrorCodes::Code::eNone;
     if (strlen(txnTypeFilter) > 0) {
         int id = Helper::getTxnLogTypeId(txnTypeFilter);
@@ -32,9 +32,17 @@ void GetLog::getLastLogsUpdate() {
     m_data.info.from=0;
     char filename[64];
     mkdir("log",0755);
-    sprintf(filename,"log/%04X_%08X.bin", this->getBankId(), this->getUserId());
+
+    uint16_t node_id = this->getDestBankId();
+    uint32_t user_id = this->getDestUserId();
+    if(!node_id && !user_id) {
+        node_id = this->getBankId();
+        user_id = this->getUserId();
+    }
+
+    sprintf(filename,"log/%04X_%08X.bin", node_id, user_id);
     int fd=open(filename,O_RDONLY);
-    if(fd>=0 && lseek(fd,-sizeof(log_t),SEEK_END)>=0) {
+    if(fd>=0 && lseek(fd,-(off_t)sizeof(log_t),SEEK_END)>=0) {
         read(fd,&m_data.info.from,sizeof(uint32_t));
         if(m_data.info.from>0) {
             m_data.info.from--;
@@ -61,7 +69,7 @@ void GetLog::setResponse(char* response) {
 }
 
 int GetLog::getDataSize() {
-    return sizeof(m_data.info);
+    return sizeof(m_data.info) - (this->getClientVersion() == 1 ?  (sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t)) : 0);
 }
 
 int GetLog::getResponseSize() {
@@ -95,12 +103,24 @@ bool GetLog::checkSignature(const uint8_t* /*hash*/, const uint8_t* pk) {
 void GetLog::saveResponse(settings& /*sts*/) {
 }
 
+uint16_t GetLog::getDestBankId() {
+    return m_data.info.dst_node;
+}
+
+uint32_t GetLog::getDestUserId() {
+    return m_data.info.dst_user;
+}
+
 uint32_t GetLog::getUserId() {
     return m_data.info.user;
 }
 
 uint32_t GetLog::getBankId() {
     return m_data.info.node;
+}
+
+uint8_t GetLog::getFull() {
+    return m_data.info.full;
 }
 
 uint32_t GetLog::getTime() {
@@ -124,13 +144,14 @@ bool GetLog::send(INetworkClient& netClient) {
         // case when filter transaction type doesn't exists
         return true;
     }
-
-    if(! netClient.sendData(getData(), getDataSize() + getSignatureSize() )) {
-        ELOG("GetLog sending error\n");
+    
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("GetLog reading error\n");
     }
 
@@ -161,7 +182,14 @@ bool GetLog::send(INetworkClient& netClient) {
         return false;
     }
 
-    Helper::save_log(logs, length, m_data.info.from, m_data.info.node, m_data.info.user);
+    uint16_t node_id = this->getDestBankId();
+    uint32_t user_id = this->getDestUserId();
+    if(!node_id && !user_id) {
+        node_id = this->getBankId();
+        user_id = this->getUserId();
+    }
+
+    Helper::save_log(logs, length, m_data.info.from, node_id, user_id);
 
     delete[] logs;
     return true;
@@ -173,10 +201,18 @@ std::string GetLog::toString(bool /*pretty*/) {
 
 void GetLog::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
-        Helper::print_user(m_response, ptree, true, this->getBankId(), this->getUserId());
-        Helper::print_log(ptree, this->getBankId(), this->getUserId(), m_lastlog, m_txnTypeFilter);
+        uint16_t node_id = this->getDestBankId();
+        uint32_t user_id = this->getDestUserId();
+        if(!node_id && !user_id) {
+            node_id = this->getBankId();
+            user_id = this->getUserId();
+        }
+        Helper::print_user(m_response, ptree, true, node_id, user_id);
+        Helper::print_log(ptree, node_id, user_id, m_lastlog, m_txnTypeFilter, getFull());
     } else {
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

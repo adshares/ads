@@ -5,8 +5,6 @@
 #include <boost/asio.hpp>
 #include "abstraction/interfaces.h"
 
-class office;
-
 /*!
  * \brief Command service. It execute proper action for commnads.
  */
@@ -15,13 +13,13 @@ class CommandService {
     /** \brief Constructor.
       * \param office  Office object.
       * \param socket  Socket connected with client. */
-    CommandService(office& office, boost::asio::ip::tcp::socket& socket);
+    CommandService(office& office, client& client);
 
     /** \brief execute method which invokes command handler. */
     void onExecute(std::unique_ptr<IBlockCommand> command);
 
   private:
-    boost::asio::ip::tcp::socket& m_socket;     ///< reference to scoket, required for sending errors
+    client& m_client;     ///< reference to scoket, required for sending errors
     office& m_offi;                             ///< reference to office object.
 };
 

@@ -148,22 +148,13 @@ int64_t SendMany::getDeduct() {
 }
 
 bool SendMany::send(INetworkClient& netClient) {
-    if(!netClient.sendData(getData(), this->getDataSize())) {
-        ELOG("SendMany ERROR sending data\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if(!netClient.sendData(getAdditionalData(), this->getAdditionalDataSize())) {
-        ELOG("SendMany ERROR sending additional data\n");
-        return false;
-    }
+    readDataSize(netClient);
 
-    if(!netClient.sendData(getSignature(), this->getSignatureSize())) {
-        ELOG("SendMany ERROR sending signature\n");
-        return false;
-    }
-
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    if(!readResponseError(netClient)) {
         ELOG("SendMany reading error\n");
         return false;
     }
@@ -219,6 +210,8 @@ void SendMany::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("tx.account_public_key_new", tx_user_hashin.str());
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 

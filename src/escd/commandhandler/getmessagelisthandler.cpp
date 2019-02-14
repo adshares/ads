@@ -1,10 +1,11 @@
 #include "getmessagelisthandler.h"
 #include "command/getmessagelist.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 
-GetMessageListHandler::GetMessageListHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetMessageListHandler::GetMessageListHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetMessageListHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -25,7 +26,7 @@ void GetMessageListHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(m_command->m_responseTxnHash, sizeof(m_command->m_responseTxnHash)));
             response.emplace_back(boost::asio::buffer(m_command->m_responseMessageList));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

@@ -1,10 +1,11 @@
 #include "getsignatureshandler.h"
 #include "command/getsignatures.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 
-GetSignaturesHandler::GetSignaturesHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetSignaturesHandler::GetSignaturesHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetSignaturesHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -36,7 +37,7 @@ void GetSignaturesHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&signaturesNoSize, sizeof(signaturesNoSize)));
             response.emplace_back(boost::asio::buffer(signaturesNo));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

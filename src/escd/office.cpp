@@ -213,7 +213,17 @@ void office::update_div(uint32_t now,uint32_t newdiv) {
             }
             u.weight=USER_MIN_MASS;
         }
-        int64_t div=(u.weight>>16)*newdiv-TXS_DIV_FEE;
+
+        int64_t div;
+        if(u.lpath < now - ACCOUNT_DORMANT_AGE) {
+            div = -TXS_GOK_FEE(u.weight);
+        } else if(u.lpath < now - ACCOUNT_INACTIVE_AGE) {
+            div = 0;
+        } else {
+            div=(u.weight>>16)*newdiv;
+        }
+        div -= TXS_DIV_FEE;
+
         if(div<-u.weight) {
             div=-u.weight;
         }
@@ -359,6 +369,93 @@ void office::process_log(uint32_t now) { //FIXME, check here if logs are not dup
     mque.clear();
 }
 
+void office::resolve_hostnames() {
+    boost::asio::ip::tcp::resolver              resolver(io_service_);
+    for(std::string host : opts_.allow_from) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            allow_from.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string host : opts_.redirect_read_exclude) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            redirect_read_exclude.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string host : opts_.redirect_write_exclude) {
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),SERVER_PORT);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got ip %s\n", iterator->endpoint().address().to_string().c_str());
+            redirect_write_exclude.push_back(iterator->endpoint().address());
+            ++iterator;
+        }
+    }
+
+    for(std::string address : opts_.redirect_read) {
+        const size_t posPort    = address.find(':');
+
+        std::string host    = address.substr(0, posPort);
+        std::string port    = address.substr(posPort+1);
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),port);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got endpoint %s:%d\n", iterator->endpoint().address().to_string().c_str(), iterator->endpoint().port());
+            redirect_read.push_back(iterator->endpoint());
+            ++iterator;
+        }
+    }
+
+    for(std::string address : opts_.redirect_write) {
+        const size_t posPort    = address.find(':');
+
+        std::string host    = address.substr(0, posPort);
+        std::string port    = address.substr(posPort+1);
+        TLOG("resolve %s\n", host.c_str());
+        boost::asio::ip::tcp::resolver::query       query(host.c_str(),port);
+        boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator    end;
+
+
+        while(iterator != end)
+        {
+            TLOG("got endpoint %s:%d\n", iterator->endpoint().address().to_string().c_str(), iterator->endpoint().port());
+            redirect_write.push_back(iterator->endpoint());
+            ++iterator;
+        }
+    }
+
+}
+
 void office::clock() {
     //while(run){
     //  if(srv_.msid_>=srv_.start_msid){
@@ -370,6 +467,14 @@ void office::clock() {
     //  start_accept();}
     ILOG("CLOCK START %d\n", run);
 
+
+    try {
+        resolve_hostnames();
+    } catch(boost::system::system_error& error) {
+        ELOG("Could not resolve hostnames %s\n", error.what());
+        SHUTDOWN();
+        return;
+    }
     start_accept();
     while(run) {
         uint32_t now=time(NULL);
@@ -456,7 +561,7 @@ void office::process_gup(uint32_t now) {
         u.weight-=cgup.delta;
         //u.weight+=deposit[cgup.auser]-cgup.delta;
         //deposit[cgup.auser]=0;
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t)); // write node,user,time,rpath,weight
         file_.unlock();
         gup.pop();
@@ -478,7 +583,7 @@ void office::process_dep(uint32_t now) {
         u.weight+=dep.weight;
         //u.weight+=deposit[dep.auser]+dep.weight;
         //deposit[dep.auser]=0;
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t)); // write rpath,weight
         file_.unlock();
         rdep.pop();
@@ -533,7 +638,7 @@ bool office::get_user(user_t& u,uint16_t cbank,uint32_t cuser) {
     //  deposit[cuser]=0;
     //  //u.status=ustatus[cuser];
     //  assert(u.weight>=0);
-    //  lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    //  lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
     //  write(offifd_,&u,sizeof(user_t));} // write weight
     return(true);
 }
@@ -554,10 +659,10 @@ uint32_t office::add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { 
         uint32_t msid;
         uint32_t mpos;
         usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
-        add_msg(txs->data,*txs,msid,mpos);
-
-        if(msid) {
-            add_account((hash_s*)pkey,luser);
+        if(add_msg(txs->data,*txs,msid,mpos)) {
+            if(msid) {
+                add_account((hash_s*)pkey,luser);
+            }
         }
     } //blacklist
     return luser;
@@ -577,7 +682,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when) { // will cr
             DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
             //FIXME !!!  wrong time !!! must use time from txs
             srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
-            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+            lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
             write(offifd_,&nu,sizeof(user_t)); // write all ok
             file_.unlock();
             return(nuser);
@@ -620,7 +725,7 @@ void office::set_user(uint32_t user, user_t& nu, int64_t deduct) {
     memcpy(ou.pkey,nu.pkey,32);
     //u.status=ustatus[user];
     //assert(u.weight>=0);
-    lseek(offifd_, -sizeof(user_t), SEEK_CUR);
+    lseek(offifd_, -(off_t)sizeof(user_t), SEEK_CUR);
     write(offifd_, &ou, sizeof(user_t)); // fix this !!!
     file_.unlock();
 
@@ -639,7 +744,7 @@ void office::delete_user(uint32_t user) {
     if(u.weight>=0) {
         DLOG("WARNNG: network deleted active user %08X\n",user);
     }
-    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
     write(offifd_,&u,sizeof(user_t)); // write all ok
     deleted_users.push_back(user);
     file_.unlock();
@@ -659,7 +764,7 @@ void office::add_deposit(uint32_t buser,int64_t tmass) {
     lseek(offifd_,buser*sizeof(user_t)+dep_off,SEEK_SET);
     read(offifd_,&w,sizeof(w));
     w+=tmass;
-    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(w),SEEK_CUR);
     write(offifd_,&w,sizeof(w));
     //deposit[buser]+=tmass;
     file_.unlock();
@@ -673,7 +778,7 @@ void office::add_deposit(usertxs& utxs) {
     lseek(offifd_,utxs.buser*sizeof(user_t)+dep_off,SEEK_SET);
     read(offifd_,&w,sizeof(w));
     w+=utxs.tmass;
-    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(w),SEEK_CUR);
     write(offifd_,&w,sizeof(w));
     //deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
@@ -692,10 +797,10 @@ bool office::try_account(hash_s* key) {
         std::vector<hash_s> del;
         for(auto it=accounts_.begin(); it!=accounts_.end(); it++) {
             user_t u;
-            get_user(u, svid, it->second);
-
-            if(u.weight>0) {
-                del.push_back(it->first);
+            if(get_user(u, svid, it->second)) {
+                if(u.weight>0) {
+                    del.push_back(it->first);
+                }
             }
         }
 
@@ -759,7 +864,7 @@ bool office::set_account_status(uint32_t buser, uint16_t status) {
     uint16_t oldstatus=u.stat;
     u.stat|=status & 0xFFFE;
     if(oldstatus!=u.stat) {
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t));
     }
 
@@ -781,7 +886,7 @@ bool office::unset_account_status(uint32_t buser, uint16_t status) {
     uint16_t oldstatus=u.stat;
     u.stat&=~(status & 0xFFFE);
     if(oldstatus!=u.stat) {
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t));
     }
 
@@ -945,7 +1050,7 @@ bool office::add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos
             u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);
         } // can not change USER_STAT_DELETED
         if(oldstatus!=u.stat) {
-            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+            lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
             write(offifd_,&u,sizeof(user_t));
         }
     } // write only stat !!!
@@ -1039,7 +1144,7 @@ int office::purge_log(int fd,uint32_t /*user*/) { // this is ext4 specific !!!
     }
     size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
     for(; size>=MIN_LOG_SIZE; size-=4096) {
-        if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)) {
+        if(lseek(fd,4096-(off_t)sizeof(log_t),SEEK_SET)!=4096-(off_t)sizeof(log_t)) {
             ELOG("ERROR, log lseek error\n");
             return(-1);
         }
@@ -1212,7 +1317,7 @@ bool office::fix_log(uint16_t svid,uint32_t user) {
     return(false);
 }
 
-bool office::get_log(uint16_t svid,uint32_t user,uint32_t from,std::string& slog) {
+bool office::get_log(uint16_t svid,uint32_t user,uint32_t from,bool full,std::string& slog) {
     if(!svid) {
         return(true);
     }
@@ -1281,6 +1386,16 @@ void office::start_accept() {
 }
 
 void office::handle_accept(client_ptr c, const boost::system::error_code& error) {
+
+    if(allow_from.size() > 0) {
+        TLOG("CLIENT: allow check %s\n", c->socket().remote_endpoint().address().to_string().c_str());
+        if(std::find(allow_from.begin(), allow_from.end(), c->socket().remote_endpoint().address()) == allow_from.end()) {
+            TLOG("CLIENT: drop %s\n", c->socket().remote_endpoint().address().to_string().c_str());
+            c->socket().close();
+            start_accept();
+            return;
+        }
+    }
     //uint32_t now=time(NULL);
     if(!run) {
         return;

@@ -1,11 +1,12 @@
 #include "getvipkeyshandler.h"
 #include "command/getvipkeys.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "helper/hash.h"
 #include "helper/vipkeys.h"
 
-GetVipKeysHandler::GetVipKeysHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetVipKeysHandler::GetVipKeysHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetVipKeysHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -39,7 +40,7 @@ void GetVipKeysHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&fileLength, sizeof(fileLength)));
             response.emplace_back(boost::asio::buffer(vipKeys.getVipKeys(), fileLength));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         DLOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }

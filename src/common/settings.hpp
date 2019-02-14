@@ -87,17 +87,19 @@ class settings {
         return(crc16(data,6));
     }
 
-    bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt) {
+    bool parse_acnt(uint16_t& to_bank,uint32_t& to_user,std::string str_acnt, std::string field) {
         uint16_t to_csum=0;
         uint16_t to_crc16;
         char *endptr;
         if(str_acnt.length()!=18) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad length (required 18)\n",str_acnt.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad length (required 18)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         if(str_acnt[4]!='-' || str_acnt[13]!='-') {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad format (required NNNN-UUUUUUUU-XXXX)\n",str_acnt.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad format (required NNNN-UUUUUUUU-XXXX)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         str_acnt[4]='\0';
         str_acnt[13]='\0';
@@ -107,16 +109,18 @@ class settings {
         memcpy(acnt, str_acnt.c_str(), sizeof(acnt));
         to_bank=(uint16_t)strtol(acnt,&endptr,16);
         if(errno || endptr!=acnt+4) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad bank";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         errno=0;
         to_user=(uint32_t)strtoll(acnt+5,&endptr,16);
         if(errno || endptr!=acnt+13) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad user\n",acnt+5);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad user";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         if(!strncmp("XXXX",acnt+14,4)) {
             return(true);
@@ -124,27 +128,31 @@ class settings {
         errno=0;
         to_csum=(uint16_t)strtol(acnt+14,&endptr,16);
         if(errno || endptr!=acnt+18) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum\n",acnt+14);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad checksum";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         to_crc16=crc_acnt(to_bank,to_user);
         if(to_csum!=to_crc16) {
-            fprintf(stderr,"ERROR: parse_acnt(%s) bad checksum (expected %04X)\n",acnt,to_crc16);
-            return(false);
+            std::stringstream info;
+            info << "parse_acnt(" << field << ") bad checksum (expected " << std::hex << to_crc16 << ")";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         return(true);
     }
 
-    bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::string str_txid) {
+    bool parse_txid(uint16_t& to_bank,uint32_t& node_msid,uint32_t& node_mpos,std::string str_txid, std::string field) {
         char *endptr;
         if(str_txid.length()!=18) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad length (required 18)\n",str_txid.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_txid(" << field << ") bad length (required 18)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         if(str_txid[4]!=':' || str_txid[13]!=':') {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad format (required NNNN:MMMMMMMM:PPPP)\n",str_txid.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_txid(" << field << ") bad format (required NNNN:MMMMMMMM:PPPP)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         str_txid[4]='\0';
         str_txid[13]='\0';
@@ -155,36 +163,41 @@ class settings {
         errno=0;
         to_bank=(uint16_t)strtol(acnt,&endptr,16);
         if(errno || endptr!=acnt+4) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_txid(" << field << ") bad bank";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         errno=0;
         node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
         if(errno || endptr!=acnt+5+8) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad msid\n",acnt+5);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_txid(" << field << ") bad msid";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         errno=0;
         node_mpos=(uint16_t)strtol(acnt+14,&endptr,16);
         if(errno || endptr!=acnt+14+4) {
-            fprintf(stderr,"ERROR: parse_txid(%s) bad mpos\n",acnt+14);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_txid(" << field << ") bad mpos";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         return(true);
     }
 
-    bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid) {
+    bool parse_msgid(uint16_t& to_bank,uint32_t& node_msid,std::string str_txid, std::string field) {
         char *endptr;
         if(str_txid.length()!=13) {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad length (required 12)\n",str_txid.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_msgid(" << field << ") bad length (required 12)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         if(str_txid[4]!=':') {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad format (required NNNN:MMMMMMMM)\n",str_txid.c_str());
-            return(false);
+            std::stringstream info;
+            info << "parse_msgid(" << field << ") bad format (required NNNN:MMMMMMMM)";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         str_txid[4]='\0';
         char acnt[14];
@@ -192,16 +205,18 @@ class settings {
         errno=0;
         to_bank=(uint16_t)strtol(acnt,&endptr,16);
         if(errno || endptr!=acnt+4) {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad bank\n",acnt);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_msgid(" << field << ") bad bank";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
         errno=0;
         node_msid=(uint32_t)strtoll(acnt+5,&endptr,16);
         if(errno || endptr!=acnt+5+8) {
-            fprintf(stderr,"ERROR: parse_msgid(%s) bad msid\n",acnt+5);
             perror("ERROR: strtol");
-            return(false);
+            std::stringstream info;
+            info << "parse_msgid(" << field << ") bad msid";
+            throw CommandException(ErrorCodes::Code::eCommandParseError, info.str());
         }
 
         return(true);
@@ -390,8 +405,10 @@ class settings {
                     exit(1);
                 }
                 std::cerr << "Address: " << vm["address"].as<std::string>() << std::endl;
-                if(!parse_acnt(bank, user, addr)) {
-                    std::cerr << "ERROR: invalid address" << std::endl;
+                try {
+                    parse_acnt(bank, user, addr, "address");
+                } catch(std::exception &e) {
+                    std::cerr << "ERROR: invalid address: " << e.what() << std::endl;
                     exit(1);
                 }
                 vm.insert(std::make_pair("bank", boost::program_options::variable_value(bank, false)));

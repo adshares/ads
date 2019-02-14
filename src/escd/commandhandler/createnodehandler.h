@@ -11,7 +11,7 @@ class office;
 
 class CreateNodeHandler : public CommandHandler {
   public:
-    CreateNodeHandler(office& office, boost::asio::ip::tcp::socket& socket);
+    CreateNodeHandler(office& office, client& client);
 
     virtual void onInit(std::unique_ptr<IBlockCommand> command) override;
     virtual void onExecute()  override;

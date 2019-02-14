@@ -40,6 +40,15 @@ class options {
     int log_level = (int)logging::LoggingLevel::LOG_INFO;
     int log_source = (int)logging::LoggingSource::LOG_ALL;
 
+
+    std::vector<std::string> allow_from;
+
+    std::vector<std::string> redirect_read;
+    std::vector<std::string> redirect_read_exclude;
+    std::vector<std::string> redirect_write;
+    std::vector<std::string> redirect_write_exclude;
+
+
     void print_version() {
         std::string version = PROJECT_VERSION;
         std::cerr << "Version ";
@@ -75,6 +84,11 @@ class options {
             ("genesis,g", boost::program_options::value<std::string>(&genesis)->default_value(""),      "json file with network state at genesis block (works with --init)")
             ("log_level", boost::program_options::value<int>(&log_level)->default_value(logging::LoggingLevel::LOG_INFO), "collecting logs level:\n0 - trace (all)\n1 - debug\n2 - info\n3 - warning\n4 - error\n5 - fatal (only)")
             ("log_source", boost::program_options::value<int>(&log_source)->default_value(logging::LoggingSource::LOG_ALL), "logs output sources:\n0 - none\n1 - only console\n2 - only file\n3 - file and console")
+            ("allow-from", boost::program_options::value<std::vector<std::string>>(&allow_from)->composing(), "ip/host (allow only clients from specified IPs)")
+            ("redirect-read", boost::program_options::value<std::vector<std::string>>(&redirect_read)->composing(), "host:port (redirect reading clients to another endpoint)")
+            ("redirect-read-exclude", boost::program_options::value<std::vector<std::string>>(&redirect_read_exclude)->composing(), "ip/host (do not redirect clients from specified IPs)")
+            ("redirect-write", boost::program_options::value<std::vector<std::string>>(&redirect_write)->composing(), "host:port (redirect writing clients to another endpoint)")
+            ("redirect-write-exclude", boost::program_options::value<std::vector<std::string>>(&redirect_write_exclude)->composing(), "ip/host (do not redirect clients from specified IPs)")
             ;
             boost::program_options::options_description cmdline_options;
             cmdline_options.add(generic).add(config);

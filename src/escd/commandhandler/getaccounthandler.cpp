@@ -1,10 +1,11 @@
 #include "getaccounthandler.h"
 #include "command/getaccount.h"
 #include "../office.hpp"
+#include "../client.hpp"
 #include "command/errorcodes.h"
 
-GetAccountHandler::GetAccountHandler(office& office, boost::asio::ip::tcp::socket& socket)
-    : CommandHandler(office, socket) {
+GetAccountHandler::GetAccountHandler(office& office, client& client)
+    : CommandHandler(office, client) {
 }
 
 void GetAccountHandler::onInit(std::unique_ptr<IBlockCommand> command) {
@@ -21,6 +22,7 @@ void GetAccountHandler::onExecute() {
     if(!m_offi.get_user_global(remoteAccount, m_command->getDestNode(), m_command->getDestUser())) {
         DLOG("FAILED to get global user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
         errorCode = ErrorCodes::Code::eGetGlobalUserFail;
+        return m_client.sendError(errorCode);
     }
 
     if(m_offi.svid == m_command->getDestNode())
@@ -31,6 +33,7 @@ void GetAccountHandler::onExecute() {
             {
                 DLOG("FAILED to get user info %08X:%04X\n", m_command->getDestNode(), m_command->getDestUser());
                 errorCode = ErrorCodes::Code::eGetUserFail;
+                return m_client.sendError(errorCode);
             }
         }
     }
@@ -46,7 +49,7 @@ void GetAccountHandler::onExecute() {
             response.emplace_back(boost::asio::buffer(&localAccount, sizeof(user_t)));
             response.emplace_back(boost::asio::buffer(&remoteAccount, sizeof(user_t)));
         }
-        boost::asio::write(m_socket, response);
+        m_client.sendResponse(response);
     } catch (std::exception& e) {
         ELOG("Responding to client %08X error: %s\n", m_command->getUserId(), e.what());
     }
@@ -56,7 +59,7 @@ void GetAccountHandler::onValidate() {
     const int32_t diff = m_command->getTime() - time(nullptr);
 
     // this is special, just local info
-    if((abs(diff)>2)) {
+    if((abs(diff)>10)) {
         DLOG("ERROR: high time difference (%d>2s)\n", diff);
         throw ErrorCodes::Code::eHighTimeDifference;
     }

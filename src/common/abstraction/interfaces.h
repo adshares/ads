@@ -9,6 +9,7 @@
 #include "command/commandtype.h"
 
 class office;
+class client;
 
 /*!
  * \brief Interface for class which is responible for client network connection.
@@ -67,6 +68,11 @@ class ICommand {
     virtual unsigned char*          getSignature()      = 0;
     /** \brief Get signature size. */
     virtual int                     getSignatureSize()  = 0;
+
+    virtual unsigned char* getExtraData() = 0;
+    virtual int getExtraDataSize() = 0;
+    virtual void setExtraData(std::string data) = 0;
+
     /** \brief Sign actual data plus hash using user private and public keys.
      *
      * \param hash  Previous hash operation.
@@ -102,13 +108,19 @@ class ICommand {
      * \param pk    Pointer to public key.
     */
     virtual bool                    send(INetworkClient& netClient) = 0;
+    virtual bool                    sendDataSize(INetworkClient& netClient) = 0;
+    virtual bool                    readDataSize(INetworkClient& netClient) = 0;
     /** \brief Save command response to settings object. */
     virtual void                    saveResponse(settings& sts)     = 0;
+    virtual void                    setClientVersion(uint32_t version) = 0;
+    virtual uint32_t                getClientVersion() = 0;
 
     virtual ~ICommand() = default;
 
 public:
     ErrorCodes::Code m_responseError;
+    uint32_t         m_responseSize;
+    std::string      m_responseInfo;
 };
 
 
@@ -134,6 +146,7 @@ class IBlockCommand : public ICommand, public IJsonSerialize {
 
 class BlockCommand : public IBlockCommand
 {
+public:
     unsigned char* getAdditionalData() override { return nullptr; }
 
     int getAdditionalDataSize() override { return 0; }
@@ -147,6 +160,86 @@ class BlockCommand : public IBlockCommand
     {
         return getDataSize() + getSignatureSize() + getAdditionalDataSize();
     }
+
+    unsigned char* getExtraData() override {
+        return reinterpret_cast<unsigned char*>(const_cast<char*>(m_extra_data.c_str()));
+    }
+
+    int getExtraDataSize() override {
+        return m_extra_data.size();
+    }
+
+    void setExtraData(std::string data) override {
+        m_extra_data = data;
+    }
+
+
+    bool sendDataSize(INetworkClient& netClient) override {
+        uint32_t data_size = getDataSize() + getSignatureSize() + getAdditionalDataSize() + getExtraDataSize();
+        return netClient.sendData(reinterpret_cast<unsigned char*>(&data_size), sizeof(data_size));
+    }
+
+    bool sendData(INetworkClient& netClient) {
+        bool res = sendDataSize(netClient);
+        res = res && netClient.sendData(getData(), getDataSize());
+        if(getAdditionalDataSize() > 0)
+            res = res && netClient.sendData(getAdditionalData(), getAdditionalDataSize());
+        if(getSignatureSize() > 0)
+            res = res && netClient.sendData(getSignature(), getSignatureSize());
+        if(getExtraDataSize() > 0)
+            res = res && netClient.sendData(getExtraData(), getExtraDataSize());
+        return res;
+   }
+
+    bool readDataSize(INetworkClient& netClient) override {
+        return netClient.readData((int32_t*)&m_responseSize, sizeof(m_responseSize));
+    }
+
+    bool readResponseError(INetworkClient& netClient) {
+        if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+            return false;
+        }
+        if(m_responseError) {
+            ELOG("errorInfo SIZE %d\n", m_responseSize);
+            if(m_responseSize > ERROR_CODE_LENGTH) {
+                m_responseSize -= ERROR_CODE_LENGTH;
+
+
+                char errorInfo[4097];
+                if(m_responseSize >= sizeof(errorInfo)) {
+                    return false;
+                }
+                if (!netClient.readData(errorInfo, m_responseSize)) {
+                    return false;
+                }
+                errorInfo[m_responseSize] = '\0';
+                m_responseInfo = errorInfo;
+
+                if(m_responseError == ErrorCodes::Code::eRedirect) {
+    //                char text[13];
+    //                text[12] = '\0';
+    //                ed25519_key2text(text, (uint8_t*)errorInfo, 6);
+    //                std::cerr << text << std::endl;
+                    throw RedirectException(errorInfo);
+                }
+            }
+        }
+        return true;
+    }
+
+    uint32_t getClientVersion() override
+    {
+        return m_client_version;
+    }
+
+    void setClientVersion (uint32_t version) override
+    {
+        m_client_version = version;
+    }
+
+private:
+    std::string m_extra_data;
+    uint32_t m_client_version;
 };
 
 /*!

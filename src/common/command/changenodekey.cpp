@@ -86,14 +86,14 @@ size_t  ChangeNodeKey::getBlockMessageSize()
     return sizeof(ChangeNodeKeyData);
 }
 
-/*unsigned char*  ChangeNodeKey::getAdditionalData()
+unsigned char*  ChangeNodeKey::getAdditionalData()
 {
     return reinterpret_cast<unsigned char*>(&m_data.old_public_key);
 }
 
 int ChangeNodeKey::getAdditionalDataSize() {
     return sizeof(m_data.old_public_key);
-}*/
+}
 
 int64_t ChangeNodeKey::getFee() {
     return TXS_BKY_FEE;
@@ -105,12 +105,13 @@ int64_t ChangeNodeKey::getDeduct() {
 
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
-    if(! netClient.sendData(getData(), sizeof(m_data) )) {
-        ELOG("ChangeNodeKey sending error\n");
+    if(!sendData(netClient)) {
         return false;
     }
 
-    if (!netClient.readData((int32_t*)&m_responseError, ERROR_CODE_LENGTH)) {
+    readDataSize(netClient);
+
+    if(!readResponseError(netClient)) {
         ELOG("ChangeNodeKey reading error\n");
         return false;
     }
@@ -178,6 +179,8 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
             ptree.put("tx.account_public_key_new", tx_user_hashin.str());
         }
         ptree.put(ERROR_TAG, ErrorCodes().getErrorMsg(m_responseError));
+        ptree.put(ERROR_CODE_TAG, m_responseError);
+        ptree.put(ERROR_INFO_TAG, m_responseInfo);
     }
 }
 
