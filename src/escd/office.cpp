@@ -561,7 +561,7 @@ void office::process_gup(uint32_t now) {
         u.weight-=cgup.delta;
         //u.weight+=deposit[cgup.auser]-cgup.delta;
         //deposit[cgup.auser]=0;
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t)); // write node,user,time,rpath,weight
         file_.unlock();
         gup.pop();
@@ -583,7 +583,7 @@ void office::process_dep(uint32_t now) {
         u.weight+=dep.weight;
         //u.weight+=deposit[dep.auser]+dep.weight;
         //deposit[dep.auser]=0;
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t)); // write rpath,weight
         file_.unlock();
         rdep.pop();
@@ -638,7 +638,7 @@ bool office::get_user(user_t& u,uint16_t cbank,uint32_t cuser) {
     //  deposit[cuser]=0;
     //  //u.status=ustatus[cuser];
     //  assert(u.weight>=0);
-    //  lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    //  lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
     //  write(offifd_,&u,sizeof(user_t));} // write weight
     return(true);
 }
@@ -682,7 +682,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when) { // will cr
             DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
             //FIXME !!!  wrong time !!! must use time from txs
             srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
-            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+            lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
             write(offifd_,&nu,sizeof(user_t)); // write all ok
             file_.unlock();
             return(nuser);
@@ -725,7 +725,7 @@ void office::set_user(uint32_t user, user_t& nu, int64_t deduct) {
     memcpy(ou.pkey,nu.pkey,32);
     //u.status=ustatus[user];
     //assert(u.weight>=0);
-    lseek(offifd_, -sizeof(user_t), SEEK_CUR);
+    lseek(offifd_, -(off_t)sizeof(user_t), SEEK_CUR);
     write(offifd_, &ou, sizeof(user_t)); // fix this !!!
     file_.unlock();
 
@@ -744,7 +744,7 @@ void office::delete_user(uint32_t user) {
     if(u.weight>=0) {
         DLOG("WARNNG: network deleted active user %08X\n",user);
     }
-    lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
     write(offifd_,&u,sizeof(user_t)); // write all ok
     deleted_users.push_back(user);
     file_.unlock();
@@ -764,7 +764,7 @@ void office::add_deposit(uint32_t buser,int64_t tmass) {
     lseek(offifd_,buser*sizeof(user_t)+dep_off,SEEK_SET);
     read(offifd_,&w,sizeof(w));
     w+=tmass;
-    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(w),SEEK_CUR);
     write(offifd_,&w,sizeof(w));
     //deposit[buser]+=tmass;
     file_.unlock();
@@ -778,7 +778,7 @@ void office::add_deposit(usertxs& utxs) {
     lseek(offifd_,utxs.buser*sizeof(user_t)+dep_off,SEEK_SET);
     read(offifd_,&w,sizeof(w));
     w+=utxs.tmass;
-    lseek(offifd_,-sizeof(w),SEEK_CUR);
+    lseek(offifd_,-(off_t)sizeof(w),SEEK_CUR);
     write(offifd_,&w,sizeof(w));
     //deposit[utxs.buser]+=utxs.tmass;
     file_.unlock();
@@ -864,7 +864,7 @@ bool office::set_account_status(uint32_t buser, uint16_t status) {
     uint16_t oldstatus=u.stat;
     u.stat|=status & 0xFFFE;
     if(oldstatus!=u.stat) {
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t));
     }
 
@@ -886,7 +886,7 @@ bool office::unset_account_status(uint32_t buser, uint16_t status) {
     uint16_t oldstatus=u.stat;
     u.stat&=~(status & 0xFFFE);
     if(oldstatus!=u.stat) {
-        lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+        lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
         write(offifd_,&u,sizeof(user_t));
     }
 
@@ -1050,7 +1050,7 @@ bool office::add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos
             u.stat&=~((uint16_t)utxs.tmass & 0xFFFE);
         } // can not change USER_STAT_DELETED
         if(oldstatus!=u.stat) {
-            lseek(offifd_,-sizeof(user_t),SEEK_CUR);
+            lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);
             write(offifd_,&u,sizeof(user_t));
         }
     } // write only stat !!!
@@ -1144,7 +1144,7 @@ int office::purge_log(int fd,uint32_t /*user*/) { // this is ext4 specific !!!
     }
     size=lseek(fd,0,SEEK_END); // just in case of concurrent purge
     for(; size>=MIN_LOG_SIZE; size-=4096) {
-        if(lseek(fd,4096-sizeof(log_t),SEEK_SET)!=4096-sizeof(log_t)) {
+        if(lseek(fd,4096-(off_t)sizeof(log_t),SEEK_SET)!=4096-(off_t)sizeof(log_t)) {
             ELOG("ERROR, log lseek error\n");
             return(-1);
         }

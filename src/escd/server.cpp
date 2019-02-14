@@ -3808,7 +3808,7 @@ void server::commit_block(std::set<uint16_t>& update) { //assume single thread
             srvs_.xor4(srvs_.nodes[bbank].hash,u.csum); // weights do not change
             srvs_.user_csum(u,bbank,tx->buser);
             srvs_.xor4(srvs_.nodes[bbank].hash,u.csum);
-            lseek(fd,-sizeof(user_t),SEEK_CUR);
+            lseek(fd,-(off_t)sizeof(user_t),SEEK_CUR);
             write(fd,&u,sizeof(user_t)); // write before undo ... not good for sync
             tlog.time=time(NULL);
             tlog.umid=0;

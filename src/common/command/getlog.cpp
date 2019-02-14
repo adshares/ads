@@ -42,7 +42,7 @@ void GetLog::getLastLogsUpdate() {
 
     sprintf(filename,"log/%04X_%08X.bin", node_id, user_id);
     int fd=open(filename,O_RDONLY);
-    if(fd>=0 && lseek(fd,-sizeof(log_t),SEEK_END)>=0) {
+    if(fd>=0 && lseek(fd,-(off_t)sizeof(log_t),SEEK_END)>=0) {
         read(fd,&m_data.info.from,sizeof(uint32_t));
         if(m_data.info.from>0) {
             m_data.info.from--;

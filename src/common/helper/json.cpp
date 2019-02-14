@@ -179,7 +179,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         if(end>0) {
             off_t start=end;
             off_t tseek=0;
-            while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
+            while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-(off_t)sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
                 uint32_t ltime=0;
                 tseek=read(fd,&ltime,sizeof(uint32_t));
                 if(ltime<lastlog-1) { // tollerate 1s difference
@@ -206,13 +206,13 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 skip_usr=1;
                 logtree.clear();
                 uint32_t create_time = ulog.time;
-                lseek(fd,-sizeof(log_t),SEEK_CUR);
-                while(lseek(fd,-sizeof(log_t),SEEK_CUR) > 0) {
+                lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR);
+                while(lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR) > 0) {
                     if(read(fd,&ulog,sizeof(log_t))==sizeof(log_t)) {
                         if(ulog.time != create_time) {
                             break;
                         }
-                        lseek(fd,-sizeof(log_t),SEEK_CUR);
+                        lseek(fd,-(off_t)sizeof(log_t),SEEK_CUR);
                     } else {
                         break;
                     }
@@ -492,11 +492,11 @@ void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user) 
     if(end>0) {
         off_t start=end;
         off_t tseek=0;
-        while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
+        while((start=lseek(fd,(start>(off_t)(sizeof(log_t)*32)?-(off_t)sizeof(log_t)*32-tseek:-start-tseek),SEEK_CUR))>0) {
             uint32_t ltime=0;
             tseek=read(fd,&ltime,sizeof(uint32_t));
             if(ltime<from) { // tollerate 1s difference
-                lseek(fd,sizeof(log_t)-sizeof(uint32_t),SEEK_CUR);
+                lseek(fd,sizeof(log_t)-(off_t)sizeof(uint32_t),SEEK_CUR);
                 break;
             }
         }

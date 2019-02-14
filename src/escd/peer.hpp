@@ -1067,7 +1067,7 @@ public:
                 if(ld) { //confirm again that the undo file has not changed
                     user_t v;
                     v.msid=0;
-                    lseek(ld,-sizeof(user_t),SEEK_CUR);
+                    lseek(ld,-(off_t)sizeof(user_t),SEEK_CUR);
                     read(ld,&v,sizeof(user_t));
                     if(v.msid) { //overwrite user info
                         memcpy((char*)u,&v,sizeof(user_t));
