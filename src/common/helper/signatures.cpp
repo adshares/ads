@@ -43,13 +43,13 @@ std::vector<Signature> Signatures::readSignatures(const char* fileName) {
 
 void Signatures::readSignaturesOk(uint32_t path) {
     char fileName[64];
-    Helper::FileName::getName(fileName, path, "signatures.ok");
+    Helper::FileName::getName(fileName, sizeof(fileName), path, "signatures.ok");
     m_signaturesOk = readSignatures(fileName);
 }
 
 void Signatures::readSignaturesNo(uint32_t path) {
     char fileName[64];
-    Helper::FileName::getName(fileName, path, "signatures.no");
+    Helper::FileName::getName(fileName, sizeof(fileName), path, "signatures.no");
     m_signaturesNo = readSignatures(fileName);
 }
 

@@ -11,7 +11,7 @@ namespace Parser {
 
 MsglistParser::MsglistParser(uint32_t path) : m_filePath(""){
     char filepath[64];
-    Helper::FileName::getName(filepath, path, "msglist.dat");
+    Helper::FileName::getName(filepath, sizeof(filepath), path, "msglist.dat");
     m_filePath = filepath;
 }
 

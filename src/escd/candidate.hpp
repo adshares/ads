@@ -78,7 +78,7 @@ class candidate :
             char miss[64];
             uint32_t msid=(key>>16) & 0xFFFFFFFFL;
             uint16_t svid=(key>>48);
-            sprintf(miss," %04X:%08X",svid,msid);
+            snprintf(miss, sizeof(miss)," %04X:%08X",svid,msid);
             line+=miss;
         }
         msg_.unlock();

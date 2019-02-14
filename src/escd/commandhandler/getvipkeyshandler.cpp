@@ -20,7 +20,7 @@ void GetVipKeysHandler::onExecute() {
     hash[64]='\0';
     ed25519_key2text(hash, m_command->getVipHash(), 32);
     char filename[128];
-    sprintf(filename,"vip/%64s.vip",hash);
+    snprintf(filename, sizeof(filename),"vip/%64s.vip",hash);
 
     VipKeys vipKeys;
     vipKeys.loadFromFile(filename);

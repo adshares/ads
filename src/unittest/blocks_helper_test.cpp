@@ -81,7 +81,7 @@ TEST(BlockTest, prepareData) {
 
 TEST(BlockTest, openFileFromDirectoryBlock) {
     char filename[64] = {0};
-    Helper::FileName::getMsg(filename, m_timestamp, 3, m_bank, m_msid);
+    Helper::FileName::getMsg(filename, sizeof(filename), m_timestamp, 3, m_bank, m_msid);
     Helper::BlockFileReader reader(filename);
     EXPECT_TRUE(reader.isOpen());
 }
@@ -99,10 +99,10 @@ TEST(BlockTest, compressOldBlocks) {
     uint32_t timestamp = m_timestamp + ((BLOCKS_COMPRESSED_SHIFT) * BLOCKSEC);
 
     char dirpath[64];
-    sprintf(dirpath, "blk/%03X/%05X", timestamp>>20, timestamp&0xFFFFF);
+    snprintf(dirpath, sizeof(dirpath), "blk/%03X/%05X", timestamp>>20, timestamp&0xFFFFF);
     Helper::arch_old_blocks(timestamp);
     EXPECT_FALSE(boost::filesystem::exists(dirpath));
-    sprintf(dirpath, "blk/%03X/%05X%s", m_timestamp>>20, m_timestamp&0xFFFFF, Helper::ARCH_EXTENSION);
+    snprintf(dirpath, sizeof(dirpath), "blk/%03X/%05X%s", m_timestamp>>20, m_timestamp&0xFFFFF, Helper::ARCH_EXTENSION);
     EXPECT_TRUE(boost::filesystem::exists(dirpath));
 
     struct stat st = {};

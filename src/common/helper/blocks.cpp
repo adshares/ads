@@ -29,12 +29,12 @@ void arch_old_blocks(uint32_t currentTime) {
     char filepath[32];
     for (int i=0; i<50; ++i) {
         currentTime -= BLOCKSEC;
-        Helper::FileName::getBlk(dirpath, currentTime);
+        Helper::FileName::getBlk(dirpath, sizeof(dirpath), currentTime);
         char header_file_path[64];
-        Helper::FileName::getName(header_file_path, currentTime, "header.hdr");
+        Helper::FileName::getName(header_file_path, sizeof(header_file_path), currentTime, "header.hdr");
         if (boost::filesystem::exists(dirpath) && boost::filesystem::exists(header_file_path)) {
             // create archive from blk directory
-            sprintf(filepath, "blk/%03X/%05X%s", currentTime>>20, currentTime&0xFFFFF, Helper::ARCH_EXTENSION);
+            snprintf(filepath, sizeof(filepath), "blk/%03X/%05X%s", currentTime>>20, currentTime&0xFFFFF, Helper::ARCH_EXTENSION);
             Helper::LibArchive arch(filepath);
             if (arch.createArch(dirpath)) {
                 if (is_snapshot_directory(currentTime)) {
@@ -91,7 +91,7 @@ inline bool is_snapshot_directory(uint32_t blockTime) {
 
 uint32_t get_users_count(uint16_t bank) {
     char usrPath[64];
-    Helper::FileName::getUsr(usrPath, bank);
+    Helper::FileName::getUsr(usrPath, sizeof(usrPath), bank);
     struct stat st;
     stat(usrPath, &st);
     return (st.st_size/sizeof(user_t));
@@ -107,7 +107,7 @@ void db_backup(uint32_t block_path, uint16_t nodes)
         return;
     }
 
-    Helper::FileName::getName(backupFilePath, block_path, "servers.srv");
+    Helper::FileName::getName(backupFilePath, sizeof(backupFilePath), block_path, "servers.srv");
     Helper::Servers servers(backupFilePath);
     servers.load();
 
@@ -115,7 +115,7 @@ void db_backup(uint32_t block_path, uint16_t nodes)
     {
 
         // open snapshot file
-        Helper::FileName::getUndo(backupFilePath, block_path, bank);
+        Helper::FileName::getUndo(backupFilePath, sizeof(backupFilePath), block_path, bank);
         strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
         Helper::FileWrapper snapshotFile;
         if (!snapshotFile.open(backupFilePath, O_WRONLY | O_CREAT, 0644))
@@ -126,7 +126,7 @@ void db_backup(uint32_t block_path, uint16_t nodes)
 
         // open bank file
         char filePath[64];
-        Helper::FileName::getUsr(filePath, bank);
+        Helper::FileName::getUsr(filePath, sizeof(filePath), bank);
         Helper::FileWrapper bankFile;
         if (!bankFile.open(filePath))
         {
@@ -141,14 +141,14 @@ void db_backup(uint32_t block_path, uint16_t nodes)
         std::shared_ptr<Helper::FileWrapper> undo_file;
         for (uint32_t block = block_path; block <= current_block; block+=BLOCKSEC) {
             char undoPath[64];
-            Helper::FileName::getBlk(undoPath, block);
+            Helper::FileName::getBlk(undoPath, sizeof(undoPath), block);
             if (!boost::filesystem::exists(undoPath))
             {
                 WLOG("Gap in block chain: %d %s\n", block, undoPath);
                 break;
             }
 
-            Helper::FileName::getUndo(undoPath, block, bank);
+            Helper::FileName::getUndo(undoPath, sizeof(undoPath), block, bank);
 
             undo_file.reset(new FileWrapper(std::string(undoPath), O_RDONLY | O_CREAT, 0644));
             if (undo_file->isOpen()) {
@@ -205,7 +205,7 @@ void db_backup(uint32_t block_path, uint16_t nodes)
     // change snapshot temp file name to correct one
     for (uint16_t bank = 1; bank < nodes; ++bank)
     {
-        Helper::FileName::getUndo(backupFilePath, block_path, bank);
+        Helper::FileName::getUndo(backupFilePath, sizeof(backupFilePath), block_path, bank);
         strncat(backupFilePath, snapshot_postfix, sizeof(backupFilePath) - strlen(backupFilePath) - 1);
         std::rename(backupFilePath,
                     std::string(backupFilePath).substr(0, Helper::FileName::kUndoNameFixedLength).c_str());

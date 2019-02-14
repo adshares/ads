@@ -168,7 +168,7 @@ void GetMessage::toJson(boost::property_tree::ptree& ptree) {
 
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X",m_responseBlock);
+        snprintf(blockhex, sizeof(blockhex),"%08X",m_responseBlock);
 
         ptree.put("block_id", blockhex);
         ptree.put("message_id",Helper::print_msg_pack_id(m_responseMsg->svid, m_responseMsg->msid));

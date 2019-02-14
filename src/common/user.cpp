@@ -501,7 +501,6 @@ std::unique_ptr<IBlockCommand> run_json(settings& sts, boost::property_tree::ptr
 
         if(keycommand && !keycommand->checkPubKeySignaure()) {
             throw CommandException(ErrorCodes::Code::eCommandParseError, "bad new KEY or empty string signature");
-            command.reset();
         }
     }
 

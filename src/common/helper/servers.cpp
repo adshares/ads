@@ -52,7 +52,7 @@ bool Servers::loadHeader() {
         if (!m_header.ttime) {
             snprintf(filePath, sizeof(filePath), "blk/header.hdr");
         } else {
-            Helper::FileName::getName(filePath, m_header.ttime, "header.hdr");
+            Helper::FileName::getName(filePath, sizeof(filePath), m_header.ttime, "header.hdr");
         }
         m_filePath = filePath;
     }
@@ -73,7 +73,7 @@ bool Servers::loadHeader() {
 bool Servers::loadNowhash() {
     if (m_filePath.empty()) {
         char filePath[64];
-        sprintf(filePath, "blk/%03X.now", m_header.ttime>>20);
+        snprintf(filePath, sizeof(filePath), "blk/%03X.now", m_header.ttime>>20);
         m_filePath = filePath;
     }
 

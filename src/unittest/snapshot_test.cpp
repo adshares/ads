@@ -84,13 +84,13 @@ TEST(SnapshotTest, prepareData)
     boost::filesystem::create_directories("usr");
 
     uint32_t block_time = kStartBlockDec;
-    Helper::FileName::getBlk(filename, block_time, "und");
+    Helper::FileName::getBlk(filename, sizeof(filename), block_time, "und");
     boost::filesystem::create_directories(filename);
     block_time += BLOCKSEC;
-    Helper::FileName::getBlk(filename, block_time, "und");
+    Helper::FileName::getBlk(filename, sizeof(filename), block_time, "und");
     boost::filesystem::create_directories(filename);
     block_time += BLOCKSEC;
-    Helper::FileName::getBlk(filename, block_time, "und");
+    Helper::FileName::getBlk(filename, sizeof(filename), block_time, "und");
     boost::filesystem::create_directories(filename);
 
     block_time = kStartBlockDec;
@@ -98,7 +98,7 @@ TEST(SnapshotTest, prepareData)
     user_t usr;
 
     // 1st block
-    Helper::FileName::getUndo(filename, block_time, kNodeId);
+    Helper::FileName::getUndo(filename, sizeof(filename), block_time, kNodeId);
     file.open(filename, std::ofstream::out | std::ofstream::binary);
     usr = {};
     usr.msid = 11;
@@ -111,7 +111,7 @@ TEST(SnapshotTest, prepareData)
 
     // 2nd block
     block_time += BLOCKSEC;
-    Helper::FileName::getUndo(filename, block_time, kNodeId);
+    Helper::FileName::getUndo(filename, sizeof(filename), block_time, kNodeId);
     file.open(filename, std::ofstream::out | std::ofstream::binary);
     usr = {};
     usr.msid = 12;
@@ -125,7 +125,7 @@ TEST(SnapshotTest, prepareData)
 
     // 3rd block
     block_time += BLOCKSEC;
-    Helper::FileName::getUndo(filename, block_time, kNodeId);
+    Helper::FileName::getUndo(filename, sizeof(filename), block_time, kNodeId);
     file.open(filename, std::ofstream::out | std::ofstream::binary);
     usr = {};
     usr.msid = 13;
@@ -140,7 +140,7 @@ TEST(SnapshotTest, prepareData)
     file.close();
 
     // create usr file
-    Helper::FileName::getUsr(filename, kNodeId);
+    Helper::FileName::getUsr(filename, sizeof(filename), kNodeId);
     file.open(filename, std::ofstream::out | std::ofstream::binary);
     usr = {};
     usr.msid = 14;
@@ -161,7 +161,7 @@ TEST(SnapshotTest, prepareData)
     file.close();
 
     // servers.srv in snapshot directory
-    Helper::FileName::getName(filename, kSnapshotBlock, "servers.srv");
+    Helper::FileName::getName(filename, sizeof(filename), kSnapshotBlock, "servers.srv");
     Helper::ServersHeader header{};
     header.nodesCount = 2;
     Helper::ServersNode node{};
@@ -190,7 +190,7 @@ bool compareUsr(const user_t& usr1, const user_t& usr2)
 TEST(SnapshotTest, createSnapshot)
 {
     char filename[64];
-    Helper::FileName::getUndo(filename, kSnapshotBlock, kNodeId);
+    Helper::FileName::getUndo(filename, sizeof(filename), kSnapshotBlock, kNodeId);
     std::stringstream src_data{}, dst_data{};
     std::ifstream file(filename, std::ifstream::in | std::ifstream::binary);
     src_data << file.rdbuf();
@@ -223,7 +223,7 @@ TEST(SnapshotTest, createSnapshotNotDividendBlock)
 {
     char filename[64];
     uint32_t block_time = kSnapshotBlock + BLOCKSEC;
-    Helper::FileName::getUndo(filename, block_time, kNodeId);
+    Helper::FileName::getUndo(filename, sizeof(filename), block_time, kNodeId);
     std::stringstream src_data{}, dst_data{};
     std::ifstream file;
     file.open(filename, std::ifstream::in | std::ifstream::binary);

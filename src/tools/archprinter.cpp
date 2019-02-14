@@ -106,7 +106,7 @@ void ArchPrinter::printMsgList() {
     for (auto it = msglist.begin(); it != msglist.end(); ++it)
     {
         char msgfilepath[64];
-        sprintf(msgfilepath, "%02x_%04x_%08x.msg", 3, it->node_id, it->node_msid);
+        snprintf(msgfilepath, sizeof(msgfilepath), "%02x_%04x_%08x.msg", 3, it->node_id, it->node_msid);
         printMsg(msgfilepath);
     }
 }

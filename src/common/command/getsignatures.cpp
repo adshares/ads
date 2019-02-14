@@ -160,7 +160,7 @@ void GetSignatures::toJson(boost::property_tree::ptree &ptree) {
 
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X", getBlockNumber());
+        snprintf(blockhex, sizeof(blockhex),"%08X", getBlockNumber());
         ptree.put("block_time_hex",blockhex);
         ptree.put("block_time", getBlockNumber());
 

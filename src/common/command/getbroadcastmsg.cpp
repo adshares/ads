@@ -158,7 +158,7 @@ void GetBroadcastMsg::toJson(boost::property_tree::ptree& ptree) {
     } else {
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X", m_header.path);
+        snprintf(blockhex, sizeof(blockhex),"%08X", m_header.path);
         ptree.put("block_time_hex", blockhex);
         ptree.put("block_time", m_header.path);
         ptree.put("broadcast_count", m_response.size());
@@ -183,7 +183,7 @@ void GetBroadcastMsg::printBlg(GetBroadcastResponse& block, std::string& message
     hash[64]='\0';
     uint16_t suffix=Helper::crc_acnt(block.info.src_node, block.info.src_user);
     char acnt[19];
-    sprintf(acnt,"%04X-%08X-%04X", block.info.src_node, block.info.src_user, suffix);
+    snprintf(acnt, sizeof(acnt),"%04X-%08X-%04X", block.info.src_node, block.info.src_user, suffix);
 
     boost::property_tree::ptree blogentry;
     blogentry.put("block_time", m_header.path);
@@ -229,7 +229,7 @@ void GetBroadcastMsg::printBlg(GetBroadcastResponse& block, std::string& message
 
     //tx_id
     char tx_id[64];
-    sprintf(tx_id,"%04X:%08X:%04X", block.info.src_node, block.data.msid, block.data.mpos);
+    snprintf(tx_id, sizeof(tx_id),"%04X:%08X:%04X", block.info.src_node, block.data.msid, block.data.mpos);
     blogentry.put("node_msid", block.data.msid);
     blogentry.put("node_mpos", block.data.mpos);
     blogentry.put("id",tx_id);
@@ -246,7 +246,7 @@ bool GetBroadcastMsg::loadFromLocalPath() {
 
     uint32_t path = blockTime-(blockTime%BLOCKSEC);
     char filename[64];
-    sprintf(filename, "bro/%08X.bin", path);
+    snprintf(filename, sizeof(filename), "bro/%08X.bin", path);
     std::ifstream file(filename, std::ifstream::binary | std::ifstream::in);
     if (!file.is_open()) {
         m_loadedFromLocal = false;
@@ -289,7 +289,7 @@ void GetBroadcastMsg::saveCopy(unsigned char *dataBuffer, int size) {
 
     char filename[64];
     mkdir("bro",0755);
-    sprintf(filename, "bro/%08X.bin", path);
+    snprintf(filename, sizeof(filename), "bro/%08X.bin", path);
     std::ofstream file(filename, std::ofstream::binary | std::ofstream::out);
     if (file.is_open()) {
         file.write(reinterpret_cast<char*>(dataBuffer), size);

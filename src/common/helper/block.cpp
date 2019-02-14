@@ -33,7 +33,7 @@ bool Block::readDataFromHeaderFile() {
     if(!m_data.ttime) {
         snprintf(fileName,sizeof(fileName),"blk/header.hdr");
     } else {
-        Helper::FileName::getName(fileName, m_data.ttime, "header.hdr");
+        Helper::FileName::getName(fileName, sizeof(fileName), m_data.ttime, "header.hdr");
     }
     const uint32_t check = m_data.ttime;
     Helper::BlockFileReader file(fileName);

@@ -43,7 +43,7 @@ Hlog& Hlog::operator=(Hlog hlog) {
 Hlog::Hlog(uint32_t path) :
     total(0),
     data(NULL) {
-    Helper::FileName::getName(filename, path, "hlog.hlg");
+    Helper::FileName::getName(filename, sizeof(filename), path, "hlog.hlg");
     SHA256_Init(&sha256);
 }
 
@@ -200,7 +200,7 @@ bool Hlog::save(char* buf,int len) {
 
 char* Hlog::txid(const uint64_t& ppi) {
     ppi_t *p=(ppi_t*)&ppi;
-    sprintf(txid_text,"%04X%08X%04X",p->v16[2],p->v32[0],p->v16[3]);
+    snprintf(txid_text, sizeof(txid_text),"%04X%08X%04X",p->v16[2],p->v32[0],p->v16[3]);
     return(txid_text);
 }
 

@@ -27,10 +27,10 @@ void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t
     uint16_t suffix=crc_acnt(bank,user);
     char ucnt[19]="";
     char acnt[19];
-    sprintf(acnt,"%04X-%08X-%04X",bank,user,suffix);
+    snprintf(acnt, sizeof(acnt),"%04X-%08X-%04X",bank,user,suffix);
     if(u.node) {
         suffix=crc_acnt(u.node,u.user);
-        sprintf(ucnt,"%04X-%08X-%04X",u.node,u.user,suffix);
+        snprintf(ucnt, sizeof(ucnt),"%04X-%08X-%04X",u.node,u.user,suffix);
     }
     if(local) {
         pt.put("account.address",acnt);
@@ -148,7 +148,7 @@ const std::string print_address(uint16_t node, uint32_t user, int32_t _suffix) {
     char acnt[19];
     uint16_t suffix;
     (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
-    sprintf(acnt,"%04X-%08X-%04X", node, user, suffix);
+    snprintf(acnt, sizeof(acnt),"%04X-%08X-%04X", node, user, suffix);
     return std::string(acnt);
 }
 
@@ -156,19 +156,19 @@ const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix) {
     char acnt[19];
     uint16_t suffix;
     (_suffix == -1) ? suffix = Helper::crc_acnt(node, user) : suffix = _suffix;
-    sprintf(acnt,"%04X:%08X:%04X", node, user, suffix);
+    snprintf(acnt, sizeof(acnt),"%04X:%08X:%04X", node, user, suffix);
     return std::string(acnt);
 }
 
 const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id) {
     char acnt[19];
-    sprintf(acnt,"%04X:%08X", node, msg_id);
+    snprintf(acnt, sizeof(acnt),"%04X:%08X", node, msg_id);
     return std::string(acnt);
 }
 
 void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, uint32_t lastlog, int txnType = -1, bool full = false) {
     char filename[64];
-    sprintf(filename,"log/%04X_%08X.bin", bank, user);
+    snprintf(filename, sizeof(filename),"log/%04X_%08X.bin", bank, user);
     int fd=open(filename,O_RDONLY);
     if(fd<0) {
         fprintf(stderr,"ERROR, failed to open log file %s\n",filename);
@@ -230,7 +230,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         boost::property_tree::ptree logentry;
         uint16_t suffix=crc_acnt(ulog.node,ulog.user);
         char acnt[19];
-        sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
+        snprintf(acnt, sizeof(acnt),"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
         logentry.put("time",ulog.time);
         logentry.put("date",mydate(ulog.time));
         logentry.put("type_no",ulog.type);
@@ -287,7 +287,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 logentry.put("dividend",print_amount(ulog.weight));
                 uint16_t suffix=crc_acnt(ulog.node,ulog.user);
                 char acnt[19]="";
-                sprintf(acnt,"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
+                snprintf(acnt, sizeof(acnt),"%04X-%08X-%04X",ulog.node,ulog.user,suffix);
                 logentry.put("account.address",acnt);
                 logtree.push_back(std::make_pair("",logentry));
                 continue;
@@ -296,7 +296,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 logentry.put("node_msid",ulog.nmid);
                 char blockhex[9];
                 blockhex[8]='\0';
-                sprintf(blockhex,"%08X",ulog.mpos);
+                snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
                 logentry.put("block_id",blockhex);
                 logentry.put("dividend",print_amount(ulog.weight));
                 logtree.push_back(std::make_pair("",logentry));
@@ -321,7 +321,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 } else { // bank profit at block end
                     char blockhex[9];
                     blockhex[8]='\0';
-                    sprintf(blockhex,"%08X",ulog.mpos);
+                    snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
                     logentry.put("block_id",blockhex);
                     int64_t div;
                     int64_t usr;
@@ -347,7 +347,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 logentry.put("node",ulog.node);
                 char blockhex[9];
                 blockhex[8]='\0';
-                sprintf(blockhex,"%08X",ulog.mpos);
+                snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
                 logentry.put("block_id",blockhex);
                 if(ulog.user) {
                     logentry.put("account",ulog.user);
@@ -370,7 +370,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
                 logentry.put("node",ulog.node);
                 char blockhex[9];
                 blockhex[8]='\0';
-                sprintf(blockhex,"%08X",ulog.mpos);
+                snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
                 logentry.put("block_id",blockhex);
                 if(ulog.user) {
                     logentry.put("account",ulog.user);
@@ -383,7 +383,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
             if(txst==TXSTYPE_BNK) {
                 char blockhex[9];
                 blockhex[8]='\0';
-                sprintf(blockhex,"%08X",ulog.mpos);
+                snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
                 logentry.put("block_id",blockhex);
                 if(ulog.node) {
                     logentry.put("node",ulog.node);
@@ -408,7 +408,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         if(!ulog.nmid) {
             char blockhex[9];
             blockhex[8]='\0';
-            sprintf(blockhex,"%08X",ulog.mpos);
+            snprintf(blockhex, sizeof(blockhex),"%08X",ulog.mpos);
             logentry.put("block_id",blockhex);
         } else {
             logentry.put("node_msid",ulog.nmid);
@@ -465,10 +465,10 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
         char tx_id[64];
         if(ulog.type & 0x8000) {
             logentry.put("inout","in");
-            sprintf(tx_id,"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);
+            snprintf(tx_id, sizeof(tx_id),"%04X:%08X:%04X",ulog.node,ulog.nmid,ulog.mpos);
         } else {
             logentry.put("inout","out");
-            sprintf(tx_id,"%04X:%08X:%04X",bank,ulog.nmid,ulog.mpos);
+            snprintf(tx_id, sizeof(tx_id),"%04X:%08X:%04X",bank,ulog.nmid,ulog.mpos);
         }
         logentry.put("id",tx_id);
         logtree.push_back(std::make_pair("",logentry));
@@ -480,7 +480,7 @@ void print_log(boost::property_tree::ptree& pt, uint16_t bank, uint32_t user, ui
 void save_log(log_t* log, int len, uint32_t from, uint16_t bank, uint32_t user) {
     char filename[64];
     mkdir("log",0755);
-    sprintf(filename,"log/%04X_%08X.bin", bank, user);
+    snprintf(filename, sizeof(filename),"log/%04X_%08X.bin", bank, user);
     int fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644);
     if(fd<0) {
         fprintf(stderr,"ERROR, failed to open log file %s\n",filename);

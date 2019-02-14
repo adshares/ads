@@ -40,7 +40,7 @@ void GetLog::getLastLogsUpdate() {
         user_id = this->getUserId();
     }
 
-    sprintf(filename,"log/%04X_%08X.bin", node_id, user_id);
+    snprintf(filename, sizeof(filename),"log/%04X_%08X.bin", node_id, user_id);
     int fd=open(filename,O_RDONLY);
     if(fd>=0 && lseek(fd,-(off_t)sizeof(log_t),SEEK_END)>=0) {
         read(fd,&m_data.info.from,sizeof(uint32_t));

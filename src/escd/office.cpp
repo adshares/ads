@@ -24,7 +24,7 @@ office::office(options& opts,server& srv) :
             // prapare local register [this could be in RAM later or be on a RAM disk]
             mkdir("ofi",0755);
             //char filename[64];
-            sprintf(ofifilename,"ofi/%04X.dat",svid);
+            snprintf(ofifilename, sizeof(ofifilename),"ofi/%04X.dat",svid);
             offifd_=open(ofifilename,O_RDWR|O_CREAT|O_TRUNC,0644); // truncate to force load from main repository
             if(offifd_<0) {
                 ELOG("ERROR, failed to open office register\n");
@@ -104,7 +104,7 @@ void office::init(uint32_t myusers) {
     //ustatus.resize(users); //a buffer to enable easy resizing of the account vector
     //copy bank file
     char filename[64];
-    sprintf(filename,"usr/%04X.dat",svid);
+    snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
     int gd=open(filename,O_RDONLY);
     if(gd<0) {
         DLOG("ERROR, failed to open %s in init, fatal\n",filename);
@@ -178,19 +178,19 @@ void office::update_div(uint32_t now,uint32_t newdiv) {
         return;
     }
     char filename[64];
-    sprintf(filename,"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
+    snprintf(filename, sizeof(filename),"ofi/%04X_%08X.div",svid,now); // log dividends, save in user logs later
     int dd=open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
     if(dd<0) {
         DLOG("ERROR, failed to open %s, fatal\n",filename);
         exit(-1);
     }
-    sprintf(filename,"usr/%04X.dat",svid);
+    snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
     int gd=open(filename,O_RDONLY);
     if(gd<0) {
         DLOG("ERROR, failed to open %s, fatal\n",filename);
         exit(-1);
     }
-    sprintf(filename,"ofi/%04X.dat",svid);
+    snprintf(filename, sizeof(filename),"ofi/%04X.dat",svid);
     int ld=open(filename,O_RDONLY);
     if(ld<0) {
         DLOG("ERROR, failed to open %s, fatal\n",filename);
@@ -240,7 +240,7 @@ void office::process_div(uint32_t path) {
     }
     int dd=-1;
     char filename[64];
-    sprintf(filename,"ofi/%04X_%08X.div",svid,path); // log dividends, save in user logs later
+    snprintf(filename, sizeof(filename),"ofi/%04X_%08X.div",svid,path); // log dividends, save in user logs later
     dd=open(filename,O_RDONLY);
     if(dd<0) {
         DLOG("ERROR, failed to open %s, fatal\n",filename);
@@ -305,7 +305,7 @@ void office::process_log(uint32_t now) { //FIXME, check here if logs are not dup
     //uint64_t sv00=((uint64_t)opts_.svid)<<32;
     //mque.push_back(sv00); //add block message
     char filename[64];
-    Helper::FileName::getLogTimeBin(filename, now);
+    Helper::FileName::getLogTimeBin(filename, sizeof(filename), now);
     int fd = open(filename, O_RDWR|O_CREAT, 0644);
     if(fd<0) {
         DLOG("ERROR, failed to open log time file %s, fatal\n",filename);
@@ -337,7 +337,7 @@ void office::process_log(uint32_t now) { //FIXME, check here if logs are not dup
         uint64_t svms=(*mi);
         uint32_t bank=svms>>32;
         uint32_t msid=svms&0xFFFFFFFF;
-        Helper::FileName::getLog(filename, now, bank, msid);
+        Helper::FileName::getLog(filename, sizeof(filename), now, bank, msid);
         int fd = open(filename, O_RDONLY);
         if(fd<0) {
             DLOG("OFFICE, failed to open log file %s\n",filename);
@@ -825,7 +825,7 @@ void office::add_account(hash_s* key,uint32_t user) {
 
 bool office::get_msg(uint32_t msid,std::string& line) {
     char filename[64];
-    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    snprintf(filename, sizeof(filename),"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_RDONLY);
     if(md<0) {
         return(false);
@@ -845,7 +845,7 @@ bool office::get_msg(uint32_t msid,std::string& line) {
 
 void office::del_msg(uint32_t msid) {
     char filename[64];
-    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    snprintf(filename, sizeof(filename),"ofi/msg_%08X.msd",msid);
     unlink(filename);
 }
 
@@ -920,7 +920,7 @@ bool office::add_msg(IBlockCommand& utxs, uint32_t& msid, uint32_t& mpos) {
     msid=srv_.msid_+1; // check if no conflict !!!
 
     char filename[64];
-    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    snprintf(filename, sizeof(filename),"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
 
     if(md<0) {
@@ -980,7 +980,7 @@ bool office::add_msg(uint8_t* msg, uint32_t len, uint32_t& msid, uint32_t& mpos)
     msid=srv_.msid_+1; // check if no conflict !!!
 
     char filename[64];
-    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    snprintf(filename, sizeof(filename),"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
 
     if(md<0) {
@@ -1020,7 +1020,7 @@ bool office::add_msg(uint8_t* msg, usertxs& utxs, uint32_t& msid, uint32_t& mpos
     }
     msid=srv_.msid_+1; // check if no conflict !!!
     char filename[64];
-    sprintf(filename,"ofi/msg_%08X.msd",msid);
+    snprintf(filename, sizeof(filename),"ofi/msg_%08X.msd",msid);
     int md=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(md<0) {
         msid=0;
@@ -1120,7 +1120,7 @@ uint32_t office::last_users(uint32_t bank) {
 void office::mklogdir(uint16_t svid) {
     assert(svid);
     char filename[64];
-    sprintf(filename,"log/%04X",svid);
+    snprintf(filename, sizeof(filename),"log/%04X",svid);
     mkdir("log",0755); // create dir for user history
     mkdir(filename,0755);
 }
@@ -1176,12 +1176,12 @@ void office::put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) {}
 void office::mklogfile(uint16_t svid,uint32_t user) {
     assert(svid);
     char filename[64];
-    sprintf(filename,"log/%04X/%03X",svid,user>>20);
+    snprintf(filename, sizeof(filename),"log/%04X/%03X",svid,user>>20);
     mkdir(filename,0755);
-    sprintf(filename,"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
+    snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X",svid,user>>20,(user&0xFFF00)>>8);
     mkdir(filename,0755);
     //create log file ... would be created later anyway
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT,0644);
     if(fd<0) {
         ELOG("ERROR, failed to create log directory %s\n",filename);
@@ -1192,7 +1192,7 @@ void office::mklogfile(uint16_t svid,uint32_t user) {
 void office::put_log(uint32_t user,log_t& log) { //single user, called by office and client
     assert(svid);
     char filename[64];
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_WRONLY|O_CREAT|O_APPEND,0644);
     if(fd<0) {
         mklogfile(svid,user);
@@ -1222,7 +1222,7 @@ void office::put_log(std::map<uint64_t,log_t>& log,uint32_t ntime) { //many user
             }
             luser=user;
             char filename[64];
-            sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+            snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
             fd=open(filename,O_RDWR|O_CREAT|O_APPEND,0644); //maybe no lock needed with O_APPEND
             if(fd<0) {
                 mklogfile(svid,user);
@@ -1264,7 +1264,7 @@ bool office::fix_log(uint16_t svid,uint32_t user) {
     assert(svid);
     char filename[64];
     struct stat sb;
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int rd=open(filename,O_RDONLY|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(rd<0) {
         ELOG("ERROR, failed to open log register %s for reading\n",filename);
@@ -1326,7 +1326,7 @@ bool office::get_log(uint16_t svid,uint32_t user,uint32_t from,bool full,std::st
     if(from==0xffffffff) {
         fix_log(svid,user);
     }
-    sprintf(filename,"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
+    snprintf(filename, sizeof(filename),"log/%04X/%03X/%03X/%02X.log",svid,user>>20,(user&0xFFF00)>>8,(user&0xFF));
     int fd=open(filename,O_RDWR|O_CREAT,0644); //maybe no lock needed with O_APPEND
     if(fd<0) {
         ELOG("ERROR, failed to open log register %s\n",filename);

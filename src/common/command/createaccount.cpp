@@ -175,7 +175,7 @@ void CreateAccount::toJson(boost::property_tree::ptree& ptree) {
         if (m_response.new_user) {
             char nAccountAddress[19]="";
             uint16_t suffix=Helper::crc_acnt(getBankId(), m_response.new_user);
-            sprintf(nAccountAddress, "%04X-%08X-%04X", getBankId(), m_response.new_user, suffix);
+            snprintf(nAccountAddress, sizeof(nAccountAddress), "%04X-%08X-%04X", getBankId(), m_response.new_user, suffix);
             ptree.put("new_account.address", nAccountAddress);
             ptree.put("new_account.node", this->getBankId());
             ptree.put("new_account.id", m_response.new_user);

@@ -160,7 +160,7 @@ void GetMessageList::toJson(boost::property_tree::ptree& ptree) {
     } else {
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X", m_data.info.block);
+        snprintf(blockhex, sizeof(blockhex),"%08X", m_data.info.block);
         ptree.put("block_time_hex", blockhex);
         ptree.put("block_time", m_data.info.block);
 

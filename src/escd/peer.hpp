@@ -1012,7 +1012,7 @@ public:
         uint32_t users=s.nodes[bank].users;
         //TODO, consider checking that the final hash is correct
         char filename[64];
-        sprintf(filename,"usr/%04X.dat",bank);
+        snprintf(filename, sizeof(filename),"usr/%04X.dat",bank);
         int fd=open(filename,O_RDONLY);
         int ld=0;
         if(fd<0) {
@@ -1021,7 +1021,7 @@ public:
             return;
         }
         for(uint32_t block=path+BLOCKSEC; block<=srvs_.now; block++) {
-            Helper::FileName::getUndo(filename, block, bank);
+            Helper::FileName::getUndo(filename, sizeof(filename), block, bank);
             int uf = open(filename, O_RDONLY|O_CREAT, 0644);
             if(uf<0) {
                 continue;
@@ -1165,7 +1165,7 @@ NEXTUSER:
         }
         ILOG("%04X PROCESSING bank %04X\n",svid,bank);
         char filename[64];
-        sprintf(filename,"usr/%04X.dat.%04X",bank,svid);
+        snprintf(filename, sizeof(filename),"usr/%04X.dat.%04X",bank,svid);
         if(!read_msg_->msid) {
             hrb_last_bank=bank;
             hrb_last_msid=0;
@@ -1229,7 +1229,7 @@ NEXTUSER:
             return;
         }
         char new_name[64];
-        sprintf(new_name,"usr/%04X.dat",bank);
+        snprintf(new_name, sizeof(new_name),"usr/%04X.dat",bank);
         rename(filename,new_name);
         DLOG("%04X PROCESSED bank %04X\n",svid,bank);
         server_.have_bank(hnum);

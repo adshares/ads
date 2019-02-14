@@ -117,7 +117,7 @@ void change_log_file(uint32_t timestamp)
 
     char filename[32];;
     uint32_t ntime=time(NULL);
-    Helper::FileName::getName(filename, timestamp, "log.txt");
+    Helper::FileName::getName(filename, sizeof(filename), timestamp, "log.txt");
 
     fprintf(settings.log_file,"END: %08X\n",ntime);
     fclose(settings.log_file);

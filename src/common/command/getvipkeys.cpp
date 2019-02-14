@@ -129,7 +129,7 @@ bool GetVipKeys::send(INetworkClient& netClient)
 
     mkdir("vip", 0755);
     char filename[128];
-    sprintf(filename, "vip/%64s.vip", hash);
+    snprintf(filename, sizeof(filename), "vip/%64s.vip", hash);
 
     if(!m_vipKeys.storeVipKeys(filename)) {
         fprintf(stderr, "ERROR, failed to save VIP keys for hash %s\n", hash);

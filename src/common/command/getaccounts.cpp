@@ -160,12 +160,12 @@ ErrorCodes::Code GetAccounts::prepareResponse(uint32_t lastPath, uint32_t lastUs
     int fd;
     std::shared_ptr<Helper::BlockFileReader> undo;
 
-    sprintf(filename,"usr/%04X.dat", destBank);
+    snprintf(filename, sizeof(filename),"usr/%04X.dat", destBank);
     fd = open(filename,O_RDONLY);
     if (fd < 0) {
         errorCode = ErrorCodes::Code::eBankNotFound;
     } else {
-        Helper::FileName::getUndo(filename, lastPath, destBank);
+        Helper::FileName::getUndo(filename, sizeof(filename), lastPath, destBank);
         undo = std::make_shared<Helper::BlockFileReader>(filename);
         if(!undo->isOpen()) {
             errorCode = ErrorCodes::Code::eUndoNotFound;

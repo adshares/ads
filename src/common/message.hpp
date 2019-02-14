@@ -259,7 +259,7 @@ class message :
 
     bool get_user(uint32_t user,user_t& u) { //expected to be used rarely, not optimised (fd could be provided)
         char filename[64];
-        sprintf(filename,"usr/%04X.dat",svid);
+        snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
             return(false);
@@ -269,7 +269,7 @@ class message :
         close(fd);
         uint32_t block=now-now%BLOCKSEC;
         for(; block<=path; block+=BLOCKSEC) {
-            Helper::FileName::getUndo(filename, block, svid);
+            Helper::FileName::getUndo(filename, sizeof(filename), block, svid);
             int fd = open(filename, O_RDONLY);
             if(fd<0) {
                 continue;
@@ -379,8 +379,8 @@ class message :
     {
       char filename[128];
       assert(hashtype()==MSGTYPE_MSG);
-      makefilename(filename,path,"msg");
-      //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
+      makefilename(filename,sizeof(filename),path,"msg");
+      //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,MSGTYPE_MSG,svid,msid);
       Helper::BlockFileReader fd(filename);
       if(!fd.isOpen()) {
         DLOG("ERROR %s not found\n",filename);
@@ -923,7 +923,7 @@ class message :
 #ifndef NDEBUG
             if(data==NULL) {
                 char filename[128];
-                makefilename(filename,path,"msg");
+                makefilename(filename,sizeof(filename),path,"msg");
                 DLOG("%s lost [len:%d]\n",filename,len);
             }
 #endif
@@ -933,14 +933,14 @@ class message :
             mtx_.unlock();
 #ifndef NDEBUG
             char filename[128];
-            makefilename(filename,path,"msg");
+            makefilename(filename,sizeof(filename),path,"msg");
             DLOG("%s full [len:%d]\n",filename,len);
 #endif
             return(1);
         }
         char filename[128];
-        makefilename(filename,path,"msg");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"msg");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         Helper::BlockFileReader fd(filename);
         if(!fd.isOpen()) {
             busy.erase(who); //FIXME, check if this is not a problem :-(
@@ -1004,8 +1004,8 @@ class message :
             return;
         }
         char filename[128];
-        makefilename(filename,path,"msg");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"msg");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         if(!(status & MSGSTAT_VAL)) {
             ELOG("ERROR, save_mnum for invalid message %04X:%08X (%s)\n",svid,msid,filename);
             assert(0);
@@ -1021,15 +1021,15 @@ class message :
 
     }
 
-    void makefilename(char* filename,uint32_t where,const char* suffix) {
+    void makefilename(char* filename,size_t size, uint32_t where,const char* suffix) {
         if(status & MSGSTAT_BAD) {
             char hash[2*SHA256_DIGEST_LENGTH+1];
             hash[2*SHA256_DIGEST_LENGTH]='\0';
             ed25519_key2text(hash,sigh,SHA256_DIGEST_LENGTH);
-            sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x_%s.%s",
+            snprintf(filename,size,"blk/%03X/%05X/%02x_%04x_%08x_%s.%s",
                     where>>20,where&0xFFFFF,(uint32_t)hashtype(),svid,msid,hash,suffix);
         } else {
-            sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.%s",
+            snprintf(filename, size,"blk/%03X/%05X/%02x_%04x_%08x.%s",
                     where>>20,where&0xFFFFF,(uint32_t)hashtype(),svid,msid,suffix);
         }
     }
@@ -1046,7 +1046,7 @@ class message :
         }
         boost::lock_guard<boost::mutex> lock(mtx_);
         char filename[128];
-        makefilename(filename,path,"msg");
+        makefilename(filename,sizeof(filename),path,"msg");
         //assert(data!=NULL);
         if(data==NULL) {
             ELOG("ASSERT in save data==NULL: %04X:%08X %016lX %s len:%d\n",svid,msid,hash.num,filename,len);
@@ -1078,7 +1078,7 @@ class message :
             return(2);
         }
         char filename[64];
-        sprintf(filename,"inx/%04X.inx",svid);
+        snprintf(filename, sizeof(filename),"inx/%04X.inx",svid);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
             return(0);
@@ -1094,7 +1094,7 @@ class message :
             return(2);
         }
         char filename[64];
-        sprintf(filename,"inx/%04X.inx",svid);
+        snprintf(filename, sizeof(filename),"inx/%04X.inx",svid);
         int fd=open(filename,O_WRONLY|O_CREAT,0644);
         if(fd<0) {
             return(0);
@@ -1111,7 +1111,7 @@ class message :
             return(path);
         }
         char filename[64];
-        sprintf(filename,"inx/%04X.inx",svid);
+        snprintf(filename, sizeof(filename),"inx/%04X.inx",svid);
         int fd=open(filename,O_RDONLY);
         if(fd<0) {
             return(0);
@@ -1124,8 +1124,8 @@ class message :
 
     void save_undo(std::map<uint32_t,user_t>& undo,uint32_t users,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim) { // assume no errors :-) FIXME
         char filename[128];
-        makefilename(filename,path,"und");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"und");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         int fd = open(filename,O_RDWR|O_CREAT|O_TRUNC,0644);
         if(fd<0) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
@@ -1146,8 +1146,8 @@ class message :
 
     uint32_t load_undo(std::map<uint32_t,user_t>& undo,uint64_t* csum,int64_t& weight,int64_t& fee,uint8_t* msha,uint32_t& mtim) {
         char filename[128];
-        makefilename(filename,path,"und");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"und");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         Helper::BlockFileReader fd(filename);
         if(!fd.isOpen()) {
             ELOG("ERROR failed to open %s, fatal\n",filename);
@@ -1176,7 +1176,7 @@ class message :
         char oldname[128];
         char newname[128];
         if(!path || path==nextpath) {
-            makefilename(oldname,path,"msg");
+            makefilename(oldname,sizeof(oldname),path,"msg");
             DLOG("NO MOVE of %s from %08X to %08X\n",oldname,path,nextpath);
             return(0);
         }
@@ -1184,11 +1184,11 @@ class message :
         int r=0;
         if(status & MSGSTAT_SAV) {
             r=-1;
-            makefilename(oldname,path,"und");
-            makefilename(newname,nextpath,"und");
+            makefilename(oldname,sizeof(oldname),path,"und");
+            makefilename(newname,sizeof(newname),nextpath,"und");
             rename(oldname,newname); //does not exist before validation
-            makefilename(oldname,path,"msg");
-            makefilename(newname,nextpath,"msg");
+            makefilename(oldname,sizeof(oldname),path,"msg");
+            makefilename(newname,sizeof(newname),nextpath,"msg");
             if((r=rename(oldname,newname))) {
                 ELOG("FAILED to move %s to %s, %s\n",oldname,newname,strerror(errno));
                 exit(-1);
@@ -1205,11 +1205,11 @@ class message :
         char mnewname[128];
         char uoldname[128];
         char unewname[128];
-        makefilename(moldname,path,"msg");
-        makefilename(uoldname,path,"und");
+        makefilename(moldname,sizeof(moldname),path,"msg");
+        makefilename(uoldname,sizeof(uoldname),path,"und");
         status &= ~MSGSTAT_BAD;
-        makefilename(mnewname,path,"msg");
-        makefilename(unewname,path,"und");
+        makefilename(mnewname,sizeof(mnewname),path,"msg");
+        makefilename(unewname,sizeof(unewname),path,"und");
         unlink(unewname);
         if(rename(uoldname,unewname)) { //does not exist before validation
             DLOG("RECOVER %s to %s failed\n",uoldname,unewname);
@@ -1231,11 +1231,11 @@ class message :
         char mnewname[128];
         char uoldname[128];
         char unewname[128];
-        makefilename(moldname,path,"msg");
-        makefilename(uoldname,path,"und");
+        makefilename(moldname,sizeof(moldname),path,"msg");
+        makefilename(uoldname,sizeof(uoldname),path,"und");
         status |= MSGSTAT_BAD;
-        makefilename(mnewname,path,"msg");
-        makefilename(unewname,path,"und");
+        makefilename(mnewname,sizeof(mnewname),path,"msg");
+        makefilename(unewname,sizeof(unewname),path,"und");
         unlink(unewname);
         if(rename(uoldname,unewname)) { //does not exist before validation
             DLOG("BAD insert %s to %s failed\n",uoldname,unewname);
@@ -1256,8 +1256,8 @@ class message :
         if(!path || !(status & MSGSTAT_SAV)) {
             return;
         }
-        makefilename(filename,path,"und");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"und");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.und",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         unlink(filename);
         return;
     }
@@ -1268,8 +1268,8 @@ class message :
             return;
         }
         remove_undo();
-        makefilename(filename,path,"msg");
-        //sprintf(filename,"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
+        makefilename(filename,sizeof(filename),path,"msg");
+        //snprintf(filename, sizeof(filename),"blk/%03X/%05X/%02x_%04x_%08x.msg",path>>20,path&0xFFFFF,(uint32_t)hashtype(),svid,msid);
         unlink(filename);
         return;
     }

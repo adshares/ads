@@ -359,14 +359,14 @@ void server::recyclemsid(uint32_t lastpath) {
 
 void server::del_msglog(uint32_t now,uint16_t svid,uint32_t msid) {
     char filename[64];
-    Helper::FileName::getLog(filename, now, svid, msid);
+    Helper::FileName::getLog(filename, sizeof(filename), now, svid, msid);
     unlink(filename);
 }
 
 void server::put_msglog(uint32_t now,uint16_t svid,uint32_t msid,std::map<uint64_t,log_t>& log) { //message log, by server
     char filename[64];
     int fd;
-    Helper::FileName::getLog(filename, now, svid, msid);
+    Helper::FileName::getLog(filename, sizeof(filename), now, svid, msid);
     if(msid) {
         fd = open(filename,O_WRONLY|O_CREAT|O_TRUNC,0644);
     } else {
@@ -395,7 +395,7 @@ int server::undo_bank(bool commit) { //will undo database changes and check if t
     last_srvs_.blockdir();
     for(uint16_t bank=1; bank<last_srvs_.nodes.size(); bank++) {
         char filename[64];
-        sprintf(filename,"usr/%04X.dat",bank);
+        snprintf(filename, sizeof(filename),"usr/%04X.dat",bank);
         int fd=open(filename,O_RDWR);
         if(fd<0) {
             failed=true;
@@ -405,7 +405,7 @@ int server::undo_bank(bool commit) { //will undo database changes and check if t
         int n;
         for(n=0; n<=rollback; n++) {
             uint32_t npath=path+n*BLOCKSEC;
-            Helper::FileName::getUndo(filename, npath, bank);
+            Helper::FileName::getUndo(filename, sizeof(filename), npath, bank);
             int nd = open(filename, O_RDONLY);
             if(nd<0) {
                 continue;
@@ -1011,7 +1011,7 @@ void server::LAST_block_final(hash_s& cand) {
     }
     txs_.lock();
     char filename[64];
-    Helper::FileName::getName(filename, LAST_block, "delta.txt");
+    Helper::FileName::getName(filename, sizeof(filename), LAST_block, "delta.txt");
     FILE *fp=fopen(filename,"w");
     char hash[64];
     //add new messages
@@ -1527,7 +1527,7 @@ std::string server::print_missing_verbose() {
         char miss[64];
         uint32_t msid=(key>>16) & 0xFFFFFFFFL;
         uint16_t svid=(key>>48);
-        sprintf(miss,"%04X:%08X",svid,msid);
+        snprintf(miss, sizeof(miss),"%04X:%08X",svid,msid);
         line+=miss;
         message_ptr me=message_svidmsid(svid,msid);
         if(me==nullmsg) {
@@ -1535,17 +1535,17 @@ std::string server::print_missing_verbose() {
         } else {
             line+=" KNOW";
             for(auto sv : me->know) {
-                sprintf(miss,",%04X",sv);
+                snprintf(miss, sizeof(miss),",%04X",sv);
                 line+=miss;
             }
             line+=" BUSY";
             for(auto sv : me->busy) {
-                sprintf(miss,",%04X",sv);
+                snprintf(miss, sizeof(miss),",%04X",sv);
                 line+=miss;
             }
             line+=" SENT";
             for(auto sv : me->sent) {
-                sprintf(miss,",%04X",sv);
+                snprintf(miss, sizeof(miss),",%04X",sv);
                 line+=miss;
             }
             line+="\n";
@@ -2605,7 +2605,7 @@ bool server::undo_message(message_ptr msg) { //FIXME, this is single threaded, r
     }
     int fd=open_bank(msg->svid);
     //char filename[64];
-    //sprintf(filename,"usr/%04X.dat",msg->svid);
+    //snprintf(filename, sizeof(filename),"usr/%04X.dat",msg->svid);
     //int fd=open(filename,O_RDWR|O_CREAT,0644);
     //if(fd<0){
     //  ELOG("ERROR, failed to open bank register %04X, fatal\n",msg->svid);
@@ -2630,7 +2630,7 @@ void server::log_broadcast(uint32_t path,char* p,int len,uint8_t* hash,uint8_t* 
     static boost::mutex local_;
     boost::lock_guard<boost::mutex> lock(local_);
     char filename[64];
-    Helper::FileName::getName(filename, path, "bro.log");
+    Helper::FileName::getName(filename, sizeof(filename), path, "bro.log");
     fd = open(filename, O_WRONLY|O_CREAT|O_APPEND, 0644);
     if(fd<0) {
         DLOG("ERROR, failed to open BROADCAST LOG %s\n",filename);
@@ -3398,7 +3398,7 @@ bool server::process_message(message_ptr msg) {
 int server::open_bank(uint16_t svid) { //
     char filename[64];
     DLOG("OPEN usr/%04X.dat\n",svid);
-    sprintf(filename,"usr/%04X.dat",svid);
+    snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
     int fd=open(filename,O_RDWR|O_CREAT,0644);
     if(fd<0) {
         ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
@@ -3927,7 +3927,7 @@ void server::commit_dividends(std::set<uint16_t>& update, uint64_t &myput_fee) {
         }
         DLOG("DIVIDEND to usr/%04X.dat\n",svid);
         int fd=open_bank(svid);
-        //sprintf(filename,"usr/%04X.dat",svid);
+        //snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
         //int fd=open(filename,O_RDWR,0644);
         //if(fd<0){
         //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);
@@ -4047,7 +4047,7 @@ void server::commit_deposit(std::set<uint16_t>& update, uint64_t &myput_fee) { /
             DLOG("DEPOSIT to usr/%04X.dat\n",svid);
             fd=open_bank(svid);
         }
-        //sprintf(filename,"usr/%04X.dat",svid);
+        //snprintf(filename, sizeof(filename),"usr/%04X.dat",svid);
         //fd=open(filename,O_RDWR,0644);
         //if(fd<0){
         //  ELOG("ERROR, failed to open bank register %04X, fatal\n",svid);

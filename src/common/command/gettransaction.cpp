@@ -208,14 +208,14 @@ bool GetTransaction::saveToFile(char *data) {
     memcpy(dir,&m_data.info.dst_node, sizeof(m_data.info.dst_node));
     memcpy(dir+2,&m_data.info.node_msgid, sizeof(m_data.info.node_msgid));
     char filename[128];
-    sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
+    snprintf(filename, sizeof(filename),"txs/%02X/%02X/%02X/%02X/%02X/%02X",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2]);
     create_directories(filename);
     if (is_directory(filename) == false) {
         m_responseError = ErrorCodes::Code::eCantCreateDirectory;
         return false;
     }
     permissions(filename, owner_all | group_read | group_exe | others_read | others_exe);
-    sprintf(filename, "%s/%04X.txs", filename, m_data.info.position);
+    snprintf(filename, sizeof(filename), "%s/%04X.txs", filename, m_data.info.position);
     std::ofstream file(filename, std::ofstream::out | std::ofstream::binary);
     if (file.is_open()) {
         file.write((char*)&m_responseHeader, sizeof(m_responseHeader));
@@ -249,7 +249,7 @@ bool GetTransaction::loadFromLocal() {
     memcpy(dir,&m_data.info.dst_node, sizeof(m_data.info.dst_node));
     memcpy(dir+2,&m_data.info.node_msgid, sizeof(m_data.info.node_msgid));
     char filename[128];
-    sprintf(filename,"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],m_data.info.position);
+    snprintf(filename, sizeof(filename),"txs/%02X/%02X/%02X/%02X/%02X/%02X/%04X.txs",dir[1],dir[0],dir[5],dir[4],dir[3],dir[2],m_data.info.position);
     std::ifstream file(filename, std::ifstream::in | std::ifstream::binary);
     if (file.is_open()) {
         file.read((char*)&m_responseHeader, sizeof(m_responseHeader));
@@ -286,13 +286,13 @@ void GetTransaction::toJson(boost::property_tree::ptree& ptree) {
         ptree.put(ERROR_INFO_TAG, m_responseInfo);
     } else {
         char tx_id[64];
-        sprintf(tx_id,"%04X:%08X:%04X",m_responseHeader.node,m_responseHeader.msid,m_responseHeader.tnum);
+        snprintf(tx_id, sizeof(tx_id),"%04X:%08X:%04X",m_responseHeader.node,m_responseHeader.msid,m_responseHeader.tnum);
         ptree.put("network_tx.id",&tx_id[0]);
         ptree.put("network_tx.block_time",m_responseHeader.path);
 
         char blockhex[9];
         blockhex[8]='\0';
-        sprintf(blockhex,"%08X", m_responseHeader.path);
+        snprintf(blockhex, sizeof(blockhex),"%08X", m_responseHeader.path);
         ptree.put("network_tx.block_id", blockhex);
 
         ptree.put("network_tx.node",m_responseHeader.node);

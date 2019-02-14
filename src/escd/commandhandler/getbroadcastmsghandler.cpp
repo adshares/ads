@@ -37,7 +37,7 @@ void GetBroadcastMsgHandler::onExecute() {
     std::vector<std::string> fileBuffer;
     if (!errorCode) {
         char filename[64];
-        Helper::FileName::getName(filename, path, "bro.log");
+        Helper::FileName::getName(filename, sizeof(filename), path, "bro.log");
 
         Helper::BlockFileReader broadcastFile(filename);
         if (!broadcastFile.isOpen()) {

@@ -108,7 +108,7 @@ void GetBlocks::writeStart(uint32_t time) {
 
 bool GetBlocks::saveNowhash(const header_t& head) {
     char filename[64];
-    sprintf(filename, "blk/%03X.now", head.now>>20);
+    snprintf(filename, sizeof(filename), "blk/%03X.now", head.now>>20);
     int fd=open(filename, O_WRONLY|O_CREAT, 0644);
     if(fd<0) {
         DLOG("ERROR writing to %s\n", filename);
@@ -208,7 +208,7 @@ bool GetBlocks::loadLastHeader() {
         }
 
         char fileName[128];
-        sprintf(fileName, "vip/%64s.vip", hash);
+        snprintf(fileName, sizeof(fileName), "vip/%64s.vip", hash);
         if(!m_firstVipKeys.storeVipKeys(fileName)) {
             ELOG("ERROR, failed to save VIP keys for hash %s\n", hash);
             return false;
@@ -240,7 +240,7 @@ bool GetBlocks::loadLastHeader() {
             hash[64]='\0';
             ed25519_key2text(hash, m_viphash, 32);
             char filename[128];
-            sprintf(filename,"vip/%64s.vip",hash);
+            snprintf(filename, sizeof(filename),"vip/%64s.vip",hash);
             m_firstVipKeys.loadFromFile(filename);
             m_firstKeysLen = m_firstVipKeys.getLength();
     }
@@ -274,7 +274,7 @@ bool GetBlocks::receiveNewVipKeys(INetworkClient& netClient) {
         }
 
         char fileName[128];
-        sprintf(fileName, "vip/%64s.vip", hash);
+        snprintf(fileName, sizeof(fileName), "vip/%64s.vip", hash);
         if(!m_firstVipKeys.storeVipKeys(fileName)) {
             ELOG("ERROR, failed to save VIP keys for hash %s\n", hash);
             return false;
@@ -442,7 +442,7 @@ void GetBlocks::toJson(boost::property_tree::ptree& ptree) {
         if(m_receivedHeaders.size() > 0) {
             for(const auto& sh : m_receivedHeaders) {
                 char blockId[9];
-                sprintf(blockId, "%08X", sh.now);
+                snprintf(blockId, sizeof(blockId), "%08X", sh.now);
                 blockElement.put_value(blockId);
                 blockChild.push_back(std::make_pair("", blockElement));
             }

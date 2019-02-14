@@ -95,7 +95,7 @@ int GetBlocksHandler::vipSize(uint8_t* viphash) {
     hash[64]='\0';
     ed25519_key2text(hash,viphash,32);
     char filename[128];
-    sprintf(filename,"vip/%64s.vip",hash);
+    snprintf(filename, sizeof(filename),"vip/%64s.vip",hash);
     struct stat sb;
     stat(filename,&sb);
     return((int)sb.st_size/(2+32));
@@ -106,7 +106,7 @@ bool GetBlocksHandler::prepareFirstVipKeys(uint8_t* vipHash) {
     hash[64]='\0';
     ed25519_key2text(hash, vipHash, 32);
     char vipFilename[128];
-    sprintf(vipFilename, "vip/%64s.vip", hash);
+    snprintf(vipFilename, sizeof(vipFilename), "vip/%64s.vip", hash);
 
     m_firstVipKeys.loadFromFile(vipFilename);
     const auto length = m_firstVipKeys.getLength();
@@ -127,7 +127,7 @@ void GetBlocksHandler::prepareNewVipKeys(uint8_t* vipHash) {
     hash[64]='\0';
     ed25519_key2text(hash, vipHash, 32);
     char vipFilename[128];
-    sprintf(vipFilename, "vip/%64s.vip", hash);
+    snprintf(vipFilename, sizeof(vipFilename), "vip/%64s.vip", hash);
 
     m_newVipKeys.loadFromFile(vipFilename);
     const auto length = m_newVipKeys.getLength();

@@ -156,7 +156,7 @@ uint32_t GetBlock::getUserMessageId() {
 ErrorCodes::Code GetBlock::prepareResponse() {
     uint32_t path = m_data.info.block;
     char filename[64];
-    Helper::FileName::getName(filename, path, "servers.srv");
+    Helper::FileName::getName(filename, sizeof(filename), path, "servers.srv");
     Helper::Servers servers(filename);
     servers.load();
 
@@ -178,7 +178,7 @@ void GetBlock::printSingleNode(boost::property_tree::ptree& tree, int nodeId, Se
 
     char nodehex[5];
     nodehex[4]='\0';
-    sprintf(nodehex,"%04X", nodeId);
+    snprintf(nodehex, sizeof(nodehex),"%04X", nodeId);
     node.put("id", nodehex);
 
     serverNode.toJson(node);
@@ -192,13 +192,13 @@ void GetBlock::toJson(boost::property_tree::ptree& ptree) {
         char blockhex[9];
         blockhex[8]='\0';
 
-        sprintf(blockhex,"%08X", m_data.info.block);
+        snprintf(blockhex, sizeof(blockhex),"%08X", m_data.info.block);
         ptree.put("block_time_hex", blockhex);
         blocktree.put("id", blockhex);
         ptree.put("block_time", m_data.info.block);
-        sprintf(blockhex,"%08X", m_data.info.block-BLOCKSEC);
+        snprintf(blockhex, sizeof(blockhex),"%08X", m_data.info.block-BLOCKSEC);
         ptree.put("block_prev",blockhex);
-        sprintf(blockhex,"%08X",m_data.info.block+BLOCKSEC);
+        snprintf(blockhex, sizeof(blockhex),"%08X",m_data.info.block+BLOCKSEC);
         ptree.put("block_next",blockhex);
 
         m_responseHeader.toJson(blocktree);
