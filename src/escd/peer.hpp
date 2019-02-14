@@ -1921,7 +1921,7 @@ NEXTUSER:
                 ELOG("%04X ERROR read_peer_missing_messages peersvid %04X\n",svid,*(uint16_t*)(((char*)&key)+6));
                 //leave();
                 //throw("ERROR in read_peer_add\n");
-                throw std::runtime_error("ERROR read_peer_missing_messages\n");
+                throw std::runtime_error("ERROR read_peer_missing_messages");
             }
             PEER_block_del.erase(key);
             PEER_block_add[key]=*(hash_s*)(read_msg_->data+sizeof(msidsvidhash_t)*i+6);

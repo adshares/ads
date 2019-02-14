@@ -35,7 +35,6 @@ void GetTransactionHandler::onExecute() {
         //servers.setNow(msg->path);
         servers srvs_;
         srvs_.now=msg->path;
-        //if (!servers.getMsglHashTree(msg->svid, msg->msid, mnum, hashes)) {
         if(!srvs_.msgl_hash_tree_get(msg->svid,msg->msid,mnum,hashes))
         {
             errorCode = ErrorCodes::Code::eFailToGetHashTree;

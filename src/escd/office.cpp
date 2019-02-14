@@ -659,10 +659,10 @@ uint32_t office::add_remote_user(uint16_t bbank,uint32_t buser,uint8_t* pkey) { 
         uint32_t msid;
         uint32_t mpos;
         usertxs_ptr txs(new usertxs(TXSTYPE_UOK,svid,luser,0,ltime,bbank,buser,0,NULL,(const char*)pkey));
-        add_msg(txs->data,*txs,msid,mpos);
-
-        if(msid) {
-            add_account((hash_s*)pkey,luser);
+        if(add_msg(txs->data,*txs,msid,mpos)) {
+            if(msid) {
+                add_account((hash_s*)pkey,luser);
+            }
         }
     } //blacklist
     return luser;
@@ -797,10 +797,10 @@ bool office::try_account(hash_s* key) {
         std::vector<hash_s> del;
         for(auto it=accounts_.begin(); it!=accounts_.end(); it++) {
             user_t u;
-            get_user(u, svid, it->second);
-
-            if(u.weight>0) {
-                del.push_back(it->first);
+            if(get_user(u, svid, it->second)) {
+                if(u.weight>0) {
+                    del.push_back(it->first);
+                }
             }
         }
 

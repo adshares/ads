@@ -891,7 +891,7 @@ uint32_t server::readmsid() {
     fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+3,h+2,h+1,h+0);
     fclose(fp);
     if(svid!=(uint32_t)opts_.svid) {
-        throw("FATAL ERROR: failed to read correct svid from msid.txt\n");
+        throw std::runtime_error("FATAL ERROR: failed to read correct svid from msid.txt");
     }
     return(path);
 }
@@ -900,7 +900,7 @@ uint32_t server::readmsid() {
 void server::writemsid() {
     FILE* fp=fopen("msid.txt","w");
     if(fp==NULL) {
-        throw("FATAL ERROR: failed to write to msid.txt\n");
+        throw std::runtime_error("FATAL ERROR: failed to write to msid.txt");
     }
     uint64_t *h=(uint64_t*)&msha_;
     fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[3],h[2],h[1],h[0]);
@@ -4606,6 +4606,9 @@ void server::write_header() {
     for(auto it=nkeys.begin(); it!=nkeys.end(); it++) {
         uint16_t node=it->first;
         if(memcmp(last_srvs_.nodes[node].pk,it->second.pkey,32)) {
+            continue;
+        }
+        if(it->second.skey == NULL) {
             continue;
         }
         message_ptr msg(new message(MSGTYPE_BLK,(uint8_t*)&head,sizeof(header_t),node,head.now,
