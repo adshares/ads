@@ -48,7 +48,7 @@ const char* const NODE_VERSION = "version";
 void print_user(user_t& u, boost::property_tree::ptree& pt, bool local, uint32_t bank, uint32_t user);
 void print_msgid_info(boost::property_tree::ptree& pt, uint16_t node, uint32_t msid, uint32_t mpos);
 bool parse_amount(int64_t& amount,std::string str_amount);
-char* print_amount(int64_t amount);
+std::string print_amount(int64_t amount);
 const std::string print_address(uint16_t node, uint32_t user, int32_t _suffix = -1);
 const std::string print_msg_id(uint16_t node, uint32_t user, int32_t _suffix = -1);
 const std::string print_msg_pack_id(uint16_t node, uint32_t msg_id);

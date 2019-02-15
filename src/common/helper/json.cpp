@@ -102,7 +102,7 @@ bool parse_amount(int64_t& amount,std::string str_amount) {
     return(true);
 }
 
-char* print_amount(int64_t amount) {
+std::string print_amount(int64_t amount) {
     static char text[32];
     uint is_neg = amount<0?1:0;
     std::string str_amount = std::to_string(amount);
@@ -110,8 +110,7 @@ char* print_amount(int64_t amount) {
         str_amount.insert(is_neg, AMOUNT_DECIMALS + 1 + is_neg - str_amount.length(), '0');
     }
     str_amount.insert(str_amount.length() - AMOUNT_DECIMALS, 1, '.');
-    strncpy(text, str_amount.c_str(), sizeof(text));
-    return(text);
+    return(str_amount);
 }
 
 char* mydate(uint32_t now) {

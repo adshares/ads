@@ -79,17 +79,24 @@ void CommandHandler::validateModifyingCommand(IBlockCommand& command) {
     if(command.getFee() < 0){
         throw ErrorCodes::Code::eFeeBelowZero;
     }
-
+    std::string info = "";
     int64_t available_balance = m_usera.weight - (command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS);
 
-    if(m_usera.lpath < m_offi.last_path() + BLOCKSEC - ACCOUNT_DORMANT_AGE) {
+    if(m_usera.weight - command.getDeduct() - command.getFee() < (command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS)) {
+        info = "Account balance after transaction must be at least " + Helper::print_amount((command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS));
+    }
+
+    int64_t next_now = m_offi.last_path() + 2 * BLOCKSEC;
+
+    if(((next_now/BLOCKSEC)%BLOCKDIV == 0) && (m_usera.lpath < next_now - ACCOUNT_DORMANT_AGE)) {
         available_balance += -TXS_GOK_FEE(m_usera.weight);
+        info = "Available balance reduced to " + Helper::print_amount(available_balance) + " for upcoming dormant fee. Issue cheaper tx first.";
     }
 
     if(command.getDeduct()+command.getFee() > available_balance) {
         DLOG("ERROR: too low balance txs:%016lX+fee:%016lX+min:%016lX>now:%016lX\n",
              command.getDeduct(), command.getFee(), (uint64_t)(command.getUserId() ? USER_MIN_MASS:BANK_MIN_UMASS), m_usera.weight);
-        throw ErrorCodes::Code::eLowBalance;
+        throw CommandException(ErrorCodes::Code::eLowBalance, info);
     }
 }
 
