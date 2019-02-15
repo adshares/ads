@@ -40,8 +40,6 @@ class client : public boost::enable_shared_from_this<client> {
 
     ~client() {
         m_timeout.cancel();
-        m_offi.leave(shared_from_this());
-        m_socket.cancel();
 #ifdef DEBUG
         DLOG("Client left %s:%s\n",m_addr.c_str(),m_port.c_str());
 #endif
