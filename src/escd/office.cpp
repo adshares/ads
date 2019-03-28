@@ -678,7 +678,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when) { // will cr
         deleted_users.pop_front();
         lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
         read(offifd_,&nu,sizeof(user_t));
-        if((nu.weight<=0) && (nu.stat&USER_STAT_DELETED)) {
+        if((nu.weight<=TXS_DIV_FEE) && (nu.stat&USER_STAT_DELETED) && (when-USER_MIN_AGE>nu.lpath)) {
             DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
             //FIXME !!!  wrong time !!! must use time from txs
             srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
@@ -741,7 +741,7 @@ void office::delete_user(uint32_t user) {
     lseek(offifd_,user*sizeof(user_t),SEEK_SET);
     read(offifd_,&u,sizeof(user_t));
     u.stat|=USER_STAT_DELETED;
-    if(u.weight>=0) {
+    if(u.weight>=TXS_DIV_FEE) {
         DLOG("WARNNG: network deleted active user %08X\n",user);
     }
     lseek(offifd_,-(off_t)sizeof(user_t),SEEK_CUR);

@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2019-03-28
+### Fixed
+- Deleted account handling
+
 ## [1.1.0] - 2019-02-15
 ### Added
 - Error codes and more descriptive error info returned by client
@@ -87,8 +91,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.1.1...HEAD
 
+[1.1.0]: https://github.com/adshares/ads/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/adshares/ads/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/adshares/ads/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/adshares/ads/compare/v1.0.2...v1.0.3

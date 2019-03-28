@@ -2798,7 +2798,7 @@ bool server::process_message(message_ptr msg) {
                     usera=&lu->second;
                 }
                 int64_t delta=usera->weight;
-                if(!(usera->stat&USER_STAT_DELETED)) {
+                if(!(usera->stat&USER_STAT_DELETED) || usera->weight >= TXS_DIV_FEE || (srvs_.now-USER_MIN_AGE<=usera->lpath)) {
                     ELOG("ERROR, overwriting active account %04X:%08X [weight:%016lX]\n",
                          utxs.bbank,nuser,usera->weight);
                     close(fd);
