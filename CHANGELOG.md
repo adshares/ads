@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.2] - 2019-04-04
+### Changed
+- Node waits much longer (>1 year) before deciding to overwrite inactive account
+
 ## [1.1.1] - 2019-03-28
 ### Fixed
 - Deleted account handling
@@ -91,8 +95,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.1.2...HEAD
 
+[1.1.2]: https://github.com/adshares/ads/compare/v1.1.1...v1.1.2
 [1.1.1]: https://github.com/adshares/ads/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/adshares/ads/compare/v1.0.4...v1.1.0
 [1.0.4]: https://github.com/adshares/ads/compare/v1.0.3...v1.0.4

@@ -678,7 +678,7 @@ uint32_t office::add_user(uint16_t abank,uint8_t* pk,uint32_t when) { // will cr
         deleted_users.pop_front();
         lseek(offifd_,nuser*sizeof(user_t),SEEK_SET);
         read(offifd_,&nu,sizeof(user_t));
-        if((nu.weight<=TXS_DIV_FEE) && (nu.stat&USER_STAT_DELETED) && (when-USER_MIN_AGE>nu.lpath)) {
+        if((nu.weight<=TXS_DIV_FEE) && (nu.stat&USER_STAT_DELETED) && (when-USER_MIN_AGE*8>nu.lpath)) {
             DLOG("WARNING, overwriting empty account %08X [weight:%016lX]\n",nuser,nu.weight);
             //FIXME !!!  wrong time !!! must use time from txs
             srv_.last_srvs_.init_user(nu,svid,nuser,(abank==svid?USER_MIN_MASS:0),pk,when);
