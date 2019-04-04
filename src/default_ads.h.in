@@ -21,6 +21,7 @@
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*2)
+#define OFFICE_USER_MIN_AGE   (BLOCKSEC*2)
 #define BANK_MIN_MTIME   (BLOCKSEC*2) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 128 /* shift from current block to archive old blocks */
 #define SHARED_PROFIT_NODES     10         /* Limit profit sharing to the first N nodes (+vips) */
@@ -38,6 +39,7 @@
 #define VALIDATORS 8 /* number of validator threads */
 #define CLIENT_POOL 16	/* do not offer more threads that are used for network message validation */
 #define USER_MIN_AGE     (BLOCKSEC*10000L) /* wait at least 10000 blocks before deleting an account */
+#define OFFICE_USER_MIN_AGE  ((USER_MIN_AGE) * 8) /* do not select to overwrite account before 80000 blocks */
 #define BANK_MIN_MTIME   (BLOCKSEC*1000L) /* AND if no transaction in this period bank can be taken over */
 #define BLOCKS_COMPRESSED_SHIFT 4096 /* shift from current block to archive old blocks */
 #define SHARED_PROFIT_NODES     100         /* Limit profit sharing to the first N nodes (+vips) */
