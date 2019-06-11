@@ -32,7 +32,7 @@ void ChangeNodeKey::setResponse(char* response) {
 }
 
 int ChangeNodeKey::getDataSize() {
-    return sizeof(m_data) - getSignatureSize() - sizeof(m_data.old_public_key);
+    return sizeof(m_data.info);
 }
 
 int ChangeNodeKey::getResponseSize() {
@@ -65,35 +65,33 @@ bool ChangeNodeKey::checkSignature(const uint8_t* hash, const uint8_t* pk) {
 }
 
 uint32_t ChangeNodeKey::getUserId() {
-    return m_data.src_user;
+    return m_data.info.src_user;
 }
 
 uint32_t ChangeNodeKey::getBankId() {
-    return m_data.src_node;
+    return m_data.info.src_node;
 }
 
 uint32_t ChangeNodeKey::getTime() {
-    return m_data.ttime;
+    return m_data.info.ttime;
 }
 
-unsigned char*  ChangeNodeKey::getBlockMessage()
-{
-    return reinterpret_cast<unsigned char*>(&m_data);
+bool ChangeNodeKey::hasOfiiceAdditionalData() {
+    return true;
 }
 
-size_t  ChangeNodeKey::getBlockMessageSize()
-{
-    return sizeof(ChangeNodeKeyData);
+unsigned char* ChangeNodeKey::getAdditionalData() {
+    return reinterpret_cast<unsigned char*>(old_public_key);
 }
 
-/*unsigned char*  ChangeNodeKey::getAdditionalData()
-{
-    return reinterpret_cast<unsigned char*>(&m_data.old_public_key);
+void ChangeNodeKey::setAdditionalData(char* data) {
+    char* ptr = data + getDataSize() + getSignatureSize();
+    memcpy(old_public_key, ptr, sizeof(old_public_key));
 }
 
 int ChangeNodeKey::getAdditionalDataSize() {
-    return sizeof(m_data.old_public_key);
-}*/
+    return sizeof(old_public_key);
+}
 
 int64_t ChangeNodeKey::getFee() {
     return TXS_BKY_FEE;
@@ -105,8 +103,18 @@ int64_t ChangeNodeKey::getDeduct() {
 
 bool ChangeNodeKey::send(INetworkClient& netClient)
 {
-    if(! netClient.sendData(getData(), sizeof(m_data) )) {
-        ELOG("ChangeNodeKey sending error\n");
+    if(!netClient.sendData(getData(), getDataSize())) {
+        ELOG("ChangeNodeKey sending data error\n");
+        return false;
+    }
+
+    if(!netClient.sendData(getAdditionalData(), getAdditionalDataSize())) {
+        ELOG("ChangeNodeKey sending additional data error\n");
+        return false;
+    }
+
+    if(!netClient.sendData(getSignature(), getSignatureSize())) {
+        ELOG("ChangeNodeKey sending signature error\n");
         return false;
     }
 
@@ -143,23 +151,23 @@ void ChangeNodeKey::saveResponse(settings& sts) {
 }
 
 uint32_t ChangeNodeKey::getDestBankId() {
-    return m_data.dst_node;
+    return m_data.info.dst_node;
 }
 
 uint8_t* ChangeNodeKey::getKey() {
-    return m_data.node_new_key;
+    return m_data.info.node_new_key;
 }
 
 void ChangeNodeKey::setOldPublicKey(uint8_t *data) {
-    std::copy(data, data + 32, m_data.old_public_key);
+    std::copy(data, data + 32, old_public_key);
 }
 
 uint8_t* ChangeNodeKey::getOldPublicKey() {
-    return m_data.old_public_key;
+    return old_public_key;
 }
 
 uint32_t ChangeNodeKey::getUserMessageId() {
-    return m_data.msg_id;
+    return m_data.info.msg_id;
 }
 
 std::string ChangeNodeKey::toString(bool /*pretty*/) {
@@ -170,7 +178,7 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
     if (!m_responseError) {
         ptree.put("result", "Node key changed");
         Helper::print_user(m_response.usera, ptree, true, this->getBankId(), this->getUserId());
-        Helper::print_msgid_info(ptree, m_data.src_node, m_response.msid, m_response.mpos);
+        Helper::print_msgid_info(ptree, m_data.info.src_node, m_response.msid, m_response.mpos);
     } else {
         if (m_responseError == ErrorCodes::Code::ePkeyDiffers) {
             std::stringstream tx_user_hashin{};
@@ -183,14 +191,14 @@ void ChangeNodeKey::toJson(boost::property_tree::ptree& ptree) {
 
 void ChangeNodeKey::txnToJson(boost::property_tree::ptree& ptree) {
     using namespace Helper;
-    ptree.put(TAG::TYPE, getTxnName(m_data.ttype));
-    ptree.put(TAG::SRC_NODE, m_data.src_node);
-    ptree.put(TAG::SRC_USER, m_data.src_user);
-    ptree.put(TAG::MSGID, m_data.msg_id);
-    ptree.put(TAG::TIME, m_data.ttime);
-    ptree.put(TAG::DST_NODE, m_data.dst_node);
-    ptree.put(TAG::OLD_PKEY, ed25519_key2text(m_data.old_public_key, sizeof(m_data.old_public_key)));
-    ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.node_new_key, sizeof(m_data.node_new_key)));
+    ptree.put(TAG::TYPE, getTxnName(m_data.info.ttype));
+    ptree.put(TAG::SRC_NODE, m_data.info.src_node);
+    ptree.put(TAG::SRC_USER, m_data.info.src_user);
+    ptree.put(TAG::MSGID, m_data.info.msg_id);
+    ptree.put(TAG::TIME, m_data.info.ttime);
+    ptree.put(TAG::DST_NODE, m_data.info.dst_node);
+    ptree.put(TAG::OLD_PKEY, ed25519_key2text(old_public_key, sizeof(old_public_key)));
+    ptree.put(TAG::NEW_PKEY, ed25519_key2text(m_data.info.node_new_key, sizeof(m_data.info.node_new_key)));
     ptree.put(TAG::SIGN, ed25519_key2text(getSignature(), getSignatureSize()));
 }
 

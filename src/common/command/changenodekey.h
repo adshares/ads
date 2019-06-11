@@ -99,13 +99,16 @@ class ChangeNodeKey : public BlockCommand {
     /** \brief Get old public key */
     virtual uint8_t* getOldPublicKey();
 
+    bool hasOfiiceAdditionalData()                                      override;
 
-    virtual unsigned char* getBlockMessage() override;
-    virtual size_t getBlockMessageSize() override;
-    //virtual unsigned char*  getAdditionalData()                 override;
+    /** \brief Get additional data. */
+    virtual unsigned char* getAdditionalData()                          override;
+
+    /** \brief Set additional data. */
+    void setAdditionalData(char* data)                                  override;
 
     /** \brief Get additional data size. */
-    //virtual int getAdditionalDataSize()                         override;
+    virtual int getAdditionalDataSize()                                 override;
 
 
     //IJsonSerialize interface
@@ -116,8 +119,8 @@ class ChangeNodeKey : public BlockCommand {
 
   private:
     ChangeNodeKeyData   m_data;
+    uint8_t old_public_key[32]{}; // additional data
     commandresponse     m_response;
-
 };
 
 #endif // CHANGENODEKEY_H
