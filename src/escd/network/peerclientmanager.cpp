@@ -46,6 +46,7 @@ PeerConnectManager::~PeerConnectManager()
 
 void PeerConnectManager::startConnect()
 {
+    DLOG("PEER_MANAGER START CONNECT\n");
     timerNextTick(1);
 }
 
@@ -73,25 +74,30 @@ void PeerConnectManager::startAccept()
 
 void PeerConnectManager::peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error)
 {    
-    DLOG("PEER ACCEPT %04X\n", new_peer->svid);
-
-    uint32_t now    = time(NULL);
-    auto address    = new_peer->socket().remote_endpoint().address().to_string();
-    auto port       = new_peer->socket().remote_endpoint().port();
-    in_addr_t addr  = inet_addr(address.c_str());
-
-    if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->svid) )
-    { 
+    if(m_peers.size() >= MAX_PEERS) {
+        ILOG("%04X PEER DROPPED, max connections reached\n", new_peer->svid);
         new_peer->leave();
-        WLOG("WARNING: dropping connection %d\n", new_peer->svid);
-    }
-    else
-    {        
-        new_peer->accept();
+    } else {
+        DLOG("PEER ACCEPT %04X\n", new_peer->svid);
 
-        boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
-        m_peers[std::make_pair(addr, port)] = new_peer;
-        DLOG("PEER ACCEPT inet addr %s port: %d \n", address.c_str(), port);
+        uint32_t now    = time(NULL);
+        auto address    = new_peer->socket().remote_endpoint().address().to_string();
+        auto port       = new_peer->socket().remote_endpoint().port();
+        in_addr_t addr  = inet_addr(address.c_str());
+
+        if (now>= m_server.srvs_now()+BLOCKSEC || error || alreadyConnected(addr, port, new_peer->svid) )
+        {
+            new_peer->leave();
+            WLOG("WARNING: dropping connection %d\n", new_peer->svid);
+        }
+        else
+        {
+            new_peer->accept();
+
+            boost::upgrade_lock< boost::shared_mutex > lock(m_peerMx);
+            m_peers[std::make_pair(addr, port)] = new_peer;
+            DLOG("PEER ACCEPT inet addr %s port: %d \n", address.c_str(), port);
+        }
     }
 
     startAccept();
@@ -274,26 +280,35 @@ void PeerConnectManager::connect(std::string peer_address, unsigned short port, 
 }
 
 
-void PeerConnectManager::connectPeersFromConfig(int& connNeeded)
+void PeerConnectManager::getPeersFromConfig(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs)
 {    
-    for(std::string addr : m_opts.peer)
+    for(std::string address : m_opts.peer)
     {
-        if(connNeeded <= 0){
-            break;
-        }
-
         std::string  peer_address;
         std::string  port;
         std::string  svid;
+        in_addr   addr;
 
-        m_opts.get_address(addr, peer_address, port, svid);
+        m_opts.get_address(address, peer_address, port, svid);
 
-        connect(peer_address, atoi(port.c_str()), atoi(svid.c_str()));
-        --connNeeded;
+        if(inet_aton(peer_address.c_str(), &addr) != 0 ){
+            peerAddrs.push_back(std::make_pair(addr.s_addr, atol(port.c_str())));
+        } else {
+            boost::asio::ip::tcp::resolver              resolver(m_ioService);
+            boost::asio::ip::tcp::resolver::query       query(peer_address.c_str(),SERVER_PORT);
+            boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
+            boost::asio::ip::tcp::resolver::iterator    end;
+
+
+            if(iterator != end && inet_aton(iterator->endpoint().address().to_string().c_str(), &addr) != 0)
+            {
+                peerAddrs.push_back(std::make_pair(addr.s_addr, atol(port.c_str())));
+            }
+        }
     }
 }
 
-void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
+void PeerConnectManager::getPeersFromDNS(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs)
 {
     try
     {
@@ -301,22 +316,17 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
         boost::asio::ip::tcp::resolver::query       query(m_opts.dnsa.c_str(),SERVER_PORT);
         boost::asio::ip::tcp::resolver::iterator    iterator = resolver.resolve(query);
         boost::asio::ip::tcp::resolver::iterator    end;
-        std::map<uint32_t,boost::asio::ip::tcp::resolver::iterator> endpoints;
 
         while(iterator != end)
         {
-            uint32_t r=random()%0xFFFFFFFF;
-            endpoints[r]=iterator++;
-        }
+            auto addr = iterator->endpoint().address().to_string();
+            auto port = iterator->endpoint().port();
 
-        for(auto ep=endpoints.begin(); ep!=endpoints.end(); ep++)
-        {
-            if(connNeeded <= 0){
-                break;
+            in_addr   inaddr;
+            if(inet_aton(addr.c_str(), &inaddr) != 0){
+                peerAddrs.push_back(std::make_pair(inaddr.s_addr, port));
             }
-
-            connect(ep->second->endpoint(), BANK_MAX);
-            --connNeeded;
+            ++iterator;
         }
     }
     catch (std::exception& e) {
@@ -324,42 +334,27 @@ void PeerConnectManager::connectPeersFromDNS(int& connNeeded)
     }
 }
 
-void PeerConnectManager::connectPeersFromServerFile(int& connNeeded)
+void PeerConnectManager::getPeersFromServerFile(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs)
 {
-    while(connNeeded>0)
+    node        nodeInfo;
+    uint16_t    maxNodeIndx   = m_server.getMaxNodeIndx();
+
+    if(maxNodeIndx == 0){
+        assert(maxNodeIndx != 0);
+        ELOG("maxNodeIndx == 0, returning\n");
+        return;
+    }
+
+    //@TODO: improve efficiency of finding new node
+    for(int i = 0; i<=maxNodeIndx; ++i)
     {
-        bool        foundNew{false};
-        node        nodeInfo;
-        uint16_t    nodeIndx      = m_server.getRandomNodeIndx();
-        uint16_t    maxNodeIndx   = m_server.getMaxNodeIndx();
-
-        if(maxNodeIndx == 0){
-            assert(maxNodeIndx != 0);
-            ELOG("maxNodeIndx == 0, returning\n");
-            return;
-        }
-
-        //@TODO: improve efficiency of finding new node
-        for(int i = 0; i<=maxNodeIndx; ++i)
+        //Don't connect to myself
+        if(i != m_opts.svid && m_server.getNode(i, nodeInfo))
         {
-            //Don't connect to myself
-            if(nodeIndx != m_opts.svid && m_server.getNode(nodeIndx, nodeInfo))
-            {
-                if(nodeInfo.port > 0
-                        && m_peers.find(std::make_pair(nodeInfo.ipv4, nodeInfo.port)) == m_peers.end() )
-                {
-                    foundNew = true;
-                    break;
-                }
+            if(nodeInfo.mtim >= m_server.last_srvs_.now - BLOCKSEC*BLOCKDIV) {
+                peerAddrs.push_back(std::make_pair(nodeInfo.ipv4, static_cast<unsigned short>(nodeInfo.port)));
             }
-
-            nodeIndx = (nodeIndx+1)%(maxNodeIndx+1);
         }
-
-        if(foundNew){           
-           connect(nodeInfo, nodeIndx);
-        }
-        --connNeeded;
     }
 }
 
@@ -377,22 +372,45 @@ void PeerConnectManager::connectPeers(const boost::system::error_code& error)
         return;
     }
 
-    int neededPeers = MAX_PEERS - m_peers.size();
+    int neededPeers = MIN_PEERS - m_peers.size();
     neededPeers = neededPeers > MAX_INIT_CONN ? MAX_INIT_CONN : neededPeers;
+
+    DLOG("Need %d peers\n", neededPeers);
 
     //@TODO: ADD check if we cannot access any server.
     //In this case SHUTDOWN_AND_RETURN() should be called
     if(!error && neededPeers > 0)
     {
-        if( (m_sourceCounter++)%10 <= 1) {
-            connectPeersFromConfig(neededPeers);
+        std::vector<std::pair<in_addr_t, unsigned short>> peerAddrs;
+
+        getPeersFromConfig(peerAddrs);
+        getPeersFromDNS(peerAddrs);
+        getPeersFromServerFile(peerAddrs);
+
+        DLOG("Available peers: %d\n", peerAddrs.size());
+
+        if(peerAddrs.size() > 0) {
+            for(unsigned int i=0; i<peerAddrs.size() && neededPeers > 0; i++) {
+                int inx = random()%peerAddrs.size();
+                auto peer = peerAddrs[inx];
+
+                if(peer.second > 0 && m_peers.find(peer) == m_peers.end() )
+                {
+                    DLOG("Selected peer %d. addr %d, port %d\n", inx, peer.first, peer.second);
+                    in_addr addr;
+                    addr.s_addr = peer.first;
+                    connect(addr, peer.second, BANK_MAX);
+                    peerAddrs[inx].second=0;
+                    neededPeers--;
+                } else {
+                    if(peer.second > 0) {
+                        DLOG("Selected peer already connected\n");
+                    }
+                }
+            }
+        } else {
+            ELOG("No peers available. Update your config file.\n");
         }
-
-        connectPeersFromServerFile(neededPeers);
-
-        if(!m_opts.init){
-            connectPeersFromDNS(neededPeers);
-        }        
     }    
 
     timerNextTick(m_timeout);

@@ -85,11 +85,11 @@ private:
     /** Request connect to new peers if needed from options, dns and nodes form server.srv */
     void connectPeers(const boost::system::error_code& error);    
     /** Connect to peer from server.srv */
-    void connectPeersFromServerFile(int& connNeeded);
+    void getPeersFromServerFile(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs);
     /** Connect to peer from options.cfg */
-    void connectPeersFromConfig(int& connNeeded);
+    void getPeersFromConfig(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs);
     /** Connect to peer from DNS */
-    void connectPeersFromDNS(int& connNeeded);
+    void getPeersFromDNS(std::vector<std::pair<in_addr_t, unsigned short>> &peerAddrs);
 
     /** Accept new peer */
     void peerAccept(boost::shared_ptr<peer> new_peer, const boost::system::error_code& error);
@@ -133,7 +133,6 @@ private:
     uint8_t                                         m_timeout{DEF_CONN_ATTEMPT_PERIOD};
     boost::thread_attributes                        m_threadAttributes;
     std::unique_ptr<boost::thread>                  m_ioThread;
-    unsigned int                                    m_sourceCounter{0}; ///< counter which helper to randomlly connect to diffrent peer source (dns, config...)
 };
 
 #endif // PEERCLIENTMANAGER_HPP
