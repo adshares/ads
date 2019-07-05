@@ -22,8 +22,14 @@ namespace Helper {
 boost::mutex blocklock;
 
 void arch_old_blocks(uint32_t currentTime) {
+    DLOG("Arch old blocks\n");
+    int blocks_shift = 16;
 #ifdef BLOCKS_COMPRESSED_SHIFT
-    unsigned int blocksComprShift = (BLOCKS_COMPRESSED_SHIFT <= BLOCKDIV) ? BLOCKDIV+1 : BLOCKS_COMPRESSED_SHIFT;
+    blocks_shift = BLOCKS_COMPRESSED_SHIFT;
+#endif
+
+    unsigned int blocksComprShift = (blocks_shift <= BLOCKDIV) ? BLOCKDIV+1 : blocks_shift;
+    DLOG("Block compressed shift: %d\n", blocksComprShift);
     currentTime -= ((blocksComprShift-1) * BLOCKSEC);
     char dirpath[16];
     char filepath[32];
@@ -43,7 +49,7 @@ void arch_old_blocks(uint32_t currentTime) {
                     Helper::remove_block(dirpath);
                 }
             } else {
-                std::cerr << "Error directory compressing "<<dirpath<<std::endl;
+                ELOG("Error directory: %s compressing\n", dirpath);
             }
         } else {
             return;
