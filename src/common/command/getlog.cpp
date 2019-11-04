@@ -69,7 +69,7 @@ void GetLog::setResponse(char* response) {
 }
 
 int GetLog::getDataSize() {
-    return sizeof(m_data.info) - (this->getClientVersion() == 1 ?  (sizeof(uint16_t)+sizeof(uint32_t)+sizeof(uint8_t)) : 0);
+    return sizeof(m_data.info);
 }
 
 int GetLog::getResponseSize() {
