@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.3] - 2021-05-06
+### Changed
+- Ubuntu Focal Fossa support
+
 ## [1.1.2] - 2019-04-04
 ### Changed
 - Node waits much longer (>1 year) before deciding to overwrite inactive account
