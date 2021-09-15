@@ -55,7 +55,6 @@ void arch_old_blocks(uint32_t currentTime) {
             return;
         }
     }
-#endif
 }
 
 void remove_block(const char* blockPath)
