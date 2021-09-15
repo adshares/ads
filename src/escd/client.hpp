@@ -274,7 +274,7 @@ class client : public boost::enable_shared_from_this<client> {
     void sendError(const ErrorCodes::Code error, boost::asio::const_buffer error_info) {
         try {
             if(m_version == 2) {
-                uint32_t size = ERROR_CODE_LENGTH + boost::asio::detail::buffer_size_helper(error_info);
+                uint32_t size = ERROR_CODE_LENGTH + error_info.size();
                 boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
             }
             boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));

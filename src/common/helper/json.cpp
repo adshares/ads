@@ -103,7 +103,6 @@ bool parse_amount(int64_t& amount,std::string str_amount) {
 }
 
 std::string print_amount(int64_t amount) {
-    static char text[32];
     uint is_neg = amount<0?1:0;
     std::string str_amount = std::to_string(amount);
     if(str_amount.length() < AMOUNT_DECIMALS + 1 + is_neg) {
