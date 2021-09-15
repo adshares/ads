@@ -1127,14 +1127,14 @@ void server::LAST_block_final(hash_s& cand) {
             }
             if(tm->second->svid!=lastsvid) {
                 lastsvid=tm->second->svid;
-                if(last_srvs_.nodes.size()<=lastsvid) {
+                if(lastsvid < last_srvs_.nodes.size()) {
                     minmsid=last_srvs_.nodes[lastsvid].msid;
                 } else {
                     minmsid=0;
                 }
             }
             if(tm->second->msid<=minmsid) {
-                ELOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
+                ILOG("FORGET message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
                 tm->second->remove_undo();
                 txs_msgs_.erase(tm);
                 continue;
@@ -1146,12 +1146,18 @@ void server::LAST_block_final(hash_s& cand) {
                 }
                 //bad_insert(tm->second); ... already inserted
                 //remove_message(tm->second);
-                txs_msgs_.erase(tm);
 
-                if(tm->second->svid==opts_.svid)
+                message_ptr msg = tm->second;
+
+                if(msg->svid==opts_.svid)
                 {
-                  ELOG("ERROR: trying to remove own invalid message, FATAL, MUST RESUBMIT (TODO!)\n");
-                  SHUTDOWN();
+                    ELOG("ERROR: trying to remove own invalid message, adding message to sign: %04X:%08X\n", msg->svid, msg->msid);
+                    msg->status &= ~MSGSTAT_BAD;
+                    sign_msgs_.push_front(msg);
+                } else
+                {
+                    ELOG("Erase invalid message from other node\n");
+                    txs_msgs_.erase(tm);
                 }
 
                 continue;
@@ -1189,8 +1195,6 @@ void server::LAST_block_final(hash_s& cand) {
                     txs_msgs_.erase(tm);
                     if(msg->svid==opts_.svid) {
                         sign_msgs_.push_front(msg);
-                    } else {
-                        txs_msgs_.erase(tm);
                     }
                 } else {
                     ILOG("MOVE message %04X:%08X [min:%08X len:%d]\n",tm->second->svid,tm->second->msid,minmsid,tm->second->len);
@@ -1285,11 +1289,15 @@ void server::signlater()
             if (opts_.svid != mp->second->svid) {
                 break;
             }
+            WLOG("Signlater message: %04X:%08X\n", mp->second->svid, mp->second->msid);
             msid++;
             assert(msid == mp->second->msid);
             mp->second->load(opts_.svid);
             mp->second->signnewtime(ntime, skey, pkey, msha);
             mp->second->status &= ~MSGSTAT_BAD;
+            mp->second->know.clear();
+            mp->second->busy.clear();
+            mp->second->sent.clear();
             memcpy(msha, mp->second->sigh, sizeof(hash_t));
             mp->second->save();
             mp->second->unload(opts_.svid);
