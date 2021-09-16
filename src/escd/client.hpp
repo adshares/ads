@@ -16,6 +16,11 @@
 #define NETSRV_SOCK_IDLE    5
 #define NETSRV_SOCK_MAXTRY  3
 
+#if BOOST_VERSION >= 107000
+#define BUFFER_SIZE(s) ((s).size())
+#else
+#define BUFFER_SIZE(s) (boost::asio::detail::buffer_size_helper(s))
+#endif
 
 //this could all go to the office class and we could use just the start() function
 
@@ -274,7 +279,7 @@ class client : public boost::enable_shared_from_this<client> {
     void sendError(const ErrorCodes::Code error, boost::asio::const_buffer error_info) {
         try {
             if(m_version == 2) {
-                uint32_t size = ERROR_CODE_LENGTH + error_info.size();
+                uint32_t size = ERROR_CODE_LENGTH + BUFFER_SIZE(error_info);
                 boost::asio::write(m_socket, boost::asio::buffer(&size, sizeof(size)));
             }
             boost::asio::write(m_socket, boost::asio::buffer(&error, ERROR_CODE_LENGTH));
