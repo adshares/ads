@@ -46,7 +46,7 @@ void update_log_level(const char* iniFilePath)
                 try {
                     int log_level = std::stoi(line.substr(length+1));
                     settings.level = (LoggingLevel)log_level;
-                } catch (std::exception) {}
+                } catch (std::exception&) {}
                 break;
             }
         }

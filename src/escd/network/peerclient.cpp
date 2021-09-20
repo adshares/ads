@@ -7,10 +7,18 @@
 using namespace boost::asio;
 using namespace boost::lambda;
 
+
+#if BOOST_VERSION >= 107000
+#define GET_IO_SERVICE(s) ((boost::asio::io_context&)(s).get_executor().context())
+#else
+#define GET_IO_SERVICE(s) ((s).get_io_service())
+#endif
+
+
 PeerClient::PeerClient(ip::tcp::socket& socket, peer& peer):
     m_peer(peer),
     m_socket(socket),
-    m_deadline(m_socket.get_io_service())
+    m_deadline(GET_IO_SERVICE(m_socket))
 {}
 
 void PeerClient::checkDeadline(boost::shared_ptr<deadline_timer> timer, const boost::system::error_code& ec)
@@ -76,7 +84,7 @@ std::size_t PeerClient::writeSync(void* data , uint32_t len,  int timeout)
     boost::asio::async_write(m_socket, boost::asio::buffer(data, len), boost::bind(&PeerClient::operationDone, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
     do{
-        auto& ioService = m_socket.get_io_service();
+       auto& ioService = GET_IO_SERVICE(m_socket);
         if (ioService.stopped()) {
             ELOG("Stopping writeSync task because io_service is stopped\n");
             m_ec = boost::asio::error::timed_out;
@@ -108,8 +116,9 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
     m_bytes_transferred = 0;
     boost::asio::async_read(m_socket, boost::asio::buffer(data, len), boost::bind(&PeerClient::operationDone, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 
-    do{
-        auto& ioService = m_socket.get_io_service();
+    do {
+        auto& ioService = GET_IO_SERVICE(m_socket);
+
         if (ioService.stopped()) {
             ELOG("Stopping readSync task because io_service is stopped\n");
             m_ec = boost::asio::error::timed_out;
@@ -132,7 +141,7 @@ std::size_t PeerClient::readSync(void* data , uint32_t len,  int timeout)
 
 void PeerClient::asyncRead(void* data, uint32_t len, peerCallback handler, int timeout)
 {    
-    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
+    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(GET_IO_SERVICE(m_socket));
 
     if(timeout > 0){
         timer->expires_from_now(boost::posix_time::seconds(timeout));
@@ -146,7 +155,7 @@ void PeerClient::asyncRead(void* data, uint32_t len, peerCallback handler, int t
 
 void PeerClient::asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpIterator, peerConnectCallback handler, int timeout)
 {    
-    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
+    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(GET_IO_SERVICE(m_socket));
 
     if(timeout > 0)
     {
@@ -159,7 +168,7 @@ void PeerClient::asyncConnect(boost::asio::ip::tcp::resolver::iterator& tcpItera
 
 void PeerClient::asyncWrite(void* data, uint32_t len, peerCallback handler, int timeout)
 {    
-    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(m_socket.get_io_service());
+    boost::shared_ptr<deadline_timer> timer = boost::make_shared<deadline_timer>(GET_IO_SERVICE(m_socket));
 
     if(timeout > 0){
         timer->expires_from_now(boost::posix_time::seconds(timeout));
