@@ -888,7 +888,11 @@ uint32_t server::readmsid() {
     uint32_t path;
     uint32_t svid;
     uint64_t *h=(uint64_t*)&msha_;
+#ifdef __x86_64
     fscanf(fp,"%X %X %X %lX %lX %lX %lX",&msid_,&path,&svid,h+3,h+2,h+1,h+0);
+#else
+    fscanf(fp,"%X %X %X %llX %llX %llX %llX",&msid_,&path,&svid,h+3,h+2,h+1,h+0);
+#endif
     fclose(fp);
     if(svid!=(uint32_t)opts_.svid) {
         throw std::runtime_error("FATAL ERROR: failed to read correct svid from msid.txt");
@@ -903,7 +907,11 @@ void server::writemsid() {
         throw std::runtime_error("FATAL ERROR: failed to write to msid.txt");
     }
     uint64_t *h=(uint64_t*)&msha_;
+#ifdef __x86_64
     fprintf(fp,"%08X %08X %04X %016lX %016lX %016lX %016lX\n",msid_,last_srvs_.now,opts_.svid,h[3],h[2],h[1],h[0]);
+#else
+    fprintf(fp,"%08X %08X %04X %016llX %016llX %016llX %016llX\n",msid_,last_srvs_.now,opts_.svid,h[3],h[2],h[1],h[0]);
+#endif
     fclose(fp);
 }
 

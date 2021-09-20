@@ -7,7 +7,7 @@ cmake_policy(SET CMP0048 NEW)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wextra")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -m64 -fPIC -Os -fno-strict-aliasing -Wno-class-memaccess -Wno-unused-result")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fPIC -Os -fno-strict-aliasing -Wno-class-memaccess -Wno-unused-result")
 
 #set(Boost_USE_STATIC_LIBS   ON)
 
