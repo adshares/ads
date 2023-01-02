@@ -6,6 +6,7 @@
 #include <boost/thread/lock_guard.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <deque>
 #include "hash.hpp"
 #include "user.hpp"
 #include "helper/blocks.h"

@@ -5,8 +5,8 @@
 #include <atomic>
 #include <memory>
 
-#include <boost/asio.hpp>
 #include "abstraction/interfaces.h"
+#include <boost/asio.hpp>
 
 
 class NetworkClient : public INetworkClient {

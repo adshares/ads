@@ -2,8 +2,8 @@
 #define INTERFACES_H
 
 #include <cstdint>
-#include <boost/property_tree/json_parser.hpp>
 #include "default.hpp"
+#include <boost/property_tree/json_parser.hpp>
 #include "settings.hpp"
 #include "command/errorcodes.h"
 #include "command/commandtype.h"

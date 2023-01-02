@@ -4,12 +4,12 @@
 #include <cstring>
 #include <vector>
 #include <memory>
+#include "user.hpp"
 #include <boost/thread/recursive_mutex.hpp>
 #include <boost/optional/optional.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-#include "user.hpp"
 #include "settings.hpp"
 #include "servers.hpp"
 #include "command/getaccount.h"

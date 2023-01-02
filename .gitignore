@@ -1,5 +1,7 @@
 .idea/
 build/
+src/cmake-build-debug/
+external/ed25519/*.o
 deployment/
 docs/doxygen/out/
 *.user

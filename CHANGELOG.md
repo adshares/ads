@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2023-01-02
+### Changed
+- Ubuntu Jammy Jellyfish support
+
 ## [1.1.4] - 2021-09-20
 ### Fixed
 - Ubuntu Focal Fossa support
@@ -103,8 +107,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update default parameters
 - Creating a dev version with reference to the last tag
 
-[Unreleased]: https://github.com/adshares/ads/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/adshares/ads/compare/v1.1.5...HEAD
 
+[1.1.5]: https://github.com/adshares/ads/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/adshares/ads/compare/v1.1.3...v1.1.4
 [1.1.3]: https://github.com/adshares/ads/compare/v1.1.2...v1.1.3
 [1.1.2]: https://github.com/adshares/ads/compare/v1.1.1...v1.1.2
