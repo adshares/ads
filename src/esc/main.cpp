@@ -1,6 +1,4 @@
 #include <iostream>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/property_tree/exceptions.hpp>
 #include "user.hpp"
 #include "settings.hpp"
 #include "networkclient.h"
@@ -8,6 +6,8 @@
 #include "helper/ascii.h"
 #include "helper/hash.h"
 #include "helper/json.h"
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/property_tree/exceptions.hpp>
 
 using namespace std;
 

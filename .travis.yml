@@ -35,8 +35,8 @@ before_install:
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/.adsd
   - export ADS_DEV=$HOME/adshares/ads-dev-tools
-  - export ADS_CONF="$ADS_DEV/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
-  - export ADS_START="$ADS_DEV/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
+  - export ADS_CONF="$TEST_DIR/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
+  - export ADS_START="$TEST_DIR/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
@@ -45,8 +45,6 @@ install:
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
-  # DEV
-  - git clone https://github.com/adshares/ads-dev-tools.git $ADS_DEV
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
@@ -61,7 +59,7 @@ jobs:
     - stage: compile
       script:
         - mkdir build
-        - $ADS_DEV/scripts/ads_compile -d -o build src
+        - $TEST_DIR/scripts/ads_compile -d -o build src
         - mkdir -p $BIN_DIR
         - cp build/esc/ads $BIN_DIR
         - cp build/escd/adsd $BIN_DIR
@@ -100,15 +98,7 @@ jobs:
       script:
         # compile
         - mkdir build
-        - build-wrapper-linux-x86-64 --out-dir bw_output $ADS_DEV/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
+        - build-wrapper-linux-x86-64 --out-dir bw_output $TEST_DIR/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
         - export PATH="build/esc:build/escd:$PATH"
         #Sonar Qube
         - cd $TRAVIS_BUILD_DIR && sonar-scanner
-
-notifications:
-  email: false
-  slack:
-    rooms:
-      secure: "mqIPOES4flFkWinn6YIJSDEwu+p976Sw1oq9Xd9lxuV5OH/Ow29oNwRxqoWtYhguCZ3F7rxDuXwXw+Mqp5hUQiWqTMmhZK5JW0oWYdi8BIz7Gif4KimsrCOrunCErXsp2ATh4NTO2Mz4ufhKORKGIE0UlywB9v8qOgE8JrgwdXvkHKsUeCf2Q5y2O6KnXFULDyUPZ3PZ4B79eK/3jCrZsrMLKdPZmlzbhZGWj4dfq0SSt2jFQULSQk7fyFVPC6myFjJK0eiVtkJVbR8BDninFX/wlCGf5nyJGVz87D/YcpkrbIIPLuPPow3PH+/Mk8j5FueEhIUcObMeZJ+SdCZW/jmYGN4xM8UW4pRK1sozEDRl9lhBPaJBSdiYsAoi33/xyr/WCOswX56NvE0dbuN126fgvJImZ0zAP33W4bM6IR1aDxnbbR0Kz7du3gu4kg71zJiFBomB+7yBxFoAcrricfxkdunI8QJpc0R0ElxiXbGCnJX7MKfOTmRjMABOjxNzCMOopcgVRjeVndgXiSc2uvknrCXuX4iekBsRHfetKfj/a/nVAFr2Z5WEH6UgLXrWzv7liSRY4xaaOAav0B78tueurLmI6ihoidN8Rk39Lz9BcvTRqPNzwg7McO3tP2dnLUuNnAIGzxp2tgjP1pGEVlUytEA8TVTJkyIIdKWwbto="
-    on_success: change
-    on_failure: always

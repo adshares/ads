@@ -1,6 +1,8 @@
 #ifndef DATAPRINTER_H
 #define DATAPRINTER_H
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <string>
 #include <memory>
 #include <map>

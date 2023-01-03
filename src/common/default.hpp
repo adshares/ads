@@ -1,6 +1,8 @@
 #ifndef DEFAULT_HPP
 #define DEFAULT_HPP
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <openssl/sha.h>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/recursive_mutex.hpp>

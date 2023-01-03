@@ -3,7 +3,7 @@
 .PHONY: clean
 #CC=gcc -Wall -fmax-errors=5 -fPIC -DED25519_SSE2 -O3 -m64 -static
 #CC=gcc -Wall -fmax-errors=5 -fPIC -O3 -m64 -static -DED25519_TEST
-CC=gcc -Wall -fmax-errors=5 -fPIC -O3 -m64
+CC=gcc -Wall -fmax-errors=5 -fPIC -O3 -m64 -Wno-deprecated-declarations
 #mysql: mysql.so
 all: test mytest key sign check
 restart: test mytest key sign check

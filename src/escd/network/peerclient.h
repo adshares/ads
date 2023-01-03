@@ -1,6 +1,8 @@
 #ifndef PEERCLIENT_H
 #define PEERCLIENT_H
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
+
 #include <memory>
 #include <boost/asio.hpp>
 #include <boost/thread/future.hpp>
