@@ -1,3 +1,6 @@
+# OS: Ubuntu Focal 20.04
+dist: focal
+
 # Project language
 language: cpp
 
@@ -10,7 +13,7 @@ cache:
   - $HOME/.m2
   - $HOME/.cache/pip
   - $HOME/ads/bin
-  
+
 addons:
   apt:
     sources:
@@ -27,7 +30,7 @@ addons:
       secure: "DFgzbLYNJN7cORCbBu0B+iH3Su3J+iy1R6ONKVGMDv7r+OJT6YokgH+j7FEVdDpNhCgdjGnYx0POjfP0FAjDJMmH6KkIi9zsAhJFMF4zez89H5dgLbuubDABC1WMnz+schlg3irNqqZPktF9PousGXCFH/jP94D3pofr1/LXKIYXtnX8vgadHOrWkUyxg/cR7ThBMltmjoYEXkhsOgMgUNS0QH2EFqb8+TScUE47T1hpfNRzRYmOxeLKsDG1Q8eraWtR9VBJNuS/jCrjwEMGURdhs3cVlRx79rnV8vTYhxKKzRPEi05mEaXOgqD7qhWMgef17LAOVVNgQob5fxYAxVZnHIEWP99bmYD6BSbqOuQudYxwmRseR81tGcmGq4dgfsOkyVW/cRLPuVAkw+XOb0Z5EnxqwXfg+1q1XAhugbAHGrl26kYLRxtU8W9Gx5AbQWAujUmI2myJ2Nvw3mrvIpU1QJSYC8HF8VYyjJD98AzfuZziuUBbo51Af8k6HFvqJvZu3jJHurADHoBlBMJMxr3m0zuXfmPZPzxaqjDbmlOBMgxkI3BYjj4qPg9V9X1ABon+Wnt5AJpkH+MKvc8A9j5mrVLrnFuXDpgBUmRmhqq//z73n8Km4Au0M5z4faYFAChbxLdqbSPg60MmxbYtBMjtiUoSImD2vRF+dq3nB+c="
     github_token:
       secure: "occVw21D0BqL4kNwcvirh3Dtdm3P8McXtqsJSrxDWkfmlrxVEJ/BeTglYAEjWq2UOsOxxa8Tbu6MSwdyEUJ6cljakyq2QPlljhHVmxNX0undlXbvQmYJVEhOgLqYkrHj74tSsYoRibFzQ+LRJENtG+Yn6/g/FAejZu7k6kqqF3wsNJZ3uMEkQTIUUxEd7yJ1llIFTr5VgSpOifxBdBQGKdJ8TivFnGpzapwdOsyGWDdjMmf0UKLcZtjz4A17Mj3lcHAOZZ9IHcX2IrRhY0Ahk2nIaRSV9Mdtl2U4lSKi0PICg4tM3sc5mpZFqxHwVpA2Qpo/StrXoYqjy/myxEaFBSao8p1Ujjgh3SOmX2wrt6FHmzx1oMenZm786PJdOnTwLCM6dzWkh7EnTYEeST545i0aek3ptXaiB0005e0SyEKQH8xiW+cu6b3sPrH0Wv+8G6nwMUTNam+dT7Y/ZOPNN87Gs57maQas5so30fjeQuQyMELde+/OlndyHcCrf1ICASqznvMTzp6gyL2aa7XBZwog7Zn3+8kG7+rIfjTM8xx/GCw6bDpRj1h8UjeDRa08Kky9dWhEBcBSAkWXuhd+/HRNyz8XU/5lCkGTxVZ4siI5Khstd60TpJ2TYFPXP1bzAviBmAlPzVwmeOGwObAFpngW3nrpJ2mynuOAPw2wPwc="
-      
+
 before_install:
   # CONST
   - export TEST_DIR=$HOME/adshares/ads-tests
