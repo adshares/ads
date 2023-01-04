@@ -17,7 +17,7 @@ cache:
 addons:
   apt:
     sources:
-      - ubuntu-toolchain-r-test
+      - sourceline: "ppa:ubuntu-toolchain-r/test"
     packages:
       - realpath
       - gcc-5 g++-5 build-essential make cmake
