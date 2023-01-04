@@ -15,13 +15,6 @@ cache:
   - $HOME/ads/bin
 
 addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - realpath
-      - gcc-5 g++-5 build-essential make cmake
-      - openssl libboost-all-dev libssl-dev
   hosts:
       - esc.dock
   sonarcloud:
@@ -43,9 +36,6 @@ before_install:
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
 install:
-  # C++14
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # COMMON
