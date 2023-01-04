@@ -44,8 +44,8 @@ before_install:
 
 install:
   # C++14
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 90
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # COMMON
