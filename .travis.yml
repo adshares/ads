@@ -5,9 +5,6 @@ dist: jammy
 # Project language
 language: cpp
 
-# Allows use container-based infrastructure
-sudo: required
-
 cache:
   directories:
   - .autoconf
@@ -20,7 +17,6 @@ addons:
     sources:
       - sourceline: "ppa:ubuntu-toolchain-r/test"
     packages:
-#      - manpages-fr-extra
       - gcc-11 g++-11 build-essential make cmake
       - openssl libboost-all-dev libssl-dev
   hosts:
@@ -46,65 +42,61 @@ install:
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 90
   # QA TESTS
-  - sudo add-apt-repository ppa:adshares/releases -y
-  - sudo apt-get update -q
-  - sudo apt install ads -y
-  - ads --version
   - git clone --branch debug https://github.com/adshares/ads-tests.git $TEST_DIR
   # COMMON
   - export PATH="$BIN_DIR:$PATH"
 
 stages:
-#  - compile
+  - compile
   - test
-#  - name: quality
-#    if: branch = master
+  - name: quality
+    if: branch = master
 
 jobs:
   include:
-#    - stage: compile
-#      script:
-#        - mkdir build
-#        - $TEST_DIR/scripts/ads_compile -d -o build src
-#        - mkdir -p $BIN_DIR
-#        - cp build/esc/ads $BIN_DIR
-#        - cp build/escd/adsd $BIN_DIR
-#        - export PATH="$BIN_DIR:$PATH"
-#
+    - stage: compile
+      script:
+        - mkdir build
+        - $TEST_DIR/scripts/ads_compile -d -o build src
+        - mkdir -p $BIN_DIR
+        - cp build/esc/ads $BIN_DIR
+        - cp build/escd/adsd $BIN_DIR
+        - export PATH="$BIN_DIR:$PATH"
+
     - stage: test
       script:
         - $ADS_CONF && $ADS_START && cd $TEST_DIR
         - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @transfer"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent,@fee_sharing,@vip_key,@function,@dry_run"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @retrieve_funds"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @account"
-#    - stage: test
-#      script:
-#        - $ADS_CONF && $ADS_START && cd $TEST_DIR
-#        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
-#
-#    - stage: quality
-#      script:
-#        # compile
-#        - mkdir build
-#        - build-wrapper-linux-x86-64 --out-dir bw_output $TEST_DIR/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
-#        - export PATH="build/esc:build/escd:$PATH"
-#        #Sonar Qube
-#        - cd $TRAVIS_BUILD_DIR && sonar-scanner
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @status"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @broadcast"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @non_existent,@fee_sharing,@vip_key,@function,@dry_run"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @retrieve_funds"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @account"
+    - stage: test
+      script:
+        - $ADS_CONF && $ADS_START && cd $TEST_DIR
+        - mvn clean test $TESTS_ARGS -Dcucumber.options="--tags @node"
+
+    - stage: quality
+      script:
+        # compile
+        - mkdir build
+        - build-wrapper-linux-x86-64 --out-dir bw_output $TEST_DIR/scripts/ads_compile -d -o build -c "-DCODE_COVERAGE=1" src
+        - export PATH="build/esc:build/escd:$PATH"
+        #Sonar Qube
+        - cd $TRAVIS_BUILD_DIR && sonar-scanner
