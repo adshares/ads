@@ -33,7 +33,7 @@ before_install:
   - export BIN_DIR=$HOME/ads/bin
   - export DATA_DIR=$HOME/.adsd
   - export ADS_DEV=$HOME/adshares/ads-dev-tools
-  - export ADS_CONF="$TEST_DIR/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --port=9000 --client-port=9001 --genesis $GENESIS_FILE"
+  - export ADS_CONF="$TEST_DIR/scripts/ads_configure --data-dir=$DATA_DIR --interface=127.0.0.1 --genesis $GENESIS_FILE"
   - export ADS_START="$TEST_DIR/scripts/ads_ctl --data-dir=$DATA_DIR --init --wait --debug start"
   - export TESTS_ARGS="-q -f pom-qa.xml -Ddir.data=$DATA_DIR -Dgenesis.file=$GENESIS_FILE"
 
