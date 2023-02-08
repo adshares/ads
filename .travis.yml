@@ -1,8 +1,9 @@
+# OS: Ubuntu (Jammy Jellyfish) 22.04
+os: linux
+dist: jammy
+
 # Project language
 language: cpp
-
-# Allows use container-based infrastructure
-sudo: required
 
 cache:
   directories:
@@ -10,24 +11,21 @@ cache:
   - $HOME/.m2
   - $HOME/.cache/pip
   - $HOME/ads/bin
-  
+
 addons:
   apt:
     sources:
-      - ubuntu-toolchain-r-test
+      - sourceline: "ppa:ubuntu-toolchain-r/test"
     packages:
-      - realpath
-      - gcc-5 g++-5 build-essential make cmake
+      - gcc-11 g++-11 build-essential make cmake
       - openssl libboost-all-dev libssl-dev
   hosts:
       - esc.dock
   sonarcloud:
     organization: "adshares-github"
     token:
-      secure: "DFgzbLYNJN7cORCbBu0B+iH3Su3J+iy1R6ONKVGMDv7r+OJT6YokgH+j7FEVdDpNhCgdjGnYx0POjfP0FAjDJMmH6KkIi9zsAhJFMF4zez89H5dgLbuubDABC1WMnz+schlg3irNqqZPktF9PousGXCFH/jP94D3pofr1/LXKIYXtnX8vgadHOrWkUyxg/cR7ThBMltmjoYEXkhsOgMgUNS0QH2EFqb8+TScUE47T1hpfNRzRYmOxeLKsDG1Q8eraWtR9VBJNuS/jCrjwEMGURdhs3cVlRx79rnV8vTYhxKKzRPEi05mEaXOgqD7qhWMgef17LAOVVNgQob5fxYAxVZnHIEWP99bmYD6BSbqOuQudYxwmRseR81tGcmGq4dgfsOkyVW/cRLPuVAkw+XOb0Z5EnxqwXfg+1q1XAhugbAHGrl26kYLRxtU8W9Gx5AbQWAujUmI2myJ2Nvw3mrvIpU1QJSYC8HF8VYyjJD98AzfuZziuUBbo51Af8k6HFvqJvZu3jJHurADHoBlBMJMxr3m0zuXfmPZPzxaqjDbmlOBMgxkI3BYjj4qPg9V9X1ABon+Wnt5AJpkH+MKvc8A9j5mrVLrnFuXDpgBUmRmhqq//z73n8Km4Au0M5z4faYFAChbxLdqbSPg60MmxbYtBMjtiUoSImD2vRF+dq3nB+c="
-    github_token:
-      secure: "occVw21D0BqL4kNwcvirh3Dtdm3P8McXtqsJSrxDWkfmlrxVEJ/BeTglYAEjWq2UOsOxxa8Tbu6MSwdyEUJ6cljakyq2QPlljhHVmxNX0undlXbvQmYJVEhOgLqYkrHj74tSsYoRibFzQ+LRJENtG+Yn6/g/FAejZu7k6kqqF3wsNJZ3uMEkQTIUUxEd7yJ1llIFTr5VgSpOifxBdBQGKdJ8TivFnGpzapwdOsyGWDdjMmf0UKLcZtjz4A17Mj3lcHAOZZ9IHcX2IrRhY0Ahk2nIaRSV9Mdtl2U4lSKi0PICg4tM3sc5mpZFqxHwVpA2Qpo/StrXoYqjy/myxEaFBSao8p1Ujjgh3SOmX2wrt6FHmzx1oMenZm786PJdOnTwLCM6dzWkh7EnTYEeST545i0aek3ptXaiB0005e0SyEKQH8xiW+cu6b3sPrH0Wv+8G6nwMUTNam+dT7Y/ZOPNN87Gs57maQas5so30fjeQuQyMELde+/OlndyHcCrf1ICASqznvMTzp6gyL2aa7XBZwog7Zn3+8kG7+rIfjTM8xx/GCw6bDpRj1h8UjeDRa08Kky9dWhEBcBSAkWXuhd+/HRNyz8XU/5lCkGTxVZ4siI5Khstd60TpJ2TYFPXP1bzAviBmAlPzVwmeOGwObAFpngW3nrpJ2mynuOAPw2wPwc="
-      
+      secure: "AcHKRhRrz2XESOGniepK2ug1wvpF917uUxzQ2xH9WAQgZnPBXjtLKMs9++vCQnXtv8m1j13UTKPZERqHCDkljENDWQVNr7Gs1OeAus6qSPhShetp6xZgFCWT1aX8bcKTzqPeK4yfDmEYaBEi63swmA3tbPcpPhmDvczSFMq7tgoBD4B4uiGt0wC41hqZiGfku30RBk3dPP47TJls17PWky5RmXiaE2ICnQzRSH5cBc0bpl9qTEcsbu1rl4So8O1zN+Fs/V4Kbdv/oyjqG34X+3CK4J6IpDDXbmKMkwDjTwpTlg/VMDpWDDaP0df5XlL5CAKC4SD0II17QQb+4BIOP3ZxRK02awYdh1EB26IupmC1l4018c7azYDvnaan3QANuh0YhbGxTHTHFrgvAdIXhU3XtEX0z8LC+CvXrjEpBTjI81aetY/KU9AfabXbns/m/nGf5GjKIXTqnjaEER98ljQ0N62o9hFF4ND6MptmXb4joRnYAYf4BvFaxN9V/IJdUEpAaNfSiEgDcS3XvrcOvoIVHzJkIOfGZNSe+EhQVf+XYv7GfsKRCg5u/UG3bq+5c+misOvGoP0ieWZJhrtXzARm+6yAXMkjCsrNHwNbJKQ1VaRmFojPGIUyQ6iQJ8L0CKF2Z4lPVfLxhCPfZLJwEfui59a+GPMgL0R578gLh/M="
+
 before_install:
   # CONST
   - export TEST_DIR=$HOME/adshares/ads-tests
@@ -41,8 +39,8 @@ before_install:
 
 install:
   # C++14
-  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90
-  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 90
+  - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 90
+  - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 90
   # QA TESTS
   - git clone https://github.com/adshares/ads-tests.git $TEST_DIR
   # COMMON
